@@ -4,23 +4,57 @@ import type React from "react"
 
 import { useState } from "react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
 import { Heart, Mail, Lock, Loader2 } from "lucide-react"
+import { signIn, getSession } from "@/lib/auth-client"
 
 export default function SignInPage() {
+  const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
+  const [error, setError] = useState("")
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
-    await new Promise((resolve) => setTimeout(resolve, 1500))
-    setIsLoading(false)
+    setError("")
+
+    try {
+      const { error: signInError } = await signIn.email({
+        email,
+        password,
+      })
+
+      if (signInError) {
+        setError(signInError.message || "Invalid email or password")
+        setIsLoading(false)
+        return
+      }
+
+      // Get session to check user role and onboarding status
+      const session = await getSession()
+      const user = session?.data?.user as any
+
+      if (user) {
+        // Redirect based on role and onboarding status
+        if (!user.isOnboarded) {
+          router.push(user.role === "volunteer" ? "/volunteer/onboarding" : "/ngo/onboarding")
+        } else {
+          router.push(user.role === "volunteer" ? "/volunteer/dashboard" : "/ngo/dashboard")
+        }
+      } else {
+        router.push("/")
+      }
+    } catch (err: any) {
+      setError(err.message || "Something went wrong")
+      setIsLoading(false)
+    }
   }
 
   return (
@@ -44,6 +78,11 @@ export default function SignInPage() {
             </CardHeader>
             <CardContent>
               <form onSubmit={handleSubmit} className="space-y-4">
+                {error && (
+                  <div className="p-3 rounded-lg bg-destructive/10 text-destructive text-sm">
+                    {error}
+                  </div>
+                )}
                 <div className="space-y-2">
                   <Label htmlFor="email">Email</Label>
                   <div className="relative">

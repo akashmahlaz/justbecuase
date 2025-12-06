@@ -9,10 +9,8 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
-import { Badge } from "@/components/ui/badge"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Checkbox } from "@/components/ui/checkbox"
-import { Heart, Mail, Lock, User, Building2, MapPin, Loader2, ArrowRight, ArrowLeft, CheckCircle } from "lucide-react"
+import { Heart, Mail, Lock, User, Building2, Loader2, ArrowRight, ArrowLeft, CheckCircle } from "lucide-react"
+import { signUp } from "@/lib/auth-client"
 
 type AccountType = "volunteer" | "ngo" | null
 
@@ -21,75 +19,51 @@ export default function SignUpPage() {
   const [step, setStep] = useState(1)
   const [accountType, setAccountType] = useState<AccountType>(null)
   const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState("")
   const [formData, setFormData] = useState({
     name: "",
     email: "",
     password: "",
     confirmPassword: "",
-    location: "",
-    orgName: "",
-    registrationNumber: "",
-    causes: [] as string[],
-    skills: [] as string[],
-    agreeTerms: false,
   })
-
-  const skillOptions = [
-    "Marketing",
-    "Web Development",
-    "Graphic Design",
-    "Finance",
-    "Legal",
-    "Strategy",
-    "HR",
-    "Fundraising",
-    "Content Writing",
-    "Social Media",
-  ]
-
-  const causeOptions = [
-    "Education",
-    "Health",
-    "Environment",
-    "Poverty",
-    "Human Rights",
-    "Animal Welfare",
-    "Community Development",
-    "Youth",
-  ]
-
-  const locations = [
-    "Singapore",
-    "Hong Kong",
-    "Jakarta, Indonesia",
-    "Manila, Philippines",
-    "Mumbai, India",
-    "Tokyo, Japan",
-    "Seoul, South Korea",
-    "Bangkok, Thailand",
-    "Kuala Lumpur, Malaysia",
-  ]
-
-  const toggleSkill = (skill: string) => {
-    setFormData((prev) => ({
-      ...prev,
-      skills: prev.skills.includes(skill) ? prev.skills.filter((s) => s !== skill) : [...prev.skills, skill],
-    }))
-  }
-
-  const toggleCause = (cause: string) => {
-    setFormData((prev) => ({
-      ...prev,
-      causes: prev.causes.includes(cause) ? prev.causes.filter((c) => c !== cause) : [...prev.causes, cause],
-    }))
-  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    setError("")
+
+    if (formData.password !== formData.confirmPassword) {
+      setError("Passwords do not match")
+      return
+    }
+
+    if (formData.password.length < 8) {
+      setError("Password must be at least 8 characters")
+      return
+    }
+
     setIsLoading(true)
-    await new Promise((resolve) => setTimeout(resolve, 2000))
-    setIsLoading(false)
-    router.push(accountType === "volunteer" ? "/volunteer/dashboard" : "/ngo/dashboard")
+
+    try {
+      const { error: signUpError } = await signUp.email({
+        email: formData.email,
+        password: formData.password,
+        name: formData.name,
+        role: accountType,
+        isOnboarded: false,
+      } as any)
+
+      if (signUpError) {
+        setError(signUpError.message || "Failed to create account")
+        setIsLoading(false)
+        return
+      }
+
+      // Redirect to onboarding based on account type
+      router.push(accountType === "volunteer" ? "/volunteer/onboarding" : "/ngo/onboarding")
+    } catch (err: any) {
+      setError(err.message || "Something went wrong")
+      setIsLoading(false)
+    }
   }
 
   const renderStep1 = () => (
@@ -152,13 +126,7 @@ export default function SignUpPage() {
   )
 
   const renderStep2 = () => (
-    <form
-      onSubmit={(e) => {
-        e.preventDefault()
-        setStep(3)
-      }}
-      className="space-y-4"
-    >
+    <form onSubmit={handleSubmit} className="space-y-4">
       <div className="flex items-center gap-2 mb-6">
         <Button type="button" variant="ghost" size="icon" onClick={() => setStep(1)}>
           <ArrowLeft className="h-4 w-4" />
@@ -167,24 +135,13 @@ export default function SignUpPage() {
           <h2 className="font-semibold text-foreground">
             {accountType === "volunteer" ? "Create your volunteer account" : "Register your organization"}
           </h2>
-          <p className="text-sm text-muted-foreground">Step 1 of 2: Basic information</p>
+          <p className="text-sm text-muted-foreground">Enter your details to get started</p>
         </div>
       </div>
 
-      {accountType === "ngo" && (
-        <div className="space-y-2">
-          <Label htmlFor="orgName">Organization Name</Label>
-          <div className="relative">
-            <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              id="orgName"
-              placeholder="Your organization name"
-              value={formData.orgName}
-              onChange={(e) => setFormData({ ...formData, orgName: e.target.value })}
-              className="pl-10"
-              required
-            />
-          </div>
+      {error && (
+        <div className="p-3 rounded-lg bg-destructive/10 text-destructive text-sm">
+          {error}
         </div>
       )}
 
@@ -219,160 +176,54 @@ export default function SignUpPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label htmlFor="password">Password</Label>
-          <div className="relative">
-            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              id="password"
-              type="password"
-              placeholder="Create password"
-              value={formData.password}
-              onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-              className="pl-10"
-              required
-            />
-          </div>
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="confirmPassword">Confirm</Label>
-          <div className="relative">
-            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              id="confirmPassword"
-              type="password"
-              placeholder="Confirm password"
-              value={formData.confirmPassword}
-              onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
-              className="pl-10"
-              required
-            />
-          </div>
+      <div className="space-y-2">
+        <Label htmlFor="password">Password</Label>
+        <div className="relative">
+          <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            id="password"
+            type="password"
+            placeholder="Create password (min 8 characters)"
+            value={formData.password}
+            onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+            className="pl-10"
+            required
+            minLength={8}
+          />
         </div>
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="location">Location</Label>
-        <Select value={formData.location} onValueChange={(value) => setFormData({ ...formData, location: value })}>
-          <SelectTrigger>
-            <div className="flex items-center gap-2">
-              <MapPin className="h-4 w-4 text-muted-foreground" />
-              <SelectValue placeholder="Select your location" />
-            </div>
-          </SelectTrigger>
-          <SelectContent>
-            {locations.map((loc) => (
-              <SelectItem key={loc} value={loc}>
-                {loc}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-
-      {accountType === "ngo" && (
-        <div className="space-y-2">
-          <Label htmlFor="regNumber">Registration Number (optional)</Label>
+        <Label htmlFor="confirmPassword">Confirm Password</Label>
+        <div className="relative">
+          <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            id="regNumber"
-            placeholder="Organization registration number"
-            value={formData.registrationNumber}
-            onChange={(e) => setFormData({ ...formData, registrationNumber: e.target.value })}
+            id="confirmPassword"
+            type="password"
+            placeholder="Confirm password"
+            value={formData.confirmPassword}
+            onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
+            className="pl-10"
+            required
           />
-          <p className="text-xs text-muted-foreground">For verified badge on your profile</p>
-        </div>
-      )}
-
-      <Button type="submit" className="w-full bg-primary hover:bg-primary/90">
-        Continue
-        <ArrowRight className="ml-2 h-4 w-4" />
-      </Button>
-    </form>
-  )
-
-  const renderStep3 = () => (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      <div className="flex items-center gap-2 mb-6">
-        <Button type="button" variant="ghost" size="icon" onClick={() => setStep(2)}>
-          <ArrowLeft className="h-4 w-4" />
-        </Button>
-        <div>
-          <h2 className="font-semibold text-foreground">
-            {accountType === "volunteer" ? "Select your skills" : "Select your causes"}
-          </h2>
-          <p className="text-sm text-muted-foreground">Step 2 of 2: Help us match you better</p>
         </div>
       </div>
 
-      {accountType === "volunteer" ? (
-        <div className="space-y-4">
-          <Label>What skills can you offer? (select at least 1)</Label>
-          <div className="flex flex-wrap gap-2">
-            {skillOptions.map((skill) => (
-              <Badge
-                key={skill}
-                variant={formData.skills.includes(skill) ? "default" : "outline"}
-                className={`cursor-pointer text-sm py-1.5 px-3 transition-colors ${
-                  formData.skills.includes(skill)
-                    ? "bg-primary text-primary-foreground"
-                    : "hover:bg-primary/10 hover:text-primary hover:border-primary"
-                }`}
-                onClick={() => toggleSkill(skill)}
-              >
-                {skill}
-              </Badge>
-            ))}
-          </div>
-        </div>
-      ) : (
-        <div className="space-y-4">
-          <Label>What causes does your organization focus on? (select at least 1)</Label>
-          <div className="flex flex-wrap gap-2">
-            {causeOptions.map((cause) => (
-              <Badge
-                key={cause}
-                variant={formData.causes.includes(cause) ? "default" : "outline"}
-                className={`cursor-pointer text-sm py-1.5 px-3 transition-colors ${
-                  formData.causes.includes(cause)
-                    ? "bg-secondary text-secondary-foreground"
-                    : "hover:bg-secondary/10 hover:text-secondary hover:border-secondary"
-                }`}
-                onClick={() => toggleCause(cause)}
-              >
-                {cause}
-              </Badge>
-            ))}
-          </div>
-        </div>
-      )}
-
-      <div className="flex items-start space-x-2 pt-4">
-        <Checkbox
-          id="terms"
-          checked={formData.agreeTerms}
-          onCheckedChange={(checked) => setFormData({ ...formData, agreeTerms: checked as boolean })}
-        />
-        <label htmlFor="terms" className="text-sm text-muted-foreground leading-tight">
-          I agree to the{" "}
-          <Link href="/terms" className="text-primary hover:underline">
-            Terms of Service
-          </Link>{" "}
-          and{" "}
-          <Link href="/privacy" className="text-primary hover:underline">
-            Privacy Policy
-          </Link>
-        </label>
-      </div>
+      <p className="text-xs text-muted-foreground">
+        By creating an account, you agree to our{" "}
+        <Link href="/terms" className="text-primary hover:underline">
+          Terms of Service
+        </Link>{" "}
+        and{" "}
+        <Link href="/privacy" className="text-primary hover:underline">
+          Privacy Policy
+        </Link>
+      </p>
 
       <Button
         type="submit"
         className="w-full bg-primary hover:bg-primary/90"
-        disabled={
-          isLoading ||
-          !formData.agreeTerms ||
-          (accountType === "volunteer" ? formData.skills.length === 0 : formData.causes.length === 0)
-        }
+        disabled={isLoading}
       >
         {isLoading ? (
           <>
@@ -382,7 +233,7 @@ export default function SignUpPage() {
         ) : (
           <>
             <CheckCircle className="mr-2 h-4 w-4" />
-            Create Account
+            Create Account & Continue
           </>
         )}
       </Button>
@@ -411,7 +262,6 @@ export default function SignUpPage() {
             <CardContent>
               {step === 1 && renderStep1()}
               {step === 2 && renderStep2()}
-              {step === 3 && renderStep3()}
 
               {step === 1 && (
                 <>
