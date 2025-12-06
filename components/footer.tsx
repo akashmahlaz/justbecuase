@@ -94,43 +94,65 @@ export function Footer() {
                   Dashboard
                 </Link>
               </li>
+            </ul>
+          </div>
+
+          {/* Company */}
+          <div>
+            <h4 className="font-semibold text-foreground mb-4">Company</h4>
+            <ul className="space-y-3">
               <li>
-                <Link href="/pricing" className="text-muted-foreground hover:text-foreground transition-colors">
-                  Pricing
+                <Link href="/about" className="text-muted-foreground hover:text-foreground transition-colors">
+                  About Us
+                </Link>
+              </li>
+              <li>
+                <Link href="/blog" className="text-muted-foreground hover:text-foreground transition-colors">
+                  Blog
+                </Link>
+              </li>
+              <li>
+                <Link href="/changelog" className="text-muted-foreground hover:text-foreground transition-colors">
+                  Changelog
+                </Link>
+              </li>
+              <li>
+                <Link href="/contact" className="text-muted-foreground hover:text-foreground transition-colors">
+                  Contact
                 </Link>
               </li>
             </ul>
           </div>
+        </div>
 
+        <div className="border-t border-border mt-12 pt-8">
           {/* Newsletter */}
-          <div>
-            <h4 className="font-semibold text-foreground mb-4">Stay Updated</h4>
-            <p className="text-sm text-muted-foreground mb-4">
+          <div className="max-w-md mx-auto mb-8">
+            <h4 className="font-semibold text-foreground mb-2 text-center">Stay Updated</h4>
+            <p className="text-sm text-muted-foreground mb-4 text-center">
               Get the latest projects and impact stories delivered to your inbox.
             </p>
-            <form className="flex flex-col gap-2">
+            <form className="flex gap-2">
               <Input type="email" placeholder="Enter your email" className="bg-background" />
               <Button type="submit" className="bg-primary hover:bg-primary/90">
                 Subscribe
               </Button>
             </form>
           </div>
-        </div>
 
-        <div className="border-t border-border mt-12 pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
-          <p className="text-sm text-muted-foreground">
-            © {new Date().getFullYear()} JustBecause.asia. All rights reserved.
-          </p>
-          <div className="flex items-center gap-6">
-            <Link href="/privacy" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-              Privacy Policy
-            </Link>
-            <Link href="/terms" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-              Terms of Service
-            </Link>
-            <Link href="/contact" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-              Contact
-            </Link>
+          {/* Bottom Bar */}
+          <div className="flex flex-col md:flex-row justify-between items-center gap-4">
+            <p className="text-sm text-muted-foreground">
+              © {new Date().getFullYear()} JustBecause.asia. All rights reserved.
+            </p>
+            <div className="flex items-center gap-6">
+              <Link href="/privacy" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+                Privacy Policy
+              </Link>
+              <Link href="/terms" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+                Terms of Service
+              </Link>
+            </div>
           </div>
         </div>
       </div>

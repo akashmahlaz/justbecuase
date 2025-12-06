@@ -197,3 +197,54 @@ export default function ForNGOsPage() {
               {projectTypes.map((project) => (
                 <Card key={project.name}>
                   <CardContent className="p-4">
+                    <h3 className="font-semibold text-foreground mb-2">{project.name}</h3>
+                    <p className="text-sm text-muted-foreground mb-2">
+                      <Clock className="h-4 w-4 inline mr-1" />
+                      {project.hours}
+                    </p>
+                    <p className="text-lg font-bold text-primary">{project.value}</p>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* FAQ Section */}
+        <section className="py-16">
+          <div className="container mx-auto px-4 md:px-6 max-w-3xl">
+            <div className="text-center mb-12">
+              <h2 className="text-3xl font-bold text-foreground mb-4">Frequently Asked Questions</h2>
+            </div>
+            <div className="space-y-4">
+              {faqs.map((faq, idx) => (
+                <Card key={idx}>
+                  <CardContent className="p-6">
+                    <h3 className="font-semibold text-foreground mb-2">{faq.question}</h3>
+                    <p className="text-muted-foreground">{faq.answer}</p>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* Final CTA */}
+        <section className="py-16 bg-primary text-primary-foreground">
+          <div className="container mx-auto px-4 md:px-6 text-center">
+            <h2 className="text-3xl font-bold mb-4">Ready to Find Your Volunteers?</h2>
+            <p className="text-xl mb-8 text-primary-foreground/90 max-w-2xl mx-auto">
+              Join hundreds of NGOs across Asia already benefiting from skills-based volunteering
+            </p>
+            <Button size="lg" variant="secondary" asChild>
+              <Link href="/auth/signup">
+                Get Started - It's Free
+                <ArrowRight className="ml-2 h-5 w-5" />
+              </Link>
+            </Button>
+          </div>
+        </section>
+      </main>
+    </div>
+  )
+}
