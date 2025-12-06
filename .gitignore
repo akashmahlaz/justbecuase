@@ -1,1 +1,17 @@
 node_modules
+.vercel
+.env*.local
+pnpm-lock.yaml
+.next
+.DS_Store
+.idea
+.vscode
+coverage
+dist
+*.log
+*.tsbuildinfo
+.cache
+out
+*.env
+*.pem
+.bun.lock

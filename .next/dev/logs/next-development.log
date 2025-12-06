@@ -1,11 +1,35 @@
-[00:00:01.784] Server  LOG     
-[00:00:01.784] Server  LOG        We detected TypeScript in your project and reconfigured your tsconfig.json file for you.
-[00:00:01.785] Server  LOG        The following suggested values were added to your tsconfig.json. These values can be changed to fit your project's needs:
-
-[00:00:01.787] Server  LOG        	- include was updated to add '.next/dev/types/**/*.ts'
-[00:00:01.787] Server  LOG     
-[00:00:01.787] Server  LOG        The following mandatory changes were made to your tsconfig.json:
-
-[00:00:01.788] Server  LOG        	- jsx was set to react-jsx (next.js uses the React automatic runtime)
-[00:00:01.788] Server  LOG     
-[00:00:02.143] Server  LOG      ✓ Ready in 1516ms
+[00:00:03.658] Server  LOG      ✓ Ready in 2.6s
+[00:00:14.486] Server  LOG      ○ Compiling /auth/signin ...
+[00:00:46.974] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[00:00:47.464] Browser LOG     %c[Vercel Web Analytics]%c Debug mode is enabled by default in development. No requests will be sent to the server. color: rgb(120, 120, 120) color: inherit
+[00:00:47.464] Browser LOG     %c[Vercel Web Analytics]%c Running queued event color: rgb(120, 120, 120) color: inherit pageview {"path":"/","route":"/"}
+[00:00:47.464] Browser LOG     %c[Vercel Web Analytics]%c [pageview] http://localhost:3000/ color: rgb(120, 120, 120) color: inherit {"dp":"/","o":"http://localhost:3000/","r":"","sdkn":"@vercel/analytics/next","sdkv":"1.6.1","sv":"0.1.3","ts":1765023045187}
+[00:00:48.391] Browser LOG     %c[Vercel Web Analytics]%c [pageview] http://localhost:3000/auth/signin color: rgb(120, 120, 120) color: inherit {"dp":"/auth/signin","o":"http://localhost:3000/auth/signin","sdkn":"@vercel/analytics/next","sdkv":"1.6.1","sv":"0.1.3","ts":1765023046119}
+[00:00:56.924] Browser LOG     %c[Vercel Web Analytics]%c [pageview] http://localhost:3000/auth/signup color: rgb(120, 120, 120) color: inherit {"dp":"/auth/signup","o":"http://localhost:3000/auth/signup","sdkn":"@vercel/analytics/next","sdkv":"1.6.1","sv":"0.1.3","ts":1765023054667}
+[00:01:19.016] Browser LOG     %c[Vercel Web Analytics]%c [pageview] http://localhost:3000/auth/signin color: rgb(120, 120, 120) color: inherit {"dp":"/auth/signin","o":"http://localhost:3000/auth/signin","sdkn":"@vercel/analytics/next","sdkv":"1.6.1","sv":"0.1.3","ts":1765023076767}
+[00:01:23.026] Browser LOG     %c[Vercel Web Analytics]%c [pageview] http://localhost:3000/auth/signup color: rgb(120, 120, 120) color: inherit {"dp":"/auth/signup","o":"http://localhost:3000/auth/signup","sdkn":"@vercel/analytics/next","sdkv":"1.6.1","sv":"0.1.3","ts":1765023080772}
+[00:02:08.001] Browser LOG     %c[Vercel Web Analytics]%c [pageview] http://localhost:3000/volunteer/dashboard color: rgb(120, 120, 120) color: inherit {"dp":"/volunteer/dashboard","o":"http://localhost:3000/volunteer/dashboard","sdkn":"@vercel/analytics/next","sdkv":"1.6.1","sv":"0.1.3","ts":1765023125678}
+[00:02:16.113] Browser LOG     %c[Vercel Web Analytics]%c [pageview] http://localhost:3000/projects color: rgb(120, 120, 120) color: inherit {"dp":"/projects","o":"http://localhost:3000/projects","sdkn":"@vercel/analytics/next","sdkv":"1.6.1","sv":"0.1.3","ts":1765023133628}
+[00:02:20.167] Browser LOG     %c[Vercel Web Analytics]%c [pageview] http://localhost:3000/auth/signin color: rgb(120, 120, 120) color: inherit {"dp":"/auth/signin","o":"http://localhost:3000/auth/signin","sdkn":"@vercel/analytics/next","sdkv":"1.6.1","sv":"0.1.3","ts":1765023137898}
+[00:02:50.875] Browser LOG     %c[Vercel Web Analytics]%c [pageview] http://localhost:3000/auth/signup color: rgb(120, 120, 120) color: inherit {"dp":"/auth/signup","o":"http://localhost:3000/auth/signup","sdkn":"@vercel/analytics/next","sdkv":"1.6.1","sv":"0.1.3","ts":1765023168627}
+[00:05:14.892] Browser LOG     %c[Vercel Web Analytics]%c [pageview] http://localhost:3000/ngo/dashboard color: rgb(120, 120, 120) color: inherit {"dp":"/ngo/dashboard","o":"http://localhost:3000/ngo/dashboard","sdkn":"@vercel/analytics/next","sdkv":"1.6.1","sv":"0.1.3","ts":1765023312628}
+[00:05:35.536] Browser LOG     %c[Vercel Web Analytics]%c [pageview] http://localhost:3000/ngo/post-project color: rgb(120, 120, 120) color: inherit {"dp":"/ngo/post-project","o":"http://localhost:3000/ngo/post-project","sdkn":"@vercel/analytics/next","sdkv":"1.6.1","sv":"0.1.3","ts":1765023333245}
+[00:08:15.909] Browser LOG     %c[Vercel Web Analytics]%c [pageview] http://localhost:3000/ngo/dashboard color: rgb(120, 120, 120) color: inherit {"dp":"/ngo/dashboard","o":"http://localhost:3000/ngo/dashboard","sdkn":"@vercel/analytics/next","sdkv":"1.6.1","sv":"0.1.3","ts":1765023493654}
+[00:08:21.653] Browser LOG     %c[Vercel Web Analytics]%c [pageview] http://localhost:3000/ngo/applications color: rgb(120, 120, 120) color: inherit {"dp":"/ngo/applications","o":"http://localhost:3000/ngo/applications","sdkn":"@vercel/analytics/next","sdkv":"1.6.1","sv":"0.1.3","ts":1765023499403}
+[00:08:37.118] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[00:08:37.292] Browser LOG     %c[Vercel Web Analytics]%c Debug mode is enabled by default in development. No requests will be sent to the server. color: rgb(120, 120, 120) color: inherit
+[00:08:37.292] Browser LOG     %c[Vercel Web Analytics]%c Running queued event color: rgb(120, 120, 120) color: inherit pageview {"path":"/ngo/settings","route":"/ngo/settings"}
+[00:08:37.292] Browser LOG     %c[Vercel Web Analytics]%c [pageview] http://localhost:3000/ngo/settings color: rgb(120, 120, 120) color: inherit {"dp":"/ngo/settings","o":"http://localhost:3000/ngo/settings","sdkn":"@vercel/analytics/next","sdkv":"1.6.1","sv":"0.1.3","ts":1765023515046}
+[00:08:39.797] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[00:08:39.930] Browser LOG     %c[Vercel Web Analytics]%c Debug mode is enabled by default in development. No requests will be sent to the server. color: rgb(120, 120, 120) color: inherit
+[00:08:39.930] Browser LOG     %c[Vercel Web Analytics]%c Running queued event color: rgb(120, 120, 120) color: inherit pageview {"path":"/ngo/applications","route":"/ngo/applications"}
+[00:08:39.930] Browser LOG     %c[Vercel Web Analytics]%c [pageview] http://localhost:3000/ngo/applications color: rgb(120, 120, 120) color: inherit {"dp":"/ngo/applications","o":"http://localhost:3000/ngo/applications","r":"","sdkn":"@vercel/analytics/next","sdkv":"1.6.1","sv":"0.1.3","ts":1765023517680}
+[00:08:54.734] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[00:08:54.833] Browser LOG     %c[Vercel Web Analytics]%c Debug mode is enabled by default in development. No requests will be sent to the server. color: rgb(120, 120, 120) color: inherit
+[00:08:54.833] Browser LOG     %c[Vercel Web Analytics]%c Running queued event color: rgb(120, 120, 120) color: inherit pageview {"path":"/ngo/messages","route":"/ngo/messages"}
+[00:08:54.833] Browser LOG     %c[Vercel Web Analytics]%c [pageview] http://localhost:3000/ngo/messages color: rgb(120, 120, 120) color: inherit {"dp":"/ngo/messages","o":"http://localhost:3000/ngo/messages","sdkn":"@vercel/analytics/next","sdkv":"1.6.1","sv":"0.1.3","ts":1765023532588}
+[00:08:57.862] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[00:08:57.973] Browser LOG     %c[Vercel Web Analytics]%c Debug mode is enabled by default in development. No requests will be sent to the server. color: rgb(120, 120, 120) color: inherit
+[00:08:57.973] Browser LOG     %c[Vercel Web Analytics]%c Running queued event color: rgb(120, 120, 120) color: inherit pageview {"path":"/ngo/applications","route":"/ngo/applications"}
+[00:08:57.973] Browser LOG     %c[Vercel Web Analytics]%c [pageview] http://localhost:3000/ngo/applications color: rgb(120, 120, 120) color: inherit {"dp":"/ngo/applications","o":"http://localhost:3000/ngo/applications","r":"","sdkn":"@vercel/analytics/next","sdkv":"1.6.1","sv":"0.1.3","ts":1765023535719}
+[00:09:59.815] Server  LOG        Reload env: .env.local
