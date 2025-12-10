@@ -3,6 +3,7 @@ node_modules
 .env*.local
 pnpm-lock.yaml
 .next
+.next/dev
 .DS_Store
 .idea
 .vscode
@@ -15,6 +16,5 @@ out
 *.env
 *.pem
 
-bun.lock
 bun.lock
 .next
