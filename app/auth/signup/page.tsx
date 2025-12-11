@@ -44,13 +44,12 @@ export default function SignUpPage() {
     setIsLoading(true)
 
     try {
+      // Sign up without role - role will be set via server action after signup
       const { error: signUpError } = await signUp.email({
         email: formData.email,
         password: formData.password,
         name: formData.name,
-        role: accountType,
-        isOnboarded: false,
-      } as any)
+      })
 
       if (signUpError) {
         setError(signUpError.message || "Failed to create account")
@@ -58,8 +57,8 @@ export default function SignUpPage() {
         return
       }
 
-      // Redirect to onboarding based on account type
-      router.push(accountType === "volunteer" ? "/volunteer/onboarding" : "/ngo/onboarding")
+      // Redirect to role selection/onboarding - role will be set there securely
+      router.push(`/auth/role-select?intent=${accountType}`)
     } catch (err: any) {
       setError(err.message || "Something went wrong")
       setIsLoading(false)

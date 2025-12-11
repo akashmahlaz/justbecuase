@@ -76,12 +76,21 @@ export async function selectRole(role: "volunteer" | "ngo"): Promise<ApiResponse
       return { success: false, error: "Invalid role" }
     }
     
-    // Don't allow role change if user is already onboarded
-    if (user.isOnboarded) {
+    // Don't allow role change if user already has a valid role (volunteer/ngo) AND is onboarded
+    // Allow role change if user has "user" (default from admin plugin) or no role
+    const currentRole = user.role as string | undefined
+    const hasValidRole = currentRole === "volunteer" || currentRole === "ngo" || currentRole === "admin"
+    
+    if (hasValidRole && user.isOnboarded) {
       return { success: false, error: "Cannot change role after onboarding" }
     }
     
-    // Update role in the database using Better Auth's internal mechanism
+    // Prevent changing away from admin role
+    if (currentRole === "admin") {
+      return { success: false, error: "Admin users cannot change their role" }
+    }
+    
+    // Update role in the database
     const db = await getDb()
     const usersCollection = db.collection("user")
     
@@ -90,8 +99,9 @@ export async function selectRole(role: "volunteer" | "ngo"): Promise<ApiResponse
       { $set: { role: role, updatedAt: new Date() } }
     )
     
-    if (result.modifiedCount === 0) {
-      return { success: false, error: "Failed to update role" }
+    // Check if document was found (matchedCount) - modifiedCount may be 0 if same role
+    if (result.matchedCount === 0) {
+      return { success: false, error: "User not found" }
     }
     
     revalidatePath("/")

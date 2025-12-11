@@ -14,15 +14,12 @@ export const auth = betterAuth({
   },
   user: {
     additionalFields: {
-      role: {
-        type: "string",
-        required: false,
-        defaultValue: "volunteer", // "volunteer" | "ngo" | "admin"
-      },
+      // Note: 'role' is handled by the admin plugin, don't add it here
       isOnboarded: {
         type: "boolean",
         required: false,
         defaultValue: false,
+        input: true,
       },
     },
   },
@@ -38,7 +35,9 @@ export const auth = betterAuth({
     "https://*.vercel.app", // Allow all Vercel preview URLs
   ],
   plugins: [
-    admin(), // Enables admin functionality
+    admin({
+      defaultRole: "volunteer", // Default role for new users (instead of "user")
+    }),
   ],
 });
 
