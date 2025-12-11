@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Navbar } from "@/components/navbar"
 import { Footer } from "@/components/footer"
 import { ProjectCard } from "@/components/project-card"
@@ -11,10 +11,35 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
-import { sampleProjects, skillCategories } from "@/lib/data"
-import { Search, SlidersHorizontal, Grid3X3, List, X } from "lucide-react"
+import { skillCategories } from "@/lib/skills-data"
+import { Search, SlidersHorizontal, Grid3X3, List, X, Loader2 } from "lucide-react"
+
+interface Project {
+  _id?: { toString: () => string }
+  id?: string
+  title: string
+  description: string
+  skillsRequired: { categoryId: string; subskillId: string }[]
+  ngoId: string
+  status: string
+  workMode: string
+  location?: string
+  timeCommitment: string
+  deadline?: Date
+  projectType: string
+  applicantsCount: number
+  createdAt: Date
+  ngo?: {
+    name: string
+    logo?: string
+    verified?: boolean
+  }
+  skills?: string[]
+}
 
 export default function ProjectsPage() {
+  const [projects, setProjects] = useState<Project[]>([])
+  const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState("")
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid")
   const [selectedSkills, setSelectedSkills] = useState<string[]>([])
@@ -22,9 +47,25 @@ export default function ProjectsPage() {
   const [selectedLocation, setSelectedLocation] = useState<string>("")
   const [sortBy, setSortBy] = useState("newest")
 
-  const timeCommitments = ["1-2 hours", "5-10 hours", "10-25 hours", "25+ hours"]
+  useEffect(() => {
+    async function fetchProjects() {
+      try {
+        const res = await fetch("/api/projects")
+        if (res.ok) {
+          const data = await res.json()
+          setProjects(data.projects || [])
+        }
+      } catch (error) {
+        console.error("Failed to fetch projects:", error)
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchProjects()
+  }, [])
 
-  const locations = ["Virtual", "Singapore", "Hong Kong", "Jakarta", "Manila", "Tokyo"]
+  const timeCommitments = ["1-5 hours/week", "5-10 hours/week", "10-20 hours/week", "20+ hours/week"]
+  const locations = ["Remote", "On-site", "Hybrid"]
 
   const toggleSkill = (skill: string) => {
     setSelectedSkills((prev) => (prev.includes(skill) ? prev.filter((s) => s !== skill) : [...prev, skill]))
@@ -61,7 +102,7 @@ export default function ProjectsPage() {
                 className="text-sm text-foreground cursor-pointer flex-1 flex items-center justify-between"
               >
                 <span>{category.name}</span>
-                <span className="text-muted-foreground text-xs">({category.count})</span>
+                <span className="text-muted-foreground text-xs">({category.subskills.length} skills)</span>
               </label>
             </div>
           ))}
@@ -239,22 +280,46 @@ export default function ProjectsPage() {
             <div className="flex-1">
               <div className="flex items-center justify-between mb-6">
                 <p className="text-muted-foreground">
-                  Showing <span className="font-medium text-foreground">{sampleProjects.length}</span> projects
+                  Showing <span className="font-medium text-foreground">{projects.length}</span> projects
                 </p>
               </div>
 
-              <div className={viewMode === "grid" ? "grid sm:grid-cols-2 xl:grid-cols-3 gap-6" : "space-y-4"}>
-                {sampleProjects.map((project) => (
-                  <ProjectCard key={project.id} project={project} />
-                ))}
-              </div>
+              {loading ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                </div>
+              ) : projects.length === 0 ? (
+                <div className="text-center py-12">
+                  <p className="text-muted-foreground">No projects found</p>
+                  <p className="text-sm text-muted-foreground mt-1">Check back later for new opportunities</p>
+                </div>
+              ) : (
+                <div className={viewMode === "grid" ? "grid sm:grid-cols-2 xl:grid-cols-3 gap-6" : "space-y-4"}>
+                  {projects.map((project) => (
+                    <ProjectCard key={project._id?.toString() || project.id} project={{
+                      id: project._id?.toString() || project.id || "",
+                      title: project.title,
+                      description: project.description,
+                      skills: project.skills || project.skillsRequired?.map(s => s.subskillId) || [],
+                      location: project.workMode === "remote" ? "Remote" : project.location || "On-site",
+                      timeCommitment: project.timeCommitment,
+                      applicants: project.applicantsCount || 0,
+                      postedAt: project.createdAt ? new Date(project.createdAt).toLocaleDateString() : "Recently",
+                      projectType: project.projectType,
+                      ngo: project.ngo || { name: "NGO", verified: false }
+                    }} />
+                  ))}
+                </div>
+              )}
 
               {/* Load More */}
-              <div className="mt-12 text-center">
-                <Button variant="outline" size="lg">
-                  Load More Projects
-                </Button>
-              </div>
+              {projects.length > 0 && (
+                <div className="mt-12 text-center">
+                  <Button variant="outline" size="lg">
+                    Load More Projects
+                  </Button>
+                </div>
+              )}
             </div>
           </div>
         </div>

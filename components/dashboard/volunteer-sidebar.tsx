@@ -3,16 +3,22 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
-import { LayoutDashboard, Search, FolderKanban, CheckCircle2, User, Settings, Heart, MessageSquare } from "lucide-react"
+import { LayoutDashboard, Search, FolderKanban, CheckCircle2, User, Settings, Heart, MessageSquare, Bell, Sparkles, LucideIcon } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 
-const sidebarLinks = [
+interface SidebarLink {
+  href: string
+  label: string
+  icon: LucideIcon
+  badge?: number
+}
+
+const sidebarLinks: SidebarLink[] = [
   { href: "/volunteer/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/projects", label: "Browse Projects", icon: Search },
-  { href: "/volunteer/applications", label: "My Applications", icon: FolderKanban, badge: 3 },
-  { href: "/volunteer/active", label: "Active Projects", icon: Heart, badge: 2 },
-  { href: "/volunteer/completed", label: "Completed", icon: CheckCircle2 },
-  { href: "/volunteer/messages", label: "Messages", icon: MessageSquare, badge: 5 },
+  { href: "/volunteer/opportunities", label: "Opportunities", icon: Sparkles },
+  { href: "/volunteer/applications", label: "Applications", icon: FolderKanban },
+  { href: "/volunteer/messages", label: "Messages", icon: MessageSquare },
+  { href: "/volunteer/notifications", label: "Notifications", icon: Bell },
   { href: "/volunteer/profile", label: "My Profile", icon: User },
   { href: "/volunteer/settings", label: "Settings", icon: Settings },
 ]

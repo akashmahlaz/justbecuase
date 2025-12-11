@@ -1,3 +1,6 @@
+import { redirect } from "next/navigation"
+import { headers } from "next/headers"
+import { auth } from "@/lib/auth"
 import { DashboardHeader } from "@/components/dashboard/dashboard-header"
 import { VolunteerSidebar } from "@/components/dashboard/volunteer-sidebar"
 import { Button } from "@/components/ui/button"
@@ -5,18 +8,56 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { ProjectCard } from "@/components/project-card"
-import { sampleProjects, sampleVolunteers } from "@/lib/data"
-import { Clock, CheckCircle2, FolderKanban, TrendingUp, Star, ArrowRight, Edit } from "lucide-react"
+import { getVolunteerProfile, getMyApplications, getMatchedOpportunitiesForVolunteer } from "@/lib/actions"
+import { Clock, CheckCircle2, FolderKanban, TrendingUp, Star, ArrowRight, Edit, Briefcase } from "lucide-react"
 import Link from "next/link"
 
-export default function VolunteerDashboard() {
-  const volunteer = sampleVolunteers[0]
-  const profileCompletion = 85
+export default async function VolunteerDashboard() {
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  })
+
+  if (!session?.user) {
+    redirect("/auth/signin")
+  }
+
+  // Role verification: Ensure user is a volunteer
+  if (session.user.role !== "volunteer") {
+    if (session.user.role === "ngo") {
+      redirect("/ngo/dashboard")
+    } else if (session.user.role === "admin") {
+      redirect("/admin")
+    } else {
+      redirect("/auth/role-select")
+    }
+  }
+
+  const profile = await getVolunteerProfile()
+  const applications = await getMyApplications()
+  const matchedOpportunities = await getMatchedOpportunitiesForVolunteer()
+
+  // Calculate stats
+  const pendingApplications = applications.filter((a) => a.status === "pending")
+  const acceptedApplications = applications.filter((a) => a.status === "accepted")
+  const completedProjects = profile?.completedProjects || 0
+  const hoursContributed = profile?.hoursContributed || 0
+  
+  // Profile completion calculation
+  let profileCompletion = 20 // Base for having account
+  if (profile?.phone) profileCompletion += 10
+  if (profile?.location) profileCompletion += 10
+  if (profile?.bio) profileCompletion += 15
+  if (profile?.skills?.length) profileCompletion += 20
+  if (profile?.causes?.length) profileCompletion += 10
+  if (profile?.linkedinUrl || profile?.portfolioUrl) profileCompletion += 15
 
   return (
     <div className="min-h-screen bg-background">
-      <DashboardHeader userType="volunteer" userName={volunteer.name} userAvatar={volunteer.avatar} />
+      <DashboardHeader 
+        userType="volunteer" 
+        userName={session.user.name || "Volunteer"} 
+        userAvatar={session.user.image || undefined} 
+      />
 
       <div className="flex">
         <VolunteerSidebar />
@@ -24,7 +65,9 @@ export default function VolunteerDashboard() {
         <main className="flex-1 p-6 lg:p-8">
           {/* Welcome Section */}
           <div className="mb-8">
-            <h1 className="text-2xl font-bold text-foreground mb-2">Welcome back, {volunteer.name.split(" ")[0]}!</h1>
+            <h1 className="text-2xl font-bold text-foreground mb-2">
+              Welcome back, {session.user.name?.split(" ")[0] || "Volunteer"}!
+            </h1>
             <p className="text-muted-foreground">Here's what's happening with your volunteering journey.</p>
           </div>
 
@@ -37,7 +80,7 @@ export default function VolunteerDashboard() {
                     <FolderKanban className="h-6 w-6 text-primary" />
                   </div>
                   <div>
-                    <p className="text-2xl font-bold text-foreground">3</p>
+                    <p className="text-2xl font-bold text-foreground">{applications.length}</p>
                     <p className="text-sm text-muted-foreground">Applications</p>
                   </div>
                 </div>
@@ -51,7 +94,7 @@ export default function VolunteerDashboard() {
                     <Clock className="h-6 w-6 text-secondary" />
                   </div>
                   <div>
-                    <p className="text-2xl font-bold text-foreground">2</p>
+                    <p className="text-2xl font-bold text-foreground">{acceptedApplications.length}</p>
                     <p className="text-sm text-muted-foreground">Active Projects</p>
                   </div>
                 </div>
@@ -61,11 +104,11 @@ export default function VolunteerDashboard() {
             <Card>
               <CardContent className="p-6">
                 <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-xl bg-success-light flex items-center justify-center">
-                    <CheckCircle2 className="h-6 w-6 text-success" />
+                  <div className="w-12 h-12 rounded-xl bg-green-100 flex items-center justify-center">
+                    <CheckCircle2 className="h-6 w-6 text-green-600" />
                   </div>
                   <div>
-                    <p className="text-2xl font-bold text-foreground">{volunteer.completedProjects}</p>
+                    <p className="text-2xl font-bold text-foreground">{completedProjects}</p>
                     <p className="text-sm text-muted-foreground">Completed</p>
                   </div>
                 </div>
@@ -79,7 +122,7 @@ export default function VolunteerDashboard() {
                     <TrendingUp className="h-6 w-6 text-primary" />
                   </div>
                   <div>
-                    <p className="text-2xl font-bold text-foreground">{volunteer.hoursContributed}</p>
+                    <p className="text-2xl font-bold text-foreground">{hoursContributed}</p>
                     <p className="text-sm text-muted-foreground">Hours Given</p>
                   </div>
                 </div>
@@ -90,44 +133,65 @@ export default function VolunteerDashboard() {
           <div className="grid lg:grid-cols-3 gap-8">
             {/* Main Content */}
             <div className="lg:col-span-2">
-              <Tabs defaultValue="recommended" className="w-full">
-                <div className="flex items-center justify-between mb-6">
-                  <TabsList>
-                    <TabsTrigger value="recommended">Recommended</TabsTrigger>
-                    <TabsTrigger value="applied">Applied (3)</TabsTrigger>
-                    <TabsTrigger value="active">Active (2)</TabsTrigger>
-                  </TabsList>
-                  <Button asChild variant="outline" size="sm">
-                    <Link href="/projects">View All</Link>
-                  </Button>
-                </div>
-
-                <TabsContent value="recommended" className="space-y-4">
-                  {sampleProjects.slice(0, 3).map((project) => (
-                    <ProjectCard key={project.id} project={project} />
-                  ))}
-                </TabsContent>
-
-                <TabsContent value="applied" className="space-y-4">
-                  {sampleProjects.slice(0, 3).map((project) => (
-                    <div key={project.id} className="relative">
-                      <Badge className="absolute top-4 right-4 bg-yellow-100 text-yellow-800 z-10">
-                        Pending Review
-                      </Badge>
-                      <ProjectCard project={project} />
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <CardTitle>Recommended Opportunities</CardTitle>
+                    <Button asChild variant="outline" size="sm">
+                      <Link href="/volunteer/opportunities">View All</Link>
+                    </Button>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  {matchedOpportunities.length === 0 ? (
+                    <div className="text-center py-8">
+                      <Briefcase className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                      <p className="text-muted-foreground">No opportunities matched yet</p>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        Complete your profile to get personalized recommendations
+                      </p>
+                      <Button variant="link" asChild>
+                        <Link href="/volunteer/profile">Complete Profile</Link>
+                      </Button>
                     </div>
-                  ))}
-                </TabsContent>
-
-                <TabsContent value="active" className="space-y-4">
-                  {sampleProjects.slice(0, 2).map((project) => (
-                    <div key={project.id} className="relative">
-                      <Badge className="absolute top-4 right-4 bg-blue-100 text-blue-800 z-10">In Progress</Badge>
-                      <ProjectCard project={project} />
+                  ) : (
+                    <div className="space-y-4">
+                      {matchedOpportunities.slice(0, 4).map((match) => (
+                        <Link
+                          key={match.projectId}
+                          href={`/projects/${match.projectId}`}
+                          className="block p-4 border rounded-lg hover:border-primary/50 hover:bg-muted/50 transition-colors"
+                        >
+                          <div className="flex items-start justify-between mb-2">
+                            <h3 className="font-medium text-foreground line-clamp-1">
+                              {match.project.title}
+                            </h3>
+                            <Badge
+                              className={
+                                match.score >= 70
+                                  ? "bg-green-100 text-green-700"
+                                  : match.score >= 50
+                                  ? "bg-yellow-100 text-yellow-700"
+                                  : "bg-gray-100 text-gray-700"
+                              }
+                            >
+                              {Math.round(match.score)}% match
+                            </Badge>
+                          </div>
+                          <p className="text-sm text-muted-foreground line-clamp-2 mb-2">
+                            {match.project.description}
+                          </p>
+                          <div className="flex gap-2 text-xs text-muted-foreground">
+                            <span className="capitalize">{match.project.workMode}</span>
+                            <span>•</span>
+                            <span>{match.project.timeCommitment}</span>
+                          </div>
+                        </Link>
+                      ))}
                     </div>
-                  ))}
-                </TabsContent>
-              </Tabs>
+                  )}
+                </CardContent>
+              </Card>
             </div>
 
             {/* Sidebar */}
@@ -146,17 +210,25 @@ export default function VolunteerDashboard() {
                 </CardHeader>
                 <CardContent>
                   <div className="flex flex-col items-center text-center mb-6">
-                    <img
-                      src={volunteer.avatar || "/placeholder.svg"}
-                      alt={volunteer.name}
-                      className="w-20 h-20 rounded-full object-cover mb-4"
-                    />
-                    <h3 className="font-semibold text-foreground">{volunteer.name}</h3>
-                    <p className="text-sm text-muted-foreground">{volunteer.location}</p>
+                    <div className="w-20 h-20 rounded-full bg-muted flex items-center justify-center mb-4 overflow-hidden">
+                      {session.user.image ? (
+                        <img
+                          src={session.user.image}
+                          alt={session.user.name || ""}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <span className="text-2xl font-bold text-muted-foreground">
+                          {session.user.name?.charAt(0) || "V"}
+                        </span>
+                      )}
+                    </div>
+                    <h3 className="font-semibold text-foreground">{session.user.name}</h3>
+                    <p className="text-sm text-muted-foreground">{profile?.location || "Location not set"}</p>
                     <div className="flex items-center gap-1 mt-2">
                       <Star className="h-4 w-4 text-yellow-500 fill-yellow-500" />
-                      <span className="font-medium">{volunteer.rating}</span>
-                      <span className="text-muted-foreground">({volunteer.completedProjects} projects)</span>
+                      <span className="font-medium">{profile?.rating || "New"}</span>
+                      <span className="text-muted-foreground">({completedProjects} projects)</span>
                     </div>
                   </div>
 
@@ -170,16 +242,21 @@ export default function VolunteerDashboard() {
                     </div>
                   </div>
 
-                  <div className="mt-6">
-                    <p className="text-sm font-medium text-foreground mb-3">Skills</p>
-                    <div className="flex flex-wrap gap-2">
-                      {volunteer.skills.map((skill) => (
-                        <Badge key={skill} variant="secondary" className="bg-accent text-accent-foreground">
-                          {skill}
-                        </Badge>
-                      ))}
+                  {profile?.skills && profile.skills.length > 0 && (
+                    <div className="mt-6">
+                      <p className="text-sm font-medium text-foreground mb-3">Skills</p>
+                      <div className="flex flex-wrap gap-2">
+                        {profile.skills.slice(0, 5).map((skill, i) => (
+                          <Badge key={i} variant="secondary" className="bg-accent text-accent-foreground">
+                            {skill.subskillId}
+                          </Badge>
+                        ))}
+                        {profile.skills.length > 5 && (
+                          <Badge variant="secondary">+{profile.skills.length - 5}</Badge>
+                        )}
+                      </div>
                     </div>
-                  </div>
+                  )}
                 </CardContent>
               </Card>
 
@@ -192,17 +269,11 @@ export default function VolunteerDashboard() {
                   <div className="flex items-center justify-between p-4 rounded-lg bg-muted/50">
                     <div>
                       <p className="text-2xl font-bold text-foreground">
-                        ${(volunteer.hoursContributed * 75).toLocaleString()}
+                        ₹{(hoursContributed * 500).toLocaleString()}
                       </p>
                       <p className="text-sm text-muted-foreground">Estimated value contributed</p>
                     </div>
                   </div>
-                  <Button asChild variant="outline" className="w-full bg-transparent">
-                    <Link href="/volunteer/impact" className="flex items-center justify-center gap-2">
-                      View Full Impact Report
-                      <ArrowRight className="h-4 w-4" />
-                    </Link>
-                  </Button>
                 </CardContent>
               </Card>
             </div>

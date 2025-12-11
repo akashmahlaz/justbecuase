@@ -1,4 +1,725 @@
 {
-  "node": {},
+  "node": {
+    "00096b8d3be5811da842d9851f08aaa8cf59e46980": {
+      "workers": {
+        "app/page": {
+          "moduleId": 36827,
+          "async": false,
+          "exportedName": "getUnreadNotificationCount",
+          "filename": "lib/actions.ts"
+        }
+      },
+      "layer": {
+        "app/page": "rsc"
+      },
+      "exportedName": "getUnreadNotificationCount",
+      "filename": "lib/actions.ts"
+    },
+    "001bb3c497ffbfa6cf9c42ad018b5aadb56a6cf5dd": {
+      "workers": {
+        "app/page": {
+          "moduleId": 36827,
+          "async": false,
+          "exportedName": "getAdminSettings",
+          "filename": "lib/actions.ts"
+        }
+      },
+      "layer": {
+        "app/page": "rsc"
+      },
+      "exportedName": "getAdminSettings",
+      "filename": "lib/actions.ts"
+    },
+    "00279f255cbc2bcb56e56b1245ba9a7ac864df33f0": {
+      "workers": {
+        "app/page": {
+          "moduleId": 36827,
+          "async": false,
+          "exportedName": "getMyConversations",
+          "filename": "lib/actions.ts"
+        }
+      },
+      "layer": {
+        "app/page": "rsc"
+      },
+      "exportedName": "getMyConversations",
+      "filename": "lib/actions.ts"
+    },
+    "002c86718e1cf51e22793b2f59477b9b5f08c32117": {
+      "workers": {
+        "app/page": {
+          "moduleId": 36827,
+          "async": false,
+          "exportedName": "getMyTransactions",
+          "filename": "lib/actions.ts"
+        }
+      },
+      "layer": {
+        "app/page": "rsc"
+      },
+      "exportedName": "getMyTransactions",
+      "filename": "lib/actions.ts"
+    },
+    "003b360874064c8fd6d39f0598fe43e8c48018ef10": {
+      "workers": {
+        "app/page": {
+          "moduleId": 36827,
+          "async": false,
+          "exportedName": "getMatchedOpportunitiesForVolunteer",
+          "filename": "lib/actions.ts"
+        }
+      },
+      "layer": {
+        "app/page": "rsc"
+      },
+      "exportedName": "getMatchedOpportunitiesForVolunteer",
+      "filename": "lib/actions.ts"
+    },
+    "004b1599d66daa1a5065767911a185b6e4b5a8db97": {
+      "workers": {
+        "app/page": {
+          "moduleId": 36827,
+          "async": false,
+          "exportedName": "initializePlatform",
+          "filename": "lib/actions.ts"
+        }
+      },
+      "layer": {
+        "app/page": "rsc"
+      },
+      "exportedName": "initializePlatform",
+      "filename": "lib/actions.ts"
+    },
+    "004bd0bb8b910cc29d6c1eacf3492383036dddfdd4": {
+      "workers": {
+        "app/page": {
+          "moduleId": 36827,
+          "async": false,
+          "exportedName": "getNGOApplications",
+          "filename": "lib/actions.ts"
+        }
+      },
+      "layer": {
+        "app/page": "rsc"
+      },
+      "exportedName": "getNGOApplications",
+      "filename": "lib/actions.ts"
+    },
+    "0066513a2b9a8ab3b4c4ec297e8682aa3fd76806d1": {
+      "workers": {
+        "app/page": {
+          "moduleId": 36827,
+          "async": false,
+          "exportedName": "requireAuth",
+          "filename": "lib/actions.ts"
+        }
+      },
+      "layer": {
+        "app/page": "rsc"
+      },
+      "exportedName": "requireAuth",
+      "filename": "lib/actions.ts"
+    },
+    "00745f1c10d14ff8ad90fe27a7120f6721f9641748": {
+      "workers": {
+        "app/page": {
+          "moduleId": 36827,
+          "async": false,
+          "exportedName": "markAllNotificationsRead",
+          "filename": "lib/actions.ts"
+        }
+      },
+      "layer": {
+        "app/page": "rsc"
+      },
+      "exportedName": "markAllNotificationsRead",
+      "filename": "lib/actions.ts"
+    },
+    "007759335d9d0f575e1bdf5432b5ba5b33034d5f0a": {
+      "workers": {
+        "app/page": {
+          "moduleId": 36827,
+          "async": false,
+          "exportedName": "getMyApplications",
+          "filename": "lib/actions.ts"
+        }
+      },
+      "layer": {
+        "app/page": "rsc"
+      },
+      "exportedName": "getMyApplications",
+      "filename": "lib/actions.ts"
+    },
+    "008f55e7cac245c25f6a6e1aef328461454fc94a50": {
+      "workers": {
+        "app/page": {
+          "moduleId": 36827,
+          "async": false,
+          "exportedName": "getNGOProjects",
+          "filename": "lib/actions.ts"
+        }
+      },
+      "layer": {
+        "app/page": "rsc"
+      },
+      "exportedName": "getNGOProjects",
+      "filename": "lib/actions.ts"
+    },
+    "009593151cdfe7a685840be6527440d7b559927cc9": {
+      "workers": {
+        "app/page": {
+          "moduleId": 36827,
+          "async": false,
+          "exportedName": "getCurrentUser",
+          "filename": "lib/actions.ts"
+        }
+      },
+      "layer": {
+        "app/page": "rsc"
+      },
+      "exportedName": "getCurrentUser",
+      "filename": "lib/actions.ts"
+    },
+    "00a09b1061b7489f599991ee19f9ca43ad1ac3966b": {
+      "workers": {
+        "app/page": {
+          "moduleId": 36827,
+          "async": false,
+          "exportedName": "getNotifications",
+          "filename": "lib/actions.ts"
+        }
+      },
+      "layer": {
+        "app/page": "rsc"
+      },
+      "exportedName": "getNotifications",
+      "filename": "lib/actions.ts"
+    },
+    "00a91931eb8e5aedf2ee63b4044c2651ea55e4666f": {
+      "workers": {
+        "app/page": {
+          "moduleId": 36827,
+          "async": false,
+          "exportedName": "getMyNotifications",
+          "filename": "lib/actions.ts"
+        }
+      },
+      "layer": {
+        "app/page": "rsc"
+      },
+      "exportedName": "getMyNotifications",
+      "filename": "lib/actions.ts"
+    },
+    "00b5ea0b409e7bd92a947c3da89f92638f1db582fe": {
+      "workers": {
+        "app/page": {
+          "moduleId": 36827,
+          "async": false,
+          "exportedName": "getAdminStats",
+          "filename": "lib/actions.ts"
+        }
+      },
+      "layer": {
+        "app/page": "rsc"
+      },
+      "exportedName": "getAdminStats",
+      "filename": "lib/actions.ts"
+    },
+    "00b792826d5d39284e7a658ce89f5d153a286b1504": {
+      "workers": {
+        "app/page": {
+          "moduleId": 36827,
+          "async": false,
+          "exportedName": "getUnlockedProfiles",
+          "filename": "lib/actions.ts"
+        }
+      },
+      "layer": {
+        "app/page": "rsc"
+      },
+      "exportedName": "getUnlockedProfiles",
+      "filename": "lib/actions.ts"
+    },
+    "00e6916bbf33d32ce4d3a12b8032e9826105d0045f": {
+      "workers": {
+        "app/page": {
+          "moduleId": 36827,
+          "async": false,
+          "exportedName": "getMyProjectsAsNGO",
+          "filename": "lib/actions.ts"
+        }
+      },
+      "layer": {
+        "app/page": "rsc"
+      },
+      "exportedName": "getMyProjectsAsNGO",
+      "filename": "lib/actions.ts"
+    },
+    "40052f201db2a0cf882ed9dc25a3707b2986210382": {
+      "workers": {
+        "app/page": {
+          "moduleId": 36827,
+          "async": false,
+          "exportedName": "updateVolunteerProfile",
+          "filename": "lib/actions.ts"
+        }
+      },
+      "layer": {
+        "app/page": "rsc"
+      },
+      "exportedName": "updateVolunteerProfile",
+      "filename": "lib/actions.ts"
+    },
+    "400dd7efa34af6b76aaeb91a85731f15196a750020": {
+      "workers": {
+        "app/page": {
+          "moduleId": 36827,
+          "async": false,
+          "exportedName": "getNGOById",
+          "filename": "lib/actions.ts"
+        }
+      },
+      "layer": {
+        "app/page": "rsc"
+      },
+      "exportedName": "getNGOById",
+      "filename": "lib/actions.ts"
+    },
+    "4013ea681bd0bfe4661f41a5a4db31fff14cc46e88": {
+      "workers": {
+        "app/page": {
+          "moduleId": 36827,
+          "async": false,
+          "exportedName": "saveVolunteerOnboarding",
+          "filename": "lib/actions.ts"
+        }
+      },
+      "layer": {
+        "app/page": "rsc"
+      },
+      "exportedName": "saveVolunteerOnboarding",
+      "filename": "lib/actions.ts"
+    },
+    "401a59b7d36ec96c2f04b4088872e2311fdb930a08": {
+      "workers": {
+        "app/page": {
+          "moduleId": 36827,
+          "async": false,
+          "exportedName": "getProject",
+          "filename": "lib/actions.ts"
+        }
+      },
+      "layer": {
+        "app/page": "rsc"
+      },
+      "exportedName": "getProject",
+      "filename": "lib/actions.ts"
+    },
+    "401f7550b26ca22c3bc91179f0fc115d299afcd5c4": {
+      "workers": {
+        "app/page": {
+          "moduleId": 36827,
+          "async": false,
+          "exportedName": "browseProjects",
+          "filename": "lib/actions.ts"
+        }
+      },
+      "layer": {
+        "app/page": "rsc"
+      },
+      "exportedName": "browseProjects",
+      "filename": "lib/actions.ts"
+    },
+    "40291abe479770169f895c10b43681459cbeacd302": {
+      "workers": {
+        "app/page": {
+          "moduleId": 36827,
+          "async": false,
+          "exportedName": "selectRole",
+          "filename": "lib/actions.ts"
+        }
+      },
+      "layer": {
+        "app/page": "rsc"
+      },
+      "exportedName": "selectRole",
+      "filename": "lib/actions.ts"
+    },
+    "4042edb853057588eee74135d86f0a6058aa394e5c": {
+      "workers": {
+        "app/page": {
+          "moduleId": 36827,
+          "async": false,
+          "exportedName": "getVolunteerProfile",
+          "filename": "lib/actions.ts"
+        }
+      },
+      "layer": {
+        "app/page": "rsc"
+      },
+      "exportedName": "getVolunteerProfile",
+      "filename": "lib/actions.ts"
+    },
+    "4048b0759e3ae736ff22e5899573d1585d108f84f8": {
+      "workers": {
+        "app/page": {
+          "moduleId": 36827,
+          "async": false,
+          "exportedName": "markNotificationRead",
+          "filename": "lib/actions.ts"
+        }
+      },
+      "layer": {
+        "app/page": "rsc"
+      },
+      "exportedName": "markNotificationRead",
+      "filename": "lib/actions.ts"
+    },
+    "4056e4b73058da4a7e7aa3cbacf8dfd98e33a5b558": {
+      "workers": {
+        "app/page": {
+          "moduleId": 36827,
+          "async": false,
+          "exportedName": "browseVolunteers",
+          "filename": "lib/actions.ts"
+        }
+      },
+      "layer": {
+        "app/page": "rsc"
+      },
+      "exportedName": "browseVolunteers",
+      "filename": "lib/actions.ts"
+    },
+    "4063bebafe7e7b2b89ea6abd2d2d44bd21c551c344": {
+      "workers": {
+        "app/page": {
+          "moduleId": 36827,
+          "async": false,
+          "exportedName": "getVolunteerProfileView",
+          "filename": "lib/actions.ts"
+        }
+      },
+      "layer": {
+        "app/page": "rsc"
+      },
+      "exportedName": "getVolunteerProfileView",
+      "filename": "lib/actions.ts"
+    },
+    "406429898a33788adb371daf29865659080df47862": {
+      "workers": {
+        "app/page": {
+          "moduleId": 36827,
+          "async": false,
+          "exportedName": "requireRole",
+          "filename": "lib/actions.ts"
+        }
+      },
+      "layer": {
+        "app/page": "rsc"
+      },
+      "exportedName": "requireRole",
+      "filename": "lib/actions.ts"
+    },
+    "406d3442ef137684eed9d6e69d4f64bd538012a05b": {
+      "workers": {
+        "app/page": {
+          "moduleId": 36827,
+          "async": false,
+          "exportedName": "getProjectById",
+          "filename": "lib/actions.ts"
+        }
+      },
+      "layer": {
+        "app/page": "rsc"
+      },
+      "exportedName": "getProjectById",
+      "filename": "lib/actions.ts"
+    },
+    "406fe5b6521d8035a7d26af9cdb08c8e6e7923668b": {
+      "workers": {
+        "app/page": {
+          "moduleId": 36827,
+          "async": false,
+          "exportedName": "getMatchedVolunteersForProject",
+          "filename": "lib/actions.ts"
+        }
+      },
+      "layer": {
+        "app/page": "rsc"
+      },
+      "exportedName": "getMatchedVolunteersForProject",
+      "filename": "lib/actions.ts"
+    },
+    "4094fa0265272b2282a8e95c21fe8d99a679a42679": {
+      "workers": {
+        "app/page": {
+          "moduleId": 36827,
+          "async": false,
+          "exportedName": "deleteProject",
+          "filename": "lib/actions.ts"
+        }
+      },
+      "layer": {
+        "app/page": "rsc"
+      },
+      "exportedName": "deleteProject",
+      "filename": "lib/actions.ts"
+    },
+    "40a066b7b1434bb8bfa591640f85d2fe1ed3e73974": {
+      "workers": {
+        "app/page": {
+          "moduleId": 36827,
+          "async": false,
+          "exportedName": "saveNGOOnboarding",
+          "filename": "lib/actions.ts"
+        }
+      },
+      "layer": {
+        "app/page": "rsc"
+      },
+      "exportedName": "saveNGOOnboarding",
+      "filename": "lib/actions.ts"
+    },
+    "40a6b3bc47177bd95de97cdfde533e19eb5b88d386": {
+      "workers": {
+        "app/page": {
+          "moduleId": 36827,
+          "async": false,
+          "exportedName": "createProject",
+          "filename": "lib/actions.ts"
+        }
+      },
+      "layer": {
+        "app/page": "rsc"
+      },
+      "exportedName": "createProject",
+      "filename": "lib/actions.ts"
+    },
+    "40b6710401fb6ac7acaa2c6b5e10edb86b07a665ef": {
+      "workers": {
+        "app/page": {
+          "moduleId": 36827,
+          "async": false,
+          "exportedName": "browseNGOs",
+          "filename": "lib/actions.ts"
+        }
+      },
+      "layer": {
+        "app/page": "rsc"
+      },
+      "exportedName": "browseNGOs",
+      "filename": "lib/actions.ts"
+    },
+    "40c757cb4024813715e3a1ea68a1c75fd0dfed2447": {
+      "workers": {
+        "app/page": {
+          "moduleId": 36827,
+          "async": false,
+          "exportedName": "updateAdminSettings",
+          "filename": "lib/actions.ts"
+        }
+      },
+      "layer": {
+        "app/page": "rsc"
+      },
+      "exportedName": "updateAdminSettings",
+      "filename": "lib/actions.ts"
+    },
+    "40c8642c48da13ccddcfc09a5d139a34e1242ddc1b": {
+      "workers": {
+        "app/page": {
+          "moduleId": 36827,
+          "async": false,
+          "exportedName": "getActiveProjects",
+          "filename": "lib/actions.ts"
+        }
+      },
+      "layer": {
+        "app/page": "rsc"
+      },
+      "exportedName": "getActiveProjects",
+      "filename": "lib/actions.ts"
+    },
+    "40d4295385d562ccdf08aac896061ed58a4be76605": {
+      "workers": {
+        "app/page": {
+          "moduleId": 36827,
+          "async": false,
+          "exportedName": "getProjectApplications",
+          "filename": "lib/actions.ts"
+        }
+      },
+      "layer": {
+        "app/page": "rsc"
+      },
+      "exportedName": "getProjectApplications",
+      "filename": "lib/actions.ts"
+    },
+    "40ee56f753203a46ac9f4933be52b7be394bde000e": {
+      "workers": {
+        "app/page": {
+          "moduleId": 36827,
+          "async": false,
+          "exportedName": "getNGOProfile",
+          "filename": "lib/actions.ts"
+        }
+      },
+      "layer": {
+        "app/page": "rsc"
+      },
+      "exportedName": "getNGOProfile",
+      "filename": "lib/actions.ts"
+    },
+    "40f11d543d86710357fea1b1c4908a663edbe589f4": {
+      "workers": {
+        "app/page": {
+          "moduleId": 36827,
+          "async": false,
+          "exportedName": "updateNGOProfile",
+          "filename": "lib/actions.ts"
+        }
+      },
+      "layer": {
+        "app/page": "rsc"
+      },
+      "exportedName": "updateNGOProfile",
+      "filename": "lib/actions.ts"
+    },
+    "6004d1d81f59495d2d02db42472693110ef6aec732": {
+      "workers": {
+        "app/page": {
+          "moduleId": 36827,
+          "async": false,
+          "exportedName": "verifyVolunteer",
+          "filename": "lib/actions.ts"
+        }
+      },
+      "layer": {
+        "app/page": "rsc"
+      },
+      "exportedName": "verifyVolunteer",
+      "filename": "lib/actions.ts"
+    },
+    "60132df2a97f36a4c18b9ede703f3c61e98b8449a5": {
+      "workers": {
+        "app/page": {
+          "moduleId": 36827,
+          "async": false,
+          "exportedName": "verifyNGO",
+          "filename": "lib/actions.ts"
+        }
+      },
+      "layer": {
+        "app/page": "rsc"
+      },
+      "exportedName": "verifyNGO",
+      "filename": "lib/actions.ts"
+    },
+    "6065780c462509fedc385dbf2cd33aa0e196d5c55a": {
+      "workers": {
+        "app/page": {
+          "moduleId": 36827,
+          "async": false,
+          "exportedName": "getAllProjects",
+          "filename": "lib/actions.ts"
+        }
+      },
+      "layer": {
+        "app/page": "rsc"
+      },
+      "exportedName": "getAllProjects",
+      "filename": "lib/actions.ts"
+    },
+    "60a6bf2c342f9c8fb2e04e66138284935fd12042d3": {
+      "workers": {
+        "app/page": {
+          "moduleId": 36827,
+          "async": false,
+          "exportedName": "getAllVolunteers",
+          "filename": "lib/actions.ts"
+        }
+      },
+      "layer": {
+        "app/page": "rsc"
+      },
+      "exportedName": "getAllVolunteers",
+      "filename": "lib/actions.ts"
+    },
+    "60b1d1b41d515235eb4b7d6aa1ee0b3efe28a79798": {
+      "workers": {
+        "app/page": {
+          "moduleId": 36827,
+          "async": false,
+          "exportedName": "getAllNGOs",
+          "filename": "lib/actions.ts"
+        }
+      },
+      "layer": {
+        "app/page": "rsc"
+      },
+      "exportedName": "getAllNGOs",
+      "filename": "lib/actions.ts"
+    },
+    "60bdaa8090f0afd2119be2c5342d68a65fe799748c": {
+      "workers": {
+        "app/page": {
+          "moduleId": 36827,
+          "async": false,
+          "exportedName": "unlockVolunteerProfile",
+          "filename": "lib/actions.ts"
+        }
+      },
+      "layer": {
+        "app/page": "rsc"
+      },
+      "exportedName": "unlockVolunteerProfile",
+      "filename": "lib/actions.ts"
+    },
+    "60c06eb86bf56d81622b97049543ba036db71760de": {
+      "workers": {
+        "app/page": {
+          "moduleId": 36827,
+          "async": false,
+          "exportedName": "applyToProject",
+          "filename": "lib/actions.ts"
+        }
+      },
+      "layer": {
+        "app/page": "rsc"
+      },
+      "exportedName": "applyToProject",
+      "filename": "lib/actions.ts"
+    },
+    "60e120fb0203e5f6ee3354682514b82dca8dcad583": {
+      "workers": {
+        "app/page": {
+          "moduleId": 36827,
+          "async": false,
+          "exportedName": "updateProject",
+          "filename": "lib/actions.ts"
+        }
+      },
+      "layer": {
+        "app/page": "rsc"
+      },
+      "exportedName": "updateProject",
+      "filename": "lib/actions.ts"
+    },
+    "70c1b60ef03ed78e947cbd9afa0b2b2ceb038e2ec4": {
+      "workers": {
+        "app/page": {
+          "moduleId": 36827,
+          "async": false,
+          "exportedName": "updateApplicationStatus",
+          "filename": "lib/actions.ts"
+        }
+      },
+      "layer": {
+        "app/page": "rsc"
+      },
+      "exportedName": "updateApplicationStatus",
+      "filename": "lib/actions.ts"
+    }
+  },
   "edge": {}
 }

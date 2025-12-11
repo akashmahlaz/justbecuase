@@ -1,10 +1,13 @@
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { ProjectCard } from "@/components/project-card"
-import { sampleProjects } from "@/lib/data"
+import { browseProjects } from "@/lib/actions"
 import { ArrowRight } from "lucide-react"
 
-export function FeaturedProjects() {
+export async function FeaturedProjects() {
+  const projects = await browseProjects()
+  const featuredProjects = projects.slice(0, 6)
+
   return (
     <section className="py-16 md:py-24 bg-muted/30">
       <div className="container mx-auto px-4 md:px-6">
@@ -23,11 +26,28 @@ export function FeaturedProjects() {
           </Button>
         </div>
 
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {sampleProjects.slice(0, 6).map((project) => (
-            <ProjectCard key={project.id} project={project} />
-          ))}
-        </div>
+        {featuredProjects.length === 0 ? (
+          <div className="text-center py-12">
+            <p className="text-muted-foreground">No projects available yet. Check back soon!</p>
+          </div>
+        ) : (
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {featuredProjects.map((project) => (
+              <ProjectCard key={project._id?.toString()} project={{
+                id: project._id?.toString() || "",
+                title: project.title,
+                description: project.description,
+                skills: project.skillsRequired?.map((s: any) => s.subskillId) || [],
+                location: project.workMode === "remote" ? "Remote" : project.location || "On-site",
+                timeCommitment: project.timeCommitment,
+                applicants: project.applicantsCount || 0,
+                postedAt: project.createdAt ? new Date(project.createdAt).toLocaleDateString() : "Recently",
+                projectType: project.projectType,
+                ngo: { name: "NGO", verified: true }
+              }} />
+            ))}
+          </div>
+        )}
       </div>
     </section>
   )

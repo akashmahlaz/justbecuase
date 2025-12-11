@@ -1,4 +1,5 @@
 import { createAuthClient } from "better-auth/react";
+import { adminClient } from "better-auth/client/plugins";
 
 // Auto-detect base URL based on environment
 const getBaseURL = () => {
@@ -21,7 +22,13 @@ const getBaseURL = () => {
 
 export const authClient = createAuthClient({
   baseURL: getBaseURL(),
+  plugins: [
+    adminClient(),
+  ],
 });
+
+// Also export as 'client' for backwards compatibility
+export const client = authClient;
 
 export const {
   signIn,
@@ -30,3 +37,5 @@ export const {
   useSession,
   getSession,
 } = authClient;
+
+export type UserRole = "volunteer" | "ngo" | "admin";

@@ -8,17 +8,18 @@ interface Project {
   title: string
   ngo: {
     name: string
-    logo: string
-    verified: boolean
+    logo?: string
+    verified?: boolean
   }
   description: string
   skills: string[]
   timeCommitment: string
   projectType: string
   location: string
-  deadline: string
+  deadline?: string
   applicants: number
-  status: string
+  postedAt?: string
+  status?: string
 }
 
 export function ProjectCard({ project }: { project: Project }) {

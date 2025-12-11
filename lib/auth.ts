@@ -1,5 +1,6 @@
 import { betterAuth } from "better-auth";
 import { mongodbAdapter } from "better-auth/adapters/mongodb";
+import { admin } from "better-auth/plugins";
 import client from "./db";
 
 export const auth = betterAuth({
@@ -16,7 +17,7 @@ export const auth = betterAuth({
       role: {
         type: "string",
         required: false,
-        defaultValue: "volunteer",
+        defaultValue: "volunteer", // "volunteer" | "ngo" | "admin"
       },
       isOnboarded: {
         type: "boolean",
@@ -36,6 +37,10 @@ export const auth = betterAuth({
     "https://justbecause-one.vercel.app",
     "https://*.vercel.app", // Allow all Vercel preview URLs
   ],
+  plugins: [
+    admin(), // Enables admin functionality
+  ],
 });
 
 export type Session = typeof auth.$Infer.Session;
+export type UserRole = "volunteer" | "ngo" | "admin";

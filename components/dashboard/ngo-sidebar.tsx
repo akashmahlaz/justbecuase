@@ -12,17 +12,27 @@ import {
   Settings,
   MessageSquare,
   BarChart3,
+  Bell,
+  Search,
+  LucideIcon,
 } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 
-const sidebarLinks = [
+interface SidebarLink {
+  href: string
+  label: string
+  icon: LucideIcon
+  badge?: number
+}
+
+const sidebarLinks: SidebarLink[] = [
   { href: "/ngo/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/ngo/post-project", label: "Post New Project", icon: PlusCircle },
+  { href: "/ngo/post-project", label: "Post Project", icon: PlusCircle },
   { href: "/ngo/projects", label: "My Projects", icon: FolderKanban },
-  { href: "/ngo/applications", label: "Applications", icon: Users, badge: 8 },
-  { href: "/ngo/volunteers", label: "Find Volunteers", icon: Users },
-  { href: "/ngo/messages", label: "Messages", icon: MessageSquare, badge: 3 },
-  { href: "/ngo/analytics", label: "Analytics", icon: BarChart3 },
+  { href: "/ngo/applications", label: "Applications", icon: Users },
+  { href: "/ngo/find-talent", label: "Find Talent", icon: Search },
+  { href: "/ngo/messages", label: "Messages", icon: MessageSquare },
+  { href: "/ngo/notifications", label: "Notifications", icon: Bell },
   { href: "/ngo/profile", label: "Organization", icon: Building2 },
   { href: "/ngo/settings", label: "Settings", icon: Settings },
 ]
