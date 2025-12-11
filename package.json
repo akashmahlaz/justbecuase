@@ -1,12 +1,14 @@
 {
-  "name": "my-v0-project",
+  "name": "justbecause-asia",
   "version": "0.1.0",
+  "description": "Skills-based volunteer platform connecting NGOs with skilled professionals",
   "private": true,
   "scripts": {
-    "build": "next build",
     "dev": "next dev",
-    "lint": "eslint .",
-    "start": "next start"
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "type-check": "tsc --noEmit"
   },
   "dependencies": {
     "@auth/mongodb-adapter": "^3.11.1",
@@ -53,12 +55,8 @@
     "next": "16.0.7",
     "next-auth": "^5.0.0-beta.30",
     "next-themes": "latest",
-    "next-themes": "latest",
-    "react": "19.2.1",
     "react": "19.2.1",
     "react-day-picker": "9.8.0",
-    "react-day-picker": "9.8.0",
-    "react-dom": "19.2.1",
     "react-dom": "19.2.1",
     "react-hook-form": "^7.60.0",
     "react-resizable-panels": "^2.1.7",
@@ -70,11 +68,14 @@
     "zod": "3.25.76"
   },
   "devDependencies": {
+    "@eslint/eslintrc": "",
     "@tailwindcss/postcss": "^4.1.9",
     "@types/node": "^22",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "baseline-browser-mapping": "^2.9.4",
+    "eslint": "",
+    "eslint-config-next": "",
     "postcss": "^8.5",
     "tailwindcss": "^4.1.9",
     "tw-animate-css": "1.3.3",
