@@ -1025,6 +1025,115 @@ export async function verifyVolunteer(userId: string, isVerified: boolean): Prom
   }
 }
 
+export async function suspendUser(
+  userId: string,
+  userType: "volunteer" | "ngo"
+): Promise<ApiResponse<boolean>> {
+  try {
+    await requireRole(["admin"])
+    
+    if (userType === "volunteer") {
+      await volunteerProfilesDb.update(userId, { isActive: false })
+      revalidatePath("/admin/volunteers")
+    } else {
+      await ngoProfilesDb.update(userId, { isActive: false })
+      revalidatePath("/admin/ngos")
+    }
+    
+    revalidatePath("/admin/users")
+    return { success: true, data: true }
+  } catch (error) {
+    console.error("Suspend user error:", error)
+    return { success: false, error: "Failed to suspend user" }
+  }
+}
+
+export async function reactivateUser(
+  userId: string,
+  userType: "volunteer" | "ngo"
+): Promise<ApiResponse<boolean>> {
+  try {
+    await requireRole(["admin"])
+    
+    if (userType === "volunteer") {
+      await volunteerProfilesDb.update(userId, { isActive: true })
+      revalidatePath("/admin/volunteers")
+    } else {
+      await ngoProfilesDb.update(userId, { isActive: true })
+      revalidatePath("/admin/ngos")
+    }
+    
+    revalidatePath("/admin/users")
+    return { success: true, data: true }
+  } catch (error) {
+    console.error("Reactivate user error:", error)
+    return { success: false, error: "Failed to reactivate user" }
+  }
+}
+
+export async function adminDeleteUser(
+  userId: string,
+  userType: "volunteer" | "ngo"
+): Promise<ApiResponse<boolean>> {
+  try {
+    await requireRole(["admin"])
+    
+    const db = await getDb()
+    
+    // Delete user data based on type
+    if (userType === "volunteer") {
+      await Promise.all([
+        db.collection("volunteer_profiles").deleteOne({ userId }),
+        db.collection("applications").deleteMany({ volunteerId: userId }),
+      ])
+    } else {
+      await Promise.all([
+        db.collection("ngo_profiles").deleteOne({ userId }),
+        db.collection("projects").deleteMany({ ngoId: userId }),
+        db.collection("applications").deleteMany({ ngoId: userId }),
+      ])
+    }
+    
+    // Delete common data
+    await Promise.all([
+      db.collection("conversations").deleteMany({ participants: userId }),
+      db.collection("messages").deleteMany({ 
+        $or: [{ senderId: userId }, { receiverId: userId }] 
+      }),
+      db.collection("notifications").deleteMany({ userId }),
+      db.collection("profile_unlocks").deleteMany({ 
+        $or: [{ ngoId: userId }, { volunteerId: userId }] 
+      }),
+      db.collection("transactions").deleteMany({ userId }),
+      // Delete user account
+      db.collection("user").deleteOne({ id: userId }),
+      db.collection("session").deleteMany({ userId }),
+      db.collection("account").deleteMany({ userId }),
+    ])
+    
+    revalidatePath("/admin/users")
+    revalidatePath("/admin/volunteers")
+    revalidatePath("/admin/ngos")
+    
+    return { success: true, data: true }
+  } catch (error) {
+    console.error("Admin delete user error:", error)
+    return { success: false, error: "Failed to delete user" }
+  }
+}
+
+export async function verifyUser(
+  userId: string,
+  userType: "volunteer" | "ngo",
+  isVerified: boolean
+): Promise<ApiResponse<boolean>> {
+  if (userType === "volunteer") {
+    return verifyVolunteer(userId, isVerified)
+  } else {
+    return verifyNGO(userId, isVerified)
+  }
+}
+
 // ============================================
 // BROWSE & SEARCH ACTIONS
 // ============================================
@@ -1113,6 +1222,114 @@ export async function getMyConversations() {
   return conversationsDb.findByUserId(user.id)
 }
 
+export async function getConversation(conversationId: string) {
+  const user = await getCurrentUser()
+  if (!user) return null
+  
+  const conversations = await conversationsDb.findByUserId(user.id)
+  return conversations.find(c => c._id?.toString() === conversationId) || null
+}
+
+export async function getConversationMessages(conversationId: string, limit = 50) {
+  const user = await getCurrentUser()
+  if (!user) return []
+  
+  // Verify user is part of conversation
+  const conversations = await conversationsDb.findByUserId(user.id)
+  const conversation = conversations.find(c => c._id?.toString() === conversationId)
+  if (!conversation) return []
+  
+  // Mark messages as read
+  await messagesDb.markAsRead(conversationId, user.id)
+  
+  return messagesDb.findByConversationId(conversationId, limit)
+}
+
+export async function sendMessage(
+  receiverId: string,
+  content: string,
+  projectId?: string
+): Promise<ApiResponse<string>> {
+  try {
+    const user = await requireAuth()
+    
+    if (!content.trim()) {
+      return { success: false, error: "Message cannot be empty" }
+    }
+    
+    // Find or create conversation
+    const conversation = await conversationsDb.findOrCreate([user.id, receiverId], projectId)
+    
+    // Create message
+    const messageId = await messagesDb.create({
+      conversationId: conversation._id!.toString(),
+      senderId: user.id,
+      receiverId,
+      content: content.trim(),
+      isRead: false,
+      createdAt: new Date(),
+    })
+    
+    // Update conversation last message
+    await conversationsDb.updateLastMessage(
+      conversation._id!.toString(),
+      content.length > 50 ? content.substring(0, 50) + "..." : content
+    )
+    
+    // Create notification for receiver
+    try {
+      await notificationsDb.create({
+        userId: receiverId,
+        type: "new_message",
+        title: "New Message",
+        message: `You have a new message`,
+        referenceId: conversation._id!.toString(),
+        referenceType: "conversation",
+        isRead: false,
+        createdAt: new Date(),
+      })
+    } catch (e) {
+      console.error("Failed to create notification:", e)
+    }
+    
+    revalidatePath("/volunteer/messages")
+    revalidatePath("/ngo/messages")
+    return { success: true, data: messageId }
+  } catch (error) {
+    console.error("Error sending message:", error)
+    return { success: false, error: "Failed to send message" }
+  }
+}
+
+export async function startConversation(
+  receiverId: string,
+  projectId?: string,
+  initialMessage?: string
+): Promise<ApiResponse<string>> {
+  try {
+    const user = await requireAuth()
+    
+    // Find or create conversation
+    const conversation = await conversationsDb.findOrCreate([user.id, receiverId], projectId)
+    
+    // If initial message provided, send it
+    if (initialMessage?.trim()) {
+      await sendMessage(receiverId, initialMessage, projectId)
+    }
+    
+    return { success: true, data: conversation._id!.toString() }
+  } catch (error) {
+    console.error("Error starting conversation:", error)
+    return { success: false, error: "Failed to start conversation" }
+  }
+}
+
+export async function getUnreadMessageCount(): Promise<number> {
+  const user = await getCurrentUser()
+  if (!user) return 0
+  return messagesDb.countUnread(user.id)
+}
+
 export async function getMyNotifications() {
   const user = await getCurrentUser()
   if (!user) return []
@@ -1166,6 +1383,87 @@ export async function getPaymentStats() {
     profileUnlockRevenue,
     totalTransactions,
     completedTransactions,
+  }
+}
+
+// ============================================
+// ACCOUNT MANAGEMENT
+// ============================================
+
+export async function changePassword(
+  currentPassword: string,
+  newPassword: string
+): Promise<ApiResponse<boolean>> {
+  try {
+    const user = await getCurrentUser()
+    if (!user) {
+      return { success: false, error: "Not authenticated" }
+    }
+
+    // For OAuth users, password change might not be applicable
+    // Better Auth handles password separately - we need to use auth client
+    // This is a placeholder - actual implementation depends on Better Auth config
+    
+    // Validate new password
+    if (newPassword.length < 8) {
+      return { success: false, error: "Password must be at least 8 characters" }
+    }
+
+    // Note: Better Auth uses auth.api.changePassword which requires proper setup
+    // For now, return an informative error for OAuth-only users
+    return { 
+      success: false, 
+      error: "Password change is only available for email/password accounts. OAuth users should manage passwords through their provider." 
+    }
+  } catch (error) {
+    console.error("Change password error:", error)
+    return { success: false, error: "Failed to change password" }
+  }
+}
+
+export async function deleteAccount(): Promise<ApiResponse<boolean>> {
+  try {
+    const user = await getCurrentUser()
+    if (!user) {
+      return { success: false, error: "Not authenticated" }
+    }
+
+    const db = await getDb()
+
+    // Delete all user data
+    await Promise.all([
+      // Delete volunteer profile
+      db.collection("volunteer_profiles").deleteOne({ userId: user.id }),
+      // Delete NGO profile
+      db.collection("ngo_profiles").deleteOne({ userId: user.id }),
+      // Delete user's projects (for NGOs)
+      db.collection("projects").deleteMany({ ngoId: user.id }),
+      // Delete user's applications (for volunteers)
+      db.collection("applications").deleteMany({ volunteerId: user.id }),
+      // Delete user's conversations
+      db.collection("conversations").deleteMany({ participants: user.id }),
+      // Delete user's messages
+      db.collection("messages").deleteMany({ 
+        $or: [{ senderId: user.id }, { receiverId: user.id }] 
+      }),
+      // Delete user's notifications
+      db.collection("notifications").deleteMany({ userId: user.id }),
+      // Delete profile unlocks related to user
+      db.collection("profile_unlocks").deleteMany({ 
+        $or: [{ ngoId: user.id }, { volunteerId: user.id }] 
+      }),
+      // Delete user's transactions
+      db.collection("transactions").deleteMany({ userId: user.id }),
+      // Finally, delete the user account
+      db.collection("user").deleteOne({ id: user.id }),
+      db.collection("session").deleteMany({ userId: user.id }),
+      db.collection("account").deleteMany({ userId: user.id }),
+    ])
+
+    return { success: true, data: true }
+  } catch (error) {
+    console.error("Delete account error:", error)
+    return { success: false, error: "Failed to delete account" }
   }
 }
 

@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { getAdminStats, getAllVolunteers, getAllNGOs } from "@/lib/actions"
+import { UserActions } from "@/components/admin/user-actions"
 import {
   Search,
   Filter,
@@ -10,15 +11,8 @@ import {
   Heart,
   Building2,
   Shield,
-  MoreHorizontal,
   User,
 } from "lucide-react"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
 import Link from "next/link"
 
 export default async function AdminUsersPage() {
@@ -37,15 +31,17 @@ export default async function AdminUsersPage() {
       avatar: v.avatar,
       createdAt: v.createdAt,
       isVerified: v.isVerified,
+      isActive: v.isActive !== false,
     })),
     ...ngosData.data.map(n => ({
       id: n.userId,
-      name: n.orgName,
+      name: n.organizationName || n.orgName || "Unnamed NGO",
       email: n.contactEmail || "No email",
       role: "ngo" as const,
       avatar: n.logo,
       createdAt: n.createdAt,
       isVerified: n.isVerified,
+      isActive: n.isActive !== false,
     })),
   ].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
 
@@ -179,12 +175,19 @@ export default async function AdminUsersPage() {
                         </Badge>
                       </td>
                       <td className="py-3 px-4">
-                        <Badge 
-                          variant={user.isVerified ? "default" : "outline"}
-                          className={user.isVerified ? "bg-green-100 text-green-700" : ""}
-                        >
-                          {user.isVerified ? "Verified" : "Pending"}
-                        </Badge>
+                        <div className="flex flex-col gap-1">
+                          <Badge 
+                            variant={user.isVerified ? "default" : "outline"}
+                            className={user.isVerified ? "bg-green-100 text-green-700 w-fit" : "w-fit"}
+                          >
+                            {user.isVerified ? "Verified" : "Pending"}
+                          </Badge>
+                          {!user.isActive && (
+                            <Badge variant="destructive" className="w-fit">
+                              Suspended
+                            </Badge>
+                          )}
+                        </div>
                       </td>
                       <td className="py-3 px-4 text-sm text-muted-foreground">
                         {new Date(user.createdAt).toLocaleDateString("en-IN", {
@@ -194,22 +197,13 @@ export default async function AdminUsersPage() {
                         })}
                       </td>
                       <td className="py-3 px-4">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon">
-                              <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem asChild>
-                              <Link href={user.role === "volunteer" ? `/volunteers/${user.id}` : `/ngos/${user.id}`}>
-                                View Profile
-                              </Link>
-                            </DropdownMenuItem>
-                            <DropdownMenuItem>Verify User</DropdownMenuItem>
-                            <DropdownMenuItem className="text-red-600">Suspend User</DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
+                        <UserActions
+                          userId={user.id}
+                          userName={user.name}
+                          userType={user.role}
+                          isVerified={user.isVerified}
+                          isActive={user.isActive}
+                        />
                       </td>
                     </tr>
                   ))}
