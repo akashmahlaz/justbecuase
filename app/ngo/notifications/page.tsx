@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { MarkAllReadButton, MarkAsReadButton } from "@/components/notifications/notification-actions"
 import Link from "next/link"
 import {
   Bell,
@@ -56,12 +57,15 @@ export default async function NGONotificationsPage() {
                 Stay updated on applications and volunteer activity
               </p>
             </div>
-            <Button variant="outline" asChild>
-              <Link href="/ngo/settings">
-                <Settings className="h-4 w-4 mr-2" />
-                Notification Settings
-              </Link>
-            </Button>
+            <div className="flex items-center gap-2">
+              {unreadNotifications.length > 0 && <MarkAllReadButton />}
+              <Button variant="outline" asChild>
+                <Link href="/ngo/settings">
+                  <Settings className="h-4 w-4 mr-2" />
+                  Notification Settings
+                </Link>
+              </Button>
+            </div>
           </div>
 
           <Tabs defaultValue="all">

@@ -2,6 +2,7 @@ import { betterAuth } from "better-auth";
 import { mongodbAdapter } from "better-auth/adapters/mongodb";
 import { admin } from "better-auth/plugins";
 import client from "./db";
+import { sendEmail, getVerificationEmailHtml, getPasswordResetEmailHtml } from "./email";
 
 export const auth = betterAuth({
   baseURL: process.env.BETTER_AUTH_URL || process.env.VERCEL_URL 
@@ -10,7 +11,27 @@ export const auth = betterAuth({
   database: mongodbAdapter(client.db("justbecause")),
   emailAndPassword: {
     enabled: true,
-    requireEmailVerification: false, // Set to true in production
+    requireEmailVerification: process.env.REQUIRE_EMAIL_VERIFICATION === "true",
+    sendResetPassword: async ({ user, url }) => {
+      void sendEmail({
+        to: user.email,
+        subject: "Reset your password - JustBecause.asia",
+        html: getPasswordResetEmailHtml(url, user.name),
+        text: `Click the link to reset your password: ${url}`,
+      })
+    },
+  },
+  emailVerification: {
+    sendOnSignUp: true,
+    autoSignInAfterVerification: true,
+    sendVerificationEmail: async ({ user, url }) => {
+      void sendEmail({
+        to: user.email,
+        subject: "Verify your email - JustBecause.asia",
+        html: getVerificationEmailHtml(url, user.name),
+        text: `Click the link to verify your email: ${url}`,
+      })
+    },
   },
   user: {
     additionalFields: {

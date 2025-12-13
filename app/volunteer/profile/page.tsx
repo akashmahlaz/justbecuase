@@ -4,6 +4,7 @@ import type React from "react"
 import { useState, useEffect } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
+import { toast } from "sonner"
 import { DashboardHeader } from "@/components/dashboard/dashboard-header"
 import { VolunteerSidebar } from "@/components/dashboard/volunteer-sidebar"
 import { Button } from "@/components/ui/button"
@@ -19,6 +20,10 @@ import { Camera, Save, Loader2, CheckCircle } from "lucide-react"
 import { authClient } from "@/lib/auth-client"
 import { getVolunteerProfile, updateVolunteerProfile } from "@/lib/actions"
 import { skillCategories } from "@/lib/skills-data"
+
+// Cloudinary configuration
+const CLOUDINARY_CLOUD_NAME = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME
+const CLOUDINARY_UPLOAD_PRESET = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || "volunteer_avatars"
 
 const locations = [
   "Singapore",
@@ -105,29 +110,41 @@ export default function VolunteerProfileEditPage() {
     const file = e.target.files?.[0]
     if (!file) return
 
+    // Check if Cloudinary is configured
+    if (!CLOUDINARY_CLOUD_NAME) {
+      toast.error("Image upload not configured", {
+        description: "Please set NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME in your environment variables."
+      })
+      return
+    }
+
     // Validate file size (max 2MB)
     if (file.size > 2 * 1024 * 1024) {
-      setError("File size must be less than 2MB")
+      toast.error("File too large", {
+        description: "Please upload an image smaller than 2MB."
+      })
       return
     }
 
     // Validate file type
     if (!file.type.startsWith("image/")) {
-      setError("Please upload an image file")
+      toast.error("Invalid file type", {
+        description: "Please upload an image file (JPG, PNG, etc.)."
+      })
       return
     }
 
     setUploadingPhoto(true)
-    setError("")
+    toast.loading("Uploading photo...", { id: "photo-upload" })
 
     try {
       // Create FormData for upload
       const uploadData = new FormData()
       uploadData.append("file", file)
-      uploadData.append("upload_preset", process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || "volunteer_avatars")
+      uploadData.append("upload_preset", CLOUDINARY_UPLOAD_PRESET)
 
       // Upload to Cloudinary
-      const cloudinaryUrl = `https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/image/upload`
+      const cloudinaryUrl = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`
       
       const response = await fetch(cloudinaryUrl, {
         method: "POST",
@@ -135,7 +152,8 @@ export default function VolunteerProfileEditPage() {
       })
 
       if (!response.ok) {
-        throw new Error("Upload failed")
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.error?.message || "Upload failed. Please check your Cloudinary upload preset.")
       }
 
       const data = await response.json()
@@ -145,12 +163,16 @@ export default function VolunteerProfileEditPage() {
       
       if (result.success) {
         setProfile((prev: any) => ({ ...prev, avatar: data.secure_url }))
+        toast.success("Photo updated!", { id: "photo-upload" })
       } else {
         throw new Error(result.error || "Failed to save avatar")
       }
     } catch (err: any) {
       console.error("Photo upload error:", err)
-      setError(err.message || "Failed to upload photo. Please check Cloudinary configuration.")
+      toast.error("Upload failed", { 
+        id: "photo-upload",
+        description: err.message || "Please check your Cloudinary configuration."
+      })
     } finally {
       setUploadingPhoto(false)
     }
@@ -287,9 +309,9 @@ export default function VolunteerProfileEditPage() {
                           <p className="font-medium text-foreground">Profile Photo</p>
                           <p className="text-sm text-muted-foreground">JPG or PNG. Max 2MB.</p>
                           <p className="text-xs text-muted-foreground mt-1">
-                            {process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME 
-                              ? "✓ Cloudinary configured" 
-                              : "⚠ Set NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME in .env"}
+                            {CLOUDINARY_CLOUD_NAME 
+                              ? "✓ Image upload ready" 
+                              : "⚠ Image upload not configured"}
                           </p>
                         </div>
                       </div>

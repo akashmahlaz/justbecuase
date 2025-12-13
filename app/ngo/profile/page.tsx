@@ -3,6 +3,7 @@
 import type React from "react"
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
+import { toast } from "sonner"
 import { DashboardHeader } from "@/components/dashboard/dashboard-header"
 import { NGOSidebar } from "@/components/dashboard/ngo-sidebar"
 import { Button } from "@/components/ui/button"
@@ -19,6 +20,10 @@ import { useAuth } from "@/lib/auth-context"
 import { getNGOProfile, updateNGOProfile } from "@/lib/actions"
 import { skillCategories } from "@/lib/skills-data"
 import type { NGOProfile } from "@/lib/types"
+
+// Cloudinary configuration
+const CLOUDINARY_CLOUD_NAME = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME
+const CLOUDINARY_UPLOAD_PRESET = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || "ngo_logos"
 
 const teamSizes = [
   "1-5",
@@ -143,25 +148,37 @@ export default function NGOProfilePage() {
     const file = e.target.files?.[0]
     if (!file) return
 
+    // Check if Cloudinary is configured
+    if (!CLOUDINARY_CLOUD_NAME) {
+      toast.error("Image upload not configured", {
+        description: "Please set NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME in your environment variables."
+      })
+      return
+    }
+
     if (file.size > 2 * 1024 * 1024) {
-      setError("File size must be less than 2MB")
+      toast.error("File too large", {
+        description: "Please upload an image smaller than 2MB."
+      })
       return
     }
 
     if (!file.type.startsWith("image/")) {
-      setError("Please upload an image file")
+      toast.error("Invalid file type", {
+        description: "Please upload an image file (JPG, PNG, etc.)."
+      })
       return
     }
 
     setUploadingLogo(true)
-    setError("")
+    toast.loading("Uploading logo...", { id: "logo-upload" })
 
     try {
       const uploadData = new FormData()
       uploadData.append("file", file)
-      uploadData.append("upload_preset", process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || "ngo_logos")
+      uploadData.append("upload_preset", CLOUDINARY_UPLOAD_PRESET)
 
-      const cloudinaryUrl = `https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/image/upload`
+      const cloudinaryUrl = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`
       
       const response = await fetch(cloudinaryUrl, {
         method: "POST",
@@ -169,7 +186,8 @@ export default function NGOProfilePage() {
       })
 
       if (!response.ok) {
-        throw new Error("Upload failed")
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.error?.message || "Upload failed. Please check your Cloudinary upload preset.")
       }
 
       const data = await response.json()
@@ -178,12 +196,16 @@ export default function NGOProfilePage() {
       
       if (result.success) {
         setProfile((prev) => prev ? { ...prev, logo: data.secure_url } : null)
+        toast.success("Logo updated!", { id: "logo-upload" })
       } else {
         throw new Error(result.error || "Failed to save logo")
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error("Logo upload error:", err)
-      setError("Failed to upload logo. Please try again.")
+      toast.error("Upload failed", { 
+        id: "logo-upload",
+        description: err.message || "Please check your Cloudinary configuration."
+      })
     } finally {
       setUploadingLogo(false)
     }
@@ -322,9 +344,9 @@ export default function NGOProfilePage() {
                     </div>
                     <div>
                       <p className="text-sm text-muted-foreground">
-                        {process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME 
+                        {CLOUDINARY_CLOUD_NAME 
                           ? "Click the camera icon to upload your logo"
-                          : "Logo upload requires Cloudinary configuration"}
+                          : "⚠ Image upload not configured"}
                       </p>
                       {uploadingLogo && (
                         <p className="text-sm text-primary flex items-center gap-2 mt-2">

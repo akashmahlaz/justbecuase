@@ -1,51 +1,269 @@
-import { redirect } from "next/navigation"
-import { headers } from "next/headers"
-import { auth } from "@/lib/auth"
-import { getNGOProfile, getUnlockedProfiles, getMyTransactions } from "@/lib/actions"
+"use client"
+
+import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import { DashboardHeader } from "@/components/dashboard/dashboard-header"
 import { NGOSidebar } from "@/components/dashboard/ngo-sidebar"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Separator } from "@/components/ui/separator"
-import Link from "next/link"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { authClient } from "@/lib/auth-client"
+import { 
+  getNGOProfile, 
+  updateNGOProfile, 
+  getUnlockedProfiles, 
+  getMyTransactions,
+  changePassword, 
+  deleteAccount 
+} from "@/lib/actions"
+import { skillCategories, causes as causesList } from "@/lib/skills-data"
+import type { RequiredSkill, SkillPriority } from "@/lib/types"
 import {
   Building2,
   Bell,
-  Shield,
   CreditCard,
-  Mail,
   Globe,
   Lock,
-  Users,
+  Eye,
   Trash2,
   Download,
+  Loader2,
+  Save,
+  CheckCircle,
+  AlertCircle,
+  Users,
+  Mail,
   History,
   Unlock,
+  Briefcase,
 } from "lucide-react"
+import Link from "next/link"
 
-export default async function NGOSettingsPage() {
-  const session = await auth.api.getSession({
-    headers: await headers(),
-  })
+export default function NGOSettingsPage() {
+  const router = useRouter()
+  const { data: session, isPending } = authClient.useSession()
+  const [profile, setProfile] = useState<any>(null)
+  const [unlockedProfiles, setUnlockedProfiles] = useState<any[]>([])
+  const [transactions, setTransactions] = useState<any[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [isSaving, setIsSaving] = useState(false)
+  const [saveSuccess, setSaveSuccess] = useState(false)
+  const [error, setError] = useState("")
 
-  if (!session?.user) {
-    redirect("/auth/signin")
+  // Form states
+  const [orgName, setOrgName] = useState("")
+  const [registrationNumber, setRegistrationNumber] = useState("")
+  const [website, setWebsite] = useState("")
+  const [description, setDescription] = useState("")
+  const [contactEmail, setContactEmail] = useState("")
+  const [contactPhone, setContactPhone] = useState("")
+  const [address, setAddress] = useState("")
+
+  // Skills and causes
+  const [skills, setSkills] = useState<RequiredSkill[]>([])
+  const [causes, setCauses] = useState<string[]>([])
+
+  // Password state
+  const [currentPassword, setCurrentPassword] = useState("")
+  const [newPassword, setNewPassword] = useState("")
+  const [confirmPassword, setConfirmPassword] = useState("")
+  const [isChangingPassword, setIsChangingPassword] = useState(false)
+  const [passwordError, setPasswordError] = useState("")
+  const [passwordSuccess, setPasswordSuccess] = useState(false)
+
+  // Delete account state
+  const [isDeleting, setIsDeleting] = useState(false)
+  const [deleteConfirmation, setDeleteConfirmation] = useState("")
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+
+  // Fetch profile data
+  useEffect(() => {
+    async function loadData() {
+      if (!session?.user) return
+      
+      try {
+        const [profileData, unlockedData, txData] = await Promise.all([
+          getNGOProfile(),
+          getUnlockedProfiles(),
+          getMyTransactions(),
+        ])
+        
+        if (profileData) {
+          setProfile(profileData)
+          setOrgName(profileData.organizationName || "")
+          setRegistrationNumber(profileData.registrationNumber || "")
+          setWebsite(profileData.website || "")
+          setDescription(profileData.description || "")
+          setContactEmail(profileData.contactEmail || session.user.email || "")
+          setContactPhone(profileData.contactPhone || "")
+          setAddress(profileData.address || "")
+          setSkills(profileData.typicalSkillsNeeded || [])
+          setCauses(profileData.causes || [])
+        }
+        
+        setUnlockedProfiles(unlockedData)
+        setTransactions(txData)
+      } catch (err) {
+        console.error("Failed to load data:", err)
+        setError("Failed to load profile data")
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    if (!isPending && session?.user) {
+      loadData()
+    } else if (!isPending && !session?.user) {
+      router.push("/auth/signin")
+    }
+  }, [session, isPending, router])
+
+  const toggleSkill = (categoryId: string, subskillId: string) => {
+    setSkills((prev) => {
+      const exists = prev.some((s) => s.categoryId === categoryId && s.subskillId === subskillId)
+      if (exists) {
+        return prev.filter((s) => !(s.categoryId === categoryId && s.subskillId === subskillId))
+      } else {
+        return [...prev, { categoryId, subskillId, priority: "must-have" as SkillPriority }]
+      }
+    })
   }
 
-  const ngoProfile = await getNGOProfile()
-  const unlockedProfiles = await getUnlockedProfiles()
-  const transactions = await getMyTransactions()
+  const toggleCause = (causeId: string) => {
+    setCauses((prev) =>
+      prev.includes(causeId) ? prev.filter((c) => c !== causeId) : [...prev, causeId]
+    )
+  }
+
+  const isSkillSelected = (categoryId: string, subskillId: string) => {
+    return skills.some((s) => s.categoryId === categoryId && s.subskillId === subskillId)
+  }
+
+  const saveOrganizationInfo = async () => {
+    setIsSaving(true)
+    setError("")
+    setSaveSuccess(false)
+
+    try {
+      const result = await updateNGOProfile({
+        organizationName: orgName,
+        registrationNumber,
+        website,
+        description,
+        contactEmail,
+        contactPhone,
+        address,
+      })
+
+      if (result.success) {
+        setSaveSuccess(true)
+        setTimeout(() => setSaveSuccess(false), 3000)
+      } else {
+        setError(result.error || "Failed to save")
+      }
+    } catch (err) {
+      setError("An unexpected error occurred")
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  const saveSkillsAndCauses = async () => {
+    setIsSaving(true)
+    setError("")
+    setSaveSuccess(false)
+
+    try {
+      const result = await updateNGOProfile({
+        typicalSkillsNeeded: skills,
+        causes,
+      })
+
+      if (result.success) {
+        setSaveSuccess(true)
+        setTimeout(() => setSaveSuccess(false), 3000)
+      } else {
+        setError(result.error || "Failed to save")
+      }
+    } catch (err) {
+      setError("An unexpected error occurred")
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  const handleChangePassword = async () => {
+    if (newPassword !== confirmPassword) {
+      setPasswordError("Passwords do not match")
+      return
+    }
+    if (newPassword.length < 8) {
+      setPasswordError("Password must be at least 8 characters")
+      return
+    }
+
+    setIsChangingPassword(true)
+    setPasswordError("")
+    setPasswordSuccess(false)
+
+    try {
+      const result = await changePassword(currentPassword, newPassword)
+      if (result.success) {
+        setPasswordSuccess(true)
+        setCurrentPassword("")
+        setNewPassword("")
+        setConfirmPassword("")
+        setTimeout(() => setPasswordSuccess(false), 3000)
+      } else {
+        setPasswordError(result.error || "Failed to change password")
+      }
+    } catch (err) {
+      setPasswordError("An unexpected error occurred")
+    } finally {
+      setIsChangingPassword(false)
+    }
+  }
+
+  const handleDeleteAccount = async () => {
+    if (deleteConfirmation !== "DELETE") {
+      return
+    }
+
+    setIsDeleting(true)
+    try {
+      const result = await deleteAccount()
+      if (result.success) {
+        await authClient.signOut()
+        router.push("/")
+      } else {
+        setError(result.error || "Failed to delete account")
+      }
+    } catch (err) {
+      setError("An unexpected error occurred")
+    } finally {
+      setIsDeleting(false)
+    }
+  }
+
+  if (isPending || isLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-background">
       <DashboardHeader
         userType="ngo"
-        userName={ngoProfile?.organizationName || session.user.name || "NGO"}
-        userAvatar={ngoProfile?.logo || session.user.image || undefined}
+        userName={profile?.organizationName || session?.user?.name || "NGO"}
+        userAvatar={profile?.logo || session?.user?.image || undefined}
       />
 
       <div className="flex">
@@ -59,12 +277,26 @@ export default async function NGOSettingsPage() {
             </p>
           </div>
 
+          {error && (
+            <div className="mb-6 p-4 bg-destructive/10 border border-destructive/20 rounded-lg flex items-center gap-2 text-destructive">
+              <AlertCircle className="h-4 w-4" />
+              {error}
+            </div>
+          )}
+
+          {saveSuccess && (
+            <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg flex items-center gap-2 text-green-600">
+              <CheckCircle className="h-4 w-4" />
+              Changes saved successfully!
+            </div>
+          )}
+
           <Tabs defaultValue="organization" className="space-y-6">
-            <TabsList className="grid w-full max-w-2xl grid-cols-5">
+            <TabsList className="grid w-full max-w-3xl grid-cols-5">
               <TabsTrigger value="organization">Organization</TabsTrigger>
-              <TabsTrigger value="notifications">Notifications</TabsTrigger>
+              <TabsTrigger value="skills">Skills & Causes</TabsTrigger>
               <TabsTrigger value="billing">Billing</TabsTrigger>
-              <TabsTrigger value="team">Team</TabsTrigger>
+              <TabsTrigger value="security">Security</TabsTrigger>
               <TabsTrigger value="privacy">Privacy</TabsTrigger>
             </TabsList>
 
@@ -84,7 +316,8 @@ export default async function NGOSettingsPage() {
                         <Label htmlFor="org-name">Organization Name</Label>
                         <Input
                           id="org-name"
-                          defaultValue={ngoProfile?.organizationName || ""}
+                          value={orgName}
+                          onChange={(e) => setOrgName(e.target.value)}
                           className="mt-1.5"
                         />
                       </div>
@@ -92,7 +325,8 @@ export default async function NGOSettingsPage() {
                         <Label htmlFor="reg-number">Registration Number</Label>
                         <Input
                           id="reg-number"
-                          defaultValue={ngoProfile?.registrationNumber || ""}
+                          value={registrationNumber}
+                          onChange={(e) => setRegistrationNumber(e.target.value)}
                           className="mt-1.5"
                         />
                       </div>
@@ -102,21 +336,22 @@ export default async function NGOSettingsPage() {
                       <Input
                         id="website"
                         type="url"
-                        defaultValue={ngoProfile?.website || ""}
+                        value={website}
+                        onChange={(e) => setWebsite(e.target.value)}
                         className="mt-1.5"
                         placeholder="https://yourorganization.org"
                       />
                     </div>
                     <div>
                       <Label htmlFor="description">Description</Label>
-                      <textarea
+                      <Textarea
                         id="description"
-                        defaultValue={ngoProfile?.description || ""}
-                        className="w-full border rounded-md px-3 py-2 text-sm bg-background mt-1.5 min-h-[100px]"
+                        value={description}
+                        onChange={(e) => setDescription(e.target.value)}
+                        className="mt-1.5 min-h-[100px]"
                         placeholder="Describe your organization's mission and work"
                       />
                     </div>
-                    <Button>Save Changes</Button>
                   </CardContent>
                 </Card>
 
@@ -134,7 +369,8 @@ export default async function NGOSettingsPage() {
                         <Input
                           id="contact-email"
                           type="email"
-                          defaultValue={ngoProfile?.contactEmail || session.user.email || ""}
+                          value={contactEmail}
+                          onChange={(e) => setContactEmail(e.target.value)}
                           className="mt-1.5"
                         />
                       </div>
@@ -143,7 +379,8 @@ export default async function NGOSettingsPage() {
                         <Input
                           id="contact-phone"
                           type="tel"
-                          defaultValue={ngoProfile?.contactPhone || ""}
+                          value={contactPhone}
+                          onChange={(e) => setContactPhone(e.target.value)}
                           className="mt-1.5"
                         />
                       </div>
@@ -152,101 +389,102 @@ export default async function NGOSettingsPage() {
                       <Label htmlFor="address">Address</Label>
                       <Input
                         id="address"
-                        defaultValue={ngoProfile?.address || ""}
+                        value={address}
+                        onChange={(e) => setAddress(e.target.value)}
                         className="mt-1.5"
                         placeholder="Full organization address"
                       />
                     </div>
-                    <Button>Update Contact Info</Button>
+                  </CardContent>
+                </Card>
+
+                <Button onClick={saveOrganizationInfo} disabled={isSaving} className="gap-2">
+                  {isSaving ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Save className="h-4 w-4" />
+                  )}
+                  Save Organization Info
+                </Button>
+              </div>
+            </TabsContent>
+
+            {/* Skills & Causes Settings */}
+            <TabsContent value="skills">
+              <div className="space-y-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Briefcase className="h-5 w-5" />
+                      Skills You Need
+                    </CardTitle>
+                    <CardDescription>
+                      Select skills your organization typically needs from volunteers
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-6">
+                    {skillCategories.map((category) => (
+                      <div key={category.id}>
+                        <h4 className="text-sm font-medium text-muted-foreground mb-3">
+                          {category.name}
+                        </h4>
+                        <div className="flex flex-wrap gap-2">
+                          {category.subskills.map((subskill) => (
+                            <Badge
+                              key={subskill.id}
+                              variant={isSkillSelected(category.id, subskill.id) ? "default" : "outline"}
+                              className={`cursor-pointer transition-colors ${
+                                isSkillSelected(category.id, subskill.id)
+                                  ? "bg-primary text-primary-foreground"
+                                  : "hover:bg-primary/10"
+                              }`}
+                              onClick={() => toggleSkill(category.id, subskill.id)}
+                            >
+                              {subskill.name}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
                   </CardContent>
                 </Card>
 
                 <Card>
                   <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Lock className="h-5 w-5" />
-                      Security
-                    </CardTitle>
+                    <CardTitle>Causes You Focus On</CardTitle>
+                    <CardDescription>
+                      Select causes to get matched with relevant volunteers
+                    </CardDescription>
                   </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="grid md:grid-cols-2 gap-4">
-                      <div>
-                        <Label htmlFor="new-password">New Password</Label>
-                        <Input
-                          id="new-password"
-                          type="password"
-                          className="mt-1.5"
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="confirm-password">Confirm Password</Label>
-                        <Input
-                          id="confirm-password"
-                          type="password"
-                          className="mt-1.5"
-                        />
-                      </div>
+                  <CardContent>
+                    <div className="flex flex-wrap gap-2">
+                      {causesList.map((cause) => (
+                        <Badge
+                          key={cause.id}
+                          variant={causes.includes(cause.id) ? "default" : "outline"}
+                          className={`cursor-pointer transition-colors ${
+                            causes.includes(cause.id)
+                              ? "bg-primary text-primary-foreground"
+                              : "hover:bg-primary/10"
+                          }`}
+                          onClick={() => toggleCause(cause.id)}
+                        >
+                          {cause.name}
+                        </Badge>
+                      ))}
                     </div>
-                    <Button>Update Password</Button>
                   </CardContent>
                 </Card>
-              </div>
-            </TabsContent>
 
-            {/* Notification Settings */}
-            <TabsContent value="notifications">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Bell className="h-5 w-5" />
-                    Notification Preferences
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  <div>
-                    <h4 className="font-medium mb-4">Email Notifications</h4>
-                    <div className="space-y-4">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="font-medium">New Applications</p>
-                          <p className="text-sm text-muted-foreground">
-                            Get notified when volunteers apply to your projects
-                          </p>
-                        </div>
-                        <input type="checkbox" defaultChecked className="w-5 h-5" />
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="font-medium">New Messages</p>
-                          <p className="text-sm text-muted-foreground">
-                            Receive emails for new messages from volunteers
-                          </p>
-                        </div>
-                        <input type="checkbox" defaultChecked className="w-5 h-5" />
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="font-medium">Project Deadlines</p>
-                          <p className="text-sm text-muted-foreground">
-                            Reminders about upcoming project deadlines
-                          </p>
-                        </div>
-                        <input type="checkbox" defaultChecked className="w-5 h-5" />
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="font-medium">Weekly Digest</p>
-                          <p className="text-sm text-muted-foreground">
-                            Summary of platform activity and new volunteers
-                          </p>
-                        </div>
-                        <input type="checkbox" className="w-5 h-5" />
-                      </div>
-                    </div>
-                  </div>
-                  <Button>Save Preferences</Button>
-                </CardContent>
-              </Card>
+                <Button onClick={saveSkillsAndCauses} disabled={isSaving} className="gap-2">
+                  {isSaving ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Save className="h-4 w-4" />
+                  )}
+                  Save Skills & Causes
+                </Button>
+              </div>
             </TabsContent>
 
             {/* Billing Settings */}
@@ -344,40 +582,79 @@ export default async function NGOSettingsPage() {
               </div>
             </TabsContent>
 
-            {/* Team Settings */}
-            <TabsContent value="team">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Users className="h-5 w-5" />
-                    Team Members
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between p-4 border rounded-lg">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                          <span className="font-medium text-primary">
-                            {session.user.name?.charAt(0) || "A"}
-                          </span>
-                        </div>
-                        <div>
-                          <p className="font-medium">{session.user.name}</p>
-                          <p className="text-sm text-muted-foreground">
-                            {session.user.email}
-                          </p>
-                        </div>
+            {/* Security Settings */}
+            <TabsContent value="security">
+              <div className="space-y-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Lock className="h-5 w-5" />
+                      Change Password
+                    </CardTitle>
+                    <CardDescription>
+                      Update your password to keep your account secure
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    {passwordError && (
+                      <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-lg text-destructive text-sm flex items-center gap-2">
+                        <AlertCircle className="h-4 w-4" />
+                        {passwordError}
                       </div>
-                      <Badge>Admin</Badge>
+                    )}
+                    {passwordSuccess && (
+                      <div className="p-3 bg-green-50 border border-green-200 rounded-lg text-green-600 text-sm flex items-center gap-2">
+                        <CheckCircle className="h-4 w-4" />
+                        Password changed successfully!
+                      </div>
+                    )}
+                    <div>
+                      <Label htmlFor="current-password">Current Password</Label>
+                      <Input
+                        id="current-password"
+                        type="password"
+                        value={currentPassword}
+                        onChange={(e) => setCurrentPassword(e.target.value)}
+                        className="mt-1.5"
+                      />
                     </div>
-                    <Button variant="outline">
-                      <Users className="h-4 w-4 mr-2" />
-                      Invite Team Member
+                    <div className="grid md:grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="new-password">New Password</Label>
+                        <Input
+                          id="new-password"
+                          type="password"
+                          value={newPassword}
+                          onChange={(e) => setNewPassword(e.target.value)}
+                          className="mt-1.5"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="confirm-password">Confirm New Password</Label>
+                        <Input
+                          id="confirm-password"
+                          type="password"
+                          value={confirmPassword}
+                          onChange={(e) => setConfirmPassword(e.target.value)}
+                          className="mt-1.5"
+                        />
+                      </div>
+                    </div>
+                    <Button
+                      onClick={handleChangePassword}
+                      disabled={isChangingPassword || !currentPassword || !newPassword}
+                      className="gap-2"
+                    >
+                      {isChangingPassword ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Lock className="h-4 w-4" />
+                      )}
+                      Update Password
                     </Button>
-                  </div>
-                </CardContent>
-              </Card>
+                  </CardContent>
+                </Card>
+              </div>
             </TabsContent>
 
             {/* Privacy Settings */}
@@ -440,15 +717,70 @@ export default async function NGOSettingsPage() {
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="flex items-center justify-between p-4 border border-red-200 rounded-lg bg-red-50">
-                      <div>
-                        <p className="font-medium text-red-600">Delete Organization</p>
-                        <p className="text-sm text-muted-foreground">
-                          Permanently delete your organization account
-                        </p>
+                    {!showDeleteConfirm ? (
+                      <div className="flex items-center justify-between p-4 border border-red-200 rounded-lg bg-red-50">
+                        <div>
+                          <p className="font-medium text-red-600">Delete Organization</p>
+                          <p className="text-sm text-muted-foreground">
+                            Permanently delete your organization account
+                          </p>
+                        </div>
+                        <Button variant="destructive" onClick={() => setShowDeleteConfirm(true)}>
+                          Delete Account
+                        </Button>
                       </div>
-                      <Button variant="destructive">Delete Account</Button>
-                    </div>
+                    ) : (
+                      <div className="p-4 border border-red-200 rounded-lg bg-red-50 space-y-4">
+                        <div className="flex items-start gap-3">
+                          <AlertCircle className="h-5 w-5 text-red-600 mt-0.5" />
+                          <div>
+                            <p className="font-medium text-red-600">
+                              Are you absolutely sure?
+                            </p>
+                            <p className="text-sm text-muted-foreground mt-1">
+                              This action cannot be undone. This will permanently delete your
+                              organization account, all projects, applications, and remove
+                              all associated data.
+                            </p>
+                          </div>
+                        </div>
+                        <div>
+                          <Label htmlFor="delete-confirm" className="text-sm">
+                            Type <span className="font-mono font-bold">DELETE</span> to confirm
+                          </Label>
+                          <Input
+                            id="delete-confirm"
+                            value={deleteConfirmation}
+                            onChange={(e) => setDeleteConfirmation(e.target.value)}
+                            className="mt-1.5"
+                            placeholder="DELETE"
+                          />
+                        </div>
+                        <div className="flex gap-3">
+                          <Button
+                            variant="outline"
+                            onClick={() => {
+                              setShowDeleteConfirm(false)
+                              setDeleteConfirmation("")
+                            }}
+                          >
+                            Cancel
+                          </Button>
+                          <Button
+                            variant="destructive"
+                            onClick={handleDeleteAccount}
+                            disabled={deleteConfirmation !== "DELETE" || isDeleting}
+                          >
+                            {isDeleting ? (
+                              <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                            ) : (
+                              <Trash2 className="h-4 w-4 mr-2" />
+                            )}
+                            Delete Organization
+                          </Button>
+                        </div>
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               </div>
