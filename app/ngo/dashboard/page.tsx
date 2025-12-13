@@ -30,6 +30,11 @@ export default async function NGODashboard() {
     }
   }
 
+  // Redirect to onboarding if not completed
+  if (!session.user.isOnboarded) {
+    redirect("/ngo/onboarding")
+  }
+
   const ngoProfile = await getNGOProfile()
   const projects = await getMyProjectsAsNGO()
   const applications = await getNGOApplications()

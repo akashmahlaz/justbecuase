@@ -1,8 +1,9 @@
 "use client"
 
 import type React from "react"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { DashboardHeader } from "@/components/dashboard/dashboard-header"
 import { VolunteerSidebar } from "@/components/dashboard/volunteer-sidebar"
 import { Button } from "@/components/ui/button"
@@ -14,31 +15,10 @@ import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { sampleVolunteers } from "@/lib/data"
-import { Camera, Save, Plus, X, Loader2, CheckCircle } from "lucide-react"
-
-const allSkills = [
-  "Marketing",
-  "Social Media",
-  "Content Strategy",
-  "Web Development",
-  "UI/UX Design",
-  "Graphic Design",
-  "Branding",
-  "Grant Writing",
-  "Finance",
-  "Legal",
-  "HR",
-  "Training",
-  "Strategy",
-  "Research",
-  "Data Analysis",
-  "Project Management",
-  "Fundraising",
-  "Communications",
-  "Public Relations",
-  "SEO",
-]
+import { Camera, Save, Loader2, CheckCircle } from "lucide-react"
+import { authClient } from "@/lib/auth-client"
+import { getVolunteerProfile, updateVolunteerProfile } from "@/lib/actions"
+import { skillCategories } from "@/lib/skills-data"
 
 const locations = [
   "Singapore",
@@ -46,48 +26,184 @@ const locations = [
   "Jakarta, Indonesia",
   "Manila, Philippines",
   "Mumbai, India",
+  "Delhi, India",
+  "Bangalore, India",
   "Tokyo, Japan",
   "Seoul, South Korea",
   "Bangkok, Thailand",
   "Kuala Lumpur, Malaysia",
+  "Remote / Anywhere",
 ]
 
 export default function VolunteerProfileEditPage() {
-  const volunteer = sampleVolunteers[0]
-  const [isLoading, setIsLoading] = useState(false)
+  const router = useRouter()
+  const { data: session, isPending } = authClient.useSession()
+  const [profile, setProfile] = useState<any>(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const [isSaving, setIsSaving] = useState(false)
   const [isSaved, setIsSaved] = useState(false)
+  const [error, setError] = useState("")
+  const [uploadingPhoto, setUploadingPhoto] = useState(false)
+
   const [formData, setFormData] = useState({
-    name: volunteer.name,
-    headline: volunteer.headline,
-    location: volunteer.location,
-    bio: "Experienced marketing professional with over 10 years in digital marketing and brand strategy. Passionate about using my skills to support causes I believe in, particularly in education and environmental sustainability.",
-    skills: [...volunteer.skills],
-    linkedin: "https://linkedin.com/in/sarahchen",
-    portfolio: "https://sarahchen.design",
-    availability: "10-15",
+    name: "",
+    bio: "",
+    location: "",
+    phone: "",
+    linkedinUrl: "",
+    portfolioUrl: "",
+    hoursPerWeek: "5-10",
   })
 
-  const profileCompletion = 85
+  // Fetch profile data
+  useEffect(() => {
+    async function loadProfile() {
+      if (!session?.user) return
+      
+      try {
+        const profileData = await getVolunteerProfile()
+        if (profileData) {
+          setProfile(profileData)
+          setFormData({
+            name: profileData.name || session.user.name || "",
+            bio: profileData.bio || "",
+            location: profileData.location || "",
+            phone: profileData.phone || "",
+            linkedinUrl: profileData.linkedinUrl || "",
+            portfolioUrl: profileData.portfolioUrl || "",
+            hoursPerWeek: profileData.hoursPerWeek || "5-10",
+          })
+        }
+      } catch (err) {
+        console.error("Failed to load profile:", err)
+        setError("Failed to load profile")
+      } finally {
+        setIsLoading(false)
+      }
+    }
 
-  const toggleSkill = (skill: string) => {
-    setFormData((prev) => ({
-      ...prev,
-      skills: prev.skills.includes(skill) ? prev.skills.filter((s) => s !== skill) : [...prev.skills, skill],
-    }))
+    if (!isPending && session?.user) {
+      loadProfile()
+    } else if (!isPending && !session?.user) {
+      router.push("/auth/signin")
+    }
+  }, [session, isPending, router])
+
+  // Calculate profile completion
+  const calculateCompletion = () => {
+    let completion = 20 // Base for having account
+    if (formData.phone) completion += 10
+    if (formData.location) completion += 10
+    if (formData.bio && formData.bio.length > 50) completion += 20
+    if (profile?.skills?.length > 0) completion += 20
+    if (profile?.causes?.length > 0) completion += 10
+    if (formData.linkedinUrl || formData.portfolioUrl) completion += 10
+    return Math.min(completion, 100)
+  }
+
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    // Validate file size (max 2MB)
+    if (file.size > 2 * 1024 * 1024) {
+      setError("File size must be less than 2MB")
+      return
+    }
+
+    // Validate file type
+    if (!file.type.startsWith("image/")) {
+      setError("Please upload an image file")
+      return
+    }
+
+    setUploadingPhoto(true)
+    setError("")
+
+    try {
+      // Create FormData for upload
+      const uploadData = new FormData()
+      uploadData.append("file", file)
+      uploadData.append("upload_preset", process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || "volunteer_avatars")
+
+      // Upload to Cloudinary
+      const cloudinaryUrl = `https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/image/upload`
+      
+      const response = await fetch(cloudinaryUrl, {
+        method: "POST",
+        body: uploadData,
+      })
+
+      if (!response.ok) {
+        throw new Error("Upload failed")
+      }
+
+      const data = await response.json()
+      
+      // Update profile with new avatar URL
+      const result = await updateVolunteerProfile({ avatar: data.secure_url })
+      
+      if (result.success) {
+        setProfile((prev: any) => ({ ...prev, avatar: data.secure_url }))
+      } else {
+        throw new Error(result.error || "Failed to save avatar")
+      }
+    } catch (err: any) {
+      console.error("Photo upload error:", err)
+      setError(err.message || "Failed to upload photo. Please check Cloudinary configuration.")
+    } finally {
+      setUploadingPhoto(false)
+    }
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    setIsLoading(true)
-    await new Promise((resolve) => setTimeout(resolve, 1500))
-    setIsLoading(false)
-    setIsSaved(true)
-    setTimeout(() => setIsSaved(false), 3000)
+    setIsSaving(true)
+    setError("")
+
+    try {
+      const result = await updateVolunteerProfile({
+        name: formData.name,
+        bio: formData.bio,
+        location: formData.location,
+        phone: formData.phone,
+        linkedinUrl: formData.linkedinUrl,
+        portfolioUrl: formData.portfolioUrl,
+        hoursPerWeek: formData.hoursPerWeek,
+      })
+
+      if (!result.success) {
+        throw new Error(result.error || "Failed to save profile")
+      }
+
+      setIsSaved(true)
+      setTimeout(() => setIsSaved(false), 3000)
+    } catch (err: any) {
+      setError(err.message || "Failed to save profile")
+    } finally {
+      setIsSaving(false)
+    }
   }
+
+  if (isPending || isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    )
+  }
+
+  if (!session?.user) {
+    return null
+  }
+
+  const profileCompletion = calculateCompletion()
+  const userName = formData.name || session.user.name || "Volunteer"
+  const userAvatar = profile?.avatar || session.user.image || undefined
 
   return (
     <div className="min-h-screen bg-background">
-      <DashboardHeader userType="volunteer" userName={volunteer.name} userAvatar={volunteer.avatar} />
+      <DashboardHeader userType="volunteer" userName={userName} userAvatar={userAvatar} />
 
       <div className="flex">
         <VolunteerSidebar />
@@ -100,9 +216,16 @@ export default function VolunteerProfileEditPage() {
                 <p className="text-muted-foreground">Update your information to help NGOs find you</p>
               </div>
               <Button asChild variant="outline" className="bg-transparent">
-                <Link href={`/volunteers/${volunteer.id}`}>View Public Profile</Link>
+                <Link href={`/volunteers/${session.user.id}`}>View Public Profile</Link>
               </Button>
             </div>
+
+            {/* Error Message */}
+            {error && (
+              <div className="mb-6 p-4 rounded-lg bg-destructive/10 text-destructive text-sm">
+                {error}
+              </div>
+            )}
 
             {/* Profile Completion */}
             <Card className="mb-8">
@@ -137,20 +260,37 @@ export default function VolunteerProfileEditPage() {
                       <div className="flex items-center gap-6">
                         <div className="relative">
                           <img
-                            src={volunteer.avatar || "/placeholder.svg"}
-                            alt={volunteer.name}
+                            src={userAvatar || "/placeholder.svg?height=96&width=96"}
+                            alt={userName}
                             className="w-24 h-24 rounded-full object-cover"
                           />
-                          <button
-                            type="button"
-                            className="absolute bottom-0 right-0 w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-lg hover:bg-primary/90"
+                          <label
+                            htmlFor="avatar-upload"
+                            className="absolute bottom-0 right-0 w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-lg hover:bg-primary/90 cursor-pointer"
                           >
-                            <Camera className="h-4 w-4" />
-                          </button>
+                            {uploadingPhoto ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <Camera className="h-4 w-4" />
+                            )}
+                          </label>
+                          <input
+                            id="avatar-upload"
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={handlePhotoUpload}
+                            disabled={uploadingPhoto}
+                          />
                         </div>
                         <div>
                           <p className="font-medium text-foreground">Profile Photo</p>
                           <p className="text-sm text-muted-foreground">JPG or PNG. Max 2MB.</p>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            {process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME 
+                              ? "✓ Cloudinary configured" 
+                              : "⚠ Set NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME in .env"}
+                          </p>
                         </div>
                       </div>
 
@@ -164,33 +304,33 @@ export default function VolunteerProfileEditPage() {
                           />
                         </div>
                         <div className="space-y-2">
-                          <Label htmlFor="location">Location</Label>
-                          <Select
-                            value={formData.location}
-                            onValueChange={(value) => setFormData({ ...formData, location: value })}
-                          >
-                            <SelectTrigger>
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {locations.map((loc) => (
-                                <SelectItem key={loc} value={loc}>
-                                  {loc}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
+                          <Label htmlFor="phone">Phone Number</Label>
+                          <Input
+                            id="phone"
+                            value={formData.phone}
+                            onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                            placeholder="+91 98765 43210"
+                          />
                         </div>
                       </div>
 
                       <div className="space-y-2">
-                        <Label htmlFor="headline">Professional Headline</Label>
-                        <Input
-                          id="headline"
-                          value={formData.headline}
-                          onChange={(e) => setFormData({ ...formData, headline: e.target.value })}
-                          placeholder="e.g., Senior Marketing Manager | Pro Bono Consultant"
-                        />
+                        <Label htmlFor="location">Location</Label>
+                        <Select
+                          value={formData.location}
+                          onValueChange={(value) => setFormData({ ...formData, location: value })}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select your location" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {locations.map((loc) => (
+                              <SelectItem key={loc} value={loc}>
+                                {loc}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                       </div>
 
                       <div className="space-y-2">
@@ -210,8 +350,8 @@ export default function VolunteerProfileEditPage() {
                           <Input
                             id="linkedin"
                             type="url"
-                            value={formData.linkedin}
-                            onChange={(e) => setFormData({ ...formData, linkedin: e.target.value })}
+                            value={formData.linkedinUrl}
+                            onChange={(e) => setFormData({ ...formData, linkedinUrl: e.target.value })}
                             placeholder="https://linkedin.com/in/yourprofile"
                           />
                         </div>
@@ -220,8 +360,8 @@ export default function VolunteerProfileEditPage() {
                           <Input
                             id="portfolio"
                             type="url"
-                            value={formData.portfolio}
-                            onChange={(e) => setFormData({ ...formData, portfolio: e.target.value })}
+                            value={formData.portfolioUrl}
+                            onChange={(e) => setFormData({ ...formData, portfolioUrl: e.target.value })}
                             placeholder="https://yourportfolio.com"
                           />
                         </div>
@@ -234,35 +374,29 @@ export default function VolunteerProfileEditPage() {
                   <Card>
                     <CardHeader>
                       <CardTitle>Skills & Expertise</CardTitle>
-                      <CardDescription>Select the skills you can offer to NGOs</CardDescription>
+                      <CardDescription>Your skills were set during onboarding.</CardDescription>
                     </CardHeader>
                     <CardContent>
                       <div className="space-y-4">
-                        <Label>Your Skills (select all that apply)</Label>
+                        <Label>Your Current Skills</Label>
                         <div className="flex flex-wrap gap-2">
-                          {allSkills.map((skill) => (
-                            <Badge
-                              key={skill}
-                              variant={formData.skills.includes(skill) ? "default" : "outline"}
-                              className={`cursor-pointer transition-colors ${
-                                formData.skills.includes(skill)
-                                  ? "bg-primary text-primary-foreground"
-                                  : "hover:bg-primary/10 hover:border-primary"
-                              }`}
-                              onClick={() => toggleSkill(skill)}
-                            >
-                              {formData.skills.includes(skill) ? (
-                                <X className="h-3 w-3 mr-1" />
-                              ) : (
-                                <Plus className="h-3 w-3 mr-1" />
-                              )}
-                              {skill}
-                            </Badge>
-                          ))}
+                          {profile?.skills?.length > 0 ? (
+                            profile.skills.map((skill: any, index: number) => {
+                              const category = skillCategories.find((c: any) => c.id === skill.categoryId)
+                              const subskill = category?.subskills.find((s: any) => s.id === skill.subskillId)
+                              return (
+                                <Badge key={index} className="bg-primary text-primary-foreground">
+                                  {subskill?.name || skill.subskillId} ({skill.level})
+                                </Badge>
+                              )
+                            })
+                          ) : (
+                            <p className="text-muted-foreground">No skills added yet. Complete onboarding to add skills.</p>
+                          )}
                         </div>
-                        <p className="text-sm text-muted-foreground">
-                          {formData.skills.length} skills selected. More skills help you match with more projects.
-                        </p>
+                        <Button variant="outline" asChild className="mt-4">
+                          <Link href="/volunteer/settings">Manage Skills in Settings</Link>
+                        </Button>
                       </div>
                     </CardContent>
                   </Card>
@@ -278,8 +412,8 @@ export default function VolunteerProfileEditPage() {
                       <div className="space-y-2">
                         <Label htmlFor="availability">Weekly Availability</Label>
                         <Select
-                          value={formData.availability}
-                          onValueChange={(value) => setFormData({ ...formData, availability: value })}
+                          value={formData.hoursPerWeek}
+                          onValueChange={(value) => setFormData({ ...formData, hoursPerWeek: value })}
                         >
                           <SelectTrigger>
                             <SelectValue />
@@ -287,32 +421,41 @@ export default function VolunteerProfileEditPage() {
                           <SelectContent>
                             <SelectItem value="1-5">1-5 hours per week</SelectItem>
                             <SelectItem value="5-10">5-10 hours per week</SelectItem>
-                            <SelectItem value="10-15">10-15 hours per week</SelectItem>
-                            <SelectItem value="15+">15+ hours per week</SelectItem>
+                            <SelectItem value="10-20">10-20 hours per week</SelectItem>
+                            <SelectItem value="20+">20+ hours per week</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
 
                       <div className="space-y-2">
-                        <Label>Preferred Causes</Label>
+                        <Label>Your Causes</Label>
                         <div className="flex flex-wrap gap-2">
-                          {["Education", "Environment", "Health", "Poverty", "Youth", "Community"].map((cause) => (
-                            <Badge key={cause} variant="outline" className="cursor-pointer hover:bg-primary/10">
-                              {cause}
-                            </Badge>
-                          ))}
+                          {profile?.causes?.length > 0 ? (
+                            profile.causes.map((cause: string) => (
+                              <Badge key={cause} variant="secondary">
+                                {cause}
+                              </Badge>
+                            ))
+                          ) : (
+                            <p className="text-muted-foreground">No causes selected.</p>
+                          )}
                         </div>
                       </div>
 
                       <div className="space-y-2">
-                        <Label>Preferred Project Types</Label>
-                        <div className="flex flex-wrap gap-2">
-                          {["Virtual", "One-hour consultation", "Short-term", "Long-term"].map((type) => (
-                            <Badge key={type} variant="outline" className="cursor-pointer hover:bg-primary/10">
-                              {type}
-                            </Badge>
-                          ))}
-                        </div>
+                        <Label>Work Mode</Label>
+                        <Badge variant="secondary" className="capitalize">
+                          {profile?.workMode || "Not set"}
+                        </Badge>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label>Volunteer Type</Label>
+                        <Badge variant="secondary" className="capitalize">
+                          {profile?.volunteerType === "free" ? "Pro-Bono Only" : 
+                           profile?.volunteerType === "paid" ? "Paid Only" : 
+                           profile?.volunteerType === "both" ? "Open to Both" : "Not set"}
+                        </Badge>
                       </div>
                     </CardContent>
                   </Card>
@@ -321,8 +464,8 @@ export default function VolunteerProfileEditPage() {
 
               {/* Save Button */}
               <div className="flex justify-end mt-8">
-                <Button type="submit" className="bg-primary hover:bg-primary/90" disabled={isLoading}>
-                  {isLoading ? (
+                <Button type="submit" className="bg-primary hover:bg-primary/90" disabled={isSaving}>
+                  {isSaving ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                       Saving...

@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -26,6 +26,8 @@ import {
   Lightbulb,
 } from "lucide-react"
 import { skillCategories, experienceLevels, causes, workModes } from "../../../lib/skills-data"
+import { saveVolunteerOnboarding, completeOnboarding } from "@/lib/actions"
+import { authClient } from "@/lib/auth-client"
 
 type SelectedSkill = {
   categoryId: string
@@ -37,7 +39,36 @@ export default function VolunteerOnboardingPage() {
   const router = useRouter()
   const [step, setStep] = useState(1)
   const [isLoading, setIsLoading] = useState(false)
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true)
+  const [error, setError] = useState("")
   const totalSteps = 5
+
+  // Check if user is authenticated
+  const { data: session, isPending } = authClient.useSession()
+  
+  useEffect(() => {
+    if (!isPending) {
+      if (!session?.user) {
+        // Not authenticated, redirect to sign in
+        router.push("/auth/signin")
+      } else {
+        const user = session.user as any
+        // If already onboarded, redirect to dashboard
+        if (user.isOnboarded) {
+          router.push("/volunteer/dashboard")
+        } else if (user.role !== "volunteer" && user.role !== "user") {
+          // Wrong role, redirect to correct onboarding or dashboard
+          if (user.role === "ngo") {
+            router.push("/ngo/onboarding")
+          } else {
+            router.push("/auth/role-select")
+          }
+        } else {
+          setIsCheckingAuth(false)
+        }
+      }
+    }
+  }, [session, isPending, router])
 
   // Step 1: Profile basics
   const [profile, setProfile] = useState({
@@ -104,9 +135,10 @@ export default function VolunteerOnboardingPage() {
 
   const handleSubmit = async () => {
     setIsLoading(true)
+    setError("")
 
     try {
-      // TODO: Save onboarding data to backend
+      // Save onboarding data to backend
       const onboardingData = {
         profile,
         skills: selectedSkills,
@@ -114,15 +146,28 @@ export default function VolunteerOnboardingPage() {
         workPreferences,
       }
 
-      console.log("Onboarding data:", onboardingData)
+      const result = await saveVolunteerOnboarding(onboardingData)
+      
+      if (!result.success) {
+        setError(result.error || "Failed to save profile")
+        console.error("Failed to save profile:", result.error)
+        setIsLoading(false)
+        return
+      }
 
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1500))
+      // Mark user as onboarded
+      const onboardResult = await completeOnboarding()
+      
+      if (!onboardResult.success) {
+        console.error("Failed to complete onboarding:", onboardResult.error)
+        // Still redirect - profile is saved
+      }
 
       // Redirect to dashboard
       router.push("/volunteer/dashboard")
     } catch (error) {
       console.error("Onboarding error:", error)
+      setError("Something went wrong. Please try again.")
     } finally {
       setIsLoading(false)
     }
@@ -587,6 +632,15 @@ export default function VolunteerOnboardingPage() {
     </div>
   )
 
+  // Show loading state while checking authentication
+  if (isPending || isCheckingAuth) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-screen bg-muted/30 py-8">
       <div className="container max-w-3xl mx-auto px-4">
@@ -603,6 +657,13 @@ export default function VolunteerOnboardingPage() {
 
         {/* Progress */}
         <Progress value={progress} className="mb-8" />
+
+        {/* Error Message */}
+        {error && (
+          <div className="mb-6 p-4 rounded-lg bg-destructive/10 text-destructive text-sm">
+            {error}
+          </div>
+        )}
 
         {/* Step Content */}
         <Card className="mb-8">

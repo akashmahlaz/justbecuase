@@ -36,7 +36,7 @@ export const auth = betterAuth({
   ],
   plugins: [
     admin({
-      defaultRole: "volunteer", // Default role for new users (instead of "user")
+      defaultRole: "user", // Unassigned - user must select volunteer or ngo
     }),
   ],
 });

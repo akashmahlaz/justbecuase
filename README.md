@@ -47,10 +47,22 @@ JustBecause.Asia is a skills-based volunteer platform that connects NGOs with sk
 
 4. Update `.env.local` with your values:
    ```env
+   # Database
    MONGODB_URI=your-mongodb-connection-string
+
+   # Authentication (Better Auth)
    BETTER_AUTH_SECRET=your-secret-key
    BETTER_AUTH_URL=http://localhost:3000
    NEXT_PUBLIC_APP_URL=http://localhost:3000
+
+   # Razorpay Payments
+   RAZORPAY_KEY_ID=your-razorpay-key-id
+   RAZORPAY_KEY_SECRET=your-razorpay-key-secret
+   NEXT_PUBLIC_RAZORPAY_KEY_ID=your-razorpay-key-id
+
+   # Cloudinary Image Uploads
+   NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME=your-cloudinary-cloud-name
+   NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET=volunteer_avatars
    ```
 
 5. Run the development server:

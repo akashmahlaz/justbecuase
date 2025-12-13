@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { DashboardHeader } from "@/components/dashboard/dashboard-header"
@@ -13,6 +13,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Progress } from "@/components/ui/progress"
+import { useAuth } from "@/lib/auth-context"
+import { getNGOProfile, createProject } from "@/lib/actions"
+import { skillCategories } from "@/lib/skills-data"
+import type { NGOProfile } from "@/lib/types"
 import {
   ArrowLeft,
   ArrowRight,
@@ -32,7 +36,6 @@ import {
   Loader2,
   Upload,
 } from "lucide-react"
-import { sampleNGOs } from "@/lib/data"
 
 const projectTemplates = [
   { id: "social-media", name: "Social Media Strategy", icon: Megaphone, time: "10-15 hours" },
@@ -49,47 +52,67 @@ const projectTemplates = [
   { id: "presentation", name: "Pitch Deck Creation", icon: Presentation, time: "10-15 hours" },
 ]
 
-const skillOptions = [
-  "Marketing",
-  "Social Media",
-  "Content Strategy",
-  "Web Development",
-  "UI/UX Design",
-  "Graphic Design",
-  "Branding",
-  "Grant Writing",
-  "Finance",
-  "Legal",
-  "HR",
-  "Training",
-  "Strategy",
-  "Research",
-  "Data Analysis",
-  "Project Management",
-]
+const skillOptions = skillCategories.flatMap(cat => 
+  cat.subskills.map(sub => ({ name: sub.name, categoryId: cat.id, subskillId: sub.id }))
+)
 
 export default function PostProjectPage() {
   const router = useRouter()
-  const ngo = sampleNGOs[0]
+  const { user, isLoading: authLoading } = useAuth()
+  const [ngoProfile, setNgoProfile] = useState<NGOProfile | null>(null)
   const [step, setStep] = useState(1)
   const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null)
   const [formData, setFormData] = useState({
     title: "",
     description: "",
-    skills: [] as string[],
+    skills: [] as { categoryId: string; subskillId: string; priority: string }[],
+    selectedSkillNames: [] as string[],
     timeCommitment: "",
+    duration: "2-4 weeks",
     deadline: "",
-    location: "Virtual",
+    workMode: "remote" as "remote" | "onsite" | "hybrid",
+    location: "",
+    projectType: "short-term" as "short-term" | "long-term" | "consultation" | "ongoing",
+    experienceLevel: "intermediate" as "beginner" | "intermediate" | "expert",
+    causes: [] as string[],
     deliverables: "",
-    additionalInfo: "",
   })
 
-  const toggleSkill = (skill: string) => {
-    setFormData((prev) => ({
-      ...prev,
-      skills: prev.skills.includes(skill) ? prev.skills.filter((s) => s !== skill) : [...prev.skills, skill],
-    }))
+  // Fetch NGO profile on mount
+  useEffect(() => {
+    async function loadProfile() {
+      if (!user) return
+      const profile = await getNGOProfile()
+      if (profile) {
+        setNgoProfile(profile)
+        // Pre-fill causes from NGO profile
+        if (profile.causes) {
+          setFormData(prev => ({ ...prev, causes: profile.causes || [] }))
+        }
+      }
+    }
+    loadProfile()
+  }, [user])
+
+  const toggleSkill = (skillName: string, categoryId: string, subskillId: string) => {
+    setFormData((prev) => {
+      const exists = prev.selectedSkillNames.includes(skillName)
+      if (exists) {
+        return {
+          ...prev,
+          selectedSkillNames: prev.selectedSkillNames.filter((s) => s !== skillName),
+          skills: prev.skills.filter((s) => !(s.categoryId === categoryId && s.subskillId === subskillId)),
+        }
+      } else {
+        return {
+          ...prev,
+          selectedSkillNames: [...prev.selectedSkillNames, skillName],
+          skills: [...prev.skills, { categoryId, subskillId, priority: "must-have" }],
+        }
+      }
+    })
   }
 
   const handleTemplateSelect = (templateId: string) => {
@@ -100,6 +123,7 @@ export default function PostProjectPage() {
         ...prev,
         title: template.name,
         timeCommitment: template.time,
+        projectType: templateId === "consultation" ? "consultation" : "short-term",
       }))
     }
     setStep(2)
@@ -108,16 +132,43 @@ export default function PostProjectPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
-    await new Promise((resolve) => setTimeout(resolve, 2000))
-    setIsLoading(false)
-    router.push("/ngo/dashboard")
+    setError(null)
+    
+    try {
+      const result = await createProject({
+        title: formData.title,
+        description: formData.description + (formData.deliverables ? `\n\nDeliverables:\n${formData.deliverables}` : ""),
+        skillsRequired: formData.skills,
+        experienceLevel: formData.experienceLevel,
+        timeCommitment: formData.timeCommitment,
+        duration: formData.duration,
+        projectType: formData.projectType,
+        workMode: formData.workMode,
+        location: formData.location || undefined,
+        causes: formData.causes,
+        deadline: formData.deadline ? new Date(formData.deadline) : undefined,
+      })
+
+      if (result.success) {
+        router.push("/ngo/projects")
+      } else {
+        setError(result.error || "Failed to create project")
+      }
+    } catch (err) {
+      setError("An unexpected error occurred")
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   const progressPercent = (step / 3) * 100
 
   return (
     <div className="min-h-screen bg-background">
-      <DashboardHeader userType="ngo" userName={ngo.name} userAvatar={ngo.logo} />
+      <DashboardHeader 
+        userType="ngo" 
+        userName={ngoProfile?.orgName || user?.name || "NGO"}
+      />
 
       <main className="container mx-auto px-4 md:px-6 py-8 max-w-4xl">
         {/* Progress */}
@@ -221,20 +272,27 @@ export default function PostProjectPage() {
 
                 <div className="space-y-2">
                   <Label>Skills Required</Label>
-                  <div className="flex flex-wrap gap-2">
-                    {skillOptions.map((skill) => (
-                      <Badge
-                        key={skill}
-                        variant={formData.skills.includes(skill) ? "default" : "outline"}
-                        className={`cursor-pointer transition-colors ${
-                          formData.skills.includes(skill)
-                            ? "bg-primary text-primary-foreground"
-                            : "hover:bg-primary/10 hover:border-primary"
-                        }`}
-                        onClick={() => toggleSkill(skill)}
-                      >
-                        {skill}
-                      </Badge>
+                  <div className="space-y-4">
+                    {skillCategories.slice(0, 4).map((category) => (
+                      <div key={category.id}>
+                        <p className="text-sm font-medium text-muted-foreground mb-2">{category.name}</p>
+                        <div className="flex flex-wrap gap-2">
+                          {category.subskills.slice(0, 6).map((subskill) => (
+                            <Badge
+                              key={subskill.id}
+                              variant={formData.selectedSkillNames.includes(subskill.name) ? "default" : "outline"}
+                              className={`cursor-pointer transition-colors ${
+                                formData.selectedSkillNames.includes(subskill.name)
+                                  ? "bg-primary text-primary-foreground"
+                                  : "hover:bg-primary/10 hover:border-primary"
+                              }`}
+                              onClick={() => toggleSkill(subskill.name, category.id, subskill.id)}
+                            >
+                              {subskill.name}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
                     ))}
                   </div>
                 </div>
@@ -273,24 +331,33 @@ export default function PostProjectPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="location">Location</Label>
+                  <Label htmlFor="workMode">Work Mode</Label>
                   <Select
-                    value={formData.location}
-                    onValueChange={(value) => setFormData({ ...formData, location: value })}
+                    value={formData.workMode}
+                    onValueChange={(value: "remote" | "onsite" | "hybrid") => setFormData({ ...formData, workMode: value })}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="Select location type" />
+                      <SelectValue placeholder="Select work mode" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="Virtual">Virtual (Remote)</SelectItem>
-                      <SelectItem value="Singapore">Singapore</SelectItem>
-                      <SelectItem value="Hong Kong">Hong Kong</SelectItem>
-                      <SelectItem value="Jakarta">Jakarta</SelectItem>
-                      <SelectItem value="Manila">Manila</SelectItem>
-                      <SelectItem value="Hybrid">Hybrid</SelectItem>
+                      <SelectItem value="remote">Remote</SelectItem>
+                      <SelectItem value="onsite">On-site</SelectItem>
+                      <SelectItem value="hybrid">Hybrid</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
+
+                {formData.workMode !== "remote" && (
+                  <div className="space-y-2">
+                    <Label htmlFor="location">Location</Label>
+                    <Input
+                      id="location"
+                      placeholder="e.g., Mumbai, India"
+                      value={formData.location}
+                      onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                    />
+                  </div>
+                )}
 
                 <div className="space-y-2">
                   <Label htmlFor="deliverables">Expected Deliverables</Label>
@@ -354,8 +421,8 @@ export default function PostProjectPage() {
                     <div>
                       <p className="text-sm font-medium text-muted-foreground mb-2">Skills Required</p>
                       <div className="flex flex-wrap gap-2">
-                        {formData.skills.length > 0 ? (
-                          formData.skills.map((skill) => (
+                        {formData.selectedSkillNames.length > 0 ? (
+                          formData.selectedSkillNames.map((skill) => (
                             <Badge key={skill} className="bg-accent text-accent-foreground">
                               {skill}
                             </Badge>
@@ -376,8 +443,8 @@ export default function PostProjectPage() {
                         <p className="text-foreground">{formData.deadline || "Not specified"}</p>
                       </div>
                       <div>
-                        <p className="text-sm font-medium text-muted-foreground mb-1">Location</p>
-                        <p className="text-foreground">{formData.location}</p>
+                        <p className="text-sm font-medium text-muted-foreground mb-1">Work Mode</p>
+                        <p className="text-foreground capitalize">{formData.workMode}</p>
                       </div>
                     </div>
 
@@ -389,6 +456,12 @@ export default function PostProjectPage() {
                     )}
                   </div>
                 </div>
+
+                {error && (
+                  <div className="p-4 bg-red-50 border border-red-200 rounded-lg text-red-600">
+                    {error}
+                  </div>
+                )}
 
                 <div className="flex justify-end gap-4">
                   <Button type="button" variant="outline" onClick={() => setStep(2)} className="bg-transparent">

@@ -2,6 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
+import { getAdminStats, getAllVolunteers, getAllNGOs } from "@/lib/actions"
 import {
   Search,
   Filter,
@@ -10,6 +11,7 @@ import {
   Building2,
   Shield,
   MoreHorizontal,
+  User,
 } from "lucide-react"
 import {
   DropdownMenu,
@@ -17,8 +19,36 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import Link from "next/link"
 
-export default function AdminUsersPage() {
+export default async function AdminUsersPage() {
+  // Fetch real data
+  const stats = await getAdminStats()
+  const volunteersData = await getAllVolunteers(1, 10)
+  const ngosData = await getAllNGOs(1, 10)
+  
+  // Combine into a simple users list
+  const allUsers = [
+    ...volunteersData.data.map(v => ({
+      id: v.userId,
+      name: v.name || "Unnamed Volunteer",
+      email: v.phone || "No email",
+      role: "volunteer" as const,
+      avatar: v.avatar,
+      createdAt: v.createdAt,
+      isVerified: v.isVerified,
+    })),
+    ...ngosData.data.map(n => ({
+      id: n.userId,
+      name: n.orgName,
+      email: n.contactEmail || "No email",
+      role: "ngo" as const,
+      avatar: n.logo,
+      createdAt: n.createdAt,
+      isVerified: n.isVerified,
+    })),
+  ].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -38,7 +68,9 @@ export default function AdminUsersPage() {
               <Users className="h-5 w-5 text-primary" />
             </div>
             <div>
-              <p className="text-2xl font-bold text-foreground">0</p>
+              <p className="text-2xl font-bold text-foreground">
+                {stats.totalVolunteers + stats.totalNGOs}
+              </p>
               <p className="text-sm text-muted-foreground">Total Users</p>
             </div>
           </CardContent>
@@ -49,7 +81,7 @@ export default function AdminUsersPage() {
               <Heart className="h-5 w-5 text-green-600" />
             </div>
             <div>
-              <p className="text-2xl font-bold text-foreground">0</p>
+              <p className="text-2xl font-bold text-foreground">{stats.totalVolunteers}</p>
               <p className="text-sm text-muted-foreground">Volunteers</p>
             </div>
           </CardContent>
@@ -60,7 +92,7 @@ export default function AdminUsersPage() {
               <Building2 className="h-5 w-5 text-secondary" />
             </div>
             <div>
-              <p className="text-2xl font-bold text-foreground">0</p>
+              <p className="text-2xl font-bold text-foreground">{stats.totalNGOs}</p>
               <p className="text-sm text-muted-foreground">NGOs</p>
             </div>
           </CardContent>
@@ -105,16 +137,94 @@ export default function AdminUsersPage() {
       {/* Users Table */}
       <Card>
         <CardHeader className="pb-4">
-          <CardTitle className="text-lg">Registered Users</CardTitle>
+          <CardTitle className="text-lg">Registered Users ({allUsers.length})</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="text-center py-12">
-            <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-            <p className="text-muted-foreground">No users found</p>
-            <p className="text-sm text-muted-foreground mt-1">
-              Users will appear here when they sign up
-            </p>
-          </div>
+          {allUsers.length > 0 ? (
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b">
+                    <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">User</th>
+                    <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">Role</th>
+                    <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">Status</th>
+                    <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">Joined</th>
+                    <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {allUsers.map((user) => (
+                    <tr key={user.id} className="border-b hover:bg-muted/50">
+                      <td className="py-3 px-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center overflow-hidden">
+                            {user.avatar ? (
+                              <img src={user.avatar} alt={user.name} className="w-full h-full object-cover" />
+                            ) : (
+                              <User className="h-5 w-5 text-muted-foreground" />
+                            )}
+                          </div>
+                          <div>
+                            <p className="font-medium text-foreground">{user.name}</p>
+                            <p className="text-sm text-muted-foreground">{user.email}</p>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="py-3 px-4">
+                        <Badge 
+                          variant={user.role === "volunteer" ? "default" : "secondary"}
+                          className="capitalize"
+                        >
+                          {user.role}
+                        </Badge>
+                      </td>
+                      <td className="py-3 px-4">
+                        <Badge 
+                          variant={user.isVerified ? "default" : "outline"}
+                          className={user.isVerified ? "bg-green-100 text-green-700" : ""}
+                        >
+                          {user.isVerified ? "Verified" : "Pending"}
+                        </Badge>
+                      </td>
+                      <td className="py-3 px-4 text-sm text-muted-foreground">
+                        {new Date(user.createdAt).toLocaleDateString("en-IN", {
+                          month: "short",
+                          day: "numeric",
+                          year: "numeric"
+                        })}
+                      </td>
+                      <td className="py-3 px-4">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem asChild>
+                              <Link href={user.role === "volunteer" ? `/volunteers/${user.id}` : `/ngos/${user.id}`}>
+                                View Profile
+                              </Link>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem>Verify User</DropdownMenuItem>
+                            <DropdownMenuItem className="text-red-600">Suspend User</DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <div className="text-center py-12">
+              <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+              <p className="text-muted-foreground">No users found</p>
+              <p className="text-sm text-muted-foreground mt-1">
+                Users will appear here when they sign up
+              </p>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

@@ -32,6 +32,11 @@ export default async function VolunteerDashboard() {
     }
   }
 
+  // Redirect to onboarding if not completed
+  if (!session.user.isOnboarded) {
+    redirect("/volunteer/onboarding")
+  }
+
   const profile = await getVolunteerProfile()
   const applications = await getMyApplications()
   const matchedOpportunities = await getMatchedOpportunitiesForVolunteer()

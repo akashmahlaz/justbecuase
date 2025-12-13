@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, Suspense } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -8,32 +8,15 @@ import { Heart, Building2, Loader2 } from "lucide-react"
 import { authClient } from "@/lib/auth-client"
 import { selectRole } from "@/lib/actions"
 
-export default function RoleSelectPage() {
+function RoleSelectContent() {
   const router = useRouter()
+  
   const [isLoading, setIsLoading] = useState(false)
   const [selectedRole, setSelectedRole] = useState<"volunteer" | "ngo" | null>(null)
   const [error, setError] = useState<string | null>(null)
   
   // Check if user is authenticated
   const { data: session, isPending } = authClient.useSession()
-
-  useEffect(() => {
-    // Redirect to signin if not authenticated
-    if (!isPending && !session?.user) {
-      router.push("/auth/signin")
-    }
-    // Redirect to appropriate dashboard if user already has a role
-    if (session?.user?.role) {
-      const role = session.user.role as string
-      if (role === "volunteer") {
-        router.push("/volunteer/dashboard")
-      } else if (role === "ngo") {
-        router.push("/ngo/dashboard")
-      } else if (role === "admin") {
-        router.push("/admin")
-      }
-    }
-  }, [session, isPending, router])
 
   const handleRoleSelect = async (role: "volunteer" | "ngo") => {
     setIsLoading(true)
@@ -64,6 +47,41 @@ export default function RoleSelectPage() {
       setSelectedRole(null)
     }
   }
+
+  useEffect(() => {
+    // Redirect to signin if not authenticated
+    if (!isPending && !session?.user) {
+      router.push("/auth/signin")
+      return
+    }
+    
+    if (session?.user) {
+      const role = session.user.role as string
+      const isOnboarded = (session.user as any).isOnboarded === true
+      
+      // If user is already onboarded, redirect to dashboard
+      if (isOnboarded) {
+        if (role === "volunteer") {
+          router.push("/volunteer/dashboard")
+        } else if (role === "ngo") {
+          router.push("/ngo/dashboard")
+        } else if (role === "admin") {
+          router.push("/admin")
+        }
+        return
+      }
+      
+      // If user has a valid role but not onboarded, redirect to onboarding
+      if (role === "volunteer") {
+        router.push("/volunteer/onboarding")
+        return
+      } else if (role === "ngo") {
+        router.push("/ngo/onboarding")
+        return
+      }
+      // Otherwise, user needs to select a role (stay on this page)
+    }
+  }, [session, isPending, router])
 
   // Show loading while checking session
   if (isPending) {
@@ -177,5 +195,23 @@ export default function RoleSelectPage() {
         </p>
       </div>
     </div>
+  )
+}
+
+// Loading fallback for Suspense
+function RoleSelectLoading() {
+  return (
+    <div className="min-h-screen flex items-center justify-center">
+      <Loader2 className="h-8 w-8 animate-spin text-primary" />
+    </div>
+  )
+}
+
+// Main export with Suspense boundary for useSearchParams
+export default function RoleSelectPage() {
+  return (
+    <Suspense fallback={<RoleSelectLoading />}>
+      <RoleSelectContent />
+    </Suspense>
   )
 }

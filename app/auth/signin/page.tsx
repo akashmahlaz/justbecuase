@@ -44,9 +44,26 @@ export default function SignInPage() {
       if (user) {
         // Redirect based on role and onboarding status
         if (!user.isOnboarded) {
-          router.push(user.role === "volunteer" ? "/volunteer/onboarding" : "/ngo/onboarding")
+          // Check if user has selected a role yet
+          if (user.role === "volunteer") {
+            router.push("/volunteer/onboarding")
+          } else if (user.role === "ngo") {
+            router.push("/ngo/onboarding")
+          } else {
+            // User hasn't selected a role yet (role is "user" or undefined)
+            router.push("/auth/role-select")
+          }
         } else {
-          router.push(user.role === "volunteer" ? "/volunteer/dashboard" : "/ngo/dashboard")
+          // User is onboarded, go to dashboard
+          if (user.role === "volunteer") {
+            router.push("/volunteer/dashboard")
+          } else if (user.role === "ngo") {
+            router.push("/ngo/dashboard")
+          } else if (user.role === "admin") {
+            router.push("/admin/dashboard")
+          } else {
+            router.push("/")
+          }
         }
       } else {
         router.push("/")

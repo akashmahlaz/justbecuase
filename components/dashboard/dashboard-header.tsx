@@ -30,7 +30,7 @@ export function DashboardHeader({ userType, userName, userAvatar }: DashboardHea
           { href: "/volunteer/dashboard", label: "Dashboard" },
           { href: "/projects", label: "Browse Projects" },
           { href: "/volunteer/applications", label: "My Applications" },
-          { href: "/volunteer/active", label: "Active Projects" },
+          { href: "/volunteer/opportunities", label: "Opportunities" },
           { href: "/volunteer/profile", label: "My Profile" },
         ]
       : [

@@ -69,7 +69,12 @@ export async function requireRole(roles: string[]) {
 // This prevents users from self-assigning admin role
 export async function selectRole(role: "volunteer" | "ngo"): Promise<ApiResponse<boolean>> {
   try {
-    const user = await requireAuth()
+    const user = await getCurrentUser()
+    
+    // If no user session, return error (don't redirect - let client handle it)
+    if (!user) {
+      return { success: false, error: "Not authenticated" }
+    }
     
     // Security: Only allow volunteer or ngo roles, never admin
     if (role !== "volunteer" && role !== "ngo") {
@@ -94,13 +99,23 @@ export async function selectRole(role: "volunteer" | "ngo"): Promise<ApiResponse
     const db = await getDb()
     const usersCollection = db.collection("user")
     
-    const result = await usersCollection.updateOne(
+    // Try to update by 'id' field (better-auth default)
+    let result = await usersCollection.updateOne(
       { id: user.id },
       { $set: { role: role, updatedAt: new Date() } }
     )
     
+    // If not found by 'id', try by email as fallback
+    if (result.matchedCount === 0 && user.email) {
+      result = await usersCollection.updateOne(
+        { email: user.email },
+        { $set: { role: role, updatedAt: new Date() } }
+      )
+    }
+    
     // Check if document was found (matchedCount) - modifiedCount may be 0 if same role
     if (result.matchedCount === 0) {
+      console.error("User not found in database:", { userId: user.id, email: user.email })
       return { success: false, error: "User not found" }
     }
     
@@ -108,6 +123,41 @@ export async function selectRole(role: "volunteer" | "ngo"): Promise<ApiResponse
     return { success: true, data: true }
   } catch (error) {
     console.error("Error selecting role:", error)
+    return { success: false, error: "An error occurred" }
+  }
+}
+
+// Mark user as onboarded - called after profile is saved
+export async function completeOnboarding(): Promise<ApiResponse<boolean>> {
+  try {
+    const user = await requireAuth()
+    
+    const db = await getDb()
+    const usersCollection = db.collection("user")
+    
+    // Try to update by 'id' field (better-auth default)
+    let result = await usersCollection.updateOne(
+      { id: user.id },
+      { $set: { isOnboarded: true, updatedAt: new Date() } }
+    )
+    
+    // If not found by 'id', try by email as fallback
+    if (result.matchedCount === 0 && user.email) {
+      result = await usersCollection.updateOne(
+        { email: user.email },
+        { $set: { isOnboarded: true, updatedAt: new Date() } }
+      )
+    }
+    
+    if (result.matchedCount === 0) {
+      console.error("User not found in database:", { userId: user.id, email: user.email })
+      return { success: false, error: "User not found" }
+    }
+    
+    revalidatePath("/")
+    return { success: true, data: true }
+  } catch (error) {
+    console.error("Error completing onboarding:", error)
     return { success: false, error: "An error occurred" }
   }
 }
@@ -141,6 +191,9 @@ export async function saveVolunteerOnboarding(data: {
     const existing = await volunteerProfilesDb.findByUserId(user.id)
     
     const profileData: Omit<VolunteerProfile, "_id"> = {
+      // Copy display name and avatar from auth user for easier display elsewhere
+      name: (user as any).name || "",
+      avatar: (user as any).image || undefined,
       userId: user.id,
       phone: data.profile.phone,
       location: data.profile.location,
@@ -196,7 +249,7 @@ export async function getVolunteerProfile(userId?: string): Promise<VolunteerPro
 
 // Allowed fields for volunteer profile updates - filters out sensitive fields
 const ALLOWED_VOLUNTEER_UPDATE_FIELDS = [
-  "phone", "location", "city", "country", "bio", "linkedinUrl", "portfolioUrl",
+  "name", "avatar", "phone", "location", "city", "country", "bio", "linkedinUrl", "portfolioUrl",
   "resumeUrl", "skills", "causes", "volunteerType", "hourlyRate", "currency",
   "workMode", "hoursPerWeek", "availability"
 ] as const
@@ -254,6 +307,9 @@ export async function saveNGOOnboarding(data: {
     const existing = await ngoProfilesDb.findByUserId(user.id)
 
     const profileData: Omit<NGOProfile, "_id"> = {
+      // Save contact person name and contact email from auth user by default
+      contactPersonName: (user as any).name || "",
+      contactEmail: user.email || undefined,
       userId: user.id,
       orgName: data.orgDetails.orgName,
       registrationNumber: data.orgDetails.registrationNumber,
@@ -310,7 +366,7 @@ const ALLOWED_NGO_UPDATE_FIELDS = [
   "orgName", "organizationName", "registrationNumber", "website", "phone",
   "address", "city", "country", "description", "mission", "yearFounded",
   "teamSize", "logo", "socialLinks", "causes", "typicalSkillsNeeded",
-  "acceptRemoteVolunteers", "acceptOnsiteVolunteers", "contactEmail", "contactPhone"
+  "acceptRemoteVolunteers", "acceptOnsiteVolunteers", "contactPersonName", "contactEmail", "contactPhone"
 ] as const
 
 export async function updateNGOProfile(
@@ -676,13 +732,15 @@ export async function getVolunteerProfileView(
     hoursPerWeek: volunteerProfile.hoursPerWeek,
     volunteerType: volunteerProfile.volunteerType,
     completedProjects: volunteerProfile.completedProjects,
+    hoursContributed: volunteerProfile.hoursContributed,
     rating: volunteerProfile.rating,
     isVerified: volunteerProfile.isVerified,
     isUnlocked,
     canMessage: isUnlocked,
 
     // Conditional fields (locked for free volunteers until unlocked)
-    name: isUnlocked ? volunteerProfile.bio?.split("\n")[0] || "Volunteer" : null, // We don't have name in profile, using placeholder
+    name: isUnlocked ? (volunteerProfile.name || "Volunteer") : null,
+    avatar: isUnlocked ? volunteerProfile.avatar : null,
     bio: isUnlocked ? volunteerProfile.bio : null,
     phone: isUnlocked ? volunteerProfile.phone : null,
     linkedinUrl: isUnlocked ? volunteerProfile.linkedinUrl : null,
@@ -1078,6 +1136,37 @@ export async function getMyTransactions() {
   if (!user) return []
   
   return transactionsDb.findByUserId(user.id)
+}
+
+export async function getAllTransactions(page = 1, limit = 20) {
+  const skip = (page - 1) * limit
+  const [transactions, total] = await Promise.all([
+    transactionsDb.findMany({}, { skip, limit, sort: { createdAt: -1 } }),
+    transactionsDb.count({}),
+  ])
+  
+  return {
+    data: transactions,
+    total,
+    page,
+    totalPages: Math.ceil(total / limit),
+  }
+}
+
+export async function getPaymentStats() {
+  const [totalRevenue, profileUnlockRevenue, totalTransactions, completedTransactions] = await Promise.all([
+    transactionsDb.sumAmount({ paymentStatus: "completed" }),
+    transactionsDb.sumAmount({ type: "profile_unlock", paymentStatus: "completed" }),
+    transactionsDb.count({}),
+    transactionsDb.count({ paymentStatus: "completed" }),
+  ])
+  
+  return {
+    totalRevenue,
+    profileUnlockRevenue,
+    totalTransactions,
+    completedTransactions,
+  }
 }
 
 // ============================================

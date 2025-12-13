@@ -10,7 +10,20 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
 import { Heart, Mail, Lock, User, Building2, Loader2, ArrowRight, ArrowLeft, CheckCircle } from "lucide-react"
-import { signUp } from "@/lib/auth-client"
+import { signUp, getSession } from "@/lib/auth-client"
+import { selectRole } from "@/lib/actions"
+
+// Helper to wait for session with retry
+async function waitForSession(maxRetries = 5, delay = 500): Promise<boolean> {
+  for (let i = 0; i < maxRetries; i++) {
+    const session = await getSession()
+    if (session?.data?.user) {
+      return true
+    }
+    await new Promise(resolve => setTimeout(resolve, delay))
+  }
+  return false
+}
 
 type AccountType = "volunteer" | "ngo" | null
 
@@ -31,6 +44,11 @@ export default function SignUpPage() {
     e.preventDefault()
     setError("")
 
+    if (!accountType) {
+      setError("Please select an account type")
+      return
+    }
+
     if (formData.password !== formData.confirmPassword) {
       setError("Passwords do not match")
       return
@@ -44,7 +62,7 @@ export default function SignUpPage() {
     setIsLoading(true)
 
     try {
-      // Sign up without role - role will be set via server action after signup
+      // Step 1: Create the account
       const { error: signUpError } = await signUp.email({
         email: formData.email,
         password: formData.password,
@@ -57,8 +75,27 @@ export default function SignUpPage() {
         return
       }
 
-      // Redirect to role selection/onboarding - role will be set there securely
-      router.push(`/auth/role-select?intent=${accountType}`)
+      // Step 2: Wait for session to be established before setting role
+      const sessionReady = await waitForSession()
+      if (!sessionReady) {
+        // Session not ready - redirect to role-select page as fallback
+        // The role-select page will handle setting the role once session is ready
+        router.push("/auth/role-select")
+        return
+      }
+
+      // Step 3: Set the role (user already selected in step 1)
+      const roleResult = await selectRole(accountType)
+      
+      if (!roleResult.success) {
+        // If role setting fails, still redirect to role-select as fallback
+        console.error("Failed to set role:", roleResult.error)
+        router.push("/auth/role-select")
+        return
+      }
+
+      // Step 4: Redirect directly to onboarding (skip role-select page)
+      router.push(accountType === "volunteer" ? "/volunteer/onboarding" : "/ngo/onboarding")
     } catch (err: any) {
       setError(err.message || "Something went wrong")
       setIsLoading(false)

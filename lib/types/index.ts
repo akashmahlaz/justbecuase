@@ -42,6 +42,10 @@ export interface VolunteerProfile {
   _id?: ObjectId
   userId: string // Reference to User
   
+  // Display name and avatar copied from auth user
+  name?: string
+  avatar?: string
+  
   // Basic Info
   phone: string
   location: string
@@ -98,6 +102,7 @@ export interface NGOProfile {
   orgName: string
   organizationName?: string // Alias for orgName
   contactEmail?: string
+  contactPersonName?: string
   contactPhone?: string
   registrationNumber?: string
   website?: string
@@ -458,11 +463,13 @@ export interface VolunteerProfileView {
   hoursPerWeek: string
   volunteerType: VolunteerType
   completedProjects: number
+  hoursContributed: number
   rating: number
   isVerified: boolean
   
   // Visible for PAID volunteers OR if NGO has unlocked
   name?: string | null // null = blurred
+  avatar?: string | null
   bio?: string | null
   phone?: string | null
   linkedinUrl?: string | null
