@@ -19,11 +19,8 @@ import { Camera, Save, Loader2, CheckCircle, Building2, Globe, Users, ExternalLi
 import { useAuth } from "@/lib/auth-context"
 import { getNGOProfile, updateNGOProfile } from "@/lib/actions"
 import { skillCategories } from "@/lib/skills-data"
+import { uploadToCloudinary, validateImageFile } from "@/lib/upload"
 import type { NGOProfile } from "@/lib/types"
-
-// Cloudinary configuration
-const CLOUDINARY_CLOUD_NAME = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME
-const CLOUDINARY_UPLOAD_PRESET = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || "ngo_logos"
 
 const teamSizes = [
   "1-5",
@@ -148,25 +145,10 @@ export default function NGOProfilePage() {
     const file = e.target.files?.[0]
     if (!file) return
 
-    // Check if Cloudinary is configured
-    if (!CLOUDINARY_CLOUD_NAME) {
-      toast.error("Image upload not configured", {
-        description: "Please set NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME in your environment variables."
-      })
-      return
-    }
-
-    if (file.size > 2 * 1024 * 1024) {
-      toast.error("File too large", {
-        description: "Please upload an image smaller than 2MB."
-      })
-      return
-    }
-
-    if (!file.type.startsWith("image/")) {
-      toast.error("Invalid file type", {
-        description: "Please upload an image file (JPG, PNG, etc.)."
-      })
+    // Validate file
+    const validation = validateImageFile(file)
+    if (!validation.valid) {
+      toast.error("Invalid file", { description: validation.error })
       return
     }
 
@@ -174,28 +156,21 @@ export default function NGOProfilePage() {
     toast.loading("Uploading logo...", { id: "logo-upload" })
 
     try {
-      const uploadData = new FormData()
-      uploadData.append("file", file)
-      uploadData.append("upload_preset", CLOUDINARY_UPLOAD_PRESET)
-
-      const cloudinaryUrl = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`
-      
-      const response = await fetch(cloudinaryUrl, {
-        method: "POST",
-        body: uploadData,
+      // Upload with signed request
+      const uploadResult = await uploadToCloudinary(file, "ngo_logos", {
+        onProgress: (percent) => {
+          // Could show progress here if needed
+        },
       })
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}))
-        throw new Error(errorData.error?.message || "Upload failed. Please check your Cloudinary upload preset.")
+      if (!uploadResult.success) {
+        throw new Error(uploadResult.error || "Upload failed")
       }
 
-      const data = await response.json()
-      
-      const result = await updateNGOProfile({ logo: data.secure_url })
+      const result = await updateNGOProfile({ logo: uploadResult.url })
       
       if (result.success) {
-        setProfile((prev) => prev ? { ...prev, logo: data.secure_url } : null)
+        setProfile((prev) => prev ? { ...prev, logo: uploadResult.url } : null)
         toast.success("Logo updated!", { id: "logo-upload" })
       } else {
         throw new Error(result.error || "Failed to save logo")
@@ -204,7 +179,7 @@ export default function NGOProfilePage() {
       console.error("Logo upload error:", err)
       toast.error("Upload failed", { 
         id: "logo-upload",
-        description: err.message || "Please check your Cloudinary configuration."
+        description: err.message || "Please try again."
       })
     } finally {
       setUploadingLogo(false)

@@ -155,7 +155,7 @@ export function Navbar() {
                 <DropdownMenuSeparator />
 
                 <DropdownMenuItem asChild>
-                  <Link href="/dashboard">My Dashboard</Link>
+                  <Link href={user?.role === "admin" ? "/admin" : user?.role === "ngo" ? "/ngo/dashboard" : "/volunteer/dashboard"}>My Dashboard</Link>
                 </DropdownMenuItem>
 
                 <DropdownMenuSeparator />
@@ -210,7 +210,7 @@ export function Navbar() {
                 ) : (
                   <>
                     <Button asChild variant="outline">
-                      <Link href="/dashboard">Dashboard</Link>
+                      <Link href={user?.role === "admin" ? "/admin" : user?.role === "ngo" ? "/ngo/dashboard" : "/volunteer/dashboard"}>Dashboard</Link>
                     </Button>
                     <Button
                       onClick={() => client.signOut()}

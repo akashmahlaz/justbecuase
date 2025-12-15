@@ -20,10 +20,7 @@ import { Camera, Save, Loader2, CheckCircle } from "lucide-react"
 import { authClient } from "@/lib/auth-client"
 import { getVolunteerProfile, updateVolunteerProfile } from "@/lib/actions"
 import { skillCategories } from "@/lib/skills-data"
-
-// Cloudinary configuration
-const CLOUDINARY_CLOUD_NAME = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME
-const CLOUDINARY_UPLOAD_PRESET = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || "volunteer_avatars"
+import { uploadToCloudinary, validateImageFile } from "@/lib/upload"
 
 const locations = [
   "Singapore",
@@ -110,27 +107,10 @@ export default function VolunteerProfileEditPage() {
     const file = e.target.files?.[0]
     if (!file) return
 
-    // Check if Cloudinary is configured
-    if (!CLOUDINARY_CLOUD_NAME) {
-      toast.error("Image upload not configured", {
-        description: "Please set NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME in your environment variables."
-      })
-      return
-    }
-
-    // Validate file size (max 2MB)
-    if (file.size > 2 * 1024 * 1024) {
-      toast.error("File too large", {
-        description: "Please upload an image smaller than 2MB."
-      })
-      return
-    }
-
-    // Validate file type
-    if (!file.type.startsWith("image/")) {
-      toast.error("Invalid file type", {
-        description: "Please upload an image file (JPG, PNG, etc.)."
-      })
+    // Validate file
+    const validation = validateImageFile(file)
+    if (!validation.valid) {
+      toast.error("Invalid file", { description: validation.error })
       return
     }
 
@@ -138,31 +118,22 @@ export default function VolunteerProfileEditPage() {
     toast.loading("Uploading photo...", { id: "photo-upload" })
 
     try {
-      // Create FormData for upload
-      const uploadData = new FormData()
-      uploadData.append("file", file)
-      uploadData.append("upload_preset", CLOUDINARY_UPLOAD_PRESET)
-
-      // Upload to Cloudinary
-      const cloudinaryUrl = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`
-      
-      const response = await fetch(cloudinaryUrl, {
-        method: "POST",
-        body: uploadData,
+      // Upload with signed request
+      const uploadResult = await uploadToCloudinary(file, "volunteer_avatars", {
+        onProgress: (percent) => {
+          // Could show progress here if needed
+        },
       })
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}))
-        throw new Error(errorData.error?.message || "Upload failed. Please check your Cloudinary upload preset.")
+      if (!uploadResult.success) {
+        throw new Error(uploadResult.error || "Upload failed")
       }
 
-      const data = await response.json()
-      
       // Update profile with new avatar URL
-      const result = await updateVolunteerProfile({ avatar: data.secure_url })
+      const result = await updateVolunteerProfile({ avatar: uploadResult.url })
       
       if (result.success) {
-        setProfile((prev: any) => ({ ...prev, avatar: data.secure_url }))
+        setProfile((prev: any) => ({ ...prev, avatar: uploadResult.url }))
         toast.success("Photo updated!", { id: "photo-upload" })
       } else {
         throw new Error(result.error || "Failed to save avatar")
@@ -171,7 +142,7 @@ export default function VolunteerProfileEditPage() {
       console.error("Photo upload error:", err)
       toast.error("Upload failed", { 
         id: "photo-upload",
-        description: err.message || "Please check your Cloudinary configuration."
+        description: err.message || "Please try again."
       })
     } finally {
       setUploadingPhoto(false)

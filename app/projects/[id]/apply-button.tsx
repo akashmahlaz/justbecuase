@@ -21,13 +21,14 @@ import { applyToProject } from "@/lib/actions"
 interface ApplyButtonProps {
   projectId: string
   projectTitle: string
+  hasApplied?: boolean
 }
 
-export function ApplyButton({ projectId, projectTitle }: ApplyButtonProps) {
+export function ApplyButton({ projectId, projectTitle, hasApplied = false }: ApplyButtonProps) {
   const router = useRouter()
   const [isOpen, setIsOpen] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [submitted, setSubmitted] = useState(false)
+  const [submitted, setSubmitted] = useState(hasApplied)
   const [error, setError] = useState<string | null>(null)
 
   async function handleSubmit(formData: FormData) {
@@ -65,8 +66,12 @@ export function ApplyButton({ projectId, projectTitle }: ApplyButtonProps) {
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
-        <Button className="w-full bg-primary hover:bg-primary/90" size="lg">
-          Apply Now
+        <Button 
+          className="w-full bg-primary hover:bg-primary/90" 
+          size="lg"
+          disabled={hasApplied}
+        >
+          {hasApplied ? "Applied" : "Apply Now"}
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-lg bg-background">

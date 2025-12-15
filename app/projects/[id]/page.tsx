@@ -5,7 +5,7 @@ import { Footer } from "@/components/footer"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { getProject, getNGOById, getActiveProjects } from "@/lib/actions"
+import { getProject, getNGOById, getActiveProjects, hasAppliedToProject } from "@/lib/actions"
 import { skillCategories } from "@/lib/skills-data"
 import { ApplyButton } from "./apply-button"
 import {
@@ -50,6 +50,9 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
   
   // Get NGO profile
   const ngo = await getNGOById(project.ngoId)
+
+  // Check if user has applied
+  const hasApplied = await hasAppliedToProject(id)
   
   // Get similar projects (same cause or skills)
   const allProjects = await getActiveProjects(10)
@@ -309,6 +312,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
                     <ApplyButton 
                       projectId={project._id?.toString() || id} 
                       projectTitle={project.title} 
+                      hasApplied={hasApplied}
                     />
                   ) : (
                     <Button className="w-full" disabled>

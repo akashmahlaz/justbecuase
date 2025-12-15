@@ -629,6 +629,12 @@ export async function applyToProject(
   }
 }
 
+export async function hasAppliedToProject(projectId: string): Promise<boolean> {
+  const user = await getCurrentUser()
+  if (!user) return false
+  return applicationsDb.exists(projectId, user.id)
+}
+
 export async function getMyApplications(): Promise<Application[]> {
   const user = await getCurrentUser()
   if (!user) return []
