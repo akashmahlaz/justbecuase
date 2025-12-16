@@ -4,10 +4,24 @@ import { admin } from "better-auth/plugins";
 import client from "./db";
 import { sendEmail, getVerificationEmailHtml, getPasswordResetEmailHtml } from "./email";
 
+// Determine the base URL for auth
+const getAuthBaseURL = () => {
+  // Explicit URL takes priority
+  if (process.env.BETTER_AUTH_URL) {
+    return process.env.BETTER_AUTH_URL;
+  }
+  // For Vercel deployments, use the project URL or custom domain
+  if (process.env.VERCEL_PROJECT_PRODUCTION_URL) {
+    return `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`;
+  }
+  if (process.env.VERCEL_URL) {
+    return `https://${process.env.VERCEL_URL}`;
+  }
+  return "http://localhost:3000";
+};
+
 export const auth = betterAuth({
-  baseURL: process.env.BETTER_AUTH_URL || process.env.VERCEL_URL 
-    ? `https://${process.env.VERCEL_URL}` 
-    : "http://localhost:3000",
+  baseURL: getAuthBaseURL(),
   database: mongodbAdapter(client.db("justbecause")),
   emailAndPassword: {
     enabled: true,
@@ -64,10 +78,12 @@ export const auth = betterAuth({
   trustedOrigins: [
     "http://localhost:3000",
     "https://justbecause.asia",
+    "https://www.justbecause.asia",
     "https://justbecause.vercel.app",
     "https://justbecause-one.vercel.app",
-    "https://*.vercel.app", // Allow all Vercel preview URLs
-  ],
+    process.env.BETTER_AUTH_URL || "",
+    process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "",
+  ].filter(Boolean),
   plugins: [
     admin({
       defaultRole: "user", // Unassigned - user must select volunteer or ngo
