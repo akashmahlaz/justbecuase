@@ -5,6 +5,7 @@ import { Footer } from "@/components/footer"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { ShareButton } from "@/components/share-button"
 import { getVolunteerProfileView } from "@/lib/actions"
 import { skillCategories } from "@/lib/skills-data"
 import { Star, MapPin, Clock, CheckCircle, ExternalLink, Award, TrendingUp, Lock, User } from "lucide-react"
@@ -113,7 +114,7 @@ export default async function VolunteerProfilePage({ params }: { params: Promise
               </div>
               
               {/* Action Button */}
-              <div>
+              <div className="flex flex-col gap-2">
                 {isLocked ? (
                   <UnlockProfileButton 
                     volunteerId={volunteer.id}
@@ -124,6 +125,12 @@ export default async function VolunteerProfilePage({ params }: { params: Promise
                     Contact Volunteer
                   </Button>
                 ) : null}
+                <ShareButton
+                  url={`/volunteers/${id}`}
+                  title={isLocked ? "Skilled Volunteer on JustBecause" : `${volunteer.name} - Volunteer Profile`}
+                  description={`Discover this talented volunteer with ${volunteer.completedProjects} completed projects and a ${volunteer.rating.toFixed(1)} rating.`}
+                  variant="outline"
+                />
               </div>
             </div>
           </div>

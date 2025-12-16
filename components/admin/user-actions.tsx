@@ -9,6 +9,9 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
 } from "@/components/ui/dropdown-menu"
 import {
   Dialog,
@@ -23,7 +26,8 @@ import {
   suspendUser, 
   reactivateUser, 
   adminDeleteUser, 
-  verifyUser 
+  verifyUser,
+  adminChangeUserRole,
 } from "@/lib/actions"
 import { 
   MoreHorizontal, 
@@ -34,6 +38,9 @@ import {
   RefreshCw,
   Loader2,
   ExternalLink,
+  Shield,
+  Building2,
+  Heart,
 } from "lucide-react"
 import Link from "next/link"
 
@@ -43,6 +50,7 @@ interface UserActionsProps {
   userType: "volunteer" | "ngo"
   isVerified: boolean
   isActive?: boolean
+  currentRole?: string
 }
 
 export function UserActions({ 
@@ -50,7 +58,8 @@ export function UserActions({
   userName, 
   userType, 
   isVerified,
-  isActive = true
+  isActive = true,
+  currentRole,
 }: UserActionsProps) {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
@@ -88,6 +97,18 @@ export function UserActions({
       router.refresh()
     } catch (error) {
       console.error("Failed to reactivate:", error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleChangeRole = async (newRole: "volunteer" | "ngo" | "admin") => {
+    setLoading(true)
+    try {
+      await adminChangeUserRole(userId, newRole)
+      router.refresh()
+    } catch (error) {
+      console.error("Failed to change role:", error)
     } finally {
       setLoading(false)
     }
@@ -138,6 +159,44 @@ export function UserActions({
             <CheckCircle className="h-4 w-4" />
             {isVerified ? "Unverify User" : "Verify User"}
           </DropdownMenuItem>
+          
+          {/* Role Change Submenu */}
+          <DropdownMenuSub>
+            <DropdownMenuSubTrigger className="flex items-center gap-2">
+              <Shield className="h-4 w-4" />
+              Change Role
+            </DropdownMenuSubTrigger>
+            <DropdownMenuSubContent>
+              <DropdownMenuItem 
+                onClick={() => handleChangeRole("volunteer")}
+                className="flex items-center gap-2"
+                disabled={currentRole === "volunteer"}
+              >
+                <Heart className="h-4 w-4" />
+                Volunteer
+                {currentRole === "volunteer" && <CheckCircle className="h-3 w-3 ml-auto text-green-600" />}
+              </DropdownMenuItem>
+              <DropdownMenuItem 
+                onClick={() => handleChangeRole("ngo")}
+                className="flex items-center gap-2"
+                disabled={currentRole === "ngo"}
+              >
+                <Building2 className="h-4 w-4" />
+                NGO
+                {currentRole === "ngo" && <CheckCircle className="h-3 w-3 ml-auto text-green-600" />}
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem 
+                onClick={() => handleChangeRole("admin")}
+                className="flex items-center gap-2 text-red-600"
+                disabled={currentRole === "admin"}
+              >
+                <Shield className="h-4 w-4" />
+                Admin
+                {currentRole === "admin" && <CheckCircle className="h-3 w-3 ml-auto text-green-600" />}
+              </DropdownMenuItem>
+            </DropdownMenuSubContent>
+          </DropdownMenuSub>
           
           {isActive ? (
             <DropdownMenuItem 

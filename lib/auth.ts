@@ -11,7 +11,7 @@ export const auth = betterAuth({
   database: mongodbAdapter(client.db("justbecause")),
   emailAndPassword: {
     enabled: true,
-    requireEmailVerification: process.env.REQUIRE_EMAIL_VERIFICATION === "true",
+    requireEmailVerification: false, // Disabled for easier signup flow
     sendResetPassword: async ({ user, url }) => {
       void sendEmail({
         to: user.email,
@@ -21,18 +21,31 @@ export const auth = betterAuth({
       })
     },
   },
-  emailVerification: {
-    sendOnSignUp: true,
-    autoSignInAfterVerification: true,
-    sendVerificationEmail: async ({ user, url }) => {
-      void sendEmail({
-        to: user.email,
-        subject: "Verify your email - JustBecause.asia",
-        html: getVerificationEmailHtml(url, user.name),
-        text: `Click the link to verify your email: ${url}`,
-      })
+  // Social Login Providers
+  socialProviders: {
+    google: {
+      clientId: process.env.GOOGLE_CLIENT_ID as string,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET as string,
+      prompt: "select_account", // Always ask user to select account
+    },
+    linkedin: {
+      clientId: process.env.LINKEDIN_CLIENT_ID as string,
+      clientSecret: process.env.LINKEDIN_CLIENT_SECRET as string,
     },
   },
+  // Email verification disabled for easier signup flow
+  // emailVerification: {
+  //   sendOnSignUp: true,
+  //   autoSignInAfterVerification: true,
+  //   sendVerificationEmail: async ({ user, url }) => {
+  //     void sendEmail({
+  //       to: user.email,
+  //       subject: "Verify your email - JustBecause.asia",
+  //       html: getVerificationEmailHtml(url, user.name),
+  //       text: `Click the link to verify your email: ${url}`,
+  //     })
+  //   },
+  // },
   user: {
     additionalFields: {
       // Note: 'role' is handled by the admin plugin, don't add it here

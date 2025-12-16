@@ -5,6 +5,7 @@ import { Footer } from "@/components/footer"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { ShareButton } from "@/components/share-button"
 import { getNGOById, getActiveProjects } from "@/lib/actions"
 import { skillCategories } from "@/lib/skills-data"
 import { 
@@ -102,6 +103,12 @@ export default async function NGOProfilePage({ params }: { params: Promise<{ id:
                   <Heart className="h-4 w-4 mr-2" />
                   Follow Organization
                 </Button>
+                <ShareButton
+                  url={`/ngos/${id}`}
+                  title={ngo.orgName}
+                  description={ngo.description || `Discover ${ngo.orgName} and their impactful projects on JustBecause.`}
+                  variant="outline"
+                />
                 {ngo.website && (
                   <Button asChild variant="outline" className="bg-transparent">
                     <Link href={ngo.website} target="_blank">

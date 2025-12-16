@@ -36,6 +36,8 @@ export async function POST(request: NextRequest) {
     const timestamp = Math.round(new Date().getTime() / 1000)
 
     // Create params for signature
+    // IMPORTANT: Only include params that will ALSO be sent in the upload request
+    // The signature must match exactly what's sent to Cloudinary
     const paramsToSign: Record<string, string | number> = {
       timestamp,
       folder,
@@ -44,9 +46,6 @@ export async function POST(request: NextRequest) {
     if (publicId) {
       paramsToSign.public_id = publicId
     }
-
-    // Add transformations for images
-    paramsToSign.transformation = "c_limit,w_1200,h_1200,q_auto:good"
 
     // Generate signature
     const signature = cloudinary.utils.api_sign_request(

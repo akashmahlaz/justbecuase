@@ -43,6 +43,7 @@
     "@radix-ui/react-visually-hidden": "^1.2.4",
     "@vercel/analytics": "latest",
     "autoprefixer": "^10.4.20",
+    "bcryptjs": "^3.0.3",
     "better-auth": "^1.4.5",
     "class-variance-authority": "^0.7.1",
     "cloudinary": "^2.8.0",

@@ -14,6 +14,8 @@ import {
   BarChart3,
   Bell,
   Search,
+  CreditCard,
+  Sparkles,
   LucideIcon,
 } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
@@ -23,6 +25,7 @@ interface SidebarLink {
   label: string
   icon: LucideIcon
   badge?: number
+  highlight?: boolean
 }
 
 const sidebarLinks: SidebarLink[] = [
@@ -34,6 +37,8 @@ const sidebarLinks: SidebarLink[] = [
   { href: "/ngo/messages", label: "Messages", icon: MessageSquare },
   { href: "/ngo/notifications", label: "Notifications", icon: Bell },
   { href: "/ngo/profile", label: "Organization", icon: Building2 },
+  { href: "/ngo/settings?tab=billing", label: "Billing", icon: CreditCard },
+  { href: "/pricing", label: "Upgrade Plan", icon: Sparkles, highlight: true },
   { href: "/ngo/settings", label: "Settings", icon: Settings },
 ]
 
@@ -44,7 +49,7 @@ export function NGOSidebar() {
     <aside className="hidden lg:flex flex-col w-64 border-r border-border bg-sidebar min-h-[calc(100vh-4rem)]">
       <nav className="flex-1 p-4 space-y-1">
         {sidebarLinks.map((link) => {
-          const isActive = pathname === link.href
+          const isActive = pathname === link.href || (link.href.includes('?') && pathname === link.href.split('?')[0])
           return (
             <Link
               key={link.href}
@@ -53,7 +58,9 @@ export function NGOSidebar() {
                 "flex items-center justify-between px-4 py-3 rounded-lg text-sm font-medium transition-colors",
                 isActive
                   ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                  : "text-sidebar-foreground hover:bg-sidebar-accent/50",
+                  : link.highlight
+                    ? "text-primary hover:bg-primary/10"
+                    : "text-sidebar-foreground hover:bg-sidebar-accent/50",
               )}
             >
               <div className="flex items-center gap-3">

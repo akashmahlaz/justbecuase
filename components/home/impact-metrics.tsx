@@ -1,83 +1,9 @@
-"use client"
-
-import { useEffect, useState, useRef } from "react"
 import { Users, CheckCircle2, Building2, Clock, DollarSign } from "lucide-react"
-import { impactMetrics } from "@/lib/data"
+import { getImpactMetrics } from "@/lib/actions"
 
-function AnimatedCounter({
-  end,
-  duration = 2000,
-  prefix = "",
-  suffix = "",
-}: {
-  end: number
-  duration?: number
-  prefix?: string
-  suffix?: string
-}) {
-  const [count, setCount] = useState(0)
-  const [isVisible, setIsVisible] = useState(false)
-  const ref = useRef<HTMLDivElement>(null)
+export async function ImpactMetrics() {
+  const impactMetrics = await getImpactMetrics()
 
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          setIsVisible(true)
-        }
-      },
-      { threshold: 0.1 },
-    )
-
-    if (ref.current) {
-      observer.observe(ref.current)
-    }
-
-    return () => observer.disconnect()
-  }, [])
-
-  useEffect(() => {
-    if (!isVisible) return
-
-    let startTime: number
-    let animationFrame: number
-
-    const animate = (timestamp: number) => {
-      if (!startTime) startTime = timestamp
-      const progress = Math.min((timestamp - startTime) / duration, 1)
-
-      setCount(Math.floor(progress * end))
-
-      if (progress < 1) {
-        animationFrame = requestAnimationFrame(animate)
-      }
-    }
-
-    animationFrame = requestAnimationFrame(animate)
-
-    return () => cancelAnimationFrame(animationFrame)
-  }, [isVisible, end, duration])
-
-  const formatNumber = (num: number) => {
-    if (num >= 1000000) {
-      return (num / 1000000).toFixed(1) + "M"
-    }
-    if (num >= 1000) {
-      return num.toLocaleString()
-    }
-    return num.toString()
-  }
-
-  return (
-    <div ref={ref} className="text-4xl md:text-5xl font-bold text-foreground">
-      {prefix}
-      {formatNumber(count)}
-      {suffix}
-    </div>
-  )
-}
-
-export function ImpactMetrics() {
   const metrics = [
     {
       icon: Users,
@@ -118,6 +44,18 @@ export function ImpactMetrics() {
     },
   ]
 
+  const formatNumber = (num: number, prefix = "", suffix = "") => {
+    let formatted = ""
+    if (num >= 1000000) {
+      formatted = (num / 1000000).toFixed(1) + "M"
+    } else if (num >= 1000) {
+      formatted = num.toLocaleString()
+    } else {
+      formatted = num.toString()
+    }
+    return `${prefix}${formatted}${suffix}`
+  }
+
   return (
     <section className="py-16 md:py-24 bg-muted/30">
       <div className="container mx-auto px-4 md:px-6">
@@ -137,7 +75,9 @@ export function ImpactMetrics() {
               <div className={`inline-flex items-center justify-center w-12 h-12 rounded-xl ${metric.bgColor} mb-4`}>
                 <metric.icon className={`h-6 w-6 ${metric.color}`} />
               </div>
-              <AnimatedCounter end={metric.value} prefix={metric.prefix || ""} suffix={metric.suffix || ""} />
+              <div className="text-4xl md:text-5xl font-bold text-foreground">
+                {formatNumber(metric.value, metric.prefix, metric.suffix)}
+              </div>
               <p className="text-sm text-muted-foreground mt-2">{metric.label}</p>
             </div>
           ))}

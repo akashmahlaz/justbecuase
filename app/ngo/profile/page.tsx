@@ -319,9 +319,7 @@ export default function NGOProfilePage() {
                     </div>
                     <div>
                       <p className="text-sm text-muted-foreground">
-                        {CLOUDINARY_CLOUD_NAME 
-                          ? "Click the camera icon to upload your logo"
-                          : "⚠ Image upload not configured"}
+                        Click the camera icon to upload your logo
                       </p>
                       {uploadingLogo && (
                         <p className="text-sm text-primary flex items-center gap-2 mt-2">

@@ -126,7 +126,7 @@ export default function ForVolunteersPage() {
               </div>
               <div className="relative">
                 <img
-                  src="/diverse-professionals-volunteering-laptop-teamwork.jpg"
+                  src="/diverse-professionals-volunteering-laptop-teamwork.png"
                   alt="Volunteers collaborating"
                   className="rounded-2xl shadow-2xl"
                 />

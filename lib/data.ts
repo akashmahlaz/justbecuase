@@ -197,7 +197,7 @@ export const testimonials = [
     author: "Maria Santos",
     role: "Executive Director",
     organization: "Youth Empowerment Network",
-    avatar: "/filipina-woman-nonprofit-leader.jpg",
+    avatar: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=100&h=100&fit=crop&crop=face",
     type: "ngo",
   },
   {
@@ -207,7 +207,7 @@ export const testimonials = [
     author: "James Tanaka",
     role: "Marketing Director",
     organization: "Volunteer",
-    avatar: "/japanese-man-professional-marketer.jpg",
+    avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=face",
     type: "volunteer",
   },
   {
@@ -217,7 +217,7 @@ export const testimonials = [
     author: "Dr. Ananya Patel",
     role: "Founder",
     organization: "Healthcare Access Initiative",
-    avatar: "/indian-woman-doctor-nonprofit.jpg",
+    avatar: "https://images.unsplash.com/photo-1559839734-2b71ea197ec2?w=100&h=100&fit=crop&crop=face",
     type: "ngo",
   },
 ]

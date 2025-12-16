@@ -58,10 +58,15 @@ export function HeroSection() {
           <div className="mt-12 flex flex-wrap items-center justify-center gap-8 text-sm text-muted-foreground">
             <div className="flex items-center gap-2">
               <div className="flex -space-x-2">
-                {[1, 2, 3, 4].map((i) => (
+                {[
+                  "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=32&h=32&fit=crop&crop=face",
+                  "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=32&h=32&fit=crop&crop=face",
+                  "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=32&h=32&fit=crop&crop=face",
+                  "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=32&h=32&fit=crop&crop=face",
+                ].map((src, i) => (
                   <div key={i} className="h-8 w-8 rounded-full border-2 border-background bg-muted overflow-hidden">
                     <img
-                      src={`/professional-person.png?height=32&width=32&query=professional person ${i}`}
+                      src={src}
                       alt=""
                       className="h-full w-full object-cover"
                     />

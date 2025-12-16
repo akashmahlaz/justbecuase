@@ -11,7 +11,7 @@ const teamMembers = [
     name: "Michelle Tan",
     role: "Founder & CEO",
     bio: "Former nonprofit consultant with 15 years of experience connecting talent with purpose.",
-    avatar: "/asian-woman-executive-portrait.jpg",
+    avatar: "/asian-woman-executive-portrait.png",
   },
   {
     name: "David Lee",
@@ -29,7 +29,7 @@ const teamMembers = [
     name: "James Wong",
     role: "Community Lead",
     bio: "Volunteer coordinator who has matched hundreds of professionals with meaningful projects.",
-    avatar: "/asian-man-friendly-portrait.jpg",
+    avatar: "/asian-man-friendly-portrait.png",
   },
 ]
 

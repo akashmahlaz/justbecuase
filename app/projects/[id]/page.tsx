@@ -5,17 +5,17 @@ import { Footer } from "@/components/footer"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { getProject, getNGOById, getActiveProjects, hasAppliedToProject } from "@/lib/actions"
+import { getProject, getNGOById, getActiveProjects, hasAppliedToProject, isProjectSaved } from "@/lib/actions"
 import { skillCategories } from "@/lib/skills-data"
 import { ApplyButton } from "./apply-button"
+import { SaveButton } from "./save-button"
+import { ShareButton } from "@/components/share-button"
 import {
   Clock,
   MapPin,
   Calendar,
   Users,
   CheckCircle,
-  Share2,
-  Bookmark,
   ArrowLeft,
   Building2,
   FileText,
@@ -53,6 +53,9 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
 
   // Check if user has applied
   const hasApplied = await hasAppliedToProject(id)
+  
+  // Check if user has saved this project
+  const isSaved = await isProjectSaved(id)
   
   // Get similar projects (same cause or skills)
   const allProjects = await getActiveProjects(10)
@@ -323,14 +326,15 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
                   )}
 
                   <div className="flex gap-2 mt-3">
-                    <Button variant="outline" className="flex-1 bg-transparent">
-                      <Bookmark className="h-4 w-4 mr-2" />
-                      Save
-                    </Button>
-                    <Button variant="outline" className="flex-1 bg-transparent">
-                      <Share2 className="h-4 w-4 mr-2" />
-                      Share
-                    </Button>
+                    <SaveButton 
+                      projectId={project._id?.toString() || id}
+                      initialSaved={isSaved}
+                    />
+                    <ShareButton 
+                      title={project.title}
+                      description={project.description?.substring(0, 150) + "..."}
+                      className="flex-1 bg-transparent"
+                    />
                   </div>
                 </CardContent>
               </Card>

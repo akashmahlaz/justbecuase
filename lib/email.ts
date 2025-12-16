@@ -1,8 +1,8 @@
 // Email sending utility for JustBecause.asia
 // Configure RESEND_API_KEY in your environment variables
 
-const RESEND_API_KEY = process.env.RESEND_API_KEY
-const FROM_EMAIL = process.env.FROM_EMAIL || "noreply@justbecause.asia"
+const RESEND_API_KEY = process.env.RESEND_API_KEY || process.env.RESEND_AKASH
+const FROM_EMAIL = process.env.FROM_EMAIL || "JustBecause <onboarding@resend.dev>"
 
 interface EmailOptions {
   to: string

@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation"
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
-import { Menu, Heart, Bell, Sun, Moon } from "lucide-react"
+import { Menu, Heart, Bell, Sun, Moon, Sparkles, CreditCard } from "lucide-react"
 import { client } from "@/lib/auth-client" // Better Auth
 import { useTheme } from "next-themes"
 
@@ -51,13 +51,6 @@ export function Navbar() {
           ? volunteerLinks
           : []
 
-  // ⭐ Notification demo
-  const notifications = [
-    { id: 1, text: "Your NGO application was approved." },
-    { id: 2, text: "New volunteer request received." },
-    { id: 3, text: "Your profile is now verified." },
-  ]
-
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/90 backdrop-blur">
       <div className="container mx-auto flex h-16 items-center justify-between px-4 md:px-6">
@@ -100,24 +93,12 @@ export function Navbar() {
           {user && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon">
-                  <Bell className="h-5 w-5" />
+                <Button variant="ghost" size="icon" asChild>
+                  <Link href={user?.role === "ngo" ? "/ngo/notifications" : "/volunteer/notifications"}>
+                    <Bell className="h-5 w-5" />
+                  </Link>
                 </Button>
               </DropdownMenuTrigger>
-
-              <DropdownMenuContent className="w-72" align="end">
-                <DropdownMenuLabel>Notifications</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-
-                {notifications.map((n) => (
-                  <DropdownMenuItem
-                    key={n.id}
-                    className="cursor-pointer text-sm text-muted-foreground hover:text-foreground"
-                  >
-                    {n.text}
-                  </DropdownMenuItem>
-                ))}
-              </DropdownMenuContent>
             </DropdownMenu>
           )}
 
@@ -157,6 +138,32 @@ export function Navbar() {
                 <DropdownMenuItem asChild>
                   <Link href={user?.role === "admin" ? "/admin" : user?.role === "ngo" ? "/ngo/dashboard" : "/volunteer/dashboard"}>My Dashboard</Link>
                 </DropdownMenuItem>
+
+                {user?.role === "ngo" && (
+                  <>
+                    <DropdownMenuItem asChild>
+                      <Link href="/ngo/settings?tab=billing" className="flex items-center gap-2">
+                        <CreditCard className="h-4 w-4" />
+                        Billing & Payments
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link href="/pricing" className="flex items-center gap-2 text-primary">
+                        <Sparkles className="h-4 w-4" />
+                        Upgrade Plan
+                      </Link>
+                    </DropdownMenuItem>
+                  </>
+                )}
+
+                {user?.role === "volunteer" && (
+                  <DropdownMenuItem asChild>
+                    <Link href="/volunteer/settings?tab=billing" className="flex items-center gap-2">
+                      <CreditCard className="h-4 w-4" />
+                      Billing
+                    </Link>
+                  </DropdownMenuItem>
+                )}
 
                 <DropdownMenuSeparator />
 

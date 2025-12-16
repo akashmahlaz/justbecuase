@@ -278,12 +278,7 @@ export default function VolunteerProfileEditPage() {
                         </div>
                         <div>
                           <p className="font-medium text-foreground">Profile Photo</p>
-                          <p className="text-sm text-muted-foreground">JPG or PNG. Max 2MB.</p>
-                          <p className="text-xs text-muted-foreground mt-1">
-                            {CLOUDINARY_CLOUD_NAME 
-                              ? "✓ Image upload ready" 
-                              : "⚠ Image upload not configured"}
-                          </p>
+                          <p className="text-sm text-muted-foreground">JPG or PNG. Max 5MB.</p>
                         </div>
                       </div>
 

@@ -56,6 +56,12 @@ export interface VolunteerProfile {
   portfolioUrl?: string
   resumeUrl?: string
   
+  // Exact coordinates (from geolocation)
+  coordinates?: {
+    lat: number
+    lng: number
+  }
+  
   // Skills
   skills: VolunteerSkill[]
   
@@ -75,6 +81,9 @@ export interface VolunteerProfile {
   hoursContributed: number
   rating: number
   totalRatings: number
+  
+  // Saved/Bookmarked Projects
+  savedProjects?: string[] // Array of project IDs
   
   // Verification
   isVerified: boolean

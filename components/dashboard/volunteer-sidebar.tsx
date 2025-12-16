@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
-import { LayoutDashboard, Search, FolderKanban, CheckCircle2, User, Settings, Heart, MessageSquare, Bell, Sparkles, LucideIcon } from "lucide-react"
+import { LayoutDashboard, Search, FolderKanban, CheckCircle2, User, Settings, Heart, MessageSquare, Bell, Sparkles, Bookmark, LucideIcon } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 
 interface SidebarLink {
@@ -17,6 +17,7 @@ const sidebarLinks: SidebarLink[] = [
   { href: "/volunteer/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/volunteer/opportunities", label: "Opportunities", icon: Sparkles },
   { href: "/volunteer/applications", label: "Applications", icon: FolderKanban },
+  { href: "/volunteer/saved-projects", label: "Saved Projects", icon: Bookmark },
   { href: "/volunteer/messages", label: "Messages", icon: MessageSquare },
   { href: "/volunteer/notifications", label: "Notifications", icon: Bell },
   { href: "/volunteer/profile", label: "My Profile", icon: User },

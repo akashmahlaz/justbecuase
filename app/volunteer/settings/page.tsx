@@ -181,7 +181,7 @@ export default function VolunteerSettingsPage() {
         showNotification("success", "Password changed successfully")
         setPasswordData({ currentPassword: "", newPassword: "", confirmPassword: "" })
       } else {
-        showNotification("error", result.error || "Failed to change password")
+        showNotification("error", result.error || "Failed to change password May be Due to you have created account via social login")
       }
     } catch (err) {
       showNotification("error", "An error occurred")

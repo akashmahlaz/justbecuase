@@ -1,7 +1,6 @@
 import Link from "next/link"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import { Heart, Linkedin, Twitter, Instagram, Facebook } from "lucide-react"
+import { NewsletterSubscribe } from "./newsletter-subscribe"
 
 export function Footer() {
   return (
@@ -132,12 +131,7 @@ export function Footer() {
             <p className="text-sm text-muted-foreground mb-4 text-center">
               Get the latest projects and impact stories delivered to your inbox.
             </p>
-            <form className="flex gap-2">
-              <Input type="email" placeholder="Enter your email" className="bg-background" />
-              <Button type="submit" className="bg-primary hover:bg-primary/90">
-                Subscribe
-              </Button>
-            </form>
+            <NewsletterSubscribe />
           </div>
 
           {/* Bottom Bar */}

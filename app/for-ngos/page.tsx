@@ -113,7 +113,7 @@ export default function ForNGOsPage() {
               </div>
               <div className="relative">
                 <img
-                  src="/nonprofit-team-meeting-diverse-professionals.jpg"
+                  src="/nonprofit-team-meeting-diverse-professionals.png"
                   alt="NGO team collaborating"
                   className="rounded-2xl shadow-2xl"
                 />

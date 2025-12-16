@@ -39,6 +39,21 @@ import type {
 } from "./types"
 
 // ============================================
+// SERIALIZATION HELPERS
+// ============================================
+// MongoDB returns objects with ObjectId and Date that can't be passed to client components
+// These helpers convert them to plain JSON-serializable objects
+
+function serializeDocument<T>(doc: T | null): T | null {
+  if (!doc) return null
+  return JSON.parse(JSON.stringify(doc))
+}
+
+function serializeDocuments<T>(docs: T[]): T[] {
+  return JSON.parse(JSON.stringify(docs))
+}
+
+// ============================================
 // AUTH HELPERS
 // ============================================
 
@@ -173,6 +188,7 @@ export async function saveVolunteerOnboarding(data: {
     bio: string
     linkedinUrl?: string
     portfolioUrl?: string
+    coordinates?: { lat: number; lng: number } | null
   }
   skills: { categoryId: string; subskillId: string; level: string }[]
   causes: string[]
@@ -202,6 +218,8 @@ export async function saveVolunteerOnboarding(data: {
       bio: data.profile.bio,
       linkedinUrl: data.profile.linkedinUrl,
       portfolioUrl: data.profile.portfolioUrl,
+      // Store exact coordinates if available
+      coordinates: data.profile.coordinates || undefined,
       skills: data.skills.map((s) => ({
         categoryId: s.categoryId,
         subskillId: s.subskillId,
@@ -244,7 +262,8 @@ export async function saveVolunteerOnboarding(data: {
 export async function getVolunteerProfile(userId?: string): Promise<VolunteerProfile | null> {
   const targetUserId = userId || (await getCurrentUser())?.id
   if (!targetUserId) return null
-  return volunteerProfilesDb.findByUserId(targetUserId)
+  const profile = await volunteerProfilesDb.findByUserId(targetUserId)
+  return serializeDocument(profile)
 }
 
 // Allowed fields for volunteer profile updates - filters out sensitive fields
@@ -358,7 +377,8 @@ export async function saveNGOOnboarding(data: {
 export async function getNGOProfile(userId?: string): Promise<NGOProfile | null> {
   const targetUserId = userId || (await getCurrentUser())?.id
   if (!targetUserId) return null
-  return ngoProfilesDb.findByUserId(targetUserId)
+  const profile = await ngoProfilesDb.findByUserId(targetUserId)
+  return serializeDocument(profile)
 }
 
 // Allowed fields for NGO profile updates - filters out sensitive fields
@@ -483,27 +503,32 @@ export async function createProject(data: {
 }
 
 export async function getProject(id: string): Promise<Project | null> {
-  return projectsDb.findById(id)
+  const project = await projectsDb.findById(id)
+  return serializeDocument(project)
 }
 
 // Alias for getProject
 export async function getProjectById(id: string): Promise<Project | null> {
-  return projectsDb.findById(id)
+  const project = await projectsDb.findById(id)
+  return serializeDocument(project)
 }
 
 // Get NGO by user ID or profile ID
 export async function getNGOById(userId: string): Promise<NGOProfile | null> {
-  return ngoProfilesDb.findByUserId(userId)
+  const profile = await ngoProfilesDb.findByUserId(userId)
+  return serializeDocument(profile)
 }
 
 export async function getActiveProjects(limit?: number): Promise<Project[]> {
-  return projectsDb.findActive({}, { limit, sort: { createdAt: -1 } as any })
+  const projects = await projectsDb.findActive({}, { limit, sort: { createdAt: -1 } as any })
+  return serializeDocuments(projects)
 }
 
 export async function getNGOProjects(): Promise<Project[]> {
   const user = await getCurrentUser()
   if (!user) return []
-  return projectsDb.findByNgoId(user.id)
+  const projects = await projectsDb.findByNgoId(user.id)
+  return serializeDocuments(projects)
 }
 
 // Alias for getNGOProjects
@@ -635,10 +660,78 @@ export async function hasAppliedToProject(projectId: string): Promise<boolean> {
   return applicationsDb.exists(projectId, user.id)
 }
 
+// ============================================
+// SAVE/BOOKMARK PROJECTS
+// ============================================
+
+export async function toggleSaveProject(projectId: string): Promise<ApiResponse<{ isSaved: boolean }>> {
+  try {
+    const user = await getCurrentUser()
+    if (!user) {
+      return { success: false, error: "Not authenticated" }
+    }
+
+    const profile = await volunteerProfilesDb.findByUserId(user.id)
+    if (!profile) {
+      return { success: false, error: "Volunteer profile not found" }
+    }
+
+    const savedProjects = profile.savedProjects || []
+    const isCurrentlySaved = savedProjects.includes(projectId)
+
+    let newSavedProjects: string[]
+    if (isCurrentlySaved) {
+      // Unsave
+      newSavedProjects = savedProjects.filter((id) => id !== projectId)
+    } else {
+      // Save
+      newSavedProjects = [...savedProjects, projectId]
+    }
+
+    // Update profile
+    await volunteerProfilesDb.update(user.id, {
+      savedProjects: newSavedProjects,
+    } as any)
+
+    revalidatePath("/volunteer/opportunities")
+    revalidatePath(`/projects/${projectId}`)
+
+    return { success: true, data: { isSaved: !isCurrentlySaved } }
+  } catch (error) {
+    console.error("Error toggling save project:", error)
+    return { success: false, error: "Failed to save project" }
+  }
+}
+
+export async function isProjectSaved(projectId: string): Promise<boolean> {
+  const user = await getCurrentUser()
+  if (!user) return false
+  
+  const profile = await volunteerProfilesDb.findByUserId(user.id)
+  if (!profile) return false
+  
+  return (profile.savedProjects || []).includes(projectId)
+}
+
+export async function getSavedProjects(): Promise<Project[]> {
+  const user = await getCurrentUser()
+  if (!user) return []
+  
+  const profile = await volunteerProfilesDb.findByUserId(user.id)
+  if (!profile || !profile.savedProjects?.length) return []
+  
+  const projects = await Promise.all(
+    profile.savedProjects.map((id) => projectsDb.findById(id))
+  )
+  
+  return serializeDocuments(projects.filter(Boolean) as Project[])
+}
+
 export async function getMyApplications(): Promise<Application[]> {
   const user = await getCurrentUser()
   if (!user) return []
-  return applicationsDb.findByVolunteerId(user.id)
+  const applications = await applicationsDb.findByVolunteerId(user.id)
+  return serializeDocuments(applications)
 }
 
 export async function getProjectApplications(projectId: string): Promise<Application[]> {
@@ -650,13 +743,15 @@ export async function getProjectApplications(projectId: string): Promise<Applica
     return []
   }
 
-  return applicationsDb.findByProjectId(projectId)
+  const applications = await applicationsDb.findByProjectId(projectId)
+  return serializeDocuments(applications)
 }
 
 export async function getNGOApplications(): Promise<Application[]> {
   const user = await getCurrentUser()
   if (!user) return []
-  return applicationsDb.findByNgoId(user.id)
+  const applications = await applicationsDb.findByNgoId(user.id)
+  return serializeDocuments(applications)
 }
 
 export async function updateApplicationStatus(
@@ -911,7 +1006,8 @@ export async function getMatchedOpportunitiesForVolunteer(): Promise<
 export async function getNotifications() {
   const user = await getCurrentUser()
   if (!user) return []
-  return notificationsDb.findByUserId(user.id)
+  const notifications = await notificationsDb.findByUserId(user.id)
+  return serializeDocuments(notifications)
 }
 
 export async function markNotificationRead(id: string): Promise<boolean> {
@@ -976,6 +1072,245 @@ export async function getAdminStats(): Promise<{
     totalProjects,
     totalApplications,
     totalRevenue,
+  }
+}
+
+// Enhanced analytics for admin dashboard
+export async function getAdminAnalytics() {
+  await requireRole(["admin"])
+  
+  const db = await getDb()
+  const now = new Date()
+  const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000)
+  const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
+  
+  // Get counts
+  const [
+    totalVolunteers,
+    totalNGOs,
+    totalProjects,
+    totalApplications,
+    activeProjects,
+    completedProjects,
+    pendingApplications,
+    acceptedApplications,
+    verifiedNGOs,
+    verifiedVolunteers,
+  ] = await Promise.all([
+    volunteerProfilesDb.count(),
+    ngoProfilesDb.count(),
+    projectsDb.count(),
+    applicationsDb.count({}),
+    projectsDb.count({ status: "active" }),
+    projectsDb.count({ status: "completed" }),
+    applicationsDb.count({ status: "pending" }),
+    applicationsDb.count({ status: "accepted" }),
+    ngoProfilesDb.count({ isVerified: true }),
+    volunteerProfilesDb.count({ isVerified: true }),
+  ])
+  
+  // Get recent signups (last 30 days)
+  const recentVolunteers = await db.collection("volunteerProfiles").countDocuments({
+    createdAt: { $gte: thirtyDaysAgo }
+  })
+  const recentNGOs = await db.collection("ngoProfiles").countDocuments({
+    createdAt: { $gte: thirtyDaysAgo }
+  })
+  
+  // Get recent projects
+  const recentProjects = await db.collection("projects").countDocuments({
+    createdAt: { $gte: thirtyDaysAgo }
+  })
+  
+  // Get recent applications
+  const recentApplications = await db.collection("applications").countDocuments({
+    createdAt: { $gte: sevenDaysAgo }
+  })
+  
+  // Revenue stats
+  const totalRevenue = await transactionsDb.sumAmount({ paymentStatus: "completed" })
+  const monthlyRevenue = await db.collection("transactions").aggregate([
+    { $match: { paymentStatus: "completed", createdAt: { $gte: thirtyDaysAgo } } },
+    { $group: { _id: null, total: { $sum: "$amount" } } }
+  ]).toArray()
+  
+  // Get pending verification counts
+  const pendingNGOVerifications = await db.collection("ngoProfiles").countDocuments({
+    isVerified: { $ne: true },
+    isActive: { $ne: false }
+  })
+  
+  // Recent activity from various collections
+  const recentActivity = await Promise.all([
+    db.collection("volunteerProfiles")
+      .find({})
+      .sort({ createdAt: -1 })
+      .limit(5)
+      .project({ name: 1, createdAt: 1 })
+      .toArray()
+      .then(docs => docs.map(d => ({ 
+        type: "volunteer_signup" as const, 
+        text: `New volunteer: ${d.name || "Anonymous"}`,
+        createdAt: d.createdAt 
+      }))),
+    db.collection("ngoProfiles")
+      .find({})
+      .sort({ createdAt: -1 })
+      .limit(5)
+      .project({ organizationName: 1, orgName: 1, createdAt: 1 })
+      .toArray()
+      .then(docs => docs.map(d => ({ 
+        type: "ngo_signup" as const,
+        text: `New NGO: ${d.organizationName || d.orgName || "Organization"}`,
+        createdAt: d.createdAt 
+      }))),
+    db.collection("projects")
+      .find({})
+      .sort({ createdAt: -1 })
+      .limit(5)
+      .project({ title: 1, createdAt: 1 })
+      .toArray()
+      .then(docs => docs.map(d => ({ 
+        type: "project_created" as const,
+        text: `New project: ${d.title}`,
+        createdAt: d.createdAt 
+      }))),
+    db.collection("applications")
+      .find({})
+      .sort({ createdAt: -1 })
+      .limit(5)
+      .project({ createdAt: 1 })
+      .toArray()
+      .then(docs => docs.map(d => ({ 
+        type: "application" as const,
+        text: "New application submitted",
+        createdAt: d.createdAt 
+      }))),
+    db.collection("transactions")
+      .find({ paymentStatus: "completed" })
+      .sort({ createdAt: -1 })
+      .limit(5)
+      .project({ amount: 1, createdAt: 1 })
+      .toArray()
+      .then(docs => docs.map(d => ({ 
+        type: "payment" as const,
+        text: `Payment received: ₹${d.amount}`,
+        createdAt: d.createdAt 
+      }))),
+  ])
+  
+  // Merge and sort recent activity
+  const allActivity = recentActivity
+    .flat()
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    .slice(0, 10)
+    .map(a => ({
+      ...a,
+      timeAgo: getTimeAgo(a.createdAt)
+    }))
+  
+  // Top skills in demand (from projects)
+  const skillsInDemand = await db.collection("projects").aggregate([
+    { $match: { status: "active" } },
+    { $unwind: "$requiredSkills" },
+    { $group: { _id: "$requiredSkills", count: { $sum: 1 } } },
+    { $sort: { count: -1 } },
+    { $limit: 5 }
+  ]).toArray()
+  
+  // Top causes
+  const topCauses = await db.collection("projects").aggregate([
+    { $match: { status: "active" } },
+    { $unwind: "$causes" },
+    { $group: { _id: "$causes", count: { $sum: 1 } } },
+    { $sort: { count: -1 } },
+    { $limit: 5 }
+  ]).toArray()
+  
+  return {
+    // Overview stats
+    totalVolunteers,
+    totalNGOs,
+    totalProjects,
+    totalApplications,
+    totalRevenue,
+    monthlyRevenue: monthlyRevenue[0]?.total || 0,
+    
+    // Project stats
+    activeProjects,
+    completedProjects,
+    recentProjects,
+    
+    // Application stats
+    pendingApplications,
+    acceptedApplications,
+    recentApplications,
+    applicationRate: totalProjects > 0 ? Math.round((totalApplications / totalProjects) * 100) / 100 : 0,
+    
+    // User stats
+    verifiedNGOs,
+    verifiedVolunteers,
+    recentVolunteers,
+    recentNGOs,
+    
+    // Action items
+    pendingNGOVerifications,
+    
+    // Activity feed
+    recentActivity: allActivity,
+    
+    // Insights
+    skillsInDemand: skillsInDemand.map(s => ({ skill: s._id, count: s.count })),
+    topCauses: topCauses.map(c => ({ cause: c._id, count: c.count })),
+    
+    // Conversion metrics
+    ngoVerificationRate: totalNGOs > 0 ? Math.round((verifiedNGOs / totalNGOs) * 100) : 0,
+    projectSuccessRate: totalProjects > 0 ? Math.round((completedProjects / totalProjects) * 100) : 0,
+    applicationAcceptRate: totalApplications > 0 ? Math.round((acceptedApplications / totalApplications) * 100) : 0,
+  }
+}
+
+// Helper for time ago
+function getTimeAgo(date: Date | string): string {
+  const now = new Date()
+  const past = new Date(date)
+  const diffMs = now.getTime() - past.getTime()
+  const diffMins = Math.floor(diffMs / 60000)
+  const diffHours = Math.floor(diffMs / 3600000)
+  const diffDays = Math.floor(diffMs / 86400000)
+  
+  if (diffMins < 1) return "Just now"
+  if (diffMins < 60) return `${diffMins} minute${diffMins > 1 ? "s" : ""} ago`
+  if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? "s" : ""} ago`
+  if (diffDays < 7) return `${diffDays} day${diffDays > 1 ? "s" : ""} ago`
+  return past.toLocaleDateString()
+}
+
+// Admin user role change
+export async function adminChangeUserRole(
+  userId: string,
+  newRole: "volunteer" | "ngo" | "admin"
+): Promise<ApiResponse<boolean>> {
+  try {
+    await requireRole(["admin"])
+    
+    const db = await getDb()
+    
+    // Update user role in auth system
+    const result = await db.collection("user").updateOne(
+      { id: userId },
+      { $set: { role: newRole, updatedAt: new Date() } }
+    )
+    
+    if (result.modifiedCount === 0) {
+      return { success: false, error: "User not found" }
+    }
+    
+    revalidatePath("/admin/users")
+    return { success: true, data: true }
+  } catch (error) {
+    console.error("Admin change role error:", error)
+    return { success: false, error: "Failed to change user role" }
   }
 }
 
@@ -1197,7 +1532,8 @@ export async function browseProjects(filters?: {
     query.projectType = filters.projectType
   }
 
-  return projectsDb.findMany(query, { limit: 50, sort: { createdAt: -1 } } as any)
+  const projects = await projectsDb.findMany(query, { limit: 50, sort: { createdAt: -1 } } as any)
+  return serializeDocuments(projects)
 }
 
 export async function browseNGOs(filters?: {
@@ -1214,7 +1550,8 @@ export async function browseNGOs(filters?: {
     query.isVerified = filters.isVerified
   }
 
-  return ngoProfilesDb.findMany(query, { limit: 50 } as any)
+  const ngos = await ngoProfilesDb.findMany(query, { limit: 50 } as any)
+  return serializeDocuments(ngos)
 }
 
 // ============================================
@@ -1225,7 +1562,8 @@ export async function getMyConversations() {
   const user = await getCurrentUser()
   if (!user) return []
   
-  return conversationsDb.findByUserId(user.id)
+  const conversations = await conversationsDb.findByUserId(user.id)
+  return serializeDocuments(conversations)
 }
 
 export async function getConversation(conversationId: string) {
@@ -1233,7 +1571,8 @@ export async function getConversation(conversationId: string) {
   if (!user) return null
   
   const conversations = await conversationsDb.findByUserId(user.id)
-  return conversations.find(c => c._id?.toString() === conversationId) || null
+  const conversation = conversations.find(c => c._id?.toString() === conversationId) || null
+  return serializeDocument(conversation)
 }
 
 export async function getConversationMessages(conversationId: string, limit = 50) {
@@ -1248,7 +1587,8 @@ export async function getConversationMessages(conversationId: string, limit = 50
   // Mark messages as read
   await messagesDb.markAsRead(conversationId, user.id)
   
-  return messagesDb.findByConversationId(conversationId, limit)
+  const messages = await messagesDb.findByConversationId(conversationId, limit)
+  return serializeDocuments(messages)
 }
 
 export async function sendMessage(
@@ -1340,7 +1680,8 @@ export async function getMyNotifications() {
   const user = await getCurrentUser()
   if (!user) return []
   
-  return notificationsDb.findByUserId(user.id)
+  const notifications = await notificationsDb.findByUserId(user.id)
+  return serializeDocuments(notifications)
 }
 
 // ============================================
@@ -1351,14 +1692,16 @@ export async function getUnlockedProfiles() {
   const user = await getCurrentUser()
   if (!user) return []
   
-  return profileUnlocksDb.findByNgoId(user.id)
+  const unlocks = await profileUnlocksDb.findByNgoId(user.id)
+  return serializeDocuments(unlocks)
 }
 
 export async function getMyTransactions() {
   const user = await getCurrentUser()
   if (!user) return []
   
-  return transactionsDb.findByUserId(user.id)
+  const transactions = await transactionsDb.findByUserId(user.id)
+  return serializeDocuments(transactions)
 }
 
 export async function getAllTransactions(page = 1, limit = 20) {
@@ -1406,24 +1749,37 @@ export async function changePassword(
       return { success: false, error: "Not authenticated" }
     }
 
-    // For OAuth users, password change might not be applicable
-    // Better Auth handles password separately - we need to use auth client
-    // This is a placeholder - actual implementation depends on Better Auth config
-    
     // Validate new password
     if (newPassword.length < 8) {
       return { success: false, error: "Password must be at least 8 characters" }
     }
 
-    // Note: Better Auth uses auth.api.changePassword which requires proper setup
-    // For now, return an informative error for OAuth-only users
-    return { 
-      success: false, 
-      error: "Password change is only available for email/password accounts. OAuth users should manage passwords through their provider." 
+    // Use Better Auth's change password API
+    try {
+      await auth.api.changePassword({
+        body: {
+          currentPassword,
+          newPassword,
+        },
+        headers: await headers(),
+      })
+      return { success: true, data: true }
+    } catch (authError: any) {
+      // Handle specific error cases
+      if (authError.message?.includes("incorrect")) {
+        return { success: false, error: "Current password is incorrect" }
+      }
+      if (authError.message?.includes("OAuth")) {
+        return { 
+          success: false, 
+          error: "Password change is only available for email/password accounts. OAuth users should manage passwords through their provider." 
+        }
+      }
+      throw authError
     }
   } catch (error) {
     console.error("Change password error:", error)
-    return { success: false, error: "Failed to change password" }
+    return { success: false, error: "Failed to change password. Please try again.May be due to you having created account via social login" }
   }
 }
 
@@ -1470,6 +1826,48 @@ export async function deleteAccount(): Promise<ApiResponse<boolean>> {
   } catch (error) {
     console.error("Delete account error:", error)
     return { success: false, error: "Failed to delete account" }
+  }
+}
+
+// ============================================
+// IMPACT METRICS
+// ============================================
+
+export async function getImpactMetrics() {
+  try {
+    const [volunteerCount, projectCount, ngoCount] = await Promise.all([
+      volunteerProfilesDb.count({}),
+      projectsDb.count({ status: "completed" }),
+      ngoProfilesDb.count({}),
+    ])
+
+    // Calculate total hours from completed projects
+    const completedProjects = await projectsDb.findMany({ status: "completed" })
+    const totalHours = completedProjects.reduce((sum, p) => {
+      // Parse timeCommitment like "10-15 hours" or "5 hours/week"
+      const match = p.timeCommitment?.match(/(\d+)/)
+      return sum + (match ? parseInt(match[1]) : 0)
+    }, 0)
+
+    // Estimated value at $50/hour for pro-bono work
+    const estimatedValue = totalHours * 50
+
+    return {
+      volunteers: volunteerCount || 0,
+      projectsCompleted: projectCount || 0,
+      ngosSupported: ngoCount || 0,
+      hoursContributed: totalHours || 0,
+      valueGenerated: estimatedValue || 0,
+    }
+  } catch (error) {
+    console.error("Failed to get impact metrics:", error)
+    return {
+      volunteers: 0,
+      projectsCompleted: 0,
+      ngosSupported: 0,
+      hoursContributed: 0,
+      valueGenerated: 0,
+    }
   }
 }
 

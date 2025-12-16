@@ -24,6 +24,7 @@ import {
   Clock,
   DollarSign,
   Lightbulb,
+  LocateFixed,
 } from "lucide-react"
 import { skillCategories, experienceLevels, causes, workModes } from "../../../lib/skills-data"
 import { saveVolunteerOnboarding, completeOnboarding } from "@/lib/actions"
@@ -78,6 +79,53 @@ export default function VolunteerOnboardingPage() {
     linkedinUrl: "",
     portfolioUrl: "",
   })
+  const [coordinates, setCoordinates] = useState<{ lat: number; lng: number } | null>(null)
+  const [isGettingLocation, setIsGettingLocation] = useState(false)
+
+  // Geolocation function to get exact user location
+  const getExactLocation = async () => {
+    if (!navigator.geolocation) {
+      alert("Geolocation is not supported by your browser")
+      return
+    }
+
+    setIsGettingLocation(true)
+
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const { latitude, longitude } = position.coords
+        setCoordinates({ lat: latitude, lng: longitude })
+
+        // Reverse geocode to get city name using a free API
+        try {
+          const response = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=10`
+          )
+          const data = await response.json()
+          
+          const city = data.address?.city || data.address?.town || data.address?.village || data.address?.county
+          const state = data.address?.state
+          const country = data.address?.country
+          
+          const locationParts = [city, state, country].filter(Boolean)
+          const locationString = locationParts.join(", ")
+          
+          setProfile(prev => ({ ...prev, location: locationString }))
+        } catch (error) {
+          console.error("Error reverse geocoding:", error)
+          setProfile(prev => ({ ...prev, location: `${latitude.toFixed(4)}, ${longitude.toFixed(4)}` }))
+        }
+        
+        setIsGettingLocation(false)
+      },
+      (error) => {
+        console.error("Geolocation error:", error)
+        alert("Unable to get your location. Please enter it manually.")
+        setIsGettingLocation(false)
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+    )
+  }
 
   // Step 2: Skills
   const [selectedSkills, setSelectedSkills] = useState<SelectedSkill[]>([])
@@ -140,7 +188,10 @@ export default function VolunteerOnboardingPage() {
     try {
       // Save onboarding data to backend
       const onboardingData = {
-        profile,
+        profile: {
+          ...profile,
+          coordinates, // Include exact coordinates if captured
+        },
         skills: selectedSkills,
         causes: selectedCauses,
         workPreferences,
@@ -193,16 +244,39 @@ export default function VolunteerOnboardingPage() {
 
         <div className="space-y-2">
           <Label htmlFor="location">Location</Label>
-          <div className="relative">
-            <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              id="location"
-              placeholder="City, Country"
-              value={profile.location}
-              onChange={(e) => setProfile({ ...profile, location: e.target.value })}
-              className="pl-10"
-            />
+          <div className="flex gap-2">
+            <div className="relative flex-1">
+              <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                id="location"
+                placeholder="City, Country"
+                value={profile.location}
+                onChange={(e) => setProfile({ ...profile, location: e.target.value })}
+                className="pl-10"
+              />
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={getExactLocation}
+              disabled={isGettingLocation}
+              className="shrink-0"
+            >
+              {isGettingLocation ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <>
+                  <LocateFixed className="h-4 w-4 mr-2" />
+                  Use my location
+                </>
+              )}
+            </Button>
           </div>
+          {coordinates && (
+            <p className="text-xs text-muted-foreground">
+              📍 Coordinates: {coordinates.lat.toFixed(6)}, {coordinates.lng.toFixed(6)}
+            </p>
+          )}
         </div>
 
         <div className="space-y-2">

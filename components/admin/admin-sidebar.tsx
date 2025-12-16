@@ -52,6 +52,11 @@ const navItems = [
     icon: BarChart3,
   },
   {
+    title: "Admin Accounts",
+    href: "/admin/admins",
+    icon: Shield,
+  },
+  {
     title: "Settings",
     href: "/admin/settings",
     icon: Settings,
