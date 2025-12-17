@@ -16,6 +16,8 @@ import type {
   Notification,
   AdminSettings,
   SubscriptionPlan,
+  TeamMember,
+  BanRecord,
 } from "./types"
 
 // ============================================
@@ -49,6 +51,8 @@ export const COLLECTIONS = {
   NOTIFICATIONS: "notifications",
   ADMIN_SETTINGS: "adminSettings",
   SUBSCRIPTION_PLANS: "subscriptionPlans",
+  TEAM_MEMBERS: "teamMembers",
+  BAN_RECORDS: "banRecords",
 } as const
 
 // ============================================
@@ -809,5 +813,111 @@ export const subscriptionPlansDb = {
 
       await collection.insertMany(plans as SubscriptionPlan[])
     }
+  },
+}
+
+// ============================================
+// TEAM MEMBERS
+// ============================================
+export const teamMembersDb = {
+  async create(member: Omit<TeamMember, "_id">): Promise<string> {
+    const collection = await getCollection<TeamMember>(COLLECTIONS.TEAM_MEMBERS)
+    const result = await collection.insertOne({
+      ...member,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    } as TeamMember)
+    return result.insertedId.toString()
+  },
+
+  async findAll(): Promise<TeamMember[]> {
+    const collection = await getCollection<TeamMember>(COLLECTIONS.TEAM_MEMBERS)
+    return collection.find({}).sort({ order: 1 }).toArray()
+  },
+
+  async findActive(): Promise<TeamMember[]> {
+    const collection = await getCollection<TeamMember>(COLLECTIONS.TEAM_MEMBERS)
+    return collection.find({ isActive: true }).sort({ order: 1 }).toArray()
+  },
+
+  async findById(id: string): Promise<TeamMember | null> {
+    const collection = await getCollection<TeamMember>(COLLECTIONS.TEAM_MEMBERS)
+    return collection.findOne({ _id: new ObjectId(id) })
+  },
+
+  async update(id: string, updates: Partial<TeamMember>): Promise<boolean> {
+    const collection = await getCollection<TeamMember>(COLLECTIONS.TEAM_MEMBERS)
+    const result = await collection.updateOne(
+      { _id: new ObjectId(id) },
+      { $set: { ...updates, updatedAt: new Date() } }
+    )
+    return result.modifiedCount > 0
+  },
+
+  async delete(id: string): Promise<boolean> {
+    const collection = await getCollection<TeamMember>(COLLECTIONS.TEAM_MEMBERS)
+    const result = await collection.deleteOne({ _id: new ObjectId(id) })
+    return result.deletedCount > 0
+  },
+
+  async reorder(orderedIds: string[]): Promise<boolean> {
+    const collection = await getCollection<TeamMember>(COLLECTIONS.TEAM_MEMBERS)
+    const operations = orderedIds.map((id, index) => ({
+      updateOne: {
+        filter: { _id: new ObjectId(id) },
+        update: { $set: { order: index, updatedAt: new Date() } },
+      },
+    }))
+    const result = await collection.bulkWrite(operations)
+    return result.modifiedCount > 0
+  },
+}
+
+// ============================================
+// BAN RECORDS
+// ============================================
+export const banRecordsDb = {
+  async create(record: Omit<BanRecord, "_id">): Promise<string> {
+    const collection = await getCollection<BanRecord>(COLLECTIONS.BAN_RECORDS)
+    const result = await collection.insertOne({
+      ...record,
+      bannedAt: new Date(),
+      isActive: true,
+    } as BanRecord)
+    return result.insertedId.toString()
+  },
+
+  async findByUserId(userId: string): Promise<BanRecord[]> {
+    const collection = await getCollection<BanRecord>(COLLECTIONS.BAN_RECORDS)
+    return collection.find({ userId }).sort({ bannedAt: -1 }).toArray()
+  },
+
+  async findActiveByUserId(userId: string): Promise<BanRecord | null> {
+    const collection = await getCollection<BanRecord>(COLLECTIONS.BAN_RECORDS)
+    return collection.findOne({ userId, isActive: true })
+  },
+
+  async findAll(): Promise<BanRecord[]> {
+    const collection = await getCollection<BanRecord>(COLLECTIONS.BAN_RECORDS)
+    return collection.find({}).sort({ bannedAt: -1 }).toArray()
+  },
+
+  async findAllActive(): Promise<BanRecord[]> {
+    const collection = await getCollection<BanRecord>(COLLECTIONS.BAN_RECORDS)
+    return collection.find({ isActive: true }).sort({ bannedAt: -1 }).toArray()
+  },
+
+  async deactivate(userId: string, unbannedBy: string): Promise<boolean> {
+    const collection = await getCollection<BanRecord>(COLLECTIONS.BAN_RECORDS)
+    const result = await collection.updateOne(
+      { userId, isActive: true },
+      { $set: { isActive: false, unbannedAt: new Date(), unbannedBy } }
+    )
+    return result.modifiedCount > 0
+  },
+
+  async findById(id: string): Promise<BanRecord | null> {
+    const collection = await getCollection<BanRecord>(COLLECTIONS.BAN_RECORDS)
+    return collection.findOne({ _id: new ObjectId(id) })
   },
 }

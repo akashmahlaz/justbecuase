@@ -94,6 +94,7 @@ export interface VolunteerProfile {
   // Verification
   isVerified: boolean
   isActive: boolean
+  isBanned?: boolean
   
   // Privacy Settings
   privacy?: {
@@ -167,6 +168,7 @@ export interface NGOProfile {
   // Verification
   isVerified: boolean
   isActive: boolean
+  isBanned?: boolean
   
   // Subscription (simplified to 2 plans)
   subscriptionPlan: "free" | "pro"
@@ -398,6 +400,7 @@ export interface Notification {
   // Reference
   referenceId?: string
   referenceType?: string // "project" | "application" | "message"
+  link?: string // URL to navigate to when notification is clicked
   
   isRead: boolean
   readAt?: Date
@@ -437,6 +440,38 @@ export interface AdminSettings {
   
   updatedAt: Date
   updatedBy: string
+}
+
+// ============================================
+// TEAM MEMBERS (for About page)
+// ============================================
+export interface TeamMember {
+  _id?: ObjectId
+  name: string
+  role: string
+  bio: string
+  avatar?: string
+  linkedinUrl?: string
+  twitterUrl?: string
+  order: number
+  isActive: boolean
+  createdAt: Date
+  updatedAt: Date
+}
+
+// ============================================
+// BAN RECORDS
+// ============================================
+export interface BanRecord {
+  _id?: ObjectId
+  userId: string
+  userType: "volunteer" | "ngo"
+  reason: string
+  bannedBy: string
+  bannedAt: Date
+  unbannedAt?: Date
+  unbannedBy?: string
+  isActive: boolean
 }
 
 // ============================================

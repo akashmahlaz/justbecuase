@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Navbar } from "@/components/navbar"
 import { Footer } from "@/components/footer"
 import { Button } from "@/components/ui/button"
@@ -10,6 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Check, Building2, User, Sparkles, Zap, Loader2 } from "lucide-react"
 import { client } from "@/lib/auth-client"
 import { toast } from "sonner"
+import { useSubscriptionStore } from "@/lib/store"
 
 // NGO Plans
 const ngoPlans = [
@@ -111,10 +112,22 @@ export default function PricingPage() {
   const user = session?.user
   const userRole = user?.role as string | undefined
   
+  // Zustand subscription store
+  const { 
+    ngoSubscription, 
+    volunteerSubscription, 
+    setNGOSubscription, 
+    setVolunteerSubscription 
+  } = useSubscriptionStore()
+  
   // Default tab based on user role
   const defaultTab = userRole === "volunteer" ? "volunteer" : "ngo"
   const [activeTab, setActiveTab] = useState(defaultTab)
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null)
+  
+  // Get current plan from store
+  const currentNGOPlan = ngoSubscription?.plan || "free"
+  const currentVolunteerPlan = volunteerSubscription?.plan || "free"
 
   const loadRazorpayScript = (): Promise<boolean> => {
     return new Promise((resolve) => {
@@ -187,6 +200,24 @@ export default function PricingPage() {
             const verifyData = await verifyResponse.json()
             if (!verifyResponse.ok) {
               throw new Error(verifyData.error || "Payment verification failed")
+            }
+
+            // Update Zustand store with new subscription
+            const expiryDate = new Date()
+            expiryDate.setMonth(expiryDate.getMonth() + 1)
+            
+            if (planId.startsWith("ngo-")) {
+              setNGOSubscription({
+                plan: planId === "ngo-pro" ? "pro" : "free",
+                unlocksUsed: 0,
+                expiryDate: expiryDate.toISOString(),
+              })
+            } else if (planId.startsWith("volunteer-")) {
+              setVolunteerSubscription({
+                plan: planId === "volunteer-pro" ? "pro" : "free",
+                applicationsUsed: 0,
+                expiryDate: expiryDate.toISOString(),
+              })
             }
 
             // Show success toast immediately
@@ -333,7 +364,7 @@ export default function PricingPage() {
 
               <TabsContent value="ngo">
                 <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
-                  {ngoPlans.map((plan) => renderPlanCard(plan))}
+                  {ngoPlans.map((plan) => renderPlanCard(plan, currentNGOPlan === "pro" ? "ngo-pro" : undefined))}
                 </div>
                 
                 <div className="mt-12 text-center">
@@ -348,7 +379,7 @@ export default function PricingPage() {
 
               <TabsContent value="volunteer">
                 <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
-                  {volunteerPlans.map((plan) => renderPlanCard(plan))}
+                  {volunteerPlans.map((plan) => renderPlanCard(plan, currentVolunteerPlan === "pro" ? "volunteer-pro" : undefined))}
                 </div>
               </TabsContent>
             </Tabs>

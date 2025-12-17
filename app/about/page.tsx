@@ -4,34 +4,8 @@ import { Footer } from "@/components/footer"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { impactMetrics } from "@/lib/data"
+import { getActiveTeamMembers } from "@/lib/actions"
 import { Heart, Target, Users, Globe, Award, ArrowRight, Linkedin, Twitter } from "lucide-react"
-
-const teamMembers = [
-  {
-    name: "Michelle Tan",
-    role: "Founder & CEO",
-    bio: "Former nonprofit consultant with 15 years of experience connecting talent with purpose.",
-    avatar: "/asian-woman-executive-portrait.png",
-  },
-  {
-    name: "David Lee",
-    role: "Head of Partnerships",
-    bio: "Previously led volunteer programs at major NGOs across Southeast Asia.",
-    avatar: "/asian-man-professional-portrait.png",
-  },
-  {
-    name: "Priya Menon",
-    role: "Head of Product",
-    bio: "Tech leader passionate about building products that create social impact.",
-    avatar: "/indian-woman-tech-professional.png",
-  },
-  {
-    name: "James Wong",
-    role: "Community Lead",
-    bio: "Volunteer coordinator who has matched hundreds of professionals with meaningful projects.",
-    avatar: "/asian-man-friendly-portrait.png",
-  },
-]
 
 const values = [
   {
@@ -56,7 +30,11 @@ const values = [
   },
 ]
 
-export default function AboutPage() {
+export default async function AboutPage() {
+  // Fetch team members from database
+  const teamResult = await getActiveTeamMembers()
+  const teamMembers = teamResult.success && teamResult.data ? teamResult.data : []
+
   return (
     <div className="min-h-screen flex flex-col bg-background">
       <Navbar />
@@ -159,28 +137,43 @@ export default function AboutPage() {
                 Passionate individuals dedicated to connecting skills with purpose
               </p>
             </div>
-            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-8">
-              {teamMembers.map((member) => (
-                <div key={member.name} className="text-center">
-                  <img
-                    src={member.avatar || "/placeholder.svg"}
-                    alt={member.name}
-                    className="w-32 h-32 rounded-full object-cover mx-auto mb-4 bg-muted"
-                  />
-                  <h3 className="font-semibold text-foreground">{member.name}</h3>
-                  <p className="text-sm text-primary mb-2">{member.role}</p>
-                  <p className="text-sm text-muted-foreground mb-3">{member.bio}</p>
-                  <div className="flex justify-center gap-2">
-                    <Button variant="ghost" size="icon" className="h-8 w-8">
-                      <Linkedin className="h-4 w-4" />
-                    </Button>
-                    <Button variant="ghost" size="icon" className="h-8 w-8">
-                      <Twitter className="h-4 w-4" />
-                    </Button>
+            {teamMembers.length > 0 ? (
+              <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-8">
+                {teamMembers.map((member) => (
+                  <div key={member._id?.toString()} className="text-center">
+                    <img
+                      src={member.avatar || "/placeholder.svg"}
+                      alt={member.name}
+                      className="w-32 h-32 rounded-full object-cover mx-auto mb-4 bg-muted"
+                    />
+                    <h3 className="font-semibold text-foreground">{member.name}</h3>
+                    <p className="text-sm text-primary mb-2">{member.role}</p>
+                    <p className="text-sm text-muted-foreground mb-3">{member.bio}</p>
+                    <div className="flex justify-center gap-2">
+                      {member.linkedinUrl && (
+                        <Button variant="ghost" size="icon" className="h-8 w-8" asChild>
+                          <a href={member.linkedinUrl} target="_blank" rel="noopener noreferrer">
+                            <Linkedin className="h-4 w-4" />
+                          </a>
+                        </Button>
+                      )}
+                      {member.twitterUrl && (
+                        <Button variant="ghost" size="icon" className="h-8 w-8" asChild>
+                          <a href={member.twitterUrl} target="_blank" rel="noopener noreferrer">
+                            <Twitter className="h-4 w-4" />
+                          </a>
+                        </Button>
+                      )}
+                    </div>
                   </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-12 bg-muted/30 rounded-lg">
+                <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                <p className="text-muted-foreground">Our team is growing! Check back soon.</p>
+              </div>
+            )}
           </div>
         </section>
 

@@ -20,13 +20,13 @@ export async function GET() {
 
     return NextResponse.json({
       notifications: notifications.map(n => ({
-        id: n._id?.toString() || n.id,
+        id: n._id?.toString() || "",
         title: n.title,
         message: n.message,
         type: n.type,
         isRead: n.isRead,
         createdAt: n.createdAt,
-        link: n.link,
+        link: n.link || "",
       })),
       unreadCount,
     })

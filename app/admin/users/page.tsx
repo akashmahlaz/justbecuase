@@ -32,6 +32,7 @@ export default async function AdminUsersPage() {
       createdAt: v.createdAt,
       isVerified: v.isVerified,
       isActive: v.isActive !== false,
+      isBanned: (v as any).isBanned === true,
     })),
     ...ngosData.data.map(n => ({
       id: n.userId,
@@ -42,6 +43,7 @@ export default async function AdminUsersPage() {
       createdAt: n.createdAt,
       isVerified: n.isVerified,
       isActive: n.isActive !== false,
+      isBanned: (n as any).isBanned === true,
     })),
   ].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
 
@@ -187,6 +189,11 @@ export default async function AdminUsersPage() {
                               Suspended
                             </Badge>
                           )}
+                          {user.isBanned && (
+                            <Badge variant="destructive" className="w-fit bg-red-600">
+                              Banned
+                            </Badge>
+                          )}
                         </div>
                       </td>
                       <td className="py-3 px-4 text-sm text-muted-foreground">
@@ -203,6 +210,7 @@ export default async function AdminUsersPage() {
                           userType={user.role}
                           isVerified={user.isVerified}
                           isActive={user.isActive}
+                          isBanned={user.isBanned}
                         />
                       </td>
                     </tr>

@@ -13,6 +13,8 @@ import {
   BarChart3,
   Shield,
   Heart,
+  UsersRound,
+  Ban,
 } from "lucide-react"
 
 const navItems = [
@@ -50,6 +52,16 @@ const navItems = [
     title: "Reports",
     href: "/admin/reports",
     icon: BarChart3,
+  },
+  {
+    title: "Team",
+    href: "/admin/team",
+    icon: UsersRound,
+  },
+  {
+    title: "Ban History",
+    href: "/admin/bans",
+    icon: Ban,
   },
   {
     title: "Admin Accounts",

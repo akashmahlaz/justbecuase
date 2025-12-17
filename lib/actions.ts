@@ -20,6 +20,8 @@ import {
   subscriptionPlansDb,
   conversationsDb,
   messagesDb,
+  banRecordsDb,
+  teamMembersDb,
   getDb,
 } from "./database"
 import {
@@ -36,6 +38,8 @@ import type {
   VolunteerProfileView,
   ApiResponse,
   AdminSettings,
+  BanRecord,
+  TeamMember,
 } from "./types"
 
 // ============================================
@@ -1191,7 +1195,15 @@ export async function getUnreadNotificationCount(): Promise<number> {
 
 export async function getAdminSettings(): Promise<AdminSettings | null> {
   const user = await requireRole(["admin"])
-  return adminSettingsDb.get()
+  let settings = await adminSettingsDb.get()
+  
+  // Auto-initialize settings if they don't exist
+  if (!settings) {
+    await adminSettingsDb.initialize(user.id)
+    settings = await adminSettingsDb.get()
+  }
+  
+  return settings
 }
 
 export async function updateAdminSettings(
@@ -1631,6 +1643,177 @@ export async function verifyUser(
     return verifyVolunteer(userId, isVerified)
   } else {
     return verifyNGO(userId, isVerified)
+  }
+}
+
+// ============================================
+// BAN/UNBAN USER ACTIONS
+// ============================================
+
+export async function banUser(
+  userId: string,
+  userType: "volunteer" | "ngo",
+  reason: string
+): Promise<ApiResponse<boolean>> {
+  try {
+    const adminUser = await requireRole(["admin"])
+    
+    // Suspend the user first
+    if (userType === "volunteer") {
+      await volunteerProfilesDb.update(userId, { isActive: false, isBanned: true })
+    } else {
+      await ngoProfilesDb.update(userId, { isActive: false, isBanned: true })
+    }
+    
+    // Create ban record
+    await banRecordsDb.create({
+      userId,
+      userType,
+      reason,
+      bannedBy: adminUser.id,
+      bannedAt: new Date(),
+      isActive: true,
+    })
+    
+    revalidatePath("/admin/users")
+    revalidatePath("/admin/volunteers")
+    revalidatePath("/admin/ngos")
+    
+    return { success: true, data: true }
+  } catch (error) {
+    console.error("Ban user error:", error)
+    return { success: false, error: "Failed to ban user" }
+  }
+}
+
+export async function unbanUser(
+  userId: string,
+  userType: "volunteer" | "ngo"
+): Promise<ApiResponse<boolean>> {
+  try {
+    const adminUser = await requireRole(["admin"])
+    
+    // Reactivate the user
+    if (userType === "volunteer") {
+      await volunteerProfilesDb.update(userId, { isActive: true, isBanned: false })
+    } else {
+      await ngoProfilesDb.update(userId, { isActive: true, isBanned: false })
+    }
+    
+    // Deactivate ban record
+    await banRecordsDb.deactivate(userId, adminUser.id)
+    
+    revalidatePath("/admin/users")
+    revalidatePath("/admin/volunteers")
+    revalidatePath("/admin/ngos")
+    
+    return { success: true, data: true }
+  } catch (error) {
+    console.error("Unban user error:", error)
+    return { success: false, error: "Failed to unban user" }
+  }
+}
+
+export async function getBanRecords(): Promise<ApiResponse<BanRecord[]>> {
+  try {
+    await requireRole(["admin"])
+    const records = await banRecordsDb.findAll()
+    return { success: true, data: records }
+  } catch (error) {
+    console.error("Get ban records error:", error)
+    return { success: false, error: "Failed to get ban records" }
+  }
+}
+
+export async function getUserBanHistory(userId: string): Promise<ApiResponse<BanRecord[]>> {
+  try {
+    await requireRole(["admin"])
+    const records = await banRecordsDb.findByUserId(userId)
+    return { success: true, data: records }
+  } catch (error) {
+    console.error("Get user ban history error:", error)
+    return { success: false, error: "Failed to get user ban history" }
+  }
+}
+
+// ============================================
+// TEAM MEMBER ACTIONS (Admin)
+// ============================================
+
+export async function createTeamMember(
+  member: Omit<TeamMember, "_id" | "createdAt" | "updatedAt">
+): Promise<ApiResponse<string>> {
+  try {
+    await requireRole(["admin"])
+    const id = await teamMembersDb.create(member as TeamMember)
+    revalidatePath("/admin/team")
+    revalidatePath("/about")
+    return { success: true, data: id }
+  } catch (error) {
+    console.error("Create team member error:", error)
+    return { success: false, error: "Failed to create team member" }
+  }
+}
+
+export async function updateTeamMember(
+  id: string,
+  updates: Partial<TeamMember>
+): Promise<ApiResponse<boolean>> {
+  try {
+    await requireRole(["admin"])
+    const result = await teamMembersDb.update(id, updates)
+    revalidatePath("/admin/team")
+    revalidatePath("/about")
+    return { success: true, data: result }
+  } catch (error) {
+    console.error("Update team member error:", error)
+    return { success: false, error: "Failed to update team member" }
+  }
+}
+
+export async function deleteTeamMember(id: string): Promise<ApiResponse<boolean>> {
+  try {
+    await requireRole(["admin"])
+    const result = await teamMembersDb.delete(id)
+    revalidatePath("/admin/team")
+    revalidatePath("/about")
+    return { success: true, data: result }
+  } catch (error) {
+    console.error("Delete team member error:", error)
+    return { success: false, error: "Failed to delete team member" }
+  }
+}
+
+export async function getTeamMembers(): Promise<ApiResponse<TeamMember[]>> {
+  try {
+    const members = await teamMembersDb.findAll()
+    return { success: true, data: members }
+  } catch (error) {
+    console.error("Get team members error:", error)
+    return { success: false, error: "Failed to get team members" }
+  }
+}
+
+export async function getActiveTeamMembers(): Promise<ApiResponse<TeamMember[]>> {
+  try {
+    const members = await teamMembersDb.findActive()
+    return { success: true, data: members }
+  } catch (error) {
+    console.error("Get active team members error:", error)
+    return { success: false, error: "Failed to get active team members" }
+  }
+}
+
+export async function reorderTeamMembers(orderedIds: string[]): Promise<ApiResponse<boolean>> {
+  try {
+    await requireRole(["admin"])
+    const result = await teamMembersDb.reorder(orderedIds)
+    revalidatePath("/admin/team")
+    revalidatePath("/about")
+    return { success: true, data: result }
+  } catch (error) {
+    console.error("Reorder team members error:", error)
+    return { success: false, error: "Failed to reorder team members" }
   }
 }
 
