@@ -382,7 +382,15 @@ export default function PricingPage() {
           </div>
         </section>
 
+        {/* Loading state */}
+        {!settingsLoaded && (
+          <div className="py-16 flex justify-center">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          </div>
+        )}
+
         {/* Pricing Tabs */}
+        {settingsLoaded && (
         <section className="py-16">
           <div className="container mx-auto px-4 md:px-6">
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
@@ -422,6 +430,7 @@ export default function PricingPage() {
             </Tabs>
           </div>
         </section>
+        )}
 
         {/* FAQ Section */}
         <section className="py-16 bg-muted/50">
@@ -433,7 +442,9 @@ export default function PricingPage() {
                 <h3 className="font-semibold text-foreground mb-2">What is a profile unlock? (NGOs)</h3>
                 <p className="text-muted-foreground">
                   When you find a free volunteer you&apos;d like to connect with, you need to unlock their profile 
-                  to view their contact information. Free plan includes 5 unlocks per month.
+                  to view their contact information. {platformSettings?.ngoFreeProfileUnlocksPerMonth === 0 
+                    ? `Free plan requires pay-per-unlock (${currencySymbol}${platformSettings?.singleProfileUnlockPrice || 499}/profile).`
+                    : `Free plan includes ${platformSettings?.ngoFreeProfileUnlocksPerMonth} unlocks per month.`}
                 </p>
               </div>
               
@@ -441,7 +452,7 @@ export default function PricingPage() {
                 <h3 className="font-semibold text-foreground mb-2">What counts as an application? (Volunteers)</h3>
                 <p className="text-muted-foreground">
                   Each time you apply to a project/opportunity, it counts as one application. 
-                  Free plan includes 3 applications per month.
+                  Free plan includes {platformSettings?.volunteerFreeApplicationsPerMonth || 3} applications per month.
                 </p>
               </div>
               

@@ -175,6 +175,7 @@ export interface NGOProfile {
   subscriptionExpiry?: Date
   monthlyUnlocksUsed: number
   monthlyUnlocksLimit: number // 5 for free, unlimited for pro
+  monthlyProjectsPosted: number // Track projects posted this month for free plan limit
   subscriptionResetDate?: Date // When to reset monthly counters
   
   // Legacy field - keeping for backwards compatibility

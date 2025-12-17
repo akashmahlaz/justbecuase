@@ -532,6 +532,39 @@ export async function createProject(data: {
       return { success: false, error: "NGO profile not found. Please complete onboarding." }
     }
 
+    // Get admin settings for project limits
+    const settings = await adminSettingsDb.get()
+    const FREE_PLAN_PROJECT_LIMIT = settings?.ngoFreeProjectsPerMonth ?? 3
+
+    // Check project posting limits for free plan NGOs
+    const subscriptionPlan = ngoProfile.subscriptionPlan || "free"
+    const monthlyProjectsPosted = ngoProfile.monthlyProjectsPosted || 0
+    
+    // Check if we need to reset monthly counter
+    const now = new Date()
+    const resetDate = ngoProfile.subscriptionResetDate ? new Date(ngoProfile.subscriptionResetDate) : null
+    
+    let shouldResetCounter = false
+    if (resetDate && now >= resetDate) {
+      // Reset the counter - it's a new month
+      const nextResetDate = new Date(now.getFullYear(), now.getMonth() + 1, 1)
+      await ngoProfilesDb.update(user.id, {
+        monthlyProjectsPosted: 0,
+        subscriptionResetDate: nextResetDate,
+      })
+      shouldResetCounter = true
+    } else if (subscriptionPlan === "free" && !shouldResetCounter && monthlyProjectsPosted >= FREE_PLAN_PROJECT_LIMIT) {
+      // Free plan limit reached
+      return { 
+        success: false, 
+        error: `You've reached your monthly limit of ${FREE_PLAN_PROJECT_LIMIT} projects. Upgrade to Pro for unlimited projects!`,
+      }
+    }
+
+    if (!ngoProfile) {
+      return { success: false, error: "NGO profile not found. Please complete onboarding." }
+    }
+
     // Input validation
     const projectValidation = validateProjectData({
       title: data.title,
@@ -582,6 +615,19 @@ export async function createProject(data: {
 
     const projectId = await projectsDb.create(projectData)
     await ngoProfilesDb.incrementStat(user.id, "projectsPosted")
+
+    // Increment monthly project counter for free plan NGOs
+    if (subscriptionPlan === "free") {
+      try {
+        await ngoProfilesDb.update(user.id, {
+          monthlyProjectsPosted: (monthlyProjectsPosted || 0) + 1,
+          // Set reset date if not set
+          ...(ngoProfile.subscriptionResetDate ? {} : { subscriptionResetDate: new Date(now.getFullYear(), now.getMonth() + 1, 1) }),
+        })
+      } catch (e) {
+        console.error("Failed to increment monthly project count:", e)
+      }
+    }
 
     revalidatePath("/ngo/projects")
     revalidatePath("/projects")
@@ -681,10 +727,13 @@ export async function applyToProject(
       return { success: false, error: "Please complete your profile before applying" }
     }
 
+    // Get admin settings for application limits
+    const settings = await adminSettingsDb.get()
+    const FREE_PLAN_LIMIT = settings?.volunteerFreeApplicationsPerMonth ?? 3
+
     // Check application limits for free plan volunteers
     const subscriptionPlan = volunteerProfile.subscriptionPlan || "free"
     const monthlyApplicationsUsed = volunteerProfile.monthlyApplicationsUsed || 0
-    const FREE_PLAN_LIMIT = 3
     
     // Check if we need to reset monthly counter
     const now = new Date()
