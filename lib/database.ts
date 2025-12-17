@@ -690,19 +690,64 @@ export const adminSettingsDb = {
     const exists = await collection.findOne({})
     if (!exists) {
       await collection.insertOne({
+        // Platform Settings
         platformName: "JustBecause.Asia",
         platformDescription: "Connecting NGOs with skilled volunteers",
         supportEmail: "support@justbecause.asia",
+        
+        // Payment Settings
         singleProfileUnlockPrice: 499,
         currency: "INR",
+        
+        // Volunteer Free Plan
+        volunteerFreeApplicationsPerMonth: 3,
+        volunteerFreeProfileVisibility: true,
+        
+        // Volunteer Pro Plan
+        volunteerProPrice: 999,
+        volunteerProApplicationsUnlimited: true,
+        volunteerProFeatures: [
+          "Unlimited job applications",
+          "Featured profile badge",
+          "Priority in search results",
+          "Direct message NGOs",
+          "Early access to opportunities",
+          "Profile analytics",
+          "Certificate downloads",
+        ],
+        
+        // NGO Free Plan
+        ngoFreeProjectsPerMonth: 3,
+        ngoFreeProfileUnlocksPerMonth: 0,
+        
+        // NGO Pro Plan
+        ngoProPrice: 2999,
+        ngoProProjectsUnlimited: true,
+        ngoProUnlocksUnlimited: true,
+        ngoProFeatures: [
+          "Unlimited projects",
+          "Unlimited profile unlocks",
+          "Advanced AI-powered matching",
+          "Priority support",
+          "Project analytics & reports",
+          "Featured NGO badge",
+          "Bulk volunteer outreach",
+        ],
+        
+        // Features Toggle
         enablePayments: true,
         enableMessaging: true,
         enableNotifications: true,
         requireEmailVerification: false,
         requireNGOVerification: false,
+        
+        // Content
         maintenanceMode: false,
+        
+        // SEO
         metaTitle: "JustBecause.Asia - Connect NGOs with Volunteers",
         metaDescription: "Platform connecting NGOs with skilled volunteers for social impact",
+        
         updatedAt: new Date(),
         updatedBy: adminUserId,
       } as AdminSettings)

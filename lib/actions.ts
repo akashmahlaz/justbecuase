@@ -1206,6 +1206,52 @@ export async function getAdminSettings(): Promise<AdminSettings | null> {
   return settings
 }
 
+// Public settings getter - no auth required
+export async function getPublicSettings(): Promise<Partial<AdminSettings> | null> {
+  let settings = await adminSettingsDb.get()
+  
+  if (!settings) {
+    return {
+      platformName: "JustBecause.Asia",
+      platformDescription: "Connecting NGOs with skilled volunteers",
+      supportEmail: "support@justbecause.asia",
+      currency: "INR",
+      singleProfileUnlockPrice: 499,
+      volunteerFreeApplicationsPerMonth: 3,
+      volunteerProPrice: 999,
+      ngoFreeProjectsPerMonth: 3,
+      ngoFreeProfileUnlocksPerMonth: 0,
+      ngoProPrice: 2999,
+      enablePayments: true,
+      enableMessaging: true,
+    }
+  }
+  
+  // Return only public settings
+  return {
+    platformName: settings.platformName,
+    platformDescription: settings.platformDescription,
+    supportEmail: settings.supportEmail,
+    platformLogo: settings.platformLogo,
+    currency: settings.currency,
+    singleProfileUnlockPrice: settings.singleProfileUnlockPrice,
+    volunteerFreeApplicationsPerMonth: settings.volunteerFreeApplicationsPerMonth,
+    volunteerProPrice: settings.volunteerProPrice,
+    volunteerProFeatures: settings.volunteerProFeatures,
+    ngoFreeProjectsPerMonth: settings.ngoFreeProjectsPerMonth,
+    ngoFreeProfileUnlocksPerMonth: settings.ngoFreeProfileUnlocksPerMonth,
+    ngoProPrice: settings.ngoProPrice,
+    ngoProFeatures: settings.ngoProFeatures,
+    enablePayments: settings.enablePayments,
+    enableMessaging: settings.enableMessaging,
+    maintenanceMode: settings.maintenanceMode,
+    maintenanceMessage: settings.maintenanceMessage,
+    metaTitle: settings.metaTitle,
+    metaDescription: settings.metaDescription,
+    socialLinks: settings.socialLinks,
+  }
+}
+
 export async function updateAdminSettings(
   settings: Partial<AdminSettings>
 ): Promise<ApiResponse<boolean>> {

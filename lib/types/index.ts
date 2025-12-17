@@ -411,6 +411,28 @@ export interface Notification {
 // ============================================
 // ADMIN SETTINGS
 // ============================================
+
+// Supported currencies for Razorpay
+export type SupportedCurrency = "INR" | "USD" | "EUR" | "GBP" | "SGD" | "AED" | "MYR"
+
+export interface SubscriptionPlanConfig {
+  // Volunteer Free Plan
+  volunteerFreeApplicationsPerMonth: number
+  volunteerFreeProfileVisibility: boolean
+  
+  // Volunteer Pro Plan
+  volunteerProPrice: number
+  volunteerProFeatures: string[]
+  
+  // NGO Free Plan
+  ngoFreeProjectsPerMonth: number
+  ngoFreeProfileUnlocksPerMonth: number
+  
+  // NGO Pro Plan
+  ngoProPrice: number
+  ngoProFeatures: string[]
+}
+
 export interface AdminSettings {
   _id?: ObjectId
   
@@ -418,10 +440,28 @@ export interface AdminSettings {
   platformName: string
   platformDescription: string
   supportEmail: string
+  platformLogo?: string
+  platformFavicon?: string
   
-  // Pricing
+  // Payment Settings
   singleProfileUnlockPrice: number
-  currency: string
+  currency: SupportedCurrency
+  razorpayKeyId?: string // Public key (safe to expose)
+  
+  // Subscription Plan Settings - Volunteer
+  volunteerFreeApplicationsPerMonth: number
+  volunteerFreeProfileVisibility: boolean
+  volunteerProPrice: number
+  volunteerProApplicationsUnlimited: boolean
+  volunteerProFeatures: string[]
+  
+  // Subscription Plan Settings - NGO
+  ngoFreeProjectsPerMonth: number
+  ngoFreeProfileUnlocksPerMonth: number
+  ngoProPrice: number
+  ngoProProjectsUnlimited: boolean
+  ngoProUnlocksUnlimited: boolean
+  ngoProFeatures: string[]
   
   // Features Toggle
   enablePayments: boolean
@@ -437,6 +477,15 @@ export interface AdminSettings {
   // SEO
   metaTitle: string
   metaDescription: string
+  
+  // Social Links
+  socialLinks?: {
+    facebook?: string
+    twitter?: string
+    instagram?: string
+    linkedin?: string
+    youtube?: string
+  }
   
   updatedAt: Date
   updatedBy: string

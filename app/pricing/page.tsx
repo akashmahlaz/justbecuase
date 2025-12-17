@@ -10,96 +10,18 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Check, Building2, User, Sparkles, Zap, Loader2 } from "lucide-react"
 import { client } from "@/lib/auth-client"
 import { toast } from "sonner"
-import { useSubscriptionStore } from "@/lib/store"
+import { useSubscriptionStore, usePlatformSettingsStore } from "@/lib/store"
+import type { SupportedCurrency } from "@/lib/types"
 
-// NGO Plans
-const ngoPlans = [
-  {
-    id: "ngo-free",
-    name: "Free",
-    description: "Perfect for small NGOs just getting started",
-    price: 0,
-    priceDisplay: "₹0",
-    period: "forever",
-    icon: Building2,
-    features: [
-      "Post up to 3 projects",
-      "Browse volunteer profiles",
-      "Basic volunteer matching",
-      "Email support",
-      "Community access",
-    ],
-    limitations: [
-      "Cannot unlock volunteer contact info",
-      "Pay-per-unlock available (₹499/profile)",
-    ],
-    popular: false,
-  },
-  {
-    id: "ngo-pro",
-    name: "Pro",
-    description: "For established organizations with regular needs",
-    price: 1, // Testing: ₹1 (production: 2999)
-    priceDisplay: "₹1", // Testing price
-    period: "per month",
-    icon: Zap,
-    features: [
-      "Unlimited projects",
-      "Unlimited profile unlocks",
-      "Advanced AI-powered matching",
-      "Priority support",
-      "Project analytics & reports",
-      "Featured NGO badge",
-      "Bulk volunteer outreach",
-    ],
-    limitations: [],
-    popular: true,
-  },
-]
-
-// Volunteer Plans
-const volunteerPlans = [
-  {
-    id: "volunteer-free",
-    name: "Free",
-    description: "Start volunteering and make an impact",
-    price: 0,
-    priceDisplay: "₹0",
-    period: "forever",
-    icon: User,
-    features: [
-      "Browse all opportunities",
-      "3 applications per month",
-      "Basic profile visibility",
-      "Email notifications",
-      "Community access",
-    ],
-    limitations: [
-      "Limited to 3 applications/month",
-    ],
-    popular: false,
-  },
-  {
-    id: "volunteer-pro",
-    name: "Pro",
-    description: "Maximize your impact with unlimited access",
-    price: 1, // Testing: ₹1 (production: 999)
-    priceDisplay: "₹1", // Testing price
-    period: "per month",
-    icon: Sparkles,
-    features: [
-      "Unlimited job applications",
-      "Featured profile badge",
-      "Priority in search results",
-      "Direct message NGOs",
-      "Early access to opportunities",
-      "Profile analytics",
-      "Certificate downloads",
-    ],
-    limitations: [],
-    popular: true,
-  },
-]
+const CURRENCY_SYMBOLS: Record<SupportedCurrency, string> = {
+  INR: "₹",
+  USD: "$",
+  EUR: "€",
+  GBP: "£",
+  SGD: "S$",
+  AED: "د.إ",
+  MYR: "RM",
+}
 
 declare global {
   interface Window {
@@ -119,6 +41,28 @@ export default function PricingPage() {
     setNGOSubscription, 
     setVolunteerSubscription 
   } = useSubscriptionStore()
+
+  // Platform settings from Zustand store
+  const { settings: platformSettings, isLoaded: settingsLoaded, setSettings, setLoaded } = usePlatformSettingsStore()
+  const [settingsError, setSettingsError] = useState(false)
+  
+  // Fetch platform settings on mount
+  useEffect(() => {
+    if (!settingsLoaded && !settingsError) {
+      fetch("/api/settings")
+        .then(res => res.json())
+        .then(data => {
+          if (data.success && data.data) {
+            setSettings(data.data)
+          }
+          setLoaded(true)
+        })
+        .catch(() => {
+          setSettingsError(true)
+          setLoaded(true)
+        })
+    }
+  }, [settingsLoaded, settingsError, setSettings, setLoaded])
   
   // Default tab based on user role
   const defaultTab = userRole === "volunteer" ? "volunteer" : "ngo"
@@ -128,6 +72,99 @@ export default function PricingPage() {
   // Get current plan from store
   const currentNGOPlan = ngoSubscription?.plan || "free"
   const currentVolunteerPlan = volunteerSubscription?.plan || "free"
+
+  // Get currency symbol
+  const currency = (platformSettings?.currency || "INR") as SupportedCurrency
+  const currencySymbol = CURRENCY_SYMBOLS[currency] || "₹"
+  
+  // Build dynamic plans from settings
+  const ngoPlans = [
+    {
+      id: "ngo-free",
+      name: "Free",
+      description: "Perfect for small NGOs just getting started",
+      price: 0,
+      priceDisplay: `${currencySymbol}0`,
+      period: "forever",
+      icon: Building2,
+      features: [
+        `Post up to ${platformSettings?.ngoFreeProjectsPerMonth || 3} projects per month`,
+        "Browse volunteer profiles",
+        "Basic volunteer matching",
+        "Email support",
+        "Community access",
+      ],
+      limitations: [
+        platformSettings?.ngoFreeProfileUnlocksPerMonth === 0
+          ? `Pay-per-unlock available (${currencySymbol}${platformSettings?.singleProfileUnlockPrice || 499}/profile)`
+          : `${platformSettings?.ngoFreeProfileUnlocksPerMonth} free profile unlocks/month`,
+      ],
+      popular: false,
+    },
+    {
+      id: "ngo-pro",
+      name: "Pro",
+      description: "For established organizations with regular needs",
+      price: platformSettings?.ngoProPrice || 2999,
+      priceDisplay: `${currencySymbol}${platformSettings?.ngoProPrice || 2999}`,
+      period: "per month",
+      icon: Zap,
+      features: platformSettings?.ngoProFeatures || [
+        "Unlimited projects",
+        "Unlimited profile unlocks",
+        "Advanced AI-powered matching",
+        "Priority support",
+        "Project analytics & reports",
+        "Featured NGO badge",
+        "Bulk volunteer outreach",
+      ],
+      limitations: [],
+      popular: true,
+    },
+  ]
+
+  const volunteerPlans = [
+    {
+      id: "volunteer-free",
+      name: "Free",
+      description: "Start volunteering and make an impact",
+      price: 0,
+      priceDisplay: `${currencySymbol}0`,
+      period: "forever",
+      icon: User,
+      features: [
+        "Browse all opportunities",
+        `${platformSettings?.volunteerFreeApplicationsPerMonth || 3} applications per month`,
+        "Basic profile visibility",
+        "Email notifications",
+        "Community access",
+      ],
+      limitations: [
+        `Limited to ${platformSettings?.volunteerFreeApplicationsPerMonth || 3} applications/month`,
+      ],
+      popular: false,
+    },
+    {
+      id: "volunteer-pro",
+      name: "Pro",
+      description: "Maximize your impact with unlimited access",
+      price: platformSettings?.volunteerProPrice || 999,
+      priceDisplay: `${currencySymbol}${platformSettings?.volunteerProPrice || 999}`,
+      period: "per month",
+      icon: Sparkles,
+      features: platformSettings?.volunteerProFeatures || [
+        "Unlimited job applications",
+        "Featured profile badge",
+        "Priority in search results",
+        "Direct message NGOs",
+        "Early access to opportunities",
+        "Profile analytics",
+        "Certificate downloads",
+      ],
+      limitations: [],
+      popular: true,
+    },
+  ]
 
   const loadRazorpayScript = (): Promise<boolean> => {
     return new Promise((resolve) => {

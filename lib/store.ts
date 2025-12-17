@@ -152,3 +152,58 @@ export const useMessageStore = create<MessageState>((set) => ({
     unreadCount: conversations.reduce((acc, c) => acc + c.unreadCount, 0)
   }),
 }))
+
+// Platform settings state (public settings from admin)
+interface PlatformSettingsState {
+  settings: {
+    // Platform Info
+    platformName: string
+    platformDescription: string
+    supportEmail: string
+    platformLogo?: string
+    
+    // Payment
+    currency: "INR" | "USD" | "EUR" | "GBP" | "SGD" | "AED" | "MYR"
+    singleProfileUnlockPrice: number
+    
+    // Volunteer Plans
+    volunteerFreeApplicationsPerMonth: number
+    volunteerProPrice: number
+    volunteerProFeatures: string[]
+    
+    // NGO Plans
+    ngoFreeProjectsPerMonth: number
+    ngoFreeProfileUnlocksPerMonth: number
+    ngoProPrice: number
+    ngoProFeatures: string[]
+    
+    // Features
+    enablePayments: boolean
+    enableMessaging: boolean
+    
+    // Meta
+    metaTitle: string
+    metaDescription: string
+  } | null
+  
+  isLoaded: boolean
+  
+  // Actions
+  setSettings: (settings: PlatformSettingsState['settings']) => void
+  setLoaded: (loaded: boolean) => void
+}
+
+export const usePlatformSettingsStore = create<PlatformSettingsState>()(
+  persist(
+    (set) => ({
+      settings: null,
+      isLoaded: false,
+      
+      setSettings: (settings) => set({ settings, isLoaded: true }),
+      setLoaded: (loaded) => set({ isLoaded: loaded }),
+    }),
+    {
+      name: 'platform-settings',
+    }
+  )
+)
