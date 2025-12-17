@@ -2,7 +2,8 @@ import { betterAuth } from "better-auth";
 import { mongodbAdapter } from "better-auth/adapters/mongodb";
 import { admin } from "better-auth/plugins";
 import client from "./db";
-import { sendEmail, getVerificationEmailHtml, getPasswordResetEmailHtml } from "./email";
+import { sendEmail, getVerificationEmailHtml, getPasswordResetEmailHtml, getPasswordResetCodeEmailHtml } from "./email";
+import { passwordResetDb } from "./database";
 
 // Determine the base URL for auth
 const getAuthBaseURL = () => {
@@ -26,13 +27,43 @@ export const auth = betterAuth({
   emailAndPassword: {
     enabled: true,
     requireEmailVerification: false, // Disabled for easier signup flow
-    sendResetPassword: async ({ user, url }) => {
-      void sendEmail({
-        to: user.email,
-        subject: "Reset your password - JustBecause.asia",
-        html: getPasswordResetEmailHtml(url, user.name),
-        text: `Click the link to reset your password: ${url}`,
-      })
+    sendResetPassword: async ({ user, url, token }) => {
+      try {
+        // Generate a short numeric code and store mapping to the reset token
+        const code = Math.floor(100000 + Math.random() * 900000).toString()
+        const expiresAt = new Date(Date.now() + 1000 * 60 * 60) // 1 hour
+        console.log(`[Reset] ========================================`)
+        console.log(`[Reset] User email: ${user.email}`)
+        console.log(`[Reset] User name: ${user.name}`)
+        console.log(`[Reset] Generated code: ${code}`)
+        console.log(`[Reset] Token from better-auth: ${token}`)
+        console.log(`[Reset] URL from better-auth: ${url}`)
+        console.log(`[Reset] ========================================`)
+        
+        // Store the token directly (not the full URL) so we can build the redirect URL on the client
+        const resetUrl = `/auth/reset-password?token=${token}`
+        await passwordResetDb.create({ email: user.email, code, resetUrl, expiresAt })
+        console.log(`[Reset] Code stored in DB for ${user.email} with resetUrl: ${resetUrl}`)
+
+        // Send the code-based email (includes fallback link)
+        console.log(`[Reset] Sending email to ${user.email}`)
+        const emailSent = await sendEmail({
+          to: user.email,
+          subject: "Reset your password - JustBecause.asia",
+          html: getPasswordResetCodeEmailHtml(code, url, user.name),
+          text: `Use this code to reset your password: ${code}`,
+        })
+        console.log(`[Reset] Email send result: ${emailSent}`)
+      } catch (err) {
+        // Fallback: send the normal reset link if DB/email fails
+        console.error(`[Reset] Error for ${user.email}:`, err)
+        void sendEmail({
+          to: user.email,
+          subject: "Reset your password - JustBecause.asia",
+          html: getPasswordResetEmailHtml(url, user.name),
+          text: `Click the link to reset your password: ${url}`,
+        })
+      }
     },
   },
   // Social Login Providers

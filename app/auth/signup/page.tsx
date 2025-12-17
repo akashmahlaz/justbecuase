@@ -114,6 +114,17 @@ export default function SignUpPage() {
         return
       }
 
+      // Fire-and-forget welcome email (server will handle sending via Resend)
+      try {
+        fetch('/api/auth/welcome', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: formData.email, name: formData.name, role: accountType })
+        })
+      } catch (e) {
+        // ignore
+      }
+
       // Redirect to onboarding
       router.push(accountType === "volunteer" ? "/volunteer/onboarding" : "/ngo/onboarding")
     } catch (err: any) {

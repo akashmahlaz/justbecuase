@@ -51,6 +51,7 @@ export const COLLECTIONS = {
   NOTIFICATIONS: "notifications",
   ADMIN_SETTINGS: "adminSettings",
   SUBSCRIPTION_PLANS: "subscriptionPlans",
+  PASSWORD_RESET_CODES: "passwordResetCodes",
   TEAM_MEMBERS: "teamMembers",
   BAN_RECORDS: "banRecords",
 } as const
@@ -118,6 +119,31 @@ export const volunteerProfilesDb = {
       }
     )
     return result.modifiedCount > 0
+  },
+}
+
+// ============================================
+// PASSWORD RESET CODES
+// ============================================
+export const passwordResetDb = {
+  async create(item: { email: string; code: string; resetUrl: string; expiresAt: Date }) {
+    const collection = await getCollection<{ email: string; code: string; resetUrl: string; expiresAt: Date }>(COLLECTIONS.PASSWORD_RESET_CODES)
+    await collection.insertOne(item)
+    return true
+  },
+
+  async findValid(email: string, code: string) {
+    const collection = await getCollection<{ email: string; code: string; resetUrl: string; expiresAt: Date }>(COLLECTIONS.PASSWORD_RESET_CODES)
+    const doc = await collection.findOne({ email, code })
+    if (!doc) return null
+    if (doc.expiresAt && new Date(doc.expiresAt) < new Date()) return null
+    return doc
+  },
+
+  async consume(email: string, code: string) {
+    const collection = await getCollection<{ email: string; code: string; resetUrl: string; expiresAt: Date }>(COLLECTIONS.PASSWORD_RESET_CODES)
+    const result = await collection.findOneAndDelete({ email, code })
+    return (result as any)?.value || null
   },
 }
 

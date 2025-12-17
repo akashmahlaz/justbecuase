@@ -22,6 +22,7 @@ export async function sendEmail({ to, subject, html, text }: EmailOptions): Prom
   }
 
   try {
+    console.log(`[Email] Sending to ${to} with subject: "${subject}"`)
     const response = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: {
@@ -39,13 +40,15 @@ export async function sendEmail({ to, subject, html, text }: EmailOptions): Prom
 
     if (!response.ok) {
       const error = await response.json()
-      console.error("Failed to send email:", error)
+      console.error(`[Email] Failed (${response.status}):`, error)
       return false
     }
 
+    const result = await response.json()
+    console.log(`[Email] Sent successfully to ${to}:`, result)
     return true
   } catch (error) {
-    console.error("Email send error:", error)
+    console.error("[Email] Error:", error)
     return false
   }
 }
@@ -113,6 +116,44 @@ export function getPasswordResetEmailHtml(url: string, userName?: string): strin
         </div>
         
         <p style="color: #666; font-size: 14px;">If you didn't request a password reset, you can safely ignore this email. This link will expire in 1 hour.</p>
+      </div>
+      
+      <div style="text-align: center; color: #999; font-size: 12px;">
+        <p>© ${new Date().getFullYear()} JustBecause.asia. All rights reserved.</p>
+      </div>
+    </body>
+    </html>
+  `
+}
+
+export function getPasswordResetCodeEmailHtml(code: string, url?: string, userName?: string): string {
+  return `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    </head>
+    <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+      <div style="text-align: center; margin-bottom: 30px;">
+        <h1 style="color: #10b981; margin: 0;">JustBecause.asia</h1>
+        <p style="color: #666; margin-top: 5px;">Skills-Based Volunteering Platform</p>
+      </div>
+      
+      <div style="background: #f9fafb; border-radius: 8px; padding: 30px; margin-bottom: 20px;">
+        <h2 style="margin-top: 0;">Reset Your Password</h2>
+        <p>Hi${userName ? ` ${userName}` : ''},</p>
+        <p>Use the verification code below to reset your password. This code will expire in 1 hour.</p>
+        
+        <div style="text-align: center; margin: 30px 0;">
+          <div style="font-size: 28px; letter-spacing: 4px; background: #fff; display: inline-block; padding: 12px 20px; border-radius: 8px;">
+            <strong>${code}</strong>
+          </div>
+        </div>
+
+        ${url ? `<p style="text-align:center; margin-top: 10px;"><a href="${url}" style="color:#10b981;">Or click here to continue</a></p>` : ''}
+
+        <p style="color: #666; font-size: 14px;">If you didn't request a password reset, you can safely ignore this email.</p>
       </div>
       
       <div style="text-align: center; color: #999; font-size: 12px;">
