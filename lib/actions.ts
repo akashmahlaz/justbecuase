@@ -1306,10 +1306,15 @@ export async function updateAdminSettings(
 ): Promise<ApiResponse<boolean>> {
   try {
     const user = await requireRole(["admin"])
-    const result = await adminSettingsDb.update(settings, user.id)
+    
+    // Remove _id field if present to avoid MongoDB errors
+    const { _id, ...settingsWithoutId } = settings as any
+    
+    const result = await adminSettingsDb.update(settingsWithoutId, user.id)
     revalidatePath("/admin/settings")
     return { success: true, data: result }
   } catch (error) {
+    console.error("Update admin settings error:", error)
     return { success: false, error: "Failed to update settings" }
   }
 }

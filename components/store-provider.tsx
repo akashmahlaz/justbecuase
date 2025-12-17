@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useCallback } from "react"
-import { useSubscriptionStore, useUserStore, useNotificationStore, useMessageStore } from "@/lib/store"
+import { useSubscriptionStore, useUserStore, useNotificationStore, useMessageStore, usePlatformSettingsStore } from "@/lib/store"
 
 interface StoreProviderProps {
   children: React.ReactNode
@@ -34,6 +34,7 @@ export function StoreProvider({ children, initialData }: StoreProviderProps) {
   const setNGOSubscription = useSubscriptionStore((state) => state.setNGOSubscription)
   const setVolunteerSubscription = useSubscriptionStore((state) => state.setVolunteerSubscription)
   const setPermission = useNotificationStore((state) => state.setPermission)
+  const { setSettings, setLoaded, isLoaded } = usePlatformSettingsStore()
 
   // Initialize store with server data
   useEffect(() => {
@@ -50,6 +51,23 @@ export function StoreProvider({ children, initialData }: StoreProviderProps) {
       setUnlockedProfiles(initialData.unlockedProfiles)
     }
   }, [initialData, setUser, setNGOSubscription, setVolunteerSubscription, setUnlockedProfiles])
+
+  // Load platform settings from API
+  useEffect(() => {
+    if (!isLoaded) {
+      fetch("/api/settings")
+        .then(res => res.json())
+        .then(data => {
+          if (data.success && data.data) {
+            setSettings(data.data)
+          }
+          setLoaded(true)
+        })
+        .catch(() => {
+          setLoaded(true)
+        })
+    }
+  }, [isLoaded, setSettings, setLoaded])
 
   // Check notification permission
   useEffect(() => {

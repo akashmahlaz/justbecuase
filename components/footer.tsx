@@ -1,8 +1,16 @@
+"use client"
+
 import Link from "next/link"
 import { Heart, Linkedin, Twitter, Instagram, Facebook } from "lucide-react"
 import { NewsletterSubscribe } from "./newsletter-subscribe"
+import { usePlatformSettingsStore } from "@/lib/store"
 
 export function Footer() {
+  // Get platform settings for branding and social links
+  const platformSettings = usePlatformSettingsStore((state) => state.settings)
+  const platformName = platformSettings?.platformName || "JustBecause.Asia"
+  const socialLinks = platformSettings?.socialLinks
+
   return (
     <footer className="border-t border-border bg-muted/30">
       <div className="container mx-auto px-4 md:px-6 py-12 md:py-16">
@@ -14,30 +22,41 @@ export function Footer() {
                 <Heart className="h-5 w-5 text-primary-foreground" fill="currentColor" />
               </div>
               <span className="text-xl font-bold text-foreground">
-                JustBecause<span className="text-primary">.asia</span>
+                {platformName.includes('.') ? (
+                  <>
+                    {platformName.split('.')[0]}<span className="text-primary">.{platformName.split('.').slice(1).join('.')}</span>
+                  </>
+                ) : platformName}
               </span>
             </Link>
             <p className="text-muted-foreground mb-6 max-w-sm">
-              Connecting skilled professionals with meaningful causes across Asia. Turn your expertise into lasting
-              impact.
+              {platformSettings?.platformDescription || "Connecting skilled professionals with meaningful causes across Asia. Turn your expertise into lasting impact."}
             </p>
             <div className="flex items-center gap-4">
-              <a href="#" className="text-muted-foreground hover:text-primary transition-colors">
-                <Linkedin className="h-5 w-5" />
-                <span className="sr-only">LinkedIn</span>
-              </a>
-              <a href="#" className="text-muted-foreground hover:text-primary transition-colors">
-                <Twitter className="h-5 w-5" />
-                <span className="sr-only">Twitter</span>
-              </a>
-              <a href="#" className="text-muted-foreground hover:text-primary transition-colors">
-                <Instagram className="h-5 w-5" />
-                <span className="sr-only">Instagram</span>
-              </a>
-              <a href="#" className="text-muted-foreground hover:text-primary transition-colors">
-                <Facebook className="h-5 w-5" />
-                <span className="sr-only">Facebook</span>
-              </a>
+              {(socialLinks?.linkedin || !socialLinks) && (
+                <a href={socialLinks?.linkedin || "#"} className="text-muted-foreground hover:text-primary transition-colors" target="_blank" rel="noopener noreferrer">
+                  <Linkedin className="h-5 w-5" />
+                  <span className="sr-only">LinkedIn</span>
+                </a>
+              )}
+              {(socialLinks?.twitter || !socialLinks) && (
+                <a href={socialLinks?.twitter || "#"} className="text-muted-foreground hover:text-primary transition-colors" target="_blank" rel="noopener noreferrer">
+                  <Twitter className="h-5 w-5" />
+                  <span className="sr-only">Twitter</span>
+                </a>
+              )}
+              {(socialLinks?.instagram || !socialLinks) && (
+                <a href={socialLinks?.instagram || "#"} className="text-muted-foreground hover:text-primary transition-colors" target="_blank" rel="noopener noreferrer">
+                  <Instagram className="h-5 w-5" />
+                  <span className="sr-only">Instagram</span>
+                </a>
+              )}
+              {(socialLinks?.facebook || !socialLinks) && (
+                <a href={socialLinks?.facebook || "#"} className="text-muted-foreground hover:text-primary transition-colors" target="_blank" rel="noopener noreferrer">
+                  <Facebook className="h-5 w-5" />
+                  <span className="sr-only">Facebook</span>
+                </a>
+              )}
             </div>
           </div>
 
@@ -137,7 +156,7 @@ export function Footer() {
           {/* Bottom Bar */}
           <div className="flex flex-col md:flex-row justify-between items-center gap-4">
             <p className="text-sm text-muted-foreground">
-              © {new Date().getFullYear()} JustBecause.asia. All rights reserved.
+              © {new Date().getFullYear()} {platformName}. All rights reserved.
             </p>
             <div className="flex items-center gap-6">
               <Link href="/privacy" className="text-sm text-muted-foreground hover:text-foreground transition-colors">

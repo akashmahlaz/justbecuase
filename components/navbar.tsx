@@ -8,7 +8,7 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { Menu, Heart, Bell, Sun, Moon, Sparkles, CreditCard, Zap } from "lucide-react"
 import { client } from "@/lib/auth-client" // Better Auth
 import { useTheme } from "next-themes"
-import { useSubscriptionStore } from "@/lib/store"
+import { useSubscriptionStore, usePlatformSettingsStore } from "@/lib/store"
 
 import {
   DropdownMenu,
@@ -59,6 +59,10 @@ export function Navbar() {
     fetchSubscription()
   }, [user, setNGOSubscription, setVolunteerSubscription])
   
+  // Get platform settings for branding
+  const platformSettings = usePlatformSettingsStore((state) => state.settings)
+  const platformName = platformSettings?.platformName || "JustBecause.Asia"
+  
   const isPro = user?.role === 'ngo' 
     ? ngoSubscription?.plan === 'pro' 
     : user?.role === 'volunteer' 
@@ -98,7 +102,11 @@ export function Navbar() {
             <Heart className="h-5 w-5 text-primary-foreground" fill="currentColor" />
           </div>
           <span className="text-xl font-bold">
-            JustBecause<span className="text-primary">.asia</span>
+            {platformName.includes('.') ? (
+              <>
+                {platformName.split('.')[0]}<span className="text-primary">.{platformName.split('.').slice(1).join('.')}</span>
+              </>
+            ) : platformName}
           </span>
         </Link>
 

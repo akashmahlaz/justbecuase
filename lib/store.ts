@@ -184,6 +184,15 @@ interface PlatformSettingsState {
     // Meta
     metaTitle: string
     metaDescription: string
+    
+    // Social Links
+    socialLinks?: {
+      facebook?: string
+      twitter?: string
+      instagram?: string
+      linkedin?: string
+      youtube?: string
+    }
   } | null
   
   isLoaded: boolean

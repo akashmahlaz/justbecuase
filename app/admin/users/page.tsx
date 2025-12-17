@@ -211,6 +211,7 @@ export default async function AdminUsersPage() {
                           isVerified={user.isVerified}
                           isActive={user.isActive}
                           isBanned={user.isBanned}
+                          currentRole={user.role}
                         />
                       </td>
                     </tr>
