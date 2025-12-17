@@ -102,6 +102,19 @@ export const volunteerProfilesDb = {
     const result = await collection.deleteOne({ userId })
     return result.deletedCount > 0
   },
+
+  // Increment monthly application count
+  async incrementApplicationCount(userId: string): Promise<boolean> {
+    const collection = await getCollection<VolunteerProfile>(COLLECTIONS.VOLUNTEER_PROFILES)
+    const result = await collection.updateOne(
+      { userId },
+      { 
+        $inc: { monthlyApplicationsUsed: 1 }, 
+        $set: { updatedAt: new Date() } 
+      }
+    )
+    return result.modifiedCount > 0
+  },
 }
 
 // ============================================
@@ -164,6 +177,19 @@ export const ngoProfilesDb = {
     const result = await collection.updateOne(
       { userId, profileUnlocksRemaining: { $gt: 0 } },
       { $inc: { profileUnlocksRemaining: -1 }, $set: { updatedAt: new Date() } }
+    )
+    return result.modifiedCount > 0
+  },
+
+  // Increment monthly unlock count (new subscription system)
+  async incrementMonthlyUnlocks(userId: string): Promise<boolean> {
+    const collection = await getCollection<NGOProfile>(COLLECTIONS.NGO_PROFILES)
+    const result = await collection.updateOne(
+      { userId },
+      { 
+        $inc: { monthlyUnlocksUsed: 1 }, 
+        $set: { updatedAt: new Date() } 
+      }
     )
     return result.modifiedCount > 0
   },

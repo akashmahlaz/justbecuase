@@ -184,9 +184,9 @@ function VolunteerGrid({
     <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
       {volunteers.map((volunteer) => (
         <VolunteerCard
-          key={volunteer._id?.toString()}
+          key={volunteer.id}
           volunteer={volunteer}
-          unlocked={volunteer.volunteerType === "paid" || isUnlocked(volunteer._id?.toString() || "")}
+          unlocked={volunteer.volunteerType === "paid" || isUnlocked(volunteer.id || "")}
         />
       ))}
     </div>
@@ -211,12 +211,12 @@ function VolunteerCard({
               {volunteer.avatar ? (
                 <img
                   src={volunteer.avatar}
-                  alt={unlocked ? volunteer.fullName : "Volunteer"}
+                  alt={unlocked ? volunteer.name : "Volunteer"}
                   className={isFree && !unlocked ? "blur-sm" : ""}
                 />
               ) : (
                 <span className="text-xl font-bold text-muted-foreground">
-                  {unlocked ? volunteer.fullName?.charAt(0) : "?"}
+                  {unlocked ? volunteer.name?.charAt(0) : "?"}
                 </span>
               )}
             </div>
@@ -228,7 +228,7 @@ function VolunteerCard({
           </div>
           <div className="flex-1 min-w-0">
             <h3 className="font-semibold text-foreground truncate">
-              {unlocked ? volunteer.fullName : "Volunteer"}
+              {unlocked ? volunteer.name : "Volunteer"}
             </h3>
             <p className="text-sm text-muted-foreground truncate">
               {volunteer.headline || "Skilled Volunteer"}
@@ -271,7 +271,7 @@ function VolunteerCard({
 
         {isFree && !unlocked ? (
           <Button className="w-full" asChild>
-            <Link href={`/volunteers/${volunteer.userId}`}>
+            <Link href={`/volunteers/${volunteer.id}`}>
               <Unlock className="h-4 w-4 mr-2" />
               Unlock Profile
             </Link>
@@ -279,13 +279,15 @@ function VolunteerCard({
         ) : (
           <div className="flex gap-2">
             <Button variant="outline" size="sm" className="flex-1" asChild>
-              <Link href={`/volunteers/${volunteer.userId}`}>
+              <Link href={`/volunteers/${volunteer.id}`}>
                 View Profile
               </Link>
             </Button>
-            <Button size="sm" className="flex-1">
-              <MessageSquare className="h-4 w-4 mr-1" />
-              Contact
+            <Button size="sm" className="flex-1" asChild>
+              <Link href={`/volunteers/${volunteer.id}?action=contact`}>
+                <MessageSquare className="h-4 w-4 mr-1" />
+                Contact
+              </Link>
             </Button>
           </div>
         )}

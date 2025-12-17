@@ -22,12 +22,15 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
+import { toast } from "sonner"
 import { 
   suspendUser, 
   reactivateUser, 
   adminDeleteUser, 
   verifyUser,
   adminChangeUserRole,
+  banUser,
+  unbanUser,
 } from "@/lib/actions"
 import { 
   MoreHorizontal, 
@@ -41,6 +44,7 @@ import {
   Shield,
   Building2,
   Heart,
+  ShieldOff,
 } from "lucide-react"
 import Link from "next/link"
 
@@ -50,6 +54,7 @@ interface UserActionsProps {
   userType: "volunteer" | "ngo"
   isVerified: boolean
   isActive?: boolean
+  isBanned?: boolean
   currentRole?: string
 }
 
@@ -59,19 +64,28 @@ export function UserActions({
   userType, 
   isVerified,
   isActive = true,
+  isBanned = false,
   currentRole,
 }: UserActionsProps) {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
+  const [showBanDialog, setShowBanDialog] = useState(false)
+  const [banReason, setBanReason] = useState("")
   const [deleteConfirmText, setDeleteConfirmText] = useState("")
 
   const handleVerify = async () => {
     setLoading(true)
     try {
-      await verifyUser(userId, userType, !isVerified)
+      const result = await verifyUser(userId, userType, !isVerified)
+      if (result.success) {
+        toast.success(isVerified ? "User unverified" : "User verified successfully")
+      } else {
+        toast.error(result.error || "Failed to update verification")
+      }
       router.refresh()
     } catch (error) {
+      toast.error("An error occurred")
       console.error("Failed to verify:", error)
     } finally {
       setLoading(false)
@@ -81,9 +95,15 @@ export function UserActions({
   const handleSuspend = async () => {
     setLoading(true)
     try {
-      await suspendUser(userId, userType)
+      const result = await suspendUser(userId, userType)
+      if (result.success) {
+        toast.success("User suspended")
+      } else {
+        toast.error(result.error || "Failed to suspend user")
+      }
       router.refresh()
     } catch (error) {
+      toast.error("An error occurred")
       console.error("Failed to suspend:", error)
     } finally {
       setLoading(false)
@@ -93,10 +113,58 @@ export function UserActions({
   const handleReactivate = async () => {
     setLoading(true)
     try {
-      await reactivateUser(userId, userType)
+      const result = await reactivateUser(userId, userType)
+      if (result.success) {
+        toast.success("User reactivated")
+      } else {
+        toast.error(result.error || "Failed to reactivate user")
+      }
       router.refresh()
     } catch (error) {
+      toast.error("An error occurred")
       console.error("Failed to reactivate:", error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleBan = async () => {
+    if (!banReason.trim()) {
+      toast.error("Please provide a reason for the ban")
+      return
+    }
+    setLoading(true)
+    try {
+      const result = await banUser(userId, userType, banReason)
+      if (result.success) {
+        toast.success("User banned successfully")
+        setShowBanDialog(false)
+        setBanReason("")
+      } else {
+        toast.error(result.error || "Failed to ban user")
+      }
+      router.refresh()
+    } catch (error) {
+      toast.error("An error occurred")
+      console.error("Failed to ban:", error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleUnban = async () => {
+    setLoading(true)
+    try {
+      const result = await unbanUser(userId, userType)
+      if (result.success) {
+        toast.success("User unbanned")
+      } else {
+        toast.error(result.error || "Failed to unban user")
+      }
+      router.refresh()
+    } catch (error) {
+      toast.error("An error occurred")
+      console.error("Failed to unban:", error)
     } finally {
       setLoading(false)
     }
@@ -105,9 +173,15 @@ export function UserActions({
   const handleChangeRole = async (newRole: "volunteer" | "ngo" | "admin") => {
     setLoading(true)
     try {
-      await adminChangeUserRole(userId, newRole)
+      const result = await adminChangeUserRole(userId, newRole)
+      if (result.success) {
+        toast.success(`Role changed to ${newRole}`)
+      } else {
+        toast.error(result.error || "Failed to change role")
+      }
       router.refresh()
     } catch (error) {
+      toast.error("An error occurred")
       console.error("Failed to change role:", error)
     } finally {
       setLoading(false)
@@ -119,10 +193,16 @@ export function UserActions({
     
     setLoading(true)
     try {
-      await adminDeleteUser(userId, userType)
-      setShowDeleteDialog(false)
+      const result = await adminDeleteUser(userId, userType)
+      if (result.success) {
+        toast.success("User deleted permanently")
+        setShowDeleteDialog(false)
+      } else {
+        toast.error(result.error || "Failed to delete user")
+      }
       router.refresh()
     } catch (error) {
+      toast.error("An error occurred")
       console.error("Failed to delete:", error)
     } finally {
       setLoading(false)
@@ -197,6 +277,8 @@ export function UserActions({
               </DropdownMenuItem>
             </DropdownMenuSubContent>
           </DropdownMenuSub>
+
+          <DropdownMenuSeparator />
           
           {isActive ? (
             <DropdownMenuItem 
@@ -215,6 +297,25 @@ export function UserActions({
               Reactivate User
             </DropdownMenuItem>
           )}
+
+          {/* Ban/Unban */}
+          {isBanned ? (
+            <DropdownMenuItem 
+              onClick={handleUnban}
+              className="flex items-center gap-2 text-green-600"
+            >
+              <ShieldOff className="h-4 w-4" />
+              Unban User
+            </DropdownMenuItem>
+          ) : (
+            <DropdownMenuItem 
+              onClick={() => setShowBanDialog(true)}
+              className="flex items-center gap-2 text-red-600"
+            >
+              <Ban className="h-4 w-4" />
+              Ban User
+            </DropdownMenuItem>
+          )}
           
           <DropdownMenuSeparator />
           
@@ -227,6 +328,52 @@ export function UserActions({
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
+
+      {/* Ban Dialog */}
+      <Dialog open={showBanDialog} onOpenChange={setShowBanDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="text-red-600">Ban User</DialogTitle>
+            <DialogDescription>
+              You are about to ban <strong>{userName}</strong>. They will not be able to access the platform.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="py-4 space-y-4">
+            <div>
+              <label className="text-sm font-medium">Reason for ban</label>
+              <Input
+                value={banReason}
+                onChange={(e) => setBanReason(e.target.value)}
+                placeholder="e.g., Violation of terms of service"
+                className="mt-1.5"
+              />
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => {
+                setShowBanDialog(false)
+                setBanReason("")
+              }}
+            >
+              Cancel
+            </Button>
+            <Button 
+              variant="destructive"
+              onClick={handleBan}
+              disabled={!banReason.trim() || loading}
+            >
+              {loading ? (
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              ) : null}
+              Ban User
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
         <DialogContent>

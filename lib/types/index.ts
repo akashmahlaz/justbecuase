@@ -85,9 +85,25 @@ export interface VolunteerProfile {
   // Saved/Bookmarked Projects
   savedProjects?: string[] // Array of project IDs
   
+  // Subscription (for application limits)
+  subscriptionPlan: "free" | "pro"
+  subscriptionExpiry?: Date
+  monthlyApplicationsUsed: number
+  subscriptionResetDate?: Date // When to reset monthly counters
+
   // Verification
   isVerified: boolean
   isActive: boolean
+  
+  // Privacy Settings
+  privacy?: {
+    showProfile: boolean // Visible to NGOs
+    showInSearch: boolean // Show in volunteer search results
+    emailNotifications: boolean
+    applicationNotifications: boolean
+    messageNotifications: boolean
+    opportunityDigest: boolean
+  }
   
   // Timestamps
   createdAt: Date
@@ -152,10 +168,16 @@ export interface NGOProfile {
   isVerified: boolean
   isActive: boolean
   
-  // Subscription
-  subscriptionTier: "free" | "basic" | "premium" | "enterprise"
+  // Subscription (simplified to 2 plans)
+  subscriptionPlan: "free" | "pro"
   subscriptionExpiry?: Date
-  profileUnlocksRemaining: number
+  monthlyUnlocksUsed: number
+  monthlyUnlocksLimit: number // 5 for free, unlimited for pro
+  subscriptionResetDate?: Date // When to reset monthly counters
+  
+  // Legacy field - keeping for backwards compatibility
+  subscriptionTier?: "free" | "basic" | "premium" | "enterprise"
+  profileUnlocksRemaining?: number
   
   // Timestamps
   createdAt: Date
@@ -190,6 +212,13 @@ export interface Project {
   
   // Causes
   causes: string[]
+  
+  // Documents
+  documents?: Array<{
+    name: string
+    url: string
+    type: string
+  }>
   
   // Dates
   startDate?: Date

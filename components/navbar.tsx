@@ -2,12 +2,13 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
-import { Menu, Heart, Bell, Sun, Moon, Sparkles, CreditCard } from "lucide-react"
+import { Menu, Heart, Bell, Sun, Moon, Sparkles, CreditCard, Zap } from "lucide-react"
 import { client } from "@/lib/auth-client" // Better Auth
 import { useTheme } from "next-themes"
+import { useSubscriptionStore } from "@/lib/store"
 
 import {
   DropdownMenu,
@@ -19,6 +20,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Badge } from "@/components/ui/badge"
 
 export function Navbar() {
   const pathname = usePathname()
@@ -27,6 +29,41 @@ export function Navbar() {
 
   const { data: session, isPending } = client.useSession()
   const user = session?.user
+  
+  // Get subscription status from store
+  const ngoSubscription = useSubscriptionStore((state) => state.ngoSubscription)
+  const volunteerSubscription = useSubscriptionStore((state) => state.volunteerSubscription)
+  const setNGOSubscription = useSubscriptionStore((state) => state.setNGOSubscription)
+  const setVolunteerSubscription = useSubscriptionStore((state) => state.setVolunteerSubscription)
+  
+  // Fetch subscription status when user logs in
+  useEffect(() => {
+    async function fetchSubscription() {
+      if (!user) return
+      
+      try {
+        const res = await fetch('/api/user/subscription')
+        if (res.ok) {
+          const data = await res.json()
+          if (user.role === 'ngo' && data.ngoSubscription) {
+            setNGOSubscription(data.ngoSubscription)
+          } else if (user.role === 'volunteer' && data.volunteerSubscription) {
+            setVolunteerSubscription(data.volunteerSubscription)
+          }
+        }
+      } catch (e) {
+        console.error('Failed to fetch subscription:', e)
+      }
+    }
+    
+    fetchSubscription()
+  }, [user, setNGOSubscription, setVolunteerSubscription])
+  
+  const isPro = user?.role === 'ngo' 
+    ? ngoSubscription?.plan === 'pro' 
+    : user?.role === 'volunteer' 
+      ? volunteerSubscription?.plan === 'pro'
+      : false
 
   const initials = user?.name?.[0]?.toUpperCase() || "U"
 
@@ -147,22 +184,46 @@ export function Navbar() {
                         Billing & Payments
                       </Link>
                     </DropdownMenuItem>
-                    <DropdownMenuItem asChild>
-                      <Link href="/pricing" className="flex items-center gap-2 text-primary">
-                        <Sparkles className="h-4 w-4" />
-                        Upgrade Plan
-                      </Link>
-                    </DropdownMenuItem>
+                    {isPro ? (
+                      <DropdownMenuItem disabled className="flex items-center gap-2 text-primary">
+                        <Zap className="h-4 w-4" />
+                        <span>Pro Plan</span>
+                        <Badge variant="secondary" className="ml-auto text-xs">Active</Badge>
+                      </DropdownMenuItem>
+                    ) : (
+                      <DropdownMenuItem asChild>
+                        <Link href="/pricing" className="flex items-center gap-2 text-primary">
+                          <Sparkles className="h-4 w-4" />
+                          Upgrade to Pro
+                        </Link>
+                      </DropdownMenuItem>
+                    )}
                   </>
                 )}
 
                 {user?.role === "volunteer" && (
-                  <DropdownMenuItem asChild>
-                    <Link href="/volunteer/settings?tab=billing" className="flex items-center gap-2">
-                      <CreditCard className="h-4 w-4" />
-                      Billing
-                    </Link>
-                  </DropdownMenuItem>
+                  <>
+                    <DropdownMenuItem asChild>
+                      <Link href="/volunteer/settings?tab=billing" className="flex items-center gap-2">
+                        <CreditCard className="h-4 w-4" />
+                        Billing
+                      </Link>
+                    </DropdownMenuItem>
+                    {isPro ? (
+                      <DropdownMenuItem disabled className="flex items-center gap-2 text-primary">
+                        <Zap className="h-4 w-4" />
+                        <span>Pro Plan</span>
+                        <Badge variant="secondary" className="ml-auto text-xs">Active</Badge>
+                      </DropdownMenuItem>
+                    ) : (
+                      <DropdownMenuItem asChild>
+                        <Link href="/pricing" className="flex items-center gap-2 text-primary">
+                          <Sparkles className="h-4 w-4" />
+                          Upgrade to Pro
+                        </Link>
+                      </DropdownMenuItem>
+                    )}
+                  </>
                 )}
 
                 <DropdownMenuSeparator />

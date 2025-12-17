@@ -6,8 +6,8 @@ import { NGOSidebar } from "@/components/dashboard/ngo-sidebar"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { getNGOProfile, getMyProjectsAsNGO, getNGOApplications } from "@/lib/actions"
-import { PlusCircle, FolderKanban, Users, CheckCircle2, Eye, MessageSquare, Clock, ArrowRight } from "lucide-react"
+import { getNGOProfile, getMyProjectsAsNGO, getNGOApplications, getNGOSubscriptionStatus } from "@/lib/actions"
+import { PlusCircle, FolderKanban, Users, CheckCircle2, Eye, MessageSquare, Clock, ArrowRight, CreditCard, Zap, Unlock } from "lucide-react"
 import Link from "next/link"
 
 export default async function NGODashboard() {
@@ -38,6 +38,7 @@ export default async function NGODashboard() {
   const ngoProfile = await getNGOProfile()
   const projects = await getMyProjectsAsNGO()
   const applications = await getNGOApplications()
+  const subscriptionStatus = await getNGOSubscriptionStatus()
 
   // Calculate stats
   const activeProjects = projects.filter((p) => p.status === "open")
@@ -258,6 +259,68 @@ export default async function NGODashboard() {
                       Messages
                     </Link>
                   </Button>
+                </CardContent>
+              </Card>
+
+              {/* Subscription Status */}
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      <CreditCard className="h-5 w-5" />
+                      Subscription
+                    </CardTitle>
+                    {subscriptionStatus?.plan === "pro" && (
+                      <Badge className="bg-gradient-to-r from-primary to-secondary text-white">
+                        <Zap className="h-3 w-3 mr-1" />
+                        PRO
+                      </Badge>
+                    )}
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {subscriptionStatus?.plan === "free" ? (
+                    <>
+                      <div className="p-4 rounded-lg bg-muted/50 border border-yellow-200">
+                        <div className="flex items-center gap-2 text-yellow-600 mb-2">
+                          <Unlock className="h-4 w-4" />
+                          <span className="text-sm font-medium">Free Plan - No Unlocks</span>
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          Upgrade to Pro to unlock volunteer profiles
+                        </p>
+                      </div>
+                      <div className="p-3 bg-primary/5 rounded-lg border border-primary/20">
+                        <p className="text-sm font-medium text-foreground mb-1">
+                          Upgrade to Pro for unlimited unlocks
+                        </p>
+                        <p className="text-xs text-muted-foreground mb-3">
+                          View contact details of any volunteer
+                        </p>
+                        <Button asChild size="sm" className="w-full">
+                          <Link href="/pricing">
+                            <Zap className="h-4 w-4 mr-2" />
+                            Upgrade to Pro
+                          </Link>
+                        </Button>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="p-4 rounded-lg bg-gradient-to-br from-primary/10 to-secondary/10 border border-primary/20">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Zap className="h-5 w-5 text-primary" />
+                        <span className="font-medium text-foreground">Pro Plan Active</span>
+                      </div>
+                      <p className="text-sm text-muted-foreground">
+                        Unlimited volunteer profile unlocks
+                      </p>
+                      {subscriptionStatus?.expiryDate && (
+                        <p className="text-xs text-muted-foreground mt-2">
+                          Renews: {new Date(subscriptionStatus.expiryDate).toLocaleDateString()}
+                        </p>
+                      )}
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </div>

@@ -15,8 +15,9 @@ import {
   DialogTrigger,
   DialogFooter,
 } from "@/components/ui/dialog"
-import { CheckCircle } from "lucide-react"
+import { CheckCircle, Zap } from "lucide-react"
 import { applyToProject } from "@/lib/actions"
+import Link from "next/link"
 
 interface ApplyButtonProps {
   projectId: string
@@ -30,10 +31,12 @@ export function ApplyButton({ projectId, projectTitle, hasApplied = false }: App
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitted, setSubmitted] = useState(hasApplied)
   const [error, setError] = useState<string | null>(null)
+  const [limitReached, setLimitReached] = useState(false)
 
   async function handleSubmit(formData: FormData) {
     setIsSubmitting(true)
     setError(null)
+    setLimitReached(false)
 
     try {
       // Build cover message from form fields
@@ -54,6 +57,10 @@ export function ApplyButton({ projectId, projectTitle, hasApplied = false }: App
           router.refresh()
         }, 2000)
       } else {
+        // Check if limit reached
+        if (result.data === "LIMIT_REACHED") {
+          setLimitReached(true)
+        }
         setError(result.error || "Failed to submit application")
       }
     } catch (err) {
@@ -95,8 +102,21 @@ export function ApplyButton({ projectId, projectTitle, hasApplied = false }: App
         ) : (
           <form action={handleSubmit} className="space-y-4">
             {error && (
-              <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-600">
-                {error}
+              <div className={`p-3 rounded-lg text-sm ${limitReached ? "bg-amber-50 border border-amber-200" : "bg-red-50 border border-red-200 text-red-600"}`}>
+                {limitReached ? (
+                  <div className="space-y-3">
+                    <p className="text-amber-800 font-medium">Monthly limit reached!</p>
+                    <p className="text-amber-700">You've used all 3 free applications this month.</p>
+                    <Button asChild size="sm" className="w-full">
+                      <Link href="/pricing">
+                        <Zap className="h-4 w-4 mr-2" />
+                        Upgrade to Pro for unlimited applications
+                      </Link>
+                    </Button>
+                  </div>
+                ) : (
+                  error
+                )}
               </div>
             )}
             <div>

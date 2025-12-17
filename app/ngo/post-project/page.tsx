@@ -64,6 +64,8 @@ export default function PostProjectPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null)
+  const [uploadingDoc, setUploadingDoc] = useState(false)
+  const [documents, setDocuments] = useState<Array<{ name: string; url: string; type: string }>>([])
   const [formData, setFormData] = useState({
     title: "",
     description: "",
@@ -79,6 +81,65 @@ export default function PostProjectPage() {
     causes: [] as string[],
     deliverables: "",
   })
+
+  // Handle document upload
+  const handleDocumentUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files
+    if (!files || files.length === 0) return
+    
+    setUploadingDoc(true)
+    
+    try {
+      for (const file of Array.from(files)) {
+        // Get signature from server
+        const signatureRes = await fetch('/api/upload', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ folder: 'project-documents' }),
+        })
+        
+        if (!signatureRes.ok) {
+          throw new Error('Failed to get upload signature')
+        }
+        
+        const { signature, timestamp, cloudName, apiKey, folder } = await signatureRes.json()
+        
+        // Upload to Cloudinary
+        const formData = new FormData()
+        formData.append('file', file)
+        formData.append('signature', signature)
+        formData.append('timestamp', timestamp.toString())
+        formData.append('api_key', apiKey)
+        formData.append('folder', folder)
+        
+        const uploadRes = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/auto/upload`, {
+          method: 'POST',
+          body: formData,
+        })
+        
+        if (!uploadRes.ok) {
+          throw new Error('Failed to upload file')
+        }
+        
+        const uploadData = await uploadRes.json()
+        
+        setDocuments(prev => [...prev, {
+          name: file.name,
+          url: uploadData.secure_url,
+          type: file.type,
+        }])
+      }
+    } catch (err) {
+      console.error('Upload error:', err)
+      setError('Failed to upload document')
+    } finally {
+      setUploadingDoc(false)
+    }
+  }
+
+  const removeDocument = (index: number) => {
+    setDocuments(prev => prev.filter((_, i) => i !== index))
+  }
 
   // Fetch NGO profile on mount
   useEffect(() => {
@@ -147,6 +208,7 @@ export default function PostProjectPage() {
         location: formData.location || undefined,
         causes: formData.causes,
         deadline: formData.deadline ? new Date(formData.deadline) : undefined,
+        documents: documents,
       })
 
       if (result.success) {
@@ -372,11 +434,52 @@ export default function PostProjectPage() {
 
                 <div className="space-y-2">
                   <Label htmlFor="files">Supporting Documents (optional)</Label>
-                  <div className="border-2 border-dashed border-border rounded-lg p-8 text-center hover:border-primary/50 transition-colors cursor-pointer">
-                    <Upload className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
-                    <p className="text-sm text-muted-foreground">Drag and drop files here, or click to browse</p>
-                    <p className="text-xs text-muted-foreground mt-1">PDF, DOC, or images up to 10MB</p>
+                  <div className="border-2 border-dashed border-border rounded-lg p-8 text-center hover:border-primary/50 transition-colors cursor-pointer relative">
+                    <input
+                      type="file"
+                      id="files"
+                      multiple
+                      accept=".pdf,.doc,.docx,.png,.jpg,.jpeg"
+                      onChange={handleDocumentUpload}
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                      disabled={uploadingDoc}
+                    />
+                    {uploadingDoc ? (
+                      <>
+                        <Loader2 className="h-8 w-8 mx-auto mb-2 text-primary animate-spin" />
+                        <p className="text-sm text-muted-foreground">Uploading...</p>
+                      </>
+                    ) : (
+                      <>
+                        <Upload className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
+                        <p className="text-sm text-muted-foreground">Drag and drop files here, or click to browse</p>
+                        <p className="text-xs text-muted-foreground mt-1">PDF, DOC, or images up to 10MB</p>
+                      </>
+                    )}
                   </div>
+                  
+                  {/* Uploaded documents list */}
+                  {documents.length > 0 && (
+                    <div className="mt-4 space-y-2">
+                      {documents.map((doc, index) => (
+                        <div key={index} className="flex items-center justify-between p-3 bg-muted rounded-lg">
+                          <div className="flex items-center gap-2">
+                            <FileText className="h-4 w-4 text-primary" />
+                            <span className="text-sm truncate max-w-[200px]">{doc.name}</span>
+                          </div>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => removeDocument(index)}
+                            className="text-red-500 hover:text-red-700"
+                          >
+                            Remove
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
                 <div className="flex justify-end gap-4">

@@ -1,90 +1,301 @@
+"use client"
+
+import { useState } from "react"
 import { Navbar } from "@/components/navbar"
 import { Footer } from "@/components/footer"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Check, Star, Zap, Crown, Building2 } from "lucide-react"
-import Link from "next/link"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Check, Building2, User, Sparkles, Zap, Loader2 } from "lucide-react"
+import { client } from "@/lib/auth-client"
+import { toast } from "sonner"
 
-const plans = [
+// NGO Plans
+const ngoPlans = [
   {
+    id: "ngo-free",
     name: "Free",
     description: "Perfect for small NGOs just getting started",
-    price: "₹0",
+    price: 0,
+    priceDisplay: "₹0",
     period: "forever",
     icon: Building2,
     features: [
       "Post up to 3 projects",
-      "5 free profile unlocks per month",
+      "Browse volunteer profiles",
       "Basic volunteer matching",
       "Email support",
       "Community access",
     ],
-    cta: "Current Plan",
-    ctaVariant: "outline" as const,
-    popular: false,
-  },
-  {
-    name: "Basic",
-    description: "For growing organizations with regular needs",
-    price: "₹2,999",
-    period: "per month",
-    icon: Star,
-    features: [
-      "Post up to 10 projects",
-      "25 profile unlocks per month",
-      "Advanced volunteer matching",
-      "Priority support",
-      "Project analytics",
-      "Volunteer ratings & reviews",
+    limitations: [
+      "Cannot unlock volunteer contact info",
+      "Pay-per-unlock available (₹499/profile)",
     ],
-    cta: "Upgrade to Basic",
-    ctaVariant: "default" as const,
     popular: false,
   },
   {
-    name: "Premium",
-    description: "Best value for established organizations",
-    price: "₹7,999",
+    id: "ngo-pro",
+    name: "Pro",
+    description: "For established organizations with regular needs",
+    price: 1, // Testing: ₹1 (production: 2999)
+    priceDisplay: "₹1", // Testing price
     period: "per month",
     icon: Zap,
     features: [
       "Unlimited projects",
-      "100 profile unlocks per month",
-      "AI-powered matching",
-      "Dedicated account manager",
-      "Advanced analytics & reports",
-      "Custom branding",
-      "API access",
+      "Unlimited profile unlocks",
+      "Advanced AI-powered matching",
+      "Priority support",
+      "Project analytics & reports",
+      "Featured NGO badge",
       "Bulk volunteer outreach",
     ],
-    cta: "Upgrade to Premium",
-    ctaVariant: "default" as const,
+    limitations: [],
     popular: true,
-  },
-  {
-    name: "Enterprise",
-    description: "For large organizations with custom needs",
-    price: "Custom",
-    period: "contact us",
-    icon: Crown,
-    features: [
-      "Everything in Premium",
-      "Unlimited profile unlocks",
-      "White-label solution",
-      "Custom integrations",
-      "Onboarding & training",
-      "SLA guarantee",
-      "Multiple team members",
-      "Volume discounts",
-    ],
-    cta: "Contact Sales",
-    ctaVariant: "outline" as const,
-    popular: false,
   },
 ]
 
+// Volunteer Plans
+const volunteerPlans = [
+  {
+    id: "volunteer-free",
+    name: "Free",
+    description: "Start volunteering and make an impact",
+    price: 0,
+    priceDisplay: "₹0",
+    period: "forever",
+    icon: User,
+    features: [
+      "Browse all opportunities",
+      "3 applications per month",
+      "Basic profile visibility",
+      "Email notifications",
+      "Community access",
+    ],
+    limitations: [
+      "Limited to 3 applications/month",
+    ],
+    popular: false,
+  },
+  {
+    id: "volunteer-pro",
+    name: "Pro",
+    description: "Maximize your impact with unlimited access",
+    price: 1, // Testing: ₹1 (production: 999)
+    priceDisplay: "₹1", // Testing price
+    period: "per month",
+    icon: Sparkles,
+    features: [
+      "Unlimited job applications",
+      "Featured profile badge",
+      "Priority in search results",
+      "Direct message NGOs",
+      "Early access to opportunities",
+      "Profile analytics",
+      "Certificate downloads",
+    ],
+    limitations: [],
+    popular: true,
+  },
+]
+
+declare global {
+  interface Window {
+    Razorpay: any
+  }
+}
+
 export default function PricingPage() {
+  const { data: session } = client.useSession()
+  const user = session?.user
+  const userRole = user?.role as string | undefined
+  
+  // Default tab based on user role
+  const defaultTab = userRole === "volunteer" ? "volunteer" : "ngo"
+  const [activeTab, setActiveTab] = useState(defaultTab)
+  const [loadingPlan, setLoadingPlan] = useState<string | null>(null)
+
+  const loadRazorpayScript = (): Promise<boolean> => {
+    return new Promise((resolve) => {
+      if (window.Razorpay) {
+        resolve(true)
+        return
+      }
+      const script = document.createElement("script")
+      script.src = "https://checkout.razorpay.com/v1/checkout.js"
+      script.onload = () => resolve(true)
+      script.onerror = () => resolve(false)
+      document.body.appendChild(script)
+    })
+  }
+
+  const handleSubscribe = async (planId: string, amount: number, planName: string) => {
+    if (!user) {
+      window.location.href = "/auth/signin?redirect=/pricing"
+      return
+    }
+
+    if (amount === 0) {
+      // Free plan - just redirect to appropriate dashboard
+      window.location.href = userRole === "ngo" ? "/ngo/dashboard" : "/volunteer/dashboard"
+      return
+    }
+
+    setLoadingPlan(planId)
+
+    try {
+      const scriptLoaded = await loadRazorpayScript()
+      if (!scriptLoaded) {
+        alert("Failed to load payment gateway")
+        return
+      }
+
+      // Create subscription order
+      const response = await fetch("/api/payments/create-subscription", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ planId, amount }),
+      })
+
+      const data = await response.json()
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to create order")
+      }
+
+      // Open Razorpay checkout
+      const options = {
+        key: data.keyId,
+        amount: data.amount * 100,
+        currency: data.currency,
+        name: "JustBecause.asia",
+        description: `${planName} Plan Subscription`,
+        order_id: data.orderId,
+        handler: async function (response: any) {
+          try {
+            const verifyResponse = await fetch("/api/payments/verify-subscription", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_signature: response.razorpay_signature,
+                planId,
+              }),
+            })
+
+            const verifyData = await verifyResponse.json()
+            if (!verifyResponse.ok) {
+              throw new Error(verifyData.error || "Payment verification failed")
+            }
+
+            // Show success toast immediately
+            toast.success("🎉 Subscription activated!", {
+              description: "Welcome to Pro! Enjoy unlimited access.",
+            })
+            
+            // Redirect after a short delay to let toast show
+            setTimeout(() => {
+              window.location.href = userRole === "ngo" ? "/ngo/dashboard" : "/volunteer/dashboard"
+            }, 1500)
+          } catch (error: any) {
+            toast.error("Payment failed", {
+              description: error.message || "Payment verification failed",
+            })
+          }
+        },
+        prefill: {
+          name: user.name,
+          email: user.email,
+        },
+        theme: { color: "#0ea5e9" },
+        modal: {
+          ondismiss: () => setLoadingPlan(null),
+        },
+      }
+
+      const razorpay = new window.Razorpay(options)
+      razorpay.open()
+    } catch (error: any) {
+      toast.error("Payment error", {
+        description: error.message || "Failed to initiate payment",
+      })
+    } finally {
+      setLoadingPlan(null)
+    }
+  }
+
+  const renderPlanCard = (plan: typeof ngoPlans[0], currentPlan?: string) => {
+    const Icon = plan.icon
+    const isCurrentPlan = currentPlan === plan.id || (currentPlan === undefined && plan.price === 0)
+    const isLoading = loadingPlan === plan.id
+
+    return (
+      <Card 
+        key={plan.id}
+        className={`relative flex flex-col ${plan.popular ? "border-primary shadow-lg scale-[1.02]" : ""}`}
+      >
+        {plan.popular && (
+          <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+            <Badge className="bg-primary text-primary-foreground">
+              Recommended
+            </Badge>
+          </div>
+        )}
+        <CardHeader>
+          <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center mb-4">
+            <Icon className="h-6 w-6 text-primary" />
+          </div>
+          <CardTitle>{plan.name}</CardTitle>
+          <CardDescription>{plan.description}</CardDescription>
+        </CardHeader>
+        <CardContent className="flex-1">
+          <div className="mb-6">
+            <span className="text-4xl font-bold text-foreground">{plan.priceDisplay}</span>
+            <span className="text-muted-foreground ml-2">/{plan.period}</span>
+          </div>
+          <ul className="space-y-3">
+            {plan.features.map((feature, i) => (
+              <li key={i} className="flex items-start gap-2">
+                <Check className="h-5 w-5 text-green-500 shrink-0 mt-0.5" />
+                <span className="text-sm text-foreground">{feature}</span>
+              </li>
+            ))}
+          </ul>
+          {plan.limitations.length > 0 && (
+            <div className="mt-4 pt-4 border-t">
+              <p className="text-xs text-muted-foreground mb-2">Limitations:</p>
+              {plan.limitations.map((limit, i) => (
+                <p key={i} className="text-xs text-amber-600">{limit}</p>
+              ))}
+            </div>
+          )}
+        </CardContent>
+        <CardFooter>
+          <Button 
+            className="w-full" 
+            variant={isCurrentPlan ? "outline" : plan.popular ? "default" : "outline"}
+            disabled={isCurrentPlan || isLoading}
+            onClick={() => handleSubscribe(plan.id, plan.price, plan.name)}
+          >
+            {isLoading ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                Processing...
+              </>
+            ) : isCurrentPlan ? (
+              "Current Plan"
+            ) : plan.price === 0 ? (
+              "Get Started Free"
+            ) : (
+              `Upgrade to ${plan.name}`
+            )}
+          </Button>
+        </CardFooter>
+      </Card>
+    )
+  }
+
   return (
     <div className="min-h-screen flex flex-col bg-background">
       <Navbar />
@@ -98,65 +309,49 @@ export default function PricingPage() {
               Simple, transparent pricing
             </h1>
             <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-              Choose the perfect plan for your organization. All plans include our core features.
+              Choose the perfect plan for your needs. Upgrade anytime.
             </p>
           </div>
         </section>
 
-        {/* Pricing Cards */}
+        {/* Pricing Tabs */}
         <section className="py-16">
           <div className="container mx-auto px-4 md:px-6">
-            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-              {plans.map((plan) => {
-                const Icon = plan.icon
-                return (
-                  <Card 
-                    key={plan.name}
-                    className={`relative flex flex-col ${plan.popular ? "border-primary shadow-lg scale-105" : ""}`}
-                  >
-                    {plan.popular && (
-                      <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                        <Badge className="bg-primary text-primary-foreground">
-                          Most Popular
-                        </Badge>
-                      </div>
-                    )}
-                    <CardHeader>
-                      <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center mb-4">
-                        <Icon className="h-6 w-6 text-primary" />
-                      </div>
-                      <CardTitle>{plan.name}</CardTitle>
-                      <CardDescription>{plan.description}</CardDescription>
-                    </CardHeader>
-                    <CardContent className="flex-1">
-                      <div className="mb-6">
-                        <span className="text-4xl font-bold text-foreground">{plan.price}</span>
-                        <span className="text-muted-foreground ml-2">/{plan.period}</span>
-                      </div>
-                      <ul className="space-y-3">
-                        {plan.features.map((feature, i) => (
-                          <li key={i} className="flex items-start gap-2">
-                            <Check className="h-5 w-5 text-green-500 shrink-0 mt-0.5" />
-                            <span className="text-sm text-muted-foreground">{feature}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </CardContent>
-                    <CardFooter>
-                      <Button 
-                        className="w-full" 
-                        variant={plan.ctaVariant}
-                        asChild
-                      >
-                        <Link href={plan.name === "Enterprise" ? "/contact" : "/ngo/settings?tab=billing"}>
-                          {plan.cta}
-                        </Link>
-                      </Button>
-                    </CardFooter>
-                  </Card>
-                )
-              })}
-            </div>
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+              <div className="flex justify-center mb-12">
+                <TabsList className="grid w-full max-w-md grid-cols-2">
+                  <TabsTrigger value="ngo" className="flex items-center gap-2">
+                    <Building2 className="h-4 w-4" />
+                    For NGOs
+                  </TabsTrigger>
+                  <TabsTrigger value="volunteer" className="flex items-center gap-2">
+                    <User className="h-4 w-4" />
+                    For Volunteers
+                  </TabsTrigger>
+                </TabsList>
+              </div>
+
+              <TabsContent value="ngo">
+                <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+                  {ngoPlans.map((plan) => renderPlanCard(plan))}
+                </div>
+                
+                <div className="mt-12 text-center">
+                  <p className="text-muted-foreground mb-4">
+                    Need a custom solution for your large organization?
+                  </p>
+                  <Button variant="outline" asChild>
+                    <a href="/contact">Contact Sales</a>
+                  </Button>
+                </div>
+              </TabsContent>
+
+              <TabsContent value="volunteer">
+                <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+                  {volunteerPlans.map((plan) => renderPlanCard(plan))}
+                </div>
+              </TabsContent>
+            </Tabs>
           </div>
         </section>
 
@@ -167,32 +362,33 @@ export default function PricingPage() {
             
             <div className="space-y-6">
               <div className="p-6 bg-background rounded-lg border">
-                <h3 className="font-semibold text-foreground mb-2">What is a profile unlock?</h3>
+                <h3 className="font-semibold text-foreground mb-2">What is a profile unlock? (NGOs)</h3>
                 <p className="text-muted-foreground">
                   When you find a free volunteer you&apos;d like to connect with, you need to unlock their profile 
-                  to view their contact information and send them a message. Each plan includes a monthly quota.
+                  to view their contact information. Free plan includes 5 unlocks per month.
+                </p>
+              </div>
+              
+              <div className="p-6 bg-background rounded-lg border">
+                <h3 className="font-semibold text-foreground mb-2">What counts as an application? (Volunteers)</h3>
+                <p className="text-muted-foreground">
+                  Each time you apply to a project/opportunity, it counts as one application. 
+                  Free plan includes 3 applications per month.
                 </p>
               </div>
               
               <div className="p-6 bg-background rounded-lg border">
                 <h3 className="font-semibold text-foreground mb-2">Can I change plans anytime?</h3>
                 <p className="text-muted-foreground">
-                  Yes! You can upgrade or downgrade your plan at any time. Changes take effect on your next billing cycle.
+                  Yes! You can upgrade or downgrade your plan at any time. Changes take effect immediately.
                 </p>
               </div>
               
               <div className="p-6 bg-background rounded-lg border">
-                <h3 className="font-semibold text-foreground mb-2">Do unused unlocks roll over?</h3>
+                <h3 className="font-semibold text-foreground mb-2">Do unused limits roll over?</h3>
                 <p className="text-muted-foreground">
-                  Unused profile unlocks do not roll over to the next month. We recommend using them before your cycle renews.
-                </p>
-              </div>
-              
-              <div className="p-6 bg-background rounded-lg border">
-                <h3 className="font-semibold text-foreground mb-2">Is there a free trial?</h3>
-                <p className="text-muted-foreground">
-                  Our Free plan is always available! You can use it forever with no credit card required. 
-                  Premium plans also come with a 14-day money-back guarantee.
+                  No, unused applications or unlocks do not roll over to the next month. 
+                  Counters reset on the 1st of each month.
                 </p>
               </div>
             </div>

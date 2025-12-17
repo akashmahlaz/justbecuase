@@ -6,10 +6,11 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { ShareButton } from "@/components/share-button"
-import { getVolunteerProfileView } from "@/lib/actions"
+import { getVolunteerProfileView, getNGOSubscriptionStatus } from "@/lib/actions"
 import { skillCategories } from "@/lib/skills-data"
 import { Star, MapPin, Clock, CheckCircle, ExternalLink, Award, TrendingUp, Lock, User } from "lucide-react"
 import { UnlockProfileButton } from "@/components/payments/unlock-profile-button"
+import { ContactVolunteerButton } from "@/components/messages/contact-volunteer-button"
 
 // Helper function to get skill name from ID
 function getSkillName(categoryId: string, subskillId: string): string {
@@ -24,12 +25,16 @@ export default async function VolunteerProfilePage({ params }: { params: Promise
   
   // Get volunteer profile with visibility rules applied
   const volunteer = await getVolunteerProfileView(id)
+  
+  // Get NGO subscription status if viewing as NGO
+  const ngoSubscription = await getNGOSubscriptionStatus()
 
   if (!volunteer) {
     notFound()
   }
 
   const isLocked = !volunteer.isUnlocked
+  const ngoSubscriptionPlan = ngoSubscription?.plan || "free"
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
@@ -119,11 +124,14 @@ export default async function VolunteerProfilePage({ params }: { params: Promise
                   <UnlockProfileButton 
                     volunteerId={volunteer.id}
                     volunteerName="this volunteer"
+                    subscriptionPlan={ngoSubscriptionPlan}
                   />
                 ) : volunteer.canMessage ? (
-                  <Button className="bg-primary hover:bg-primary/90">
-                    Contact Volunteer
-                  </Button>
+                  <ContactVolunteerButton
+                    volunteerId={volunteer.id}
+                    volunteerName={volunteer.name || "Volunteer"}
+                    className="bg-primary hover:bg-primary/90"
+                  />
                 ) : null}
                 <ShareButton
                   url={`/volunteers/${id}`}
@@ -158,6 +166,7 @@ export default async function VolunteerProfilePage({ params }: { params: Promise
                         <UnlockProfileButton 
                           volunteerId={volunteer.id}
                           volunteerName="this volunteer"
+                          subscriptionPlan={ngoSubscriptionPlan}
                         />
                       </div>
                     </div>

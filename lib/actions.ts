@@ -236,6 +236,10 @@ export async function saveVolunteerOnboarding(data: {
       hoursContributed: 0,
       rating: 0,
       totalRatings: 0,
+      // Subscription defaults
+      subscriptionPlan: "free",
+      monthlyApplicationsUsed: 0,
+      subscriptionResetDate: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 1),
       isVerified: false,
       isActive: true,
       createdAt: new Date(),
@@ -264,6 +268,80 @@ export async function getVolunteerProfile(userId?: string): Promise<VolunteerPro
   if (!targetUserId) return null
   const profile = await volunteerProfilesDb.findByUserId(targetUserId)
   return serializeDocument(profile)
+}
+
+// Get volunteer subscription status with limits
+export async function getVolunteerSubscriptionStatus(): Promise<{
+  plan: "free" | "pro"
+  applicationsUsed: number
+  applicationsLimit: number
+  canApply: boolean
+  expiryDate?: Date
+} | null> {
+  const user = await getCurrentUser()
+  if (!user || user.role !== "volunteer") return null
+  
+  const profile = await volunteerProfilesDb.findByUserId(user.id)
+  if (!profile) return null
+
+  const plan = profile.subscriptionPlan || "free"
+  const applicationsUsed = profile.monthlyApplicationsUsed || 0
+  const FREE_LIMIT = 3
+  const applicationsLimit = plan === "pro" ? 999999 : FREE_LIMIT
+  
+  // Check if reset needed
+  const now = new Date()
+  const resetDate = profile.subscriptionResetDate ? new Date(profile.subscriptionResetDate) : null
+  
+  let currentUsed = applicationsUsed
+  if (resetDate && now >= resetDate) {
+    currentUsed = 0
+  }
+
+  return {
+    plan,
+    applicationsUsed: currentUsed,
+    applicationsLimit,
+    canApply: plan === "pro" || currentUsed < FREE_LIMIT,
+    expiryDate: profile.subscriptionExpiry,
+  }
+}
+
+// Get NGO subscription status with limits
+export async function getNGOSubscriptionStatus(): Promise<{
+  plan: "free" | "pro"
+  unlocksUsed: number
+  unlocksLimit: number
+  canUnlock: boolean
+  expiryDate?: Date
+} | null> {
+  const user = await getCurrentUser()
+  if (!user || user.role !== "ngo") return null
+  
+  const profile = await ngoProfilesDb.findByUserId(user.id)
+  if (!profile) return null
+
+  const plan = profile.subscriptionPlan || "free"
+  const unlocksUsed = profile.monthlyUnlocksUsed || 0
+  const FREE_LIMIT = 0 // Free plan = no unlocks
+  const unlocksLimit = plan === "pro" ? 999999 : FREE_LIMIT
+  
+  // Check if reset needed
+  const now = new Date()
+  const resetDate = profile.subscriptionResetDate ? new Date(profile.subscriptionResetDate) : null
+  
+  let currentUsed = unlocksUsed
+  if (resetDate && now >= resetDate) {
+    currentUsed = 0
+  }
+
+  return {
+    plan,
+    unlocksUsed: currentUsed,
+    unlocksLimit,
+    canUnlock: plan === "pro", // Free plan cannot unlock at all
+    expiryDate: profile.subscriptionExpiry,
+  }
 }
 
 // Allowed fields for volunteer profile updates - filters out sensitive fields
@@ -354,8 +432,14 @@ export async function saveNGOOnboarding(data: {
       volunteersEngaged: 0,
       isVerified: false,
       isActive: true,
+      // Subscription defaults (new simplified system)
+      subscriptionPlan: "free",
+      monthlyUnlocksUsed: 0,
+      monthlyUnlocksLimit: 0, // Free plan = no unlocks, must upgrade
+      subscriptionResetDate: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 1),
+      // Legacy fields (keeping for backwards compatibility)
       subscriptionTier: "free",
-      profileUnlocksRemaining: 0,
+      profileUnlocksRemaining: 5,
       createdAt: new Date(),
       updatedAt: new Date(),
     }
@@ -434,6 +518,7 @@ export async function createProject(data: {
   causes: string[]
   startDate?: Date
   deadline?: Date
+  documents?: Array<{ name: string; url: string; type: string }>
 }): Promise<ApiResponse<string>> {
   try {
     const user = await requireRole(["ngo", "admin"])
@@ -481,6 +566,7 @@ export async function createProject(data: {
       workMode: data.workMode as "remote" | "onsite" | "hybrid",
       location: sanitizedLocation,
       causes: data.causes,
+      documents: data.documents,
       startDate: data.startDate,
       deadline: data.deadline,
       status: "active",
@@ -591,6 +677,31 @@ export async function applyToProject(
       return { success: false, error: "Please complete your profile before applying" }
     }
 
+    // Check application limits for free plan volunteers
+    const subscriptionPlan = volunteerProfile.subscriptionPlan || "free"
+    const monthlyApplicationsUsed = volunteerProfile.monthlyApplicationsUsed || 0
+    const FREE_PLAN_LIMIT = 3
+    
+    // Check if we need to reset monthly counter
+    const now = new Date()
+    const resetDate = volunteerProfile.subscriptionResetDate ? new Date(volunteerProfile.subscriptionResetDate) : null
+    
+    if (resetDate && now >= resetDate) {
+      // Reset the counter - it's a new month
+      const nextResetDate = new Date(now.getFullYear(), now.getMonth() + 1, 1)
+      await volunteerProfilesDb.update(user.id, {
+        monthlyApplicationsUsed: 0,
+        subscriptionResetDate: nextResetDate,
+      })
+    } else if (subscriptionPlan === "free" && monthlyApplicationsUsed >= FREE_PLAN_LIMIT) {
+      // Free plan limit reached
+      return { 
+        success: false, 
+        error: `You've reached your monthly limit of ${FREE_PLAN_LIMIT} applications. Upgrade to Pro for unlimited applications!`,
+        data: "LIMIT_REACHED" as any
+      }
+    }
+
     const project = await projectsDb.findById(projectId)
     if (!project) {
       return { success: false, error: "Project not found" }
@@ -621,6 +732,15 @@ export async function applyToProject(
     }
 
     const applicationId = result.id!
+    
+    // Increment application counter for free plan users
+    if (subscriptionPlan === "free") {
+      try {
+        await volunteerProfilesDb.incrementApplicationCount(user.id)
+      } catch (e) {
+        console.error("Failed to increment application count:", e)
+      }
+    }
     
     // Best effort: increment applicants count and create notification
     // These are non-critical and won't fail the application
@@ -802,6 +922,10 @@ export async function getVolunteerProfileView(
   const volunteerProfile = await volunteerProfilesDb.findByUserId(volunteerId)
 
   if (!volunteerProfile) return null
+  
+  // Also get user info for name fallback
+  const db = await import("@/lib/database").then(m => m.getDb())
+  const volunteerUser = await (await db).collection("user").findOne({ id: volunteerId })
 
   // Determine if profile should be unlocked
   let isUnlocked = false
@@ -823,6 +947,9 @@ export async function getVolunteerProfileView(
     isUnlocked = await profileUnlocksDb.isUnlocked(currentUser.id, volunteerId)
   }
 
+  // Get the best name available
+  const displayName = volunteerProfile.name || volunteerUser?.name || "Volunteer"
+
   // Build the view based on unlock status
   const view: VolunteerProfileView = {
     id: volunteerProfile.userId,
@@ -840,8 +967,8 @@ export async function getVolunteerProfileView(
     canMessage: isUnlocked,
 
     // Conditional fields (locked for free volunteers until unlocked)
-    name: isUnlocked ? (volunteerProfile.name || "Volunteer") : null,
-    avatar: isUnlocked ? volunteerProfile.avatar : null,
+    name: isUnlocked ? displayName : null,
+    avatar: isUnlocked ? (volunteerProfile.avatar || volunteerUser?.image) : null,
     bio: isUnlocked ? volunteerProfile.bio : null,
     phone: isUnlocked ? volunteerProfile.phone : null,
     linkedinUrl: isUnlocked ? volunteerProfile.linkedinUrl : null,
@@ -854,7 +981,7 @@ export async function getVolunteerProfileView(
 }
 
 /**
- * Unlock a volunteer profile (NGO pays)
+ * Unlock a volunteer profile (NGO pays or uses subscription)
  */
 export async function unlockVolunteerProfile(
   volunteerId: string,
@@ -878,6 +1005,36 @@ export async function unlockVolunteerProfile(
       return { success: true, data: true, message: "Profile is already accessible" }
     }
 
+    // Check subscription plan and limits
+    const subscriptionPlan = ngoProfile.subscriptionPlan || "free"
+    const monthlyUnlocksUsed = ngoProfile.monthlyUnlocksUsed || 0
+    const monthlyUnlocksLimit = ngoProfile.monthlyUnlocksLimit || 0
+    const FREE_PLAN_LIMIT = 0 // Free plan = no unlocks
+
+    // Check if we need to reset monthly counter
+    const now = new Date()
+    const resetDate = ngoProfile.subscriptionResetDate ? new Date(ngoProfile.subscriptionResetDate) : null
+    
+    let currentUnlocksUsed = monthlyUnlocksUsed
+    if (resetDate && now >= resetDate) {
+      // Reset the counter - it's a new month
+      const nextResetDate = new Date(now.getFullYear(), now.getMonth() + 1, 1)
+      await ngoProfilesDb.update(user.id, {
+        monthlyUnlocksUsed: 0,
+        subscriptionResetDate: nextResetDate,
+      })
+      currentUnlocksUsed = 0
+    }
+
+    // Check if limit reached (only for free plan)
+    if (subscriptionPlan === "free" && !paymentId) {
+      return { 
+        success: false, 
+        error: `Free plan cannot unlock profiles. Upgrade to Pro for unlimited unlocks or pay ₹499 per unlock.`,
+        data: "LIMIT_REACHED" as any
+      }
+    }
+
     // Get unlock price from settings
     const settings = await adminSettingsDb.get()
     const unlockPrice = settings?.singleProfileUnlockPrice || 499
@@ -886,7 +1043,7 @@ export async function unlockVolunteerProfile(
     const unlockResult = await profileUnlocksDb.createIfNotExists({
       ngoId: user.id,
       volunteerId,
-      amountPaid: unlockPrice,
+      amountPaid: paymentId ? unlockPrice : 0, // Free if using subscription
       currency: settings?.currency || "INR",
       paymentId,
       unlockedAt: new Date(),
@@ -897,17 +1054,18 @@ export async function unlockVolunteerProfile(
       return { success: true, data: true, message: "Profile already unlocked" }
     }
 
-    // Only process payment/decrement if unlock was newly created
-    if (ngoProfile.profileUnlocksRemaining > 0) {
-      // Use subscription unlock
+    // Increment monthly unlock count
+    if (subscriptionPlan === "pro" || currentUnlocksUsed < FREE_PLAN_LIMIT) {
+      // Using subscription unlock
       try {
-        await ngoProfilesDb.decrementUnlocks(user.id)
+        await ngoProfilesDb.incrementMonthlyUnlocks(user.id)
       } catch (e) {
-        console.error("Failed to decrement unlocks:", e)
+        console.error("Failed to increment unlocks:", e)
       }
-    } else {
-      // Create transaction record
-      // NOTE: In production, verify payment with Razorpay BEFORE creating unlock record
+    }
+    
+    // If paid unlock, create transaction record
+    if (paymentId) {
       try {
         await transactionsDb.create({
           userId: user.id,
@@ -920,6 +1078,7 @@ export async function unlockVolunteerProfile(
           paymentId,
           status: "completed",
           paymentStatus: "completed",
+          description: "Profile Unlock",
           createdAt: new Date(),
         })
       } catch (e) {
@@ -1486,7 +1645,15 @@ export async function browseVolunteers(filters?: {
   volunteerType?: string
   location?: string
 }) {
-  const query: any = { isActive: true }
+  const query: any = { 
+    isActive: true,
+    // Respect privacy settings - only show volunteers who allow search visibility
+    $or: [
+      { "privacy.showInSearch": { $ne: false } },
+      { "privacy.showInSearch": { $exists: false } },
+      { privacy: { $exists: false } }
+    ]
+  }
 
   if (filters?.skills?.length) {
     query["skills.subskillId"] = { $in: filters.skills }

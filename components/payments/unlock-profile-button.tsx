@@ -2,7 +2,8 @@
 
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
-import { Loader2, Unlock, CreditCard } from "lucide-react"
+import { Loader2, Unlock, CreditCard, Zap } from "lucide-react"
+import { toast } from "sonner"
 
 interface UnlockProfileButtonProps {
   volunteerId: string
@@ -10,6 +11,7 @@ interface UnlockProfileButtonProps {
   onSuccess?: () => void
   onError?: (error: string) => void
   className?: string
+  subscriptionPlan?: "free" | "pro" // NGO's current plan
 }
 
 declare global {
@@ -24,6 +26,7 @@ export function UnlockProfileButton({
   onSuccess,
   onError,
   className,
+  subscriptionPlan = "free",
 }: UnlockProfileButtonProps) {
   const [isLoading, setIsLoading] = useState(false)
 
@@ -42,7 +45,43 @@ export function UnlockProfileButton({
     })
   }
 
-  const handleUnlock = async () => {
+  // Handle unlock for Pro users (free unlock via subscription)
+  const handleProUnlock = async () => {
+    setIsLoading(true)
+
+    try {
+      const response = await fetch("/api/payments/unlock-with-subscription", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ volunteerId }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to unlock profile")
+      }
+
+      toast.success("Profile unlocked!", {
+        description: `You can now view ${volunteerName || "the volunteer"}'s full profile.`,
+      })
+      
+      onSuccess?.()
+      // Reload the page to show unlocked profile
+      window.location.reload()
+    } catch (error: any) {
+      console.error("Unlock error:", error)
+      toast.error("Failed to unlock", {
+        description: error.message || "Something went wrong",
+      })
+      onError?.(error.message || "Failed to unlock profile")
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  // Handle unlock for Free users (pay ₹499)
+  const handlePaidUnlock = async () => {
     setIsLoading(true)
 
     try {
@@ -93,11 +132,18 @@ export function UnlockProfileButton({
               throw new Error(verifyData.error || "Payment verification failed")
             }
 
+            toast.success("Profile unlocked!", {
+              description: `You can now view ${volunteerName || "the volunteer"}'s full profile.`,
+            })
+            
             onSuccess?.()
             // Reload the page to show unlocked profile
             window.location.reload()
           } catch (error: any) {
             console.error("Payment verification error:", error)
+            toast.error("Payment verification failed", {
+              description: error.message,
+            })
             onError?.(error.message || "Payment verification failed")
           }
         },
@@ -116,9 +162,20 @@ export function UnlockProfileButton({
       razorpay.open()
     } catch (error: any) {
       console.error("Payment error:", error)
+      toast.error("Payment error", {
+        description: error.message || "Failed to initiate payment",
+      })
       onError?.(error.message || "Failed to initiate payment")
     } finally {
       setIsLoading(false)
+    }
+  }
+
+  const handleUnlock = () => {
+    if (subscriptionPlan === "pro") {
+      handleProUnlock()
+    } else {
+      handlePaidUnlock()
     }
   }
 
@@ -132,6 +189,11 @@ export function UnlockProfileButton({
         <>
           <Loader2 className="h-4 w-4 mr-2 animate-spin" />
           Processing...
+        </>
+      ) : subscriptionPlan === "pro" ? (
+        <>
+          <Zap className="h-4 w-4 mr-2" />
+          Unlock Profile (Pro)
         </>
       ) : (
         <>

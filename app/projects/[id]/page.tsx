@@ -21,6 +21,7 @@ import {
   FileText,
   Eye,
   Briefcase,
+  Download,
 } from "lucide-react"
 
 // Helper to get skill name
@@ -215,6 +216,46 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
                         >
                           {cause}
                         </Badge>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Project Documents */}
+              {project.documents && project.documents.length > 0 && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <FileText className="h-5 w-5 text-primary" />
+                      Project Documents
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      {project.documents.map((doc, index) => (
+                        <a
+                          key={index}
+                          href={doc.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center justify-between p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors group"
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                              <FileText className="h-5 w-5 text-primary" />
+                            </div>
+                            <div>
+                              <p className="font-medium text-foreground group-hover:text-primary transition-colors">
+                                {doc.name}
+                              </p>
+                              <p className="text-xs text-muted-foreground capitalize">
+                                {doc.type.replace("application/", "").replace("text/", "")}
+                              </p>
+                            </div>
+                          </div>
+                          <Download className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors" />
+                        </a>
                       ))}
                     </div>
                   </CardContent>

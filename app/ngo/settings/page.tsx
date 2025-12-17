@@ -12,7 +12,10 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Switch } from "@/components/ui/switch"
 import { authClient } from "@/lib/auth-client"
+import { toast } from "sonner"
+import { NotificationPermissionButton } from "@/components/notifications/notification-listener"
 import { 
   getNGOProfile, 
   updateNGOProfile, 
@@ -26,6 +29,7 @@ import type { RequiredSkill, SkillPriority } from "@/lib/types"
 import {
   Building2,
   Bell,
+  BellRing,
   CreditCard,
   Globe,
   Lock,
@@ -43,6 +47,14 @@ import {
   Briefcase,
 } from "lucide-react"
 import Link from "next/link"
+
+interface PrivacySettings {
+  showProfile: boolean
+  showInSearch: boolean
+  emailNotifications: boolean
+  applicationNotifications: boolean
+  messageNotifications: boolean
+}
 
 export default function NGOSettingsPage() {
   const router = useRouter()
@@ -68,6 +80,17 @@ export default function NGOSettingsPage() {
   const [skills, setSkills] = useState<RequiredSkill[]>([])
   const [causes, setCauses] = useState<string[]>([])
 
+  // Privacy settings state
+  const [privacy, setPrivacy] = useState<PrivacySettings>({
+    showProfile: true,
+    showInSearch: true,
+    emailNotifications: true,
+    applicationNotifications: true,
+    messageNotifications: true,
+  })
+  const [savingPrivacy, setSavingPrivacy] = useState(false)
+  const [downloadingData, setDownloadingData] = useState(false)
+
   // Password state
   const [currentPassword, setCurrentPassword] = useState("")
   const [newPassword, setNewPassword] = useState("")
@@ -81,7 +104,7 @@ export default function NGOSettingsPage() {
   const [deleteConfirmation, setDeleteConfirmation] = useState("")
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
 
-  // Fetch profile data
+  // Fetch profile data and privacy settings
   useEffect(() => {
     async function loadData() {
       if (!session?.user) return
@@ -108,6 +131,15 @@ export default function NGOSettingsPage() {
         
         setUnlockedProfiles(unlockedData)
         setTransactions(txData)
+
+        // Load privacy settings
+        const privacyRes = await fetch('/api/user/privacy')
+        if (privacyRes.ok) {
+          const data = await privacyRes.json()
+          if (data.privacy) {
+            setPrivacy(data.privacy)
+          }
+        }
       } catch (err) {
         console.error("Failed to load data:", err)
         setError("Failed to load profile data")
@@ -226,6 +258,53 @@ export default function NGOSettingsPage() {
       setPasswordError("An unexpected error occurred")
     } finally {
       setIsChangingPassword(false)
+    }
+  }
+
+  // Save privacy settings
+  const handleSavePrivacy = async () => {
+    setSavingPrivacy(true)
+    try {
+      const res = await fetch('/api/user/privacy', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ privacy }),
+      })
+      if (res.ok) {
+        toast.success("Privacy settings saved")
+      } else {
+        toast.error("Failed to save privacy settings")
+      }
+    } catch (err) {
+      toast.error("An error occurred")
+    } finally {
+      setSavingPrivacy(false)
+    }
+  }
+
+  // Download user data
+  const handleDownloadData = async () => {
+    setDownloadingData(true)
+    try {
+      const res = await fetch('/api/user/export-data')
+      if (res.ok) {
+        const blob = await res.blob()
+        const url = window.URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = `justbecause-data-${new Date().toISOString().split('T')[0]}.json`
+        document.body.appendChild(a)
+        a.click()
+        window.URL.revokeObjectURL(url)
+        document.body.removeChild(a)
+        toast.success("Data downloaded successfully")
+      } else {
+        toast.error("Failed to download data")
+      }
+    } catch (err) {
+      toast.error("An error occurred")
+    } finally {
+      setDownloadingData(false)
     }
   }
 
@@ -663,6 +742,21 @@ export default function NGOSettingsPage() {
                 <Card>
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
+                      <BellRing className="h-5 w-5" />
+                      Browser Notifications
+                    </CardTitle>
+                    <CardDescription>
+                      Get instant notifications in your browser when something important happens
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <NotificationPermissionButton />
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
                       <Globe className="h-5 w-5" />
                       Profile Visibility
                     </CardTitle>
@@ -675,7 +769,12 @@ export default function NGOSettingsPage() {
                           Allow volunteers to see your organization profile
                         </p>
                       </div>
-                      <input type="checkbox" defaultChecked className="w-5 h-5" />
+                      <Switch
+                        checked={privacy.showProfile}
+                        onCheckedChange={(checked) => 
+                          setPrivacy({ ...privacy, showProfile: checked })
+                        }
+                      />
                     </div>
                     <div className="flex items-center justify-between">
                       <div>
@@ -684,8 +783,31 @@ export default function NGOSettingsPage() {
                           List your organization in the NGO directory
                         </p>
                       </div>
-                      <input type="checkbox" defaultChecked className="w-5 h-5" />
+                      <Switch
+                        checked={privacy.showInSearch}
+                        onCheckedChange={(checked) => 
+                          setPrivacy({ ...privacy, showInSearch: checked })
+                        }
+                      />
                     </div>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="font-medium">Email Notifications</p>
+                        <p className="text-sm text-muted-foreground">
+                          Receive email notifications for applications and messages
+                        </p>
+                      </div>
+                      <Switch
+                        checked={privacy.emailNotifications}
+                        onCheckedChange={(checked) => 
+                          setPrivacy({ ...privacy, emailNotifications: checked })
+                        }
+                      />
+                    </div>
+                    <Button onClick={handleSavePrivacy} disabled={savingPrivacy}>
+                      {savingPrivacy && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+                      Save Privacy Settings
+                    </Button>
                   </CardContent>
                 </Card>
 
@@ -704,7 +826,14 @@ export default function NGOSettingsPage() {
                           Get a copy of your organization data
                         </p>
                       </div>
-                      <Button variant="outline">Request Download</Button>
+                      <Button 
+                        variant="outline" 
+                        onClick={handleDownloadData}
+                        disabled={downloadingData}
+                      >
+                        {downloadingData && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+                        {downloadingData ? "Preparing..." : "Download Data"}
+                      </Button>
                     </div>
                   </CardContent>
                 </Card>

@@ -11,10 +11,13 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Switch } from "@/components/ui/switch"
 import { authClient } from "@/lib/auth-client"
 import { getVolunteerProfile, updateVolunteerProfile, changePassword, deleteAccount } from "@/lib/actions"
 import { skillCategories, causes as causesList } from "@/lib/skills-data"
 import type { VolunteerSkill, ExperienceLevel } from "@/lib/types"
+import { toast } from "sonner"
+import { NotificationPermissionButton } from "@/components/notifications/notification-listener"
 import {
   User,
   Bell,
@@ -31,10 +34,20 @@ import {
   X,
   Plus,
   Sparkles,
+  BellRing,
 } from "lucide-react"
 
 interface SkillWithName extends VolunteerSkill {
   name?: string
+}
+
+interface PrivacySettings {
+  showProfile: boolean
+  showInSearch: boolean
+  emailNotifications: boolean
+  applicationNotifications: boolean
+  messageNotifications: boolean
+  opportunityDigest: boolean
 }
 
 export default function VolunteerSettingsPage() {
@@ -56,6 +69,18 @@ export default function VolunteerSettingsPage() {
     level: "intermediate" as ExperienceLevel,
   })
   
+  // Privacy settings state
+  const [privacy, setPrivacy] = useState<PrivacySettings>({
+    showProfile: true,
+    showInSearch: true,
+    emailNotifications: true,
+    applicationNotifications: true,
+    messageNotifications: true,
+    opportunityDigest: true,
+  })
+  const [savingPrivacy, setSavingPrivacy] = useState(false)
+  const [downloadingData, setDownloadingData] = useState(false)
+  
   // Password state
   const [passwordData, setPasswordData] = useState({
     currentPassword: "",
@@ -69,7 +94,7 @@ export default function VolunteerSettingsPage() {
   const [deleteConfirmText, setDeleteConfirmText] = useState("")
   const [deleting, setDeleting] = useState(false)
 
-  // Fetch profile
+  // Fetch profile and privacy settings
   useEffect(() => {
     async function loadProfile() {
       if (!session?.user) return
@@ -79,6 +104,15 @@ export default function VolunteerSettingsPage() {
           setProfile(profileData)
           setSkills(profileData.skills || [])
           setCauses(profileData.causes || [])
+        }
+        
+        // Load privacy settings
+        const privacyRes = await fetch('/api/user/privacy')
+        if (privacyRes.ok) {
+          const data = await privacyRes.json()
+          if (data.privacy) {
+            setPrivacy(data.privacy)
+          }
         }
       } catch (err) {
         console.error("Failed to load profile:", err)
@@ -187,6 +221,53 @@ export default function VolunteerSettingsPage() {
       showNotification("error", "An error occurred")
     } finally {
       setChangingPassword(false)
+    }
+  }
+
+  // Save privacy settings
+  const handleSavePrivacy = async () => {
+    setSavingPrivacy(true)
+    try {
+      const res = await fetch('/api/user/privacy', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ privacy }),
+      })
+      if (res.ok) {
+        toast.success("Privacy settings saved")
+      } else {
+        toast.error("Failed to save privacy settings")
+      }
+    } catch (err) {
+      toast.error("An error occurred")
+    } finally {
+      setSavingPrivacy(false)
+    }
+  }
+
+  // Download user data
+  const handleDownloadData = async () => {
+    setDownloadingData(true)
+    try {
+      const res = await fetch('/api/user/export-data')
+      if (res.ok) {
+        const blob = await res.blob()
+        const url = window.URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = `justbecause-data-${new Date().toISOString().split('T')[0]}.json`
+        document.body.appendChild(a)
+        a.click()
+        window.URL.revokeObjectURL(url)
+        document.body.removeChild(a)
+        toast.success("Data downloaded successfully")
+      } else {
+        toast.error("Failed to download data")
+      }
+    } catch (err) {
+      toast.error("An error occurred")
+    } finally {
+      setDownloadingData(false)
     }
   }
 
@@ -559,49 +640,84 @@ export default function VolunteerSettingsPage() {
 
             {/* Notification Settings */}
             <TabsContent value="notifications">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Bell className="h-5 w-5" />
-                    Notification Preferences
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  <div>
-                    <h4 className="font-medium mb-4">Email Notifications</h4>
-                    <div className="space-y-4">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="font-medium">Application Updates</p>
-                          <p className="text-sm text-muted-foreground">
-                            Get notified when NGOs respond to your applications
-                          </p>
+              <div className="space-y-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <BellRing className="h-5 w-5" />
+                      Browser Notifications
+                    </CardTitle>
+                    <CardDescription>
+                      Get instant notifications in your browser when something important happens
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <NotificationPermissionButton />
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Bell className="h-5 w-5" />
+                      Notification Preferences
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-6">
+                    <div>
+                      <h4 className="font-medium mb-4">Email Notifications</h4>
+                      <div className="space-y-4">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="font-medium">Application Updates</p>
+                            <p className="text-sm text-muted-foreground">
+                              Get notified when NGOs respond to your applications
+                            </p>
+                          </div>
+                          <Switch
+                            checked={privacy.applicationNotifications}
+                            onCheckedChange={(checked) => 
+                              setPrivacy({ ...privacy, applicationNotifications: checked })
+                            }
+                          />
                         </div>
-                        <input type="checkbox" defaultChecked className="w-5 h-5" />
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="font-medium">New Messages</p>
-                          <p className="text-sm text-muted-foreground">
-                            Receive emails for new messages from NGOs
-                          </p>
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="font-medium">New Messages</p>
+                            <p className="text-sm text-muted-foreground">
+                              Receive emails for new messages from NGOs
+                            </p>
+                          </div>
+                          <Switch
+                            checked={privacy.messageNotifications}
+                            onCheckedChange={(checked) => 
+                              setPrivacy({ ...privacy, messageNotifications: checked })
+                            }
+                          />
                         </div>
-                        <input type="checkbox" defaultChecked className="w-5 h-5" />
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="font-medium">Opportunity Recommendations</p>
-                          <p className="text-sm text-muted-foreground">
-                            Weekly digest of opportunities matching your skills
-                          </p>
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="font-medium">Opportunity Recommendations</p>
+                            <p className="text-sm text-muted-foreground">
+                              Weekly digest of opportunities matching your skills
+                            </p>
+                          </div>
+                          <Switch
+                            checked={privacy.opportunityDigest}
+                            onCheckedChange={(checked) => 
+                              setPrivacy({ ...privacy, opportunityDigest: checked })
+                            }
+                          />
                         </div>
-                        <input type="checkbox" defaultChecked className="w-5 h-5" />
                       </div>
                     </div>
-                  </div>
-                  <Button>Save Preferences</Button>
-                </CardContent>
-              </Card>
+                    <Button onClick={handleSavePrivacy} disabled={savingPrivacy}>
+                      {savingPrivacy && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+                      Save Preferences
+                    </Button>
+                  </CardContent>
+                </Card>
+              </div>
             </TabsContent>
 
             {/* Privacy Settings */}
@@ -622,7 +738,12 @@ export default function VolunteerSettingsPage() {
                           Make your profile visible to NGOs
                         </p>
                       </div>
-                      <input type="checkbox" defaultChecked className="w-5 h-5" />
+                      <Switch
+                        checked={privacy.showProfile}
+                        onCheckedChange={(checked) => 
+                          setPrivacy({ ...privacy, showProfile: checked })
+                        }
+                      />
                     </div>
                     <div className="flex items-center justify-between">
                       <div>
@@ -631,8 +752,17 @@ export default function VolunteerSettingsPage() {
                           Allow your profile to appear in volunteer searches
                         </p>
                       </div>
-                      <input type="checkbox" defaultChecked className="w-5 h-5" />
+                      <Switch
+                        checked={privacy.showInSearch}
+                        onCheckedChange={(checked) => 
+                          setPrivacy({ ...privacy, showInSearch: checked })
+                        }
+                      />
                     </div>
+                    <Button onClick={handleSavePrivacy} disabled={savingPrivacy}>
+                      {savingPrivacy && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+                      Save Privacy Settings
+                    </Button>
                   </CardContent>
                 </Card>
 
@@ -651,7 +781,14 @@ export default function VolunteerSettingsPage() {
                           Get a copy of your profile and activity data
                         </p>
                       </div>
-                      <Button variant="outline">Request Download</Button>
+                      <Button 
+                        variant="outline" 
+                        onClick={handleDownloadData}
+                        disabled={downloadingData}
+                      >
+                        {downloadingData && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+                        {downloadingData ? "Preparing..." : "Download Data"}
+                      </Button>
                     </div>
                   </CardContent>
                 </Card>
