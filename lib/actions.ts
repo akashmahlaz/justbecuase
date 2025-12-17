@@ -440,6 +440,7 @@ export async function saveNGOOnboarding(data: {
       subscriptionPlan: "free",
       monthlyUnlocksUsed: 0,
       monthlyUnlocksLimit: 0, // Free plan = no unlocks, must upgrade
+      monthlyProjectsPosted: 0, // Track projects posted this month
       subscriptionResetDate: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 1),
       // Legacy fields (keeping for backwards compatibility)
       subscriptionTier: "free",
