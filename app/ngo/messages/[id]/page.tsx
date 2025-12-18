@@ -5,6 +5,7 @@ import { getConversation, getConversationMessages, getNGOProfile } from "@/lib/a
 import { DashboardHeader } from "@/components/dashboard/dashboard-header"
 import { NGOSidebar } from "@/components/dashboard/ngo-sidebar"
 import { MessageThread } from "@/components/messages/message-thread"
+import { getUserInfo } from "@/lib/user-utils"
 import { getDb } from "@/lib/database"
 import { ObjectId } from "mongodb"
 
@@ -42,20 +43,13 @@ export default async function NGOMessageThreadPage({ params }: Props) {
     notFound()
   }
 
-  // Get Volunteer profile
-  const db = await getDb()
-  const volunteerProfile = await db.collection("volunteer_profiles").findOne({
-    userId: otherParticipantId,
-  })
-
-  // Also get user info for name and avatar
-  const volunteerUser = await db.collection("user").findOne({
-    id: otherParticipantId,
-  })
+  // Get volunteer info using centralized utility
+  const volunteerInfo = await getUserInfo(otherParticipantId)
 
   // Get project title if related to a project
   let projectTitle: string | undefined
   if (conversation.projectId) {
+    const db = await getDb()
     const project = await db.collection("projects").findOne({
       _id: new ObjectId(conversation.projectId),
     })
@@ -66,7 +60,7 @@ export default async function NGOMessageThreadPage({ params }: Props) {
     <div className="min-h-screen bg-background">
       <DashboardHeader
         userType="ngo"
-        userName={ngoProfile?.organizationName || session.user.name || "NGO"}
+        userName={ngoProfile?.orgName || ngoProfile?.organizationName || session.user.name || "NGO"}
         userAvatar={ngoProfile?.logo || session.user.image || undefined}
       />
 
@@ -80,8 +74,8 @@ export default async function NGOMessageThreadPage({ params }: Props) {
               currentUserId={session.user.id}
               otherParticipant={{
                 id: otherParticipantId,
-                name: volunteerProfile?.name || volunteerUser?.name || "Volunteer",
-                avatar: volunteerProfile?.avatar || volunteerUser?.image,
+                name: volunteerInfo?.name || "Volunteer",
+                avatar: volunteerInfo?.image,
                 type: "volunteer",
               }}
               messages={messages}

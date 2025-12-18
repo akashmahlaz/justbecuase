@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useCallback, useRef } from "react"
+import { useRouter } from "next/navigation"
 import { useNotificationStore } from "@/lib/store"
 import { useBrowserNotification, useNotificationPermission } from "@/components/store-provider"
 import { Button } from "@/components/ui/button"
@@ -9,13 +10,16 @@ import { toast } from "sonner"
 
 interface NotificationListenerProps {
   userId?: string
+  userType?: "volunteer" | "ngo"
   pollInterval?: number // in milliseconds
 }
 
 export function NotificationListener({ 
   userId, 
+  userType = "volunteer",
   pollInterval = 30000 // 30 seconds default
 }: NotificationListenerProps) {
+  const router = useRouter()
   const { sendNotification, hasPermission } = useBrowserNotification()
   const { requestPermission } = useNotificationPermission()
   const { setUnreadCount, setNotifications, notifications, unreadCount } = useNotificationStore()
@@ -43,18 +47,26 @@ export function NotificationListener({
         
         // If there's a new notification we haven't seen
         if (latestNotification.id !== lastNotificationId.current && !latestNotification.isRead) {
-          // Send browser notification
+          // Get the notification URL - use link from notification or fallback to type-based URL
+          const notificationUrl = latestNotification.link || getNotificationUrl(latestNotification.type, userType)
+          
+          // Send browser notification with click action
           if (hasPermission) {
             sendNotification(latestNotification.title, {
               body: latestNotification.message,
               tag: latestNotification.id,
-              data: { url: getNotificationUrl(latestNotification.type) },
+              data: { url: notificationUrl },
             })
           }
           
-          // Show toast as well
+          // Show toast with click action
           toast(latestNotification.title, {
             description: latestNotification.message,
+            action: notificationUrl ? {
+              label: "View",
+              onClick: () => router.push(notificationUrl),
+            } : undefined,
+            duration: 5000,
           })
         }
       }
@@ -68,7 +80,7 @@ export function NotificationListener({
     } catch (error) {
       console.error('Failed to fetch notifications:', error)
     }
-  }, [userId, hasPermission, sendNotification, setNotifications, setUnreadCount])
+  }, [userId, userType, hasPermission, sendNotification, setNotifications, setUnreadCount, router])
 
   // Poll for notifications
   useEffect(() => {
@@ -87,18 +99,26 @@ export function NotificationListener({
 }
 
 // Helper to get the URL for a notification type
-function getNotificationUrl(type: string): string {
+function getNotificationUrl(type: string, userType: "volunteer" | "ngo"): string {
+  const basePath = userType === "ngo" ? "/ngo" : "/volunteer"
+  
   switch (type) {
     case 'application_status':
-      return '/volunteer/applications'
+    case 'application_accepted':
+    case 'application_rejected':
+      return `${basePath}/applications`
     case 'new_application':
       return '/ngo/projects'
     case 'message':
-      return '/volunteer/messages'
+    case 'new_message':
+      return `${basePath}/messages`
     case 'profile_viewed':
-      return '/volunteer/profile'
+    case 'profile_unlocked':
+      return `${basePath}/profile`
+    case 'project_match':
+      return `${basePath}/opportunities`
     default:
-      return '/volunteer/notifications'
+      return `${basePath}/notifications`
   }
 }
 

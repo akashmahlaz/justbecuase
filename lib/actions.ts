@@ -24,6 +24,7 @@ import {
   teamMembersDb,
   getDb,
 } from "./database"
+import { getUserInfo, getUsersInfo } from "./user-utils"
 import {
   matchVolunteersToProject,
   matchOpportunitiesToVolunteer,
@@ -373,6 +374,16 @@ export async function updateVolunteerProfile(
       return { success: false, error: "No valid fields to update" }
     }
     
+    // Auto-sync name/avatar to auth table (single source of truth)
+    const syncData: { name?: string; image?: string } = {}
+    if (filteredUpdates.name) syncData.name = filteredUpdates.name
+    if (filteredUpdates.avatar) syncData.image = filteredUpdates.avatar
+    
+    if (Object.keys(syncData).length > 0) {
+      const { syncUserDataToProfile } = await import("./user-utils")
+      await syncUserDataToProfile(user.id, syncData)
+    }
+    
     const result = await volunteerProfilesDb.update(user.id, filteredUpdates)
     revalidatePath("/volunteer/profile")
     return { success: true, data: result }
@@ -494,6 +505,12 @@ export async function updateNGOProfile(
     
     if (Object.keys(filteredUpdates).length === 0) {
       return { success: false, error: "No valid fields to update" }
+    }
+    
+    // Auto-sync logo to auth table (single source of truth for images)
+    if (filteredUpdates.logo) {
+      const { syncUserDataToProfile } = await import("./user-utils")
+      await syncUserDataToProfile(user.id, { image: filteredUpdates.logo })
     }
     
     const result = await ngoProfilesDb.update(user.id, filteredUpdates)
@@ -2014,7 +2031,57 @@ export async function getMyConversations() {
   if (!user) return []
   
   const conversations = await conversationsDb.findByUserId(user.id)
-  return serializeDocuments(conversations)
+  
+  // Get all other participant IDs
+  const otherParticipantIds = conversations
+    .map(conv => conv.participants.find((p: string) => p !== user.id))
+    .filter(Boolean) as string[]
+  
+  // Batch fetch all user info using centralized utility
+  const usersInfoMap = await getUsersInfo(otherParticipantIds)
+  
+  // Enrich conversations with participant details
+  const enrichedConversations = conversations.map((conv) => {
+    const otherParticipantId = conv.participants.find((p: string) => p !== user.id)
+    if (!otherParticipantId) return conv
+    
+    const otherUser = usersInfoMap.get(otherParticipantId)
+    
+    if (otherUser?.type === "ngo") {
+      return {
+        ...conv,
+        ngoName: otherUser.name,
+        ngoLogo: otherUser.image,
+        otherParticipantType: "ngo",
+        otherParticipantId,
+      }
+    }
+    
+    return {
+      ...conv,
+      volunteerName: otherUser?.name || "Volunteer",
+      volunteerAvatar: otherUser?.image,
+      otherParticipantType: "volunteer",
+      otherParticipantId,
+    }
+  })
+  
+  // Count unread messages for each conversation
+  const db = await getDb()
+  const messagesCollection = db.collection("messages")
+  
+  const conversationsWithUnread = await Promise.all(
+    enrichedConversations.map(async (conv) => {
+      const unreadCount = await messagesCollection.countDocuments({
+        conversationId: conv._id?.toString(),
+        receiverId: user.id,
+        isRead: false,
+      })
+      return { ...conv, unreadCount }
+    })
+  )
+  
+  return serializeDocuments(conversationsWithUnread)
 }
 
 export async function getConversation(conversationId: string) {
@@ -2073,15 +2140,27 @@ export async function sendMessage(
       content.length > 50 ? content.substring(0, 50) + "..." : content
     )
     
-    // Create notification for receiver
+    // Get sender and receiver info using centralized utility
+    const [senderInfo, receiverInfo] = await Promise.all([
+      getUserInfo(user.id),
+      getUserInfo(receiverId),
+    ])
+    
+    const senderName = senderInfo?.name || "Someone"
+    const messageLink = receiverInfo?.type === "ngo"
+      ? `/ngo/messages/${conversation._id!.toString()}`
+      : `/volunteer/messages/${conversation._id!.toString()}`
+    
+    // Create notification for receiver with link
     try {
       await notificationsDb.create({
         userId: receiverId,
         type: "new_message",
         title: "New Message",
-        message: `You have a new message`,
+        message: `${senderName} sent you a message`,
         referenceId: conversation._id!.toString(),
         referenceType: "conversation",
+        link: messageLink,
         isRead: false,
         createdAt: new Date(),
       })

@@ -4,6 +4,7 @@ import { admin } from "better-auth/plugins";
 import client from "./db";
 import { sendEmail, getVerificationEmailHtml, getPasswordResetEmailHtml, getPasswordResetCodeEmailHtml } from "./email";
 import { passwordResetDb } from "./database";
+import { syncUserDataToProfile } from "./user-utils";
 
 // Determine the base URL for auth
 const getAuthBaseURL = () => {
@@ -120,6 +121,29 @@ export const auth = betterAuth({
       defaultRole: "user", // Unassigned - user must select volunteer or ngo
     }),
   ],
+  hooks: {
+    // Automatically sync user data from auth table to profiles on any update
+    after: [
+      {
+        matcher: (context) => {
+          // Trigger on user updates (name or image changes)
+          return context.path === "/user/update";
+        },
+        handler: async (ctx) => {
+          // Auto-sync to profile tables for consistency
+          if (ctx.context?.user?.id) {
+            const updateData: { name?: string; image?: string } = {};
+            if (ctx.body?.name) updateData.name = ctx.body.name;
+            if (ctx.body?.image) updateData.image = ctx.body.image;
+            
+            if (Object.keys(updateData).length > 0) {
+              await syncUserDataToProfile(ctx.context.user.id, updateData);
+            }
+          }
+        },
+      },
+    ],
+  },
 });
 
 export type Session = typeof auth.$Infer.Session;

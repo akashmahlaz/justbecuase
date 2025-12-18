@@ -611,8 +611,9 @@ export const messagesDb = {
 
   async findByConversationId(conversationId: string, limit: number = 50): Promise<Message[]> {
     const collection = await getCollection<Message>(COLLECTIONS.MESSAGES)
+    // Get messages sorted ascending (oldest first) so new messages appear at bottom
     return collection.find({ conversationId })
-      .sort({ createdAt: -1 })
+      .sort({ createdAt: 1 })
       .limit(limit)
       .toArray()
   },

@@ -104,6 +104,75 @@ JustBecause.Asia is a skills-based volunteer platform that connects NGOs with sk
 - **Styling**: Tailwind CSS + Shadcn/ui
 - **Deployment**: Vercel
 
+## 🏗️ Architecture: User Data Management
+
+### Single Source of Truth Pattern
+
+**IMPORTANT**: This project uses a "Single Source of Truth" pattern for user data to prevent synchronization issues between auth and profile tables.
+
+#### Design Principles
+
+1. **Auth `user` Collection = Source of Truth**
+   - The better-auth `user` collection (`_id`, `name`, `email`, `image`) is the **ONLY** authoritative source for basic user information
+   - Profile tables (`volunteerProfiles`, `ngoProfiles`) store **ONLY** role-specific data (skills, bio, orgName, etc.)
+   - Never read `name` or basic info from profiles - always fetch from auth table first
+
+2. **Automatic Synchronization**
+   - Better-auth hooks automatically sync name/image updates to profile tables
+   - Profile update actions (`updateVolunteerProfile`, `updateNGOProfile`) sync back to auth table
+   - No manual migrations needed in production
+
+3. **Database Schema**
+   ```typescript
+   // Auth table (better-auth) - SOURCE OF TRUTH
+   user: {
+     _id: string          // User ID (string, not ObjectId)
+     name: string         // User's name
+     email: string
+     image: string        // Profile picture
+     role: "volunteer" | "ngo" | "admin"
+   }
+   
+   // Profile tables - ROLE-SPECIFIC DATA ONLY
+   volunteerProfiles: {
+     userId: string       // Reference to user._id
+     name: string         // [SYNCED] Kept for backward compatibility
+     avatar: string       // [SYNCED] Profile picture
+     bio: string          // Role-specific
+     skills: []           // Role-specific
+     // ... other role-specific fields
+   }
+   
+   ngoProfiles: {
+     userId: string       // Reference to user._id
+     orgName: string      // Organization name (NOT synced - role-specific)
+     logo: string         // [SYNCED] Organization logo
+     description: string  // Role-specific
+     causes: []           // Role-specific
+     // ... other role-specific fields
+   }
+   ```
+
+4. **Implementation Files**
+   - [`lib/user-utils.ts`](lib/user-utils.ts) - Centralized user info utilities
+   - [`lib/auth.ts`](lib/auth.ts) - Better-auth hooks for auto-sync
+   - [`lib/actions.ts`](lib/actions.ts) - Profile update actions with sync
+
+#### For Other Developers Using Next.js + MongoDB + Better-Auth
+
+**Common Pitfall**: Duplicating user data (name, email, image) in both auth and profile tables leads to:
+- Data inconsistency issues
+- Complex sync logic
+- Production bugs when data gets out of sync
+
+**Best Practice**: 
+1. Use better-auth's `user` table as the single source of truth
+2. Implement auto-sync hooks (see [`lib/auth.ts`](lib/auth.ts))
+3. Always fetch from auth table first using utilities like [`getUserInfo()`](lib/user-utils.ts)
+4. Profile tables should only store role/domain-specific data
+
+This pattern ensures your app "just works" in production without manual intervention or sync scripts.
+
 ## 📝 Scripts
 
 ```bash

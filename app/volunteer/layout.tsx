@@ -9,7 +9,7 @@ function VolunteerLayoutInner({ children }: { children: React.ReactNode }) {
   
   return (
     <>
-      {user?.id && <NotificationListener userId={user.id} />}
+      {user?.id && <NotificationListener userId={user.id} userType="volunteer" />}
       {children}
     </>
   )

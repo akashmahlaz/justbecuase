@@ -15,6 +15,7 @@ import {
   Heart,
   UsersRound,
   Ban,
+  Bell,
 } from "lucide-react"
 
 const navItems = [
@@ -47,6 +48,11 @@ const navItems = [
     title: "Payments",
     href: "/admin/payments",
     icon: CreditCard,
+  },
+  {
+    title: "Notifications",
+    href: "/admin/notifications",
+    icon: Bell,
   },
   {
     title: "Reports",

@@ -105,7 +105,7 @@ export default async function VolunteerMessagesPage() {
 }
 
 function ConversationItem({ conversation }: { conversation: any }) {
-  const lastMessage = conversation.messages?.[conversation.messages.length - 1]
+  const lastMessage = conversation.lastMessage
   const unreadCount = conversation.unreadCount || 0
 
   return (
@@ -114,22 +114,30 @@ function ConversationItem({ conversation }: { conversation: any }) {
       className="block p-4 hover:bg-muted/50 transition-colors"
     >
       <div className="flex items-start gap-3">
-        <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-          <Building2 className="h-5 w-5 text-primary" />
+        <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden">
+          {conversation.ngoLogo ? (
+            <img 
+              src={conversation.ngoLogo} 
+              alt={conversation.ngoName || "NGO"} 
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <Building2 className="h-5 w-5 text-primary" />
+          )}
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center justify-between mb-1">
             <span className="font-medium text-foreground truncate">
               {conversation.ngoName || "NGO"}
             </span>
-            {lastMessage && (
+            {conversation.lastMessageAt && (
               <span className="text-xs text-muted-foreground">
-                {new Date(lastMessage.createdAt).toLocaleDateString()}
+                {new Date(conversation.lastMessageAt).toLocaleDateString()}
               </span>
             )}
           </div>
           <p className="text-sm text-muted-foreground truncate">
-            {lastMessage?.content || "No messages yet"}
+            {lastMessage || "No messages yet"}
           </p>
         </div>
         {unreadCount > 0 && (

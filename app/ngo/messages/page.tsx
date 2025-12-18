@@ -104,7 +104,7 @@ export default async function NGOMessagesPage() {
 }
 
 function ConversationItem({ conversation }: { conversation: any }) {
-  const lastMessage = conversation.messages?.[conversation.messages.length - 1]
+  const lastMessage = conversation.lastMessage
   const unreadCount = conversation.unreadCount || 0
 
   return (
@@ -113,23 +113,31 @@ function ConversationItem({ conversation }: { conversation: any }) {
       className="block p-4 hover:bg-muted/50 transition-colors"
     >
       <div className="flex items-start gap-3">
-        <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-          <User className="h-5 w-5 text-primary" />
+        <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden">
+          {conversation.volunteerAvatar ? (
+            <img 
+              src={conversation.volunteerAvatar} 
+              alt={conversation.volunteerName || "Volunteer"} 
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <User className="h-5 w-5 text-primary" />
+          )}
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center justify-between mb-1">
             <span className="font-medium text-foreground truncate">
               {conversation.volunteerName || "Volunteer"}
             </span>
-            {lastMessage && (
+            {conversation.lastMessageAt && (
               <span className="text-xs text-muted-foreground flex items-center gap-1">
                 <Clock className="h-3 w-3" />
-                {new Date(lastMessage.createdAt).toLocaleDateString()}
+                {new Date(conversation.lastMessageAt).toLocaleDateString()}
               </span>
             )}
           </div>
           <p className="text-sm text-muted-foreground truncate">
-            {lastMessage?.content || "No messages yet"}
+            {lastMessage || "No messages yet"}
           </p>
         </div>
         {unreadCount > 0 && (

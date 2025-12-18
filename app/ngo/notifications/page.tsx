@@ -137,6 +137,7 @@ function NotificationCard({ notification }: { notification: any }) {
       case "new_application":
         return <Users className="h-5 w-5" />
       case "message":
+      case "new_message":
         return <MessageSquare className="h-5 w-5" />
       case "project_update":
         return <FileCheck className="h-5 w-5" />
@@ -156,8 +157,11 @@ function NotificationCard({ notification }: { notification: any }) {
     return ""
   }
 
-  return (
-    <Card className={`${getBackgroundColor()} hover:shadow-sm transition-shadow`}>
+  // Use link from notification or fallback to actionUrl
+  const notificationLink = notification.link || notification.actionUrl
+
+  const cardContent = (
+    <Card className={`${getBackgroundColor()} hover:shadow-sm transition-shadow ${notificationLink ? 'cursor-pointer' : ''}`}>
       <CardContent className="p-4">
         <div className="flex items-start gap-4">
           <div
@@ -180,9 +184,9 @@ function NotificationCard({ notification }: { notification: any }) {
             <p className="text-sm text-muted-foreground">
               {notification.message}
             </p>
-            {notification.actionUrl && (
+            {notificationLink && !notification.link && (
               <Button variant="link" size="sm" className="px-0 mt-2" asChild>
-                <Link href={notification.actionUrl}>View Details</Link>
+                <Link href={notificationLink}>View Details</Link>
               </Button>
             )}
           </div>
@@ -193,4 +197,14 @@ function NotificationCard({ notification }: { notification: any }) {
       </CardContent>
     </Card>
   )
+
+  if (notificationLink) {
+    return (
+      <Link href={notificationLink} className="block">
+        {cardContent}
+      </Link>
+    )
+  }
+
+  return cardContent
 }

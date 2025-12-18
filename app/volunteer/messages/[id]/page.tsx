@@ -1,10 +1,11 @@
 import { redirect, notFound } from "next/navigation"
 import { headers } from "next/headers"
 import { auth } from "@/lib/auth"
-import { getConversation, getConversationMessages, getNGOProfile } from "@/lib/actions"
+import { getConversation, getConversationMessages } from "@/lib/actions"
 import { DashboardHeader } from "@/components/dashboard/dashboard-header"
 import { VolunteerSidebar } from "@/components/dashboard/volunteer-sidebar"
 import { MessageThread } from "@/components/messages/message-thread"
+import { getUserInfo } from "@/lib/user-utils"
 import { getDb } from "@/lib/database"
 import { ObjectId } from "mongodb"
 
@@ -41,15 +42,13 @@ export default async function VolunteerMessageThreadPage({ params }: Props) {
     notFound()
   }
 
-  // Get NGO profile
-  const db = await getDb()
-  const ngoProfile = await db.collection("ngo_profiles").findOne({
-    userId: otherParticipantId,
-  })
+  // Get NGO info using centralized utility
+  const ngoInfo = await getUserInfo(otherParticipantId)
 
   // Get project title if related to a project
   let projectTitle: string | undefined
   if (conversation.projectId) {
+    const db = await getDb()
     const project = await db.collection("projects").findOne({
       _id: new ObjectId(conversation.projectId),
     })
@@ -74,8 +73,8 @@ export default async function VolunteerMessageThreadPage({ params }: Props) {
               currentUserId={session.user.id}
               otherParticipant={{
                 id: otherParticipantId,
-                name: ngoProfile?.organizationName || "NGO",
-                avatar: ngoProfile?.logo,
+                name: ngoInfo?.name || "NGO",
+                avatar: ngoInfo?.image,
                 type: "ngo",
               }}
               messages={messages}

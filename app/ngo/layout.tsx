@@ -9,7 +9,7 @@ function NGOLayoutInner({ children }: { children: React.ReactNode }) {
   
   return (
     <>
-      {user?.id && <NotificationListener userId={user.id} />}
+      {user?.id && <NotificationListener userId={user.id} userType="ngo" />}
       {children}
     </>
   )
