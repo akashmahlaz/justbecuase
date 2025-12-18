@@ -39,91 +39,76 @@ export async function getUserInfo(userId: string): Promise<UserInfo | null> {
   
   const db = await getDb()
   
-  // ALWAYS fetch from auth table first (single source of truth)
-  const authUser = await db.collection(COLLECTIONS.USER).findOne({ _id: userId as any })
-  if (!authUser) return null
+  // Fetch from user collection (single source of truth after migration)
+  // Try both _id formats: string and ObjectId
+  let user = await db.collection(COLLECTIONS.USER).findOne({ 
+    $or: [
+      { _id: userId as any },
+      { $expr: { $eq: [{ $toString: "$_id" }, userId] } }
+    ]
+  })
   
-  // Determine user type and get role-specific data
-  const [ngoProfile, volunteerProfile] = await Promise.all([
-    db.collection(COLLECTIONS.NGO_PROFILES).findOne({ userId }),
-    db.collection(COLLECTIONS.VOLUNTEER_PROFILES).findOne({ userId })
-  ])
+  if (!user) return null
   
-  // NGO users: use orgName if set, otherwise fall back to auth name
-  if (ngoProfile) {
+  // Determine user type from role field
+  const role = user.role
+  
+  // NGO users: use orgName if set, otherwise fall back to name
+  if (role === "ngo") {
     return {
       id: userId,
-      name: ngoProfile.orgName || ngoProfile.organizationName || authUser.name || "NGO",
-      email: authUser.email,
-      image: ngoProfile.logo || authUser.image, // Profile logo takes precedence
+      name: user.orgName || user.organizationName || user.name || "NGO",
+      email: user.email,
+      image: user.logo || user.image || user.avatar,
       type: "ngo",
     }
   }
   
-  // Volunteer users: always use auth name (single source of truth)
-  if (volunteerProfile) {
+  // Volunteer users: use name from user record
+  if (role === "volunteer") {
     return {
       id: userId,
-      name: authUser.name || "Volunteer",
-      email: authUser.email,
-      image: volunteerProfile.avatar || authUser.image, // Profile avatar takes precedence
+      name: user.name || "Volunteer",
+      email: user.email,
+      image: user.avatar || user.image,
       type: "volunteer",
     }
   }
   
-  // User exists in auth but no profile yet (onboarding)
+  // User exists but no role yet (onboarding)
   return {
     id: userId,
-    name: authUser.name || "User",
-    email: authUser.email,
-    image: authUser.image,
+    name: user.name || "User",
+    email: user.email,
+    image: user.image || user.avatar,
     type: "unknown",
   }
 }
 
 /**
- * Automatically sync user data to profile when name is updated.
- * Call this whenever a user updates their profile name.
- * 
- * This ensures backward compatibility with any code that reads name from profile tables,
- * while the auth table remains the source of truth.
+ * Update user data in the user collection (single source of truth).
+ * Call this whenever a user updates their profile name or image.
  */
 export async function syncUserDataToProfile(userId: string, data: { name?: string, image?: string }): Promise<void> {
   const db = await getDb()
   
-  // Update auth user table (source of truth)
-  const updateAuthData: any = { updatedAt: new Date() }
-  if (data.name) updateAuthData.name = data.name
-  if (data.image) updateAuthData.image = data.image
+  // Update user collection (single source of truth after migration)
+  const updateData: any = { updatedAt: new Date() }
+  if (data.name) updateData.name = data.name
+  if (data.image) {
+    // Update both image and avatar fields for compatibility
+    updateData.image = data.image
+    updateData.avatar = data.image
+    updateData.logo = data.image
+  }
   
   await db.collection(COLLECTIONS.USER).updateOne(
-    { _id: userId as any },
-    { $set: updateAuthData }
+    { $or: [
+      { _id: userId as any },
+      { $expr: { $eq: [{ $toString: "$_id" }, userId] } }
+    ]},
+    { $set: updateData }
   )
-  
-  // Sync to profiles for backward compatibility
-  if (data.name) {
-    await Promise.all([
-      db.collection(COLLECTIONS.VOLUNTEER_PROFILES).updateOne(
-        { userId },
-        { $set: { name: data.name, updatedAt: new Date() } }
-      ),
-      // Don't update NGO orgName - that's role-specific data
-    ])
-  }
-  
-  if (data.image) {
-    await Promise.all([
-      db.collection(COLLECTIONS.VOLUNTEER_PROFILES).updateOne(
-        { userId },
-        { $set: { avatar: data.image, updatedAt: new Date() } }
-      ),
-      db.collection(COLLECTIONS.NGO_PROFILES).updateOne(
-        { userId },
-        { $set: { logo: data.image, updatedAt: new Date() } }
-      ),
-    ])
-  }
 }
 
 /**
@@ -135,46 +120,50 @@ export async function getUsersInfo(userIds: string[]): Promise<Map<string, UserI
   
   const db = await getDb()
   
-  // Batch fetch all data (auth users use _id as string, not ObjectId)
-  const [authUsers, ngoProfiles, volunteerProfiles] = await Promise.all([
-    db.collection(COLLECTIONS.USER).find({ _id: { $in: userIds as any[] } }).toArray(),
-    db.collection(COLLECTIONS.NGO_PROFILES).find({ userId: { $in: userIds } }).toArray(),
-    db.collection(COLLECTIONS.VOLUNTEER_PROFILES).find({ userId: { $in: userIds } }).toArray(),
-  ])
+  // Batch fetch from user collection (single source after migration)
+  // Handle both string _id and ObjectId formats
+  const users = await db.collection(COLLECTIONS.USER).find({ 
+    $or: [
+      { _id: { $in: userIds as any[] } },
+      { $expr: { $in: [{ $toString: "$_id" }, userIds] } }
+    ]
+  }).toArray()
   
-  // Create lookup maps (_id is the user id as string)
-  const authUserMap = new Map(authUsers.map(u => [u._id?.toString(), u]))
-  const ngoMap = new Map(ngoProfiles.map(n => [n.userId, n]))
-  const volunteerMap = new Map(volunteerProfiles.map(v => [v.userId, v]))
+  // Create lookup map
+  const userMap = new Map(users.map(u => {
+    const id = u._id?.toString() || u._id
+    return [id, u]
+  }))
   
-  // Build result
+  // Build result based on role field
   for (const userId of userIds) {
-    const authUser = authUserMap.get(userId)
-    const ngoProfile = ngoMap.get(userId)
-    const volunteerProfile = volunteerMap.get(userId)
+    const user = userMap.get(userId)
+    if (!user) continue
     
-    if (ngoProfile) {
+    const role = user.role
+    
+    if (role === "ngo") {
       result.set(userId, {
         id: userId,
-        name: ngoProfile.orgName || ngoProfile.organizationName || authUser?.name || "NGO",
-        email: authUser?.email,
-        image: ngoProfile.logo || authUser?.image,
+        name: user.orgName || user.organizationName || user.name || "NGO",
+        email: user.email,
+        image: user.logo || user.image || user.avatar,
         type: "ngo",
       })
-    } else if (volunteerProfile) {
+    } else if (role === "volunteer") {
       result.set(userId, {
         id: userId,
-        name: volunteerProfile.name || authUser?.name || "Volunteer",
-        email: authUser?.email,
-        image: volunteerProfile.avatar || authUser?.image,
+        name: user.name || "Volunteer",
+        email: user.email,
+        image: user.avatar || user.image,
         type: "volunteer",
       })
-    } else if (authUser) {
+    } else {
       result.set(userId, {
         id: userId,
-        name: authUser.name || "User",
-        email: authUser.email,
-        image: authUser.image,
+        name: user.name || "User",
+        email: user.email,
+        image: user.image || user.avatar,
         type: "unknown",
       })
     }

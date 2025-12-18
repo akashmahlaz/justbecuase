@@ -231,6 +231,8 @@ export async function saveVolunteerOnboarding(data: {
         level: s.level as "beginner" | "intermediate" | "expert",
       })),
       causes: data.causes,
+      languages: [],
+      interests: [],
       volunteerType: data.workPreferences.volunteerType as "free" | "paid" | "both",
       hourlyRate: data.workPreferences.hourlyRate,
       currency: "INR",
@@ -1946,34 +1948,55 @@ export async function browseVolunteers(filters?: {
   volunteerType?: string
   location?: string
 }) {
-  const query: any = { 
-    isActive: true,
-    // Respect privacy settings - only show volunteers who allow search visibility
-    $or: [
-      { "privacy.showInSearch": { $ne: false } },
-      { "privacy.showInSearch": { $exists: false } },
-      { privacy: { $exists: false } }
-    ]
-  }
-
-  if (filters?.skills?.length) {
-    query["skills.subskillId"] = { $in: filters.skills }
-  }
-  if (filters?.causes?.length) {
-    query.causes = { $in: filters.causes }
-  }
-  if (filters?.workMode) {
-    query.workMode = filters.workMode
-  }
-  if (filters?.volunteerType) {
-    query.volunteerType = filters.volunteerType
-  }
-
-  const volunteers = await volunteerProfilesDb.findMany(query, { limit: 50 } as any)
+  console.log('[browseVolunteers] Fetching volunteers with filters:', filters)
+  
+  // Get all volunteers (arrays are now parsed by database helpers)
+  const volunteers = await volunteerProfilesDb.findMany({}, { limit: 100 } as any)
+  console.log(`[browseVolunteers] Found ${volunteers.length} total volunteers`)
+  
+  // Filter in JavaScript since arrays are stored as JSON strings
+  let filteredVolunteers = volunteers.filter(v => {
+    // Skip if explicitly inactive
+    if (v.isActive === false) return false
+    
+    // Apply filters
+    if (filters?.skills?.length) {
+      const volunteerSkills = Array.isArray(v.skills) ? v.skills : []
+      const hasSkill = volunteerSkills.some((skill: any) => 
+        filters.skills!.includes(skill?.subskillId || skill)
+      )
+      if (!hasSkill) return false
+    }
+    
+    if (filters?.causes?.length) {
+      const volunteerCauses = Array.isArray(v.causes) ? v.causes : []
+      const hasCause = volunteerCauses.some((cause: string) => 
+        filters.causes!.includes(cause)
+      )
+      if (!hasCause) return false
+    }
+    
+    if (filters?.workMode && v.availability !== filters.workMode) {
+      return false
+    }
+    
+    if (filters?.volunteerType && v.volunteerType !== filters.volunteerType) {
+      return false
+    }
+    
+    if (filters?.location && v.location && !v.location.toLowerCase().includes(filters.location.toLowerCase())) {
+      return false
+    }
+    
+    return true
+  })
+  
+  // Limit results
+  filteredVolunteers = filteredVolunteers.slice(0, 50)
   
   // Convert to profile views for proper visibility
   const views = await Promise.all(
-    volunteers.map((v) => getVolunteerProfileView(v.userId))
+    filteredVolunteers.map((v) => getVolunteerProfileView(v.userId))
   )
   
   return views.filter((v) => v !== null)
@@ -1985,23 +2008,37 @@ export async function browseProjects(filters?: {
   workMode?: string
   projectType?: string
 }) {
-  const query: any = { status: "active" }
-
-  if (filters?.skills?.length) {
-    query["skillsRequired.subskillId"] = { $in: filters.skills }
-  }
-  if (filters?.causes?.length) {
-    query.causes = { $in: filters.causes }
-  }
-  if (filters?.workMode) {
-    query.workMode = filters.workMode
-  }
-  if (filters?.projectType) {
-    query.projectType = filters.projectType
-  }
-
-  const projects = await projectsDb.findMany(query, { limit: 50, sort: { createdAt: -1 } } as any)
-  return serializeDocuments(projects)
+  // Get active projects from database
+  const allProjects = await projectsDb.findActive({}, { limit: 100 })
+  
+  // Filter in JavaScript since some filtering might be needed
+  let filteredProjects = allProjects.filter(p => {
+    if (filters?.skills?.length) {
+      const projectSkills = p.skillsRequired?.map((s: any) => s.subskillId || s.skillId) || []
+      const hasSkill = projectSkills.some((skill: string) => filters.skills!.includes(skill))
+      if (!hasSkill) return false
+    }
+    
+    if (filters?.causes?.length) {
+      const hasCause = p.causes?.some((cause: string) => filters.causes!.includes(cause))
+      if (!hasCause) return false
+    }
+    
+    if (filters?.workMode && p.workMode !== filters.workMode) {
+      return false
+    }
+    
+    if (filters?.projectType && p.projectType !== filters.projectType) {
+      return false
+    }
+    
+    return true
+  })
+  
+  // Limit results
+  filteredProjects = filteredProjects.slice(0, 50)
+  
+  return serializeDocuments(filteredProjects)
 }
 
 export async function browseNGOs(filters?: {
@@ -2095,17 +2132,31 @@ export async function getConversation(conversationId: string) {
 
 export async function getConversationMessages(conversationId: string, limit = 50) {
   const user = await getCurrentUser()
-  if (!user) return []
+  if (!user) {
+    console.log(`[getConversationMessages] No user found`)
+    return []
+  }
+  
+  console.log(`[getConversationMessages] User: ${user.id}, ConversationId: ${conversationId}`)
   
   // Verify user is part of conversation
   const conversations = await conversationsDb.findByUserId(user.id)
+  console.log(`[getConversationMessages] Found ${conversations.length} conversations for user`)
+  
   const conversation = conversations.find(c => c._id?.toString() === conversationId)
-  if (!conversation) return []
+  if (!conversation) {
+    console.log(`[getConversationMessages] Conversation not found or user not a participant`)
+    return []
+  }
+  
+  console.log(`[getConversationMessages] Conversation found with participants: ${conversation.participants.join(', ')}`)
   
   // Mark messages as read
   await messagesDb.markAsRead(conversationId, user.id)
   
   const messages = await messagesDb.findByConversationId(conversationId, limit)
+  console.log(`[getConversationMessages] Found ${messages.length} messages`)
+  
   return serializeDocuments(messages)
 }
 
@@ -2121,8 +2172,11 @@ export async function sendMessage(
       return { success: false, error: "Message cannot be empty" }
     }
     
+    console.log(`[sendMessage] From: ${user.id}, To: ${receiverId}, Content: ${content.substring(0, 30)}...`)
+    
     // Find or create conversation
     const conversation = await conversationsDb.findOrCreate([user.id, receiverId], projectId)
+    console.log(`[sendMessage] Conversation ID: ${conversation._id?.toString()}, Participants: ${conversation.participants.join(', ')}`)
     
     // Create message
     const messageId = await messagesDb.create({
@@ -2133,12 +2187,14 @@ export async function sendMessage(
       isRead: false,
       createdAt: new Date(),
     })
+    console.log(`[sendMessage] Message created: ${messageId}`)
     
     // Update conversation last message
     await conversationsDb.updateLastMessage(
       conversation._id!.toString(),
       content.length > 50 ? content.substring(0, 50) + "..." : content
     )
+    console.log(`[sendMessage] Conversation updated with last message`)
     
     // Get sender and receiver info using centralized utility
     const [senderInfo, receiverInfo] = await Promise.all([
@@ -2147,9 +2203,10 @@ export async function sendMessage(
     ])
     
     const senderName = senderInfo?.name || "Someone"
+    const conversationIdStr = conversation._id!.toString()
     const messageLink = receiverInfo?.type === "ngo"
-      ? `/ngo/messages/${conversation._id!.toString()}`
-      : `/volunteer/messages/${conversation._id!.toString()}`
+      ? `/ngo/messages/${conversationIdStr}`
+      : `/volunteer/messages/${conversationIdStr}`
     
     // Create notification for receiver with link
     try {
@@ -2158,7 +2215,7 @@ export async function sendMessage(
         type: "new_message",
         title: "New Message",
         message: `${senderName} sent you a message`,
-        referenceId: conversation._id!.toString(),
+        referenceId: conversationIdStr,
         referenceType: "conversation",
         link: messageLink,
         isRead: false,
@@ -2168,8 +2225,13 @@ export async function sendMessage(
       console.error("Failed to create notification:", e)
     }
     
+    // Revalidate message pages for both sender and receiver
     revalidatePath("/volunteer/messages")
     revalidatePath("/ngo/messages")
+    revalidatePath(`/volunteer/messages/${conversationIdStr}`)
+    revalidatePath(`/ngo/messages/${conversationIdStr}`)
+    console.log(`[sendMessage] Revalidated paths for conversation ${conversationIdStr}`)
+    
     return { success: true, data: messageId }
   } catch (error) {
     console.error("Error sending message:", error)

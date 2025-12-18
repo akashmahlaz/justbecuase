@@ -127,6 +127,11 @@ export function MessageThread({
     }
   })
 
+  // DEBUG: Log otherParticipant info
+  useEffect(() => {
+    console.log('[MessageThread] otherParticipant:', otherParticipant)
+  }, [otherParticipant])
+
   return (
     <Card className="h-[600px] flex flex-col">
       {/* Header */}

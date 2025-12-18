@@ -74,6 +74,7 @@ export const volunteerProfilesDb = {
     if (dataAny.skills) processedData.skills = JSON.stringify(dataAny.skills)
     if (dataAny.languages) processedData.languages = JSON.stringify(dataAny.languages)
     if (dataAny.interests) processedData.interests = JSON.stringify(dataAny.interests)
+    if (dataAny.causes) processedData.causes = JSON.stringify(dataAny.causes)
     
     await collection.updateOne(
       { $expr: { $eq: [{ $toString: "$_id" }, userId] } },
@@ -95,6 +96,7 @@ export const volunteerProfilesDb = {
       skills: user.skills ? JSON.parse(user.skills) : [],
       languages: user.languages ? JSON.parse(user.languages) : [],
       interests: user.interests ? JSON.parse(user.interests) : [],
+      causes: user.causes ? JSON.parse(user.causes) : [], // Parse causes array
     } as VolunteerProfile
   },
 
@@ -111,6 +113,7 @@ export const volunteerProfilesDb = {
     if (updatesAny.skills) processedUpdates.skills = JSON.stringify(updatesAny.skills)
     if (updatesAny.languages) processedUpdates.languages = JSON.stringify(updatesAny.languages)
     if (updatesAny.interests) processedUpdates.interests = JSON.stringify(updatesAny.interests)
+    if (updatesAny.causes) processedUpdates.causes = JSON.stringify(updatesAny.causes)
     
     const result = await collection.updateOne(
       { $expr: { $eq: [{ $toString: "$_id" }, userId] } },
@@ -133,6 +136,7 @@ export const volunteerProfilesDb = {
       skills: u.skills ? JSON.parse(u.skills) : [],
       languages: u.languages ? JSON.parse(u.languages) : [],
       interests: u.interests ? JSON.parse(u.interests) : [],
+      causes: u.causes ? JSON.parse(u.causes) : [], // Parse causes array
     }))
   },
 
@@ -645,7 +649,10 @@ export const conversationsDb = {
 
   async findByUserId(userId: string): Promise<Conversation[]> {
     const collection = await getCollection<Conversation>(COLLECTIONS.CONVERSATIONS)
-    return collection.find({ participants: userId }).sort({ lastMessageAt: -1 }).toArray()
+    // Sort by lastMessageAt if exists, otherwise fall back to updatedAt
+    return collection.find({ participants: userId })
+      .sort({ lastMessageAt: -1, updatedAt: -1 })
+      .toArray()
   },
 
   async updateLastMessage(id: string, message: string): Promise<boolean> {

@@ -39,6 +39,8 @@ export interface VolunteerSkill {
 }
 
 export interface VolunteerProfile {
+  interests: any
+  languages: any
   _id?: ObjectId
   userId: string // Reference to User
   
