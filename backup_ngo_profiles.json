@@ -1,0 +1,185 @@
+[
+  {
+    "_id": "693a807be2af600e64ccae3d",
+    "userId": "693a8035e2af600e64ccae3a",
+    "orgName": "Akashdeep Singh",
+    "registrationNumber": "81181789991881",
+    "website": "career@punjabtech.online",
+    "phone": "+917814002784",
+    "address": "Village Dalla, Punjab India",
+    "city": "Qadian",
+    "country": "India",
+    "description": "fuddu hnenene e ejeenhee",
+    "mission": "",
+    "yearFounded": "2001",
+    "teamSize": "21-50",
+    "causes": [
+      "education",
+      "healthcare"
+    ],
+    "typicalSkillsNeeded": [
+      {
+        "categoryId": "finance",
+        "subskillId": "bookkeeping",
+        "priority": "nice-to-have"
+      },
+      {
+        "categoryId": "finance",
+        "subskillId": "payroll-processing",
+        "priority": "nice-to-have"
+      },
+      {
+        "categoryId": "finance",
+        "subskillId": "accounting-software",
+        "priority": "nice-to-have"
+      }
+    ],
+    "acceptRemoteVolunteers": true,
+    "acceptOnsiteVolunteers": true,
+    "projectsPosted": 0,
+    "projectsCompleted": 0,
+    "volunteersEngaged": 0,
+    "isVerified": false,
+    "isActive": true,
+    "subscriptionTier": "free",
+    "profileUnlocksRemaining": 0,
+    "createdAt": "2025-12-11T08:27:39.294Z",
+    "updatedAt": "2025-12-11T08:27:39.294Z"
+  },
+  {
+    "_id": "693d643c67022b465a6b6f06",
+    "contactPersonName": "NGO1",
+    "contactEmail": "ngo@gmail.com",
+    "userId": "693d602a67022b465a6b6f03",
+    "orgName": "Akashdeep Singh",
+    "registrationNumber": "81181789991881",
+    "website": "https://khalsaaid.org/",
+    "phone": "+917814002784",
+    "address": "Village Dalla, Punjab India",
+    "city": "Qadian",
+    "country": "India",
+    "description": " TrendRadar TrendRadar TrendRadar TrendRadar TrendRadar TrendRadar TrendRadar TrendRadar TrendRadar TrendRadar TrendRadar TrendRadar TrendRadar TrendRadar TrendRadar TrendRadar TrendRadar TrendRadar TrendRadar TrendRadar TrendRadar TrendRadar TrendRadar TrendRadar TrendRadar TrendRadar TrendRadar TrendRadar TrendRadar TrendRadar TrendRadar TrendRadar TrendRadar TrendRadar TrendRadar TrendRadar TrendRadar TrendRadar TrendRadar TrendRadar",
+    "mission": " TrendRadar TrendRadar TrendRadar TrendRadar TrendRadar TrendRadar TrendRadar TrendRadar TrendRadar TrendRadar TrendRadar TrendRadar",
+    "yearFounded": "2001",
+    "teamSize": "21-50",
+    "causes": [
+      "education",
+      "healthcare",
+      "environment"
+    ],
+    "typicalSkillsNeeded": [],
+    "acceptRemoteVolunteers": true,
+    "acceptOnsiteVolunteers": true,
+    "projectsPosted": 1,
+    "projectsCompleted": 0,
+    "volunteersEngaged": 0,
+    "isVerified": false,
+    "isActive": true,
+    "subscriptionTier": "free",
+    "profileUnlocksRemaining": 0,
+    "createdAt": "2025-12-13T13:03:56.369Z",
+    "updatedAt": "2025-12-13T13:21:36.057Z"
+  },
+  {
+    "_id": "694150a6555270e87aad5098",
+    "contactPersonName": "aango",
+    "contactEmail": "akashdalla413@gmail.com",
+    "userId": "69415018555270e87aad5095",
+    "orgName": "KHALSA aid ",
+    "registrationNumber": "781400278655353",
+    "website": "https://portfolio-blue-rho-93.vercel.app/",
+    "phone": "+917814002784",
+    "address": "Village Dalla, Punjab India",
+    "city": "Qadian",
+    "country": "India",
+    "description": "akashdalla413@gmail.comakashdalla413@gmail.comakashdalla413@gmail.comndnwdnqnqsnsn h shsb21s1s1`w1wh jwbwjwqbq ju1s1bq1snqs  1akashdalla413@gmail.com  akashdalla413@gmail.com  vsvs  akashdalla413@gmail.comakashdalla413@gmail.comakashdalla413@gmail.comakashdalla413@gmail.c",
+    "mission": "akashdalla413@gmail.comakashdalla413@gmail.comakashdalla413@gmail.com",
+    "yearFounded": "2001",
+    "teamSize": "11-25",
+    "causes": [
+      "healthcare",
+      "education",
+      "environment"
+    ],
+    "typicalSkillsNeeded": [
+      {
+        "categoryId": "website",
+        "subskillId": "wordpress-development",
+        "priority": "nice-to-have"
+      },
+      {
+        "categoryId": "website",
+        "subskillId": "html-css",
+        "priority": "nice-to-have"
+      }
+    ],
+    "acceptRemoteVolunteers": true,
+    "acceptOnsiteVolunteers": true,
+    "projectsPosted": 0,
+    "projectsCompleted": 0,
+    "volunteersEngaged": 0,
+    "isVerified": false,
+    "isActive": true,
+    "subscriptionTier": "free",
+    "profileUnlocksRemaining": 0,
+    "createdAt": "2025-12-16T12:29:49.058Z",
+    "updatedAt": "2025-12-17T05:57:32.051Z",
+    "logo": "https://res.cloudinary.com/dh57hrdlc/image/upload/v1765888233/ngo_logos/ehim20un7wp1zygo7ylw.png",
+    "socialLinks": {
+      "facebook": "",
+      "twitter": "",
+      "instagram": "",
+      "linkedin": ""
+    },
+    "contactPhone": "",
+    "organizationName": "punjab",
+    "monthlyUnlocksLimit": 999999,
+    "monthlyUnlocksUsed": 2,
+    "subscriptionExpiry": "2026-01-17T05:37:08.314Z",
+    "subscriptionPlan": "pro",
+    "subscriptionResetDate": "2025-12-31T18:30:00.000Z"
+  },
+  {
+    "_id": "69438f30256689a94fff9e03",
+    "contactPersonName": "Akash",
+    "contactEmail": "akashdalla409@gmail.com",
+    "userId": "69438edf256689a94fff9e00",
+    "orgName": "718237737474",
+    "registrationNumber": "",
+    "website": "http://localhost:3000/volunteer/messages/69438e5b256689a94fff9dfc",
+    "phone": "3283283883",
+    "address": "sgdkgsdhvjds bsdbdhvjdehvcj hvsgvshvjdhvjdb hgkdbdhvjdvhjd vhjdb djvdjgkwjgkd",
+    "city": "78778777888",
+    "country": "India",
+    "description": "0938938938y48y4",
+    "mission": "9u34u48y484",
+    "yearFounded": "2001",
+    "teamSize": "21-50",
+    "causes": [
+      "senior-citizens"
+    ],
+    "typicalSkillsNeeded": [
+      {
+        "categoryId": "content-creation",
+        "subskillId": "motion-graphics",
+        "priority": "nice-to-have"
+      }
+    ],
+    "acceptRemoteVolunteers": true,
+    "acceptOnsiteVolunteers": true,
+    "projectsPosted": 0,
+    "projectsCompleted": 0,
+    "volunteersEngaged": 0,
+    "isVerified": false,
+    "isActive": true,
+    "subscriptionPlan": "free",
+    "monthlyUnlocksUsed": 0,
+    "monthlyUnlocksLimit": 0,
+    "monthlyProjectsPosted": 0,
+    "subscriptionResetDate": "2025-12-31T18:30:00.000Z",
+    "subscriptionTier": "free",
+    "profileUnlocksRemaining": 5,
+    "createdAt": "2025-12-18T05:20:48.768Z",
+    "updatedAt": "2025-12-18T05:20:48.768Z"
+  }
+]
