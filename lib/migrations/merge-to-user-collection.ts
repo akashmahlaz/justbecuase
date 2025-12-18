@@ -24,7 +24,7 @@ if (!mongoUri) {
 async function mergeToUserCollection() {
   console.log("🔄 Starting migration: Merge profiles into user collection\n")
   
-  const client = await MongoClient.connect(mongoUri)
+  const client = await MongoClient.connect(mongoUri!)
   const db = client.db()
   
   try {

@@ -120,6 +120,29 @@ export const auth = betterAuth({
         type: "string",
         required: false,
         input: true,
+      },
+      // Volunteer-specific fields (null if NGO)
+      bio: {
+        type: "string",
+        required: false,
+        input: true,
+      },
+      skills: {
+        type: "string", // JSON array string
+        required: false,
+        input: true,
+      },
+      experience: {
+        type: "string",
+        required: false,
+        input: true,
+      },
+      availability: {
+        type: "string",
+        required: false,
+        input: true,
+      },
+      languages: {
         type: "string", // JSON array string
         required: false,
         input: true,
@@ -250,29 +273,6 @@ export const auth = betterAuth({
       defaultRole: "user", // Unassigned - user must select volunteer or ngo
     }),
   ],
-  hooks: {
-    // Automatically sync user data from auth table to profiles on any update
-    after: [
-      {
-        matcher: (context) => {
-          // Trigger on user updates (name or image changes)
-          return context.path === "/user/update";
-        },
-        handler: async (ctx) => {
-          // Auto-sync to profile tables for consistency
-          if (ctx.context?.user?.id) {
-            const updateData: { name?: string; image?: string } = {};
-            if (ctx.body?.name) updateData.name = ctx.body.name;
-            if (ctx.body?.image) updateData.image = ctx.body.image;
-            
-            if (Object.keys(updateData).length > 0) {
-              await syncUserDataToProfile(ctx.context.user.id, updateData);
-            }
-          }
-        },
-      },
-    ],
-  },
 });
 
 export type Session = typeof auth.$Infer.Session;
