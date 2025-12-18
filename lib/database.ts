@@ -59,32 +59,62 @@ export const COLLECTIONS = {
 // ============================================
 // VOLUNTEER PROFILES
 // ============================================
+/**
+ * SIMPLIFIED: Now reads from user collection directly
+ * All volunteer data is stored in the user collection
+ */
 export const volunteerProfilesDb = {
   async create(profile: Omit<VolunteerProfile, "_id">): Promise<string> {
-    const collection = await getCollection<VolunteerProfile>(COLLECTIONS.VOLUNTEER_PROFILES)
-    const result = await collection.insertOne({
-      ...profile,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    } as VolunteerProfile)
-    return result.insertedId.toString()
+    const { userId, ...data } = profile
+    const collection = await getCollection<any>("user")
+    
+    // Convert arrays to JSON strings
+    const processedData: any = { ...data }
+    const dataAny = data as any
+    if (dataAny.skills) processedData.skills = JSON.stringify(dataAny.skills)
+    if (dataAny.languages) processedData.languages = JSON.stringify(dataAny.languages)
+    if (dataAny.interests) processedData.interests = JSON.stringify(dataAny.interests)
+    
+    await collection.updateOne(
+      { $expr: { $eq: [{ $toString: "$_id" }, userId] } },
+      { $set: { ...processedData, updatedAt: new Date() } }
+    )
+    return userId
   },
 
   async findByUserId(userId: string): Promise<VolunteerProfile | null> {
-    const collection = await getCollection<VolunteerProfile>(COLLECTIONS.VOLUNTEER_PROFILES)
-    return collection.findOne({ userId })
+    const collection = await getCollection<any>("user")
+    const user = await collection.findOne({ $expr: { $eq: [{ $toString: "$_id" }, userId] } })
+    
+    if (!user || user.role !== "volunteer") return null
+    
+    // Parse JSON strings back to arrays
+    return {
+      ...user,
+      userId: user._id.toString(),
+      skills: user.skills ? JSON.parse(user.skills) : [],
+      languages: user.languages ? JSON.parse(user.languages) : [],
+      interests: user.interests ? JSON.parse(user.interests) : [],
+    } as VolunteerProfile
   },
 
   async findById(id: string): Promise<VolunteerProfile | null> {
-    const collection = await getCollection<VolunteerProfile>(COLLECTIONS.VOLUNTEER_PROFILES)
-    return collection.findOne({ _id: new ObjectId(id) })
+    return this.findByUserId(id)
   },
 
   async update(userId: string, updates: Partial<VolunteerProfile>): Promise<boolean> {
-    const collection = await getCollection<VolunteerProfile>(COLLECTIONS.VOLUNTEER_PROFILES)
+    const collection = await getCollection<any>("user")
+    
+    // Convert arrays to JSON strings
+    const processedUpdates: any = { ...updates }
+    const updatesAny = updates as any
+    if (updatesAny.skills) processedUpdates.skills = JSON.stringify(updatesAny.skills)
+    if (updatesAny.languages) processedUpdates.languages = JSON.stringify(updatesAny.languages)
+    if (updatesAny.interests) processedUpdates.interests = JSON.stringify(updatesAny.interests)
+    
     const result = await collection.updateOne(
-      { userId },
-      { $set: { ...updates, updatedAt: new Date() } }
+      { $expr: { $eq: [{ $toString: "$_id" }, userId] } },
+      { $set: { ...processedUpdates, updatedAt: new Date() } }
     )
     return result.modifiedCount > 0
   },
@@ -93,28 +123,37 @@ export const volunteerProfilesDb = {
     filter: Filter<VolunteerProfile> = {},
     options: FindOptions = {}
   ): Promise<VolunteerProfile[]> {
-    const collection = await getCollection<VolunteerProfile>(COLLECTIONS.VOLUNTEER_PROFILES)
-    return collection.find(filter, options).toArray()
+    const collection = await getCollection<any>("user")
+    const users = await collection.find({ role: "volunteer", ...filter }, options).toArray()
+    
+    // Parse JSON strings
+    return users.map((u: any) => ({
+      ...u,
+      userId: u._id.toString(),
+      skills: u.skills ? JSON.parse(u.skills) : [],
+      languages: u.languages ? JSON.parse(u.languages) : [],
+      interests: u.interests ? JSON.parse(u.interests) : [],
+    }))
   },
 
   async count(filter: Filter<VolunteerProfile> = {}): Promise<number> {
-    const collection = await getCollection<VolunteerProfile>(COLLECTIONS.VOLUNTEER_PROFILES)
-    return collection.countDocuments(filter)
+    const collection = await getCollection<any>("user")
+    return collection.countDocuments({ role: "volunteer", ...filter })
   },
 
   async delete(userId: string): Promise<boolean> {
-    const collection = await getCollection<VolunteerProfile>(COLLECTIONS.VOLUNTEER_PROFILES)
-    const result = await collection.deleteOne({ userId })
+    const collection = await getCollection<any>("user")
+    const result = await collection.deleteOne({ $expr: { $eq: [{ $toString: "$_id" }, userId] } })
     return result.deletedCount > 0
   },
 
   // Increment monthly application count
   async incrementApplicationCount(userId: string): Promise<boolean> {
-    const collection = await getCollection<VolunteerProfile>(COLLECTIONS.VOLUNTEER_PROFILES)
+    const collection = await getCollection<any>("user")
     const result = await collection.updateOne(
-      { userId },
+      { $expr: { $eq: [{ $toString: "$_id" }, userId] } },
       { 
-        $inc: { monthlyApplicationsUsed: 1 }, 
+        $inc: { completedProjects: 1 }, 
         $set: { updatedAt: new Date() } 
       }
     )
@@ -150,32 +189,54 @@ export const passwordResetDb = {
 // ============================================
 // NGO PROFILES
 // ============================================
+/**
+ * SIMPLIFIED: Now reads from user collection directly
+ * All NGO data is stored in the user collection
+ */
 export const ngoProfilesDb = {
   async create(profile: Omit<NGOProfile, "_id">): Promise<string> {
-    const collection = await getCollection<NGOProfile>(COLLECTIONS.NGO_PROFILES)
-    const result = await collection.insertOne({
-      ...profile,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    } as NGOProfile)
-    return result.insertedId.toString()
+    const { userId, ...data } = profile
+    const collection = await getCollection<any>("user")
+    
+    // Convert arrays to JSON strings
+    const processedData: any = { ...data }
+    if (data.causes) processedData.causes = JSON.stringify(data.causes)
+    
+    await collection.updateOne(
+      { $expr: { $eq: [{ $toString: "$_id" }, userId] } },
+      { $set: { ...processedData, updatedAt: new Date() } }
+    )
+    return userId
   },
 
   async findByUserId(userId: string): Promise<NGOProfile | null> {
-    const collection = await getCollection<NGOProfile>(COLLECTIONS.NGO_PROFILES)
-    return collection.findOne({ userId })
+    const collection = await getCollection<any>("user")
+    const user = await collection.findOne({ $expr: { $eq: [{ $toString: "$_id" }, userId] } })
+    
+    if (!user || user.role !== "ngo") return null
+    
+    // Parse JSON strings back to arrays
+    return {
+      ...user,
+      userId: user._id.toString(),
+      causes: user.causes ? JSON.parse(user.causes) : [],
+    } as NGOProfile
   },
 
   async findById(id: string): Promise<NGOProfile | null> {
-    const collection = await getCollection<NGOProfile>(COLLECTIONS.NGO_PROFILES)
-    return collection.findOne({ _id: new ObjectId(id) })
+    return this.findByUserId(id)
   },
 
   async update(userId: string, updates: Partial<NGOProfile>): Promise<boolean> {
-    const collection = await getCollection<NGOProfile>(COLLECTIONS.NGO_PROFILES)
+    const collection = await getCollection<any>("user")
+    
+    // Convert arrays to JSON strings
+    const processedUpdates: any = { ...updates }
+    if (updates.causes) processedUpdates.causes = JSON.stringify(updates.causes)
+    
     const result = await collection.updateOne(
-      { userId },
-      { $set: { ...updates, updatedAt: new Date() } }
+      { $expr: { $eq: [{ $toString: "$_id" }, userId] } },
+      { $set: { ...processedUpdates, updatedAt: new Date() } }
     )
     return result.modifiedCount > 0
   },
@@ -184,19 +245,26 @@ export const ngoProfilesDb = {
     filter: Filter<NGOProfile> = {},
     options: FindOptions = {}
   ): Promise<NGOProfile[]> {
-    const collection = await getCollection<NGOProfile>(COLLECTIONS.NGO_PROFILES)
-    return collection.find(filter, options).toArray()
+    const collection = await getCollection<any>("user")
+    const users = await collection.find({ role: "ngo", ...filter }, options).toArray()
+    
+    // Parse JSON strings
+    return users.map((u: any) => ({
+      ...u,
+      userId: u._id.toString(),
+      causes: u.causes ? JSON.parse(u.causes) : [],
+    }))
   },
 
   async count(filter: Filter<NGOProfile> = {}): Promise<number> {
-    const collection = await getCollection<NGOProfile>(COLLECTIONS.NGO_PROFILES)
-    return collection.countDocuments(filter)
+    const collection = await getCollection<any>("user")
+    return collection.countDocuments({ role: "ngo", ...filter })
   },
 
   async incrementStat(userId: string, field: keyof Pick<NGOProfile, "projectsPosted" | "projectsCompleted" | "volunteersEngaged">, amount: number = 1): Promise<boolean> {
-    const collection = await getCollection<NGOProfile>(COLLECTIONS.NGO_PROFILES)
+    const collection = await getCollection<any>("user")
     const result = await collection.updateOne(
-      { userId },
+      { $expr: { $eq: [{ $toString: "$_id" }, userId] } },
       { $inc: { [field]: amount }, $set: { updatedAt: new Date() } }
     )
     return result.modifiedCount > 0

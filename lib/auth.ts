@@ -4,7 +4,6 @@ import { admin } from "better-auth/plugins";
 import client from "./db";
 import { sendEmail, getVerificationEmailHtml, getPasswordResetEmailHtml, getPasswordResetCodeEmailHtml } from "./email";
 import { passwordResetDb } from "./database";
-import { syncUserDataToProfile } from "./user-utils";
 
 // Determine the base URL for auth
 const getAuthBaseURL = () => {
@@ -99,6 +98,136 @@ export const auth = betterAuth({
         type: "boolean",
         required: false,
         defaultValue: false,
+        input: true,
+      },
+      // Common profile fields
+      phone: {
+        type: "string",
+        required: false,
+        input: true,
+      },
+      location: {
+        type: "string",
+        required: false,
+        input: true,
+      },
+      city: {
+        type: "string",
+        required: false,
+        input: true,
+      },
+      country: {
+        type: "string",
+        required: false,
+        input: true,
+        type: "string", // JSON array string
+        required: false,
+        input: true,
+      },
+      interests: {
+        type: "string", // JSON array string
+        required: false,
+        input: true,
+      },
+      linkedIn: {
+        type: "string",
+        required: false,
+        input: true,
+      },
+      portfolio: {
+        type: "string",
+        required: false,
+        input: true,
+      },
+      isAvailable: {
+        type: "boolean",
+        required: false,
+        input: true,
+      },
+      rating: {
+        type: "number",
+        required: false,
+      },
+      completedProjects: {
+        type: "number",
+        required: false,
+      },
+      // NGO-specific fields (null if Volunteer)
+      orgName: {
+        type: "string",
+        required: false,
+        input: true,
+      },
+      description: {
+        type: "string",
+        required: false,
+        input: true,
+      },
+      mission: {
+        type: "string",
+        required: false,
+        input: true,
+      },
+      registrationNumber: {
+        type: "string",
+        required: false,
+        input: true,
+      },
+      website: {
+        type: "string",
+        required: false,
+        input: true,
+      },
+      address: {
+        type: "string",
+        required: false,
+        input: true,
+      },
+      causes: {
+        type: "string", // JSON array string
+        required: false,
+        input: true,
+      },
+      yearFounded: {
+        type: "string",
+        required: false,
+        input: true,
+      },
+      teamSize: {
+        type: "string",
+        required: false,
+        input: true,
+      },
+      contactPersonName: {
+        type: "string",
+        required: false,
+        input: true,
+      },
+      contactEmail: {
+        type: "string",
+        required: false,
+        input: true,
+      },
+      isVerified: {
+        type: "boolean",
+        required: false,
+      },
+      subscriptionTier: {
+        type: "string",
+        required: false,
+      },
+      activeProjects: {
+        type: "number",
+        required: false,
+      },
+      logo: {
+        type: "string",
+        required: false,
+        input: true,
+      },
+      avatar: {
+        type: "string",
+        required: false,
         input: true,
       },
     },
