@@ -116,13 +116,13 @@ export default function SignUpPage() {
 
       // Fire-and-forget welcome email (server will handle sending via Resend)
       try {
-        fetch('/api/auth/welcome', {
+        await fetch('/api/auth/welcome', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ email: formData.email, name: formData.name, role: accountType })
         })
       } catch (e) {
-        // ignore
+        console.error("Failed to send welcome email", e)
       }
 
       // Redirect to onboarding

@@ -99,20 +99,36 @@ export default function VolunteerOnboardingPage() {
         // Reverse geocode to get city name using a free API
         try {
           const response = await fetch(
-            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=10`
+            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=10`,
+            {
+              headers: {
+                'User-Agent': 'JustBecause.asia/1.0',
+                'Accept-Language': 'en-US,en;q=0.9'
+              }
+            }
           )
+          
+          if (!response.ok) {
+            throw new Error('Failed to fetch address')
+          }
+
           const data = await response.json()
           
-          const city = data.address?.city || data.address?.town || data.address?.village || data.address?.county
+          const city = data.address?.city || data.address?.town || data.address?.village || data.address?.county || data.address?.suburb
           const state = data.address?.state
           const country = data.address?.country
           
           const locationParts = [city, state, country].filter(Boolean)
           const locationString = locationParts.join(", ")
           
-          setProfile(prev => ({ ...prev, location: locationString }))
+          if (locationString) {
+            setProfile(prev => ({ ...prev, location: locationString }))
+          } else {
+             setProfile(prev => ({ ...prev, location: `${latitude.toFixed(4)}, ${longitude.toFixed(4)}` }))
+          }
         } catch (error) {
           console.error("Error reverse geocoding:", error)
+          // Fallback to coordinates if reverse geocoding fails
           setProfile(prev => ({ ...prev, location: `${latitude.toFixed(4)}, ${longitude.toFixed(4)}` }))
         }
         
@@ -120,7 +136,12 @@ export default function VolunteerOnboardingPage() {
       },
       (error) => {
         console.error("Geolocation error:", error)
-        alert("Unable to get your location. Please enter it manually.")
+        let errorMessage = "Unable to get your location."
+        if (error.code === 1) errorMessage = "Location permission denied. Please enable location services."
+        else if (error.code === 2) errorMessage = "Location unavailable."
+        else if (error.code === 3) errorMessage = "Location request timed out."
+        
+        alert(errorMessage)
         setIsGettingLocation(false)
       },
       { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
