@@ -152,6 +152,12 @@ export interface NGOProfile {
     linkedin?: string
   }
   
+  // Location (added coordinates support)
+  coordinates?: {
+    lat: number
+    lng: number
+  }
+  
   // Causes & Focus
   causes: string[]
   

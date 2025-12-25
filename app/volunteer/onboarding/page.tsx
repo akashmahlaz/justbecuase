@@ -2,6 +2,7 @@
 
 import type React from "react"
 import { useState, useEffect } from "react"
+import { useGeolocated } from "react-geolocated"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -25,6 +26,7 @@ import {
   DollarSign,
   Lightbulb,
   LocateFixed,
+  Globe,
 } from "lucide-react"
 import { skillCategories, experienceLevels, causes, workModes } from "../../../lib/skills-data"
 import { saveVolunteerOnboarding, completeOnboarding } from "@/lib/actions"
@@ -79,74 +81,227 @@ export default function VolunteerOnboardingPage() {
     linkedinUrl: "",
     portfolioUrl: "",
   })
-  const [coordinates, setCoordinates] = useState<{ lat: number; lng: number } | null>(null)
-  const [isGettingLocation, setIsGettingLocation] = useState(false)
 
-  // Geolocation function to get exact user location
+  // Use react-geolocated for geolocation
+  const {
+    coords,
+    isGeolocationAvailable,
+    isGeolocationEnabled,
+    getPosition,
+    positionError,
+  } = useGeolocated({
+    positionOptions: { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 },
+    watchPosition: false,
+    suppressLocationOnMount: true,
+  });
+  const [coordinates, setCoordinates] = useState<{ lat: number; lng: number } | null>(null);
+  const [isGettingLocation, setIsGettingLocation] = useState(false);
+
+  // Geolocation function using react-geolocated
   const getExactLocation = async () => {
-    if (!navigator.geolocation) {
-      alert("Geolocation is not supported by your browser")
-      return
+    if (!isGeolocationAvailable) {
+      setError("Geolocation is not supported by your browser");
+      return;
     }
+    if (!isGeolocationEnabled) {
+      setError("Geolocation is disabled. Please enable location services.");
+      return;
+    }
+    setError(""); // Clear any previous errors
+    setIsGettingLocation(true);
+    getPosition();
+  };
 
-    setIsGettingLocation(true)
+  // IP-based location detection (for fallback)
+  const getIPLocation = async () => {
+    console.log('[Location Debug] Starting IP location detection');
+    setError(""); // Clear any previous errors
+    setIsGettingLocation(true);
+    
+    try {
+      console.log('[Location Debug] Calling IP location API');
+      const response = await fetch('/api/location');
+      console.log('[Location Debug] IP location API response status:', response.status);
+      const data = await response.json();
+      console.log('[Location Debug] IP location API response:', data);
+      
+      if (data.success && data.location) {
+        console.log('[Location Debug] IP location data received:', data.location);
+        const { city, region, country } = data.location;
+        const locationParts = [city, region, country].filter(Boolean);
+        
+        if (locationParts.length > 0) {
+          console.log('[Location Debug] Setting location to:', locationParts.join(", "));
+          setProfile(prev => ({ ...prev, location: locationParts.join(", ") }));
+        } else {
+          console.log('[Location Debug] No location parts from IP');
+          setError("Could not determine location from your IP address");
+        }
+      } else {
+        console.log('[Location Debug] IP location failed with error:', data.error);
+        setError(data.error || "Failed to get location from IP");
+      }
+    } catch (err) {
+      console.error('[Location Debug] IP location error:', err);
+      setError("Failed to get location from IP. Please try manual entry.");
+    } finally {
+      console.log('[Location Debug] IP location detection finished');
+      setIsGettingLocation(false);
+    }
+  };
 
+  // Google Geocoding location detection
+  const getGoogleLocation = async () => {
+    console.log('[Location Debug] Starting Google location detection');
+    setError(""); // Clear any previous errors
+    setIsGettingLocation(true);
+    
+    if (!isGeolocationAvailable) {
+      console.log('[Location Debug] Geolocation not supported by browser');
+      setError("Geolocation is not supported by your browser");
+      setIsGettingLocation(false);
+      return;
+    }
+    if (!isGeolocationEnabled) {
+      console.log('[Location Debug] Geolocation is disabled');
+      setError("Geolocation is disabled. Please enable location services.");
+      setIsGettingLocation(false);
+      return;
+    }
+    
+    console.log('[Location Debug] Requesting geolocation from browser');
     navigator.geolocation.getCurrentPosition(
       async (position) => {
-        const { latitude, longitude } = position.coords
-        setCoordinates({ lat: latitude, lng: longitude })
+        console.log('[Location Debug] Geolocation received:', position.coords);
+        const { latitude, longitude } = position.coords;
+        
+        try {
+          console.log('[Location Debug] Calling geocoding API with coordinates:', { lat: latitude, lng: longitude });
+          const response = await fetch('/api/location', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ lat: latitude, lng: longitude }),
+          });
+          
+          console.log('[Location Debug] API response status:', response.status);
+          const data = await response.json();
+          console.log('[Location Debug] API response data:', data);
+          
+          if (data.success && data.location) {
+            console.log('[Location Debug] Location data received:', data.location);
+            const { city, state, country, coordinates } = data.location;
+            const locationParts = [city, state, country].filter(Boolean);
+            
+            if (locationParts.length > 0) {
+              console.log('[Location Debug] Setting location to:', locationParts.join(", "));
+              setProfile(prev => ({ ...prev, location: locationParts.join(", ") }));
+            } else {
+              console.log('[Location Debug] No location parts found');
+              setError("Could not determine location details");
+            }
+            
+            if (coordinates) {
+              console.log('[Location Debug] Setting coordinates:', coordinates);
+              setCoordinates(coordinates);
+            }
+          } else if (data.status === "REQUEST_DENIED") {
+            console.log('[Location Debug] Google Geocoding API request denied');
+            setError("Location service temporarily unavailable. Please enter your location manually.");
+            console.warn("Google Geocoding API is restricted. Using fallback method.");
+            
+            // Fallback to basic coordinates display
+            setProfile(prev => ({ ...prev, location: `${latitude.toFixed(4)}, ${longitude.toFixed(4)}` }));
+            setCoordinates({ lat: latitude, lng: longitude });
+          } else {
+            console.log('[Location Debug] Geocoding failed with error:', data.error);
+            setError(data.error || "Failed to get location details");
+          }
+        } catch (err) {
+          console.error('[Location Debug] Google geocoding error:', err);
+          setError("Failed to get location details. Please try manual entry.");
+        } finally {
+          console.log('[Location Debug] Location detection finished');
+          setIsGettingLocation(false);
+        }
+      },
+      (error) => {
+        console.log('[Location Debug] Geolocation error:', error);
+        let errorMessage = "Unable to get your location.";
+        if (error.code === 1) {
+          console.log('[Location Debug] Error code 1: Permission denied');
+          errorMessage = "Location permission denied. Please enable location services in your browser settings.";
+        } else if (error.code === 2) {
+          console.log('[Location Debug] Error code 2: Position unavailable');
+          errorMessage = "Location unavailable. Your device may not support geolocation or network location services are disabled.";
+        } else if (error.code === 3) {
+          console.log('[Location Debug] Error code 3: Timeout');
+          errorMessage = "Location request timed out. Please check your internet connection and try again. This can happen in areas with poor GPS signal.";
+        }
+        setError(errorMessage);
+        setIsGettingLocation(false);
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 15000,
+        maximumAge: 0
+      }
+    );
+  };
 
-        // Reverse geocode to get city name using a free API
+  // When coords change, reverse geocode
+  useEffect(() => {
+    const fetchLocation = async () => {
+      if (coords) {
+        setCoordinates({ lat: coords.latitude, lng: coords.longitude });
         try {
           const response = await fetch(
-            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=10`,
+            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${coords.latitude}&lon=${coords.longitude}&zoom=10`,
             {
               headers: {
                 'User-Agent': 'JustBecause.asia/1.0',
                 'Accept-Language': 'en-US,en;q=0.9'
               }
             }
-          )
-          
-          if (!response.ok) {
-            throw new Error('Failed to fetch address')
-          }
-
-          const data = await response.json()
-          
-          const city = data.address?.city || data.address?.town || data.address?.village || data.address?.county || data.address?.suburb
-          const state = data.address?.state
-          const country = data.address?.country
-          
-          const locationParts = [city, state, country].filter(Boolean)
-          const locationString = locationParts.join(", ")
-          
+          );
+          if (!response.ok) throw new Error('Failed to fetch address');
+          const data = await response.json();
+          const city = data.address?.city || data.address?.town || data.address?.village || data.address?.county || data.address?.suburb;
+          const state = data.address?.state;
+          const country = data.address?.country;
+          const locationParts = [city, state, country].filter(Boolean);
+          const locationString = locationParts.join(", ");
           if (locationString) {
-            setProfile(prev => ({ ...prev, location: locationString }))
+            setProfile(prev => ({ ...prev, location: locationString }));
           } else {
-             setProfile(prev => ({ ...prev, location: `${latitude.toFixed(4)}, ${longitude.toFixed(4)}` }))
+            setProfile(prev => ({ ...prev, location: `${coords.latitude.toFixed(4)}, ${coords.longitude.toFixed(4)}` }));
           }
         } catch (error) {
-          console.error("Error reverse geocoding:", error)
-          // Fallback to coordinates if reverse geocoding fails
-          setProfile(prev => ({ ...prev, location: `${latitude.toFixed(4)}, ${longitude.toFixed(4)}` }))
+          console.error('Reverse geocoding failed:', error);
+          setError('Failed to fetch location details. Using coordinates instead.');
+          setProfile(prev => ({ ...prev, location: `${coords.latitude.toFixed(4)}, ${coords.longitude.toFixed(4)}` }));
+          // Clear error after 5 seconds
+          setTimeout(() => setError(''), 5000);
         }
-        
-        setIsGettingLocation(false)
-      },
-      (error) => {
-        console.error("Geolocation error:", error)
-        let errorMessage = "Unable to get your location."
-        if (error.code === 1) errorMessage = "Location permission denied. Please enable location services."
-        else if (error.code === 2) errorMessage = "Location unavailable."
-        else if (error.code === 3) errorMessage = "Location request timed out."
-        
-        alert(errorMessage)
-        setIsGettingLocation(false)
-      },
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
-    )
-  }
+        setIsGettingLocation(false);
+      }
+    };
+    if (isGettingLocation && coords) {
+      fetchLocation();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [coords]);
+
+  useEffect(() => {
+    if (positionError && isGettingLocation) {
+      let errorMessage = "Unable to get your location.";
+      if (positionError.code === 1) errorMessage = "Location permission denied. Please enable location services in your browser settings.";
+      else if (positionError.code === 2) errorMessage = "Location unavailable. Your device may not support geolocation or network location services are disabled.";
+      else if (positionError.code === 3) errorMessage = "Location request timed out. Please check your internet connection and try again. This can happen in areas with poor GPS signal.";
+      setError(errorMessage);
+      setIsGettingLocation(false);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [positionError]);
 
   // Step 2: Skills
   const [selectedSkills, setSelectedSkills] = useState<SelectedSkill[]>([])
@@ -276,22 +431,40 @@ export default function VolunteerOnboardingPage() {
                 className="pl-10"
               />
             </div>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={getExactLocation}
-              disabled={isGettingLocation}
-              className="shrink-0"
-            >
-              {isGettingLocation ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <>
-                  <LocateFixed className="h-4 w-4 mr-2" />
-                  Use my location
-                </>
-              )}
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={getIPLocation}
+                disabled={isGettingLocation}
+                className="shrink-0"
+              >
+                {isGettingLocation ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <>
+                    <Globe className="h-4 w-4 mr-2" />
+                    IP Location
+                  </>
+                )}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={getGoogleLocation}
+                disabled={isGettingLocation}
+                className="shrink-0"
+              >
+                {isGettingLocation ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <>
+                    <LocateFixed className="h-4 w-4 mr-2" />
+                    Use my location
+                  </>
+                )}
+              </Button>
+            </div>
           </div>
           {coordinates && (
             <p className="text-xs text-muted-foreground">

@@ -411,6 +411,7 @@ export async function saveNGOOnboarding(data: {
     mission: string
     yearFounded?: string
     teamSize?: string
+    coordinates?: { lat: number; lng: number } | null
   }
   causes: string[]
   requiredSkills: { categoryId: string; subskillId: string; priority: string }[]
@@ -432,6 +433,8 @@ export async function saveNGOOnboarding(data: {
       address: data.orgDetails.address,
       city: data.orgDetails.city,
       country: data.orgDetails.country,
+      // Store exact coordinates if available
+      coordinates: data.orgDetails.coordinates || undefined,
       description: data.orgDetails.description,
       mission: data.orgDetails.mission,
       yearFounded: data.orgDetails.yearFounded,
@@ -488,7 +491,8 @@ const ALLOWED_NGO_UPDATE_FIELDS = [
   "orgName", "organizationName", "registrationNumber", "website", "phone",
   "address", "city", "country", "description", "mission", "yearFounded",
   "teamSize", "logo", "socialLinks", "causes", "typicalSkillsNeeded",
-  "acceptRemoteVolunteers", "acceptOnsiteVolunteers", "contactPersonName", "contactEmail", "contactPhone"
+  "acceptRemoteVolunteers", "acceptOnsiteVolunteers", "contactPersonName", "contactEmail", "contactPhone",
+  "coordinates"
 ] as const
 
 export async function updateNGOProfile(

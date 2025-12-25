@@ -2,6 +2,7 @@
 
 import type React from "react"
 import { useState, useEffect } from "react"
+import { useGeolocated } from "react-geolocated"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -24,6 +25,7 @@ import {
   Users,
   FileText,
   Upload,
+  LocateFixed,
 } from "lucide-react"
 import { skillCategories, causes } from "../../../lib/skills-data"
 import { saveNGOOnboarding, completeOnboarding } from "@/lib/actions"
@@ -85,6 +87,251 @@ export default function NGOOnboardingPage() {
     teamSize: "",
   })
 
+  // Use react-geolocated for geolocation
+  const {
+    coords,
+    isGeolocationAvailable,
+    isGeolocationEnabled,
+    getPosition,
+    positionError,
+  } = useGeolocated({
+    positionOptions: { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 },
+    watchPosition: false,
+    suppressLocationOnMount: true,
+  });
+  const [coordinates, setCoordinates] = useState<{ lat: number; lng: number } | null>(null);
+  const [isGettingLocation, setIsGettingLocation] = useState(false);
+
+  // Geolocation function using react-geolocated
+  const getExactLocation = async () => {
+    if (!isGeolocationAvailable) {
+      setError("Geolocation is not supported by your browser");
+      return;
+    }
+    if (!isGeolocationEnabled) {
+      setError("Geolocation is disabled. Please enable location services.");
+      return;
+    }
+    setError(""); // Clear any previous errors
+    setIsGettingLocation(true);
+    getPosition();
+  };
+
+  // IP-based location detection (for fallback)
+  const getIPLocation = async () => {
+    console.log('[Location Debug] NGO - Starting IP location detection');
+    setError(""); // Clear any previous errors
+    setIsGettingLocation(true);
+    
+    try {
+      console.log('[Location Debug] NGO - Calling IP location API');
+      const response = await fetch('/api/location');
+      console.log('[Location Debug] NGO - IP location API response status:', response.status);
+      const data = await response.json();
+      console.log('[Location Debug] NGO - IP location API response:', data);
+      
+      if (data.success && data.location) {
+        console.log('[Location Debug] NGO - IP location data received:', data.location);
+        const { city, region, country } = data.location;
+        
+        // Update both city and country fields
+        if (city || region || country) {
+          console.log('[Location Debug] NGO - Setting city to:', city || region || orgDetails.city, 'and country to:', country || orgDetails.country);
+          setOrgDetails(prev => ({ 
+            ...prev, 
+            city: city || region || prev.city,
+            country: country || prev.country
+          }));
+        } else {
+          console.log('[Location Debug] NGO - No location parts from IP');
+          setError("Could not determine location from your IP address");
+        }
+      } else {
+        console.log('[Location Debug] NGO - IP location failed with error:', data.error);
+        setError(data.error || "Failed to get location from IP");
+      }
+    } catch (err) {
+      console.error('[Location Debug] NGO - IP location error:', err);
+      setError("Failed to get location from IP. Please try manual entry.");
+    } finally {
+      console.log('[Location Debug] NGO - IP location detection finished');
+      setIsGettingLocation(false);
+    }
+  };
+
+  // Google Geocoding location detection
+  const getGoogleLocation = async () => {
+    console.log('[Location Debug] NGO - Starting Google location detection');
+    setError(""); // Clear any previous errors
+    setIsGettingLocation(true);
+    
+    if (!isGeolocationAvailable) {
+      console.log('[Location Debug] NGO - Geolocation not supported by browser');
+      setError("Geolocation is not supported by your browser");
+      setIsGettingLocation(false);
+      return;
+    }
+    if (!isGeolocationEnabled) {
+      console.log('[Location Debug] NGO - Geolocation is disabled');
+      setError("Geolocation is disabled. Please enable location services.");
+      setIsGettingLocation(false);
+      return;
+    }
+    
+    console.log('[Location Debug] NGO - Requesting geolocation from browser');
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        console.log('[Location Debug] NGO - Geolocation received:', position.coords);
+        const { latitude, longitude } = position.coords;
+        
+        try {
+          console.log('[Location Debug] NGO - Calling geocoding API with coordinates:', { lat: latitude, lng: longitude });
+          const response = await fetch('/api/location', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ lat: latitude, lng: longitude }),
+          });
+          
+          console.log('[Location Debug] NGO - API response status:', response.status);
+          const data = await response.json();
+          console.log('[Location Debug] NGO - API response data:', data);
+          
+          if (data.success && data.location) {
+            console.log('[Location Debug] NGO - Location data received:', data.location);
+            const { city, state, country, coordinates } = data.location;
+            
+            // Update both city and country fields
+            if (city || state || country) {
+              console.log('[Location Debug] NGO - Setting city to:', city || state || orgDetails.city, 'and country to:', country || orgDetails.country);
+              setOrgDetails(prev => ({ 
+                ...prev, 
+                city: city || state || prev.city,
+                country: country || prev.country
+              }));
+            } else {
+              console.log('[Location Debug] NGO - No location parts found');
+              setError("Could not determine location details");
+            }
+            
+            if (coordinates) {
+              console.log('[Location Debug] NGO - Setting coordinates:', coordinates);
+              setCoordinates(coordinates);
+            }
+          } else if (data.status === "REQUEST_DENIED") {
+            console.log('[Location Debug] NGO - Google Geocoding API request denied');
+            setError("Location service temporarily unavailable. Please enter your location manually.");
+            console.warn("Google Geocoding API is restricted. Using fallback method.");
+            
+            // Fallback to basic coordinates display
+            setOrgDetails(prev => ({ 
+              ...prev, 
+              city: latitude.toFixed(4),
+              country: longitude.toFixed(4)
+            }));
+            setCoordinates({ lat: latitude, lng: longitude });
+          } else {
+            console.log('[Location Debug] NGO - Geocoding failed with error:', data.error);
+            setError(data.error || "Failed to get location details");
+          }
+        } catch (err) {
+          console.error('[Location Debug] NGO - Google geocoding error:', err);
+          setError("Failed to get location details. Please try manual entry.");
+        } finally {
+          console.log('[Location Debug] NGO - Location detection finished');
+          setIsGettingLocation(false);
+        }
+      },
+      (error) => {
+        console.log('[Location Debug] NGO - Geolocation error:', error);
+        let errorMessage = "Unable to get your location.";
+        if (error.code === 1) {
+          console.log('[Location Debug] NGO - Error code 1: Permission denied');
+          errorMessage = "Location permission denied. Please enable location services in your browser settings.";
+        } else if (error.code === 2) {
+          console.log('[Location Debug] NGO - Error code 2: Position unavailable');
+          errorMessage = "Location unavailable. Your device may not support geolocation or network location services are disabled.";
+        } else if (error.code === 3) {
+          console.log('[Location Debug] NGO - Error code 3: Timeout');
+          errorMessage = "Location request timed out. Please check your internet connection and try again. This can happen in areas with poor GPS signal.";
+        }
+        setError(errorMessage);
+        setIsGettingLocation(false);
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 15000,
+        maximumAge: 0
+      }
+    );
+  };
+
+  // When coords change, reverse geocode
+  useEffect(() => {
+    const fetchLocation = async () => {
+      if (coords) {
+        setCoordinates({ lat: coords.latitude, lng: coords.longitude });
+        try {
+          const response = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${coords.latitude}&lon=${coords.longitude}&zoom=10`,
+            {
+              headers: {
+                'User-Agent': 'JustBecause.asia/1.0',
+                'Accept-Language': 'en-US,en;q=0.9'
+              }
+            }
+          );
+          if (!response.ok) throw new Error('Failed to fetch address');
+          const data = await response.json();
+          const city = data.address?.city || data.address?.town || data.address?.village || data.address?.county || data.address?.suburb;
+          const state = data.address?.state;
+          const country = data.address?.country;
+          const locationParts = [city, state, country].filter(Boolean);
+          const locationString = locationParts.join(", ");
+          if (locationString) {
+            setOrgDetails(prev => ({ 
+              ...prev, 
+              city: city || prev.city,
+              country: country || prev.country
+            }));
+          } else {
+            setOrgDetails(prev => ({ 
+              ...prev, 
+              city: coords.latitude.toFixed(4),
+              country: coords.longitude.toFixed(4)
+            }));
+          }
+        } catch (error) {
+          console.error('Reverse geocoding failed:', error);
+          setError('Failed to fetch location details. Using coordinates instead.');
+          setOrgDetails(prev => ({ 
+            ...prev, 
+            city: coords.latitude.toFixed(4),
+            country: coords.longitude.toFixed(4)
+          }));
+          // Clear error after 5 seconds
+          setTimeout(() => setError(''), 5000);
+        }
+        setIsGettingLocation(false);
+      }
+    };
+    if (isGettingLocation && coords) {
+      fetchLocation();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [coords]);
+
+  useEffect(() => {
+    if (positionError && isGettingLocation) {
+      let errorMessage = "Unable to get your location.";
+      if (positionError.code === 1) errorMessage = "Location permission denied. Please enable location services in your browser settings.";
+      else if (positionError.code === 2) errorMessage = "Location unavailable. Your device may not support geolocation or network location services are disabled.";
+      else if (positionError.code === 3) errorMessage = "Location request timed out. Please check your internet connection and try again. This can happen in areas with poor GPS signal.";
+      setError(errorMessage);
+      setIsGettingLocation(false);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [positionError]);
+
   // Step 2: Cause & Focus
   const [selectedCauses, setSelectedCauses] = useState<string[]>([])
 
@@ -144,7 +391,10 @@ export default function NGOOnboardingPage() {
     try {
       // Save onboarding data to backend
       const onboardingData = {
-        orgDetails,
+        orgDetails: {
+          ...orgDetails,
+          coordinates, // Include exact coordinates if captured
+        },
         causes: selectedCauses,
         requiredSkills,
       }
@@ -236,15 +486,51 @@ export default function NGOOnboardingPage() {
 
         <div className="space-y-2">
           <Label htmlFor="address">Address</Label>
-          <div className="relative">
-            <MapPin className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-            <Textarea
-              id="address"
-              placeholder="Full address"
-              value={orgDetails.address}
-              onChange={(e) => setOrgDetails({ ...orgDetails, address: e.target.value })}
-              className="pl-10 min-h-[80px]"
-            />
+          <div className="flex gap-2">
+            <div className="relative flex-1">
+              <MapPin className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+              <Textarea
+                id="address"
+                placeholder="Full address"
+                value={orgDetails.address}
+                onChange={(e) => setOrgDetails({ ...orgDetails, address: e.target.value })}
+                className="pl-10 min-h-[80px]"
+              />
+            </div>
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={getIPLocation}
+                disabled={isGettingLocation}
+                className="shrink-0"
+              >
+                {isGettingLocation ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <>
+                    <Globe className="h-4 w-4 mr-2" />
+                    IP Location
+                  </>
+                )}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={getGoogleLocation}
+                disabled={isGettingLocation}
+                className="shrink-0"
+              >
+                {isGettingLocation ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <>
+                    <LocateFixed className="h-4 w-4 mr-2" />
+                    Use my location
+                  </>
+                )}
+              </Button>
+            </div>
           </div>
         </div>
 
@@ -360,7 +646,11 @@ export default function NGOOnboardingPage() {
           </div>
         ))}
       </div>
-
+      {coordinates && (
+        <p className="text-xs text-muted-foreground">
+          📍 Coordinates: {coordinates.lat.toFixed(6)}, {coordinates.lng.toFixed(6)}
+        </p>
+      )}
       <p className="text-sm text-muted-foreground">Selected: {selectedCauses.length}/3</p>
     </div>
   )
