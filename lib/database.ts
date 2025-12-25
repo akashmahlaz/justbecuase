@@ -68,13 +68,14 @@ export const volunteerProfilesDb = {
     const { userId, ...data } = profile
     const collection = await getCollection<any>("user")
     
-    // Convert arrays to JSON strings
+    // Convert arrays and objects to JSON strings
     const processedData: any = { ...data }
     const dataAny = data as any
     if (dataAny.skills) processedData.skills = JSON.stringify(dataAny.skills)
     if (dataAny.languages) processedData.languages = JSON.stringify(dataAny.languages)
     if (dataAny.interests) processedData.interests = JSON.stringify(dataAny.interests)
     if (dataAny.causes) processedData.causes = JSON.stringify(dataAny.causes)
+    if (dataAny.coordinates) processedData.coordinates = JSON.stringify(dataAny.coordinates)
     
     await collection.updateOne(
       { $expr: { $eq: [{ $toString: "$_id" }, userId] } },
@@ -89,7 +90,7 @@ export const volunteerProfilesDb = {
     
     if (!user || user.role !== "volunteer") return null
     
-    // Parse JSON strings back to arrays
+    // Parse JSON strings back to arrays and objects
     return {
       ...user,
       userId: user._id.toString(),
@@ -97,6 +98,7 @@ export const volunteerProfilesDb = {
       languages: user.languages ? JSON.parse(user.languages) : [],
       interests: user.interests ? JSON.parse(user.interests) : [],
       causes: user.causes ? JSON.parse(user.causes) : [], // Parse causes array
+      coordinates: user.coordinates ? JSON.parse(user.coordinates) : undefined, // Parse coordinates object
     } as VolunteerProfile
   },
 
@@ -107,13 +109,14 @@ export const volunteerProfilesDb = {
   async update(userId: string, updates: Partial<VolunteerProfile>): Promise<boolean> {
     const collection = await getCollection<any>("user")
     
-    // Convert arrays to JSON strings
+    // Convert arrays and objects to JSON strings
     const processedUpdates: any = { ...updates }
     const updatesAny = updates as any
     if (updatesAny.skills) processedUpdates.skills = JSON.stringify(updatesAny.skills)
     if (updatesAny.languages) processedUpdates.languages = JSON.stringify(updatesAny.languages)
     if (updatesAny.interests) processedUpdates.interests = JSON.stringify(updatesAny.interests)
     if (updatesAny.causes) processedUpdates.causes = JSON.stringify(updatesAny.causes)
+    if (updatesAny.coordinates) processedUpdates.coordinates = JSON.stringify(updatesAny.coordinates)
     
     const result = await collection.updateOne(
       { $expr: { $eq: [{ $toString: "$_id" }, userId] } },
@@ -137,6 +140,7 @@ export const volunteerProfilesDb = {
       languages: u.languages ? JSON.parse(u.languages) : [],
       interests: u.interests ? JSON.parse(u.interests) : [],
       causes: u.causes ? JSON.parse(u.causes) : [], // Parse causes array
+      coordinates: u.coordinates ? JSON.parse(u.coordinates) : undefined, // Parse coordinates object
     }))
   },
 
