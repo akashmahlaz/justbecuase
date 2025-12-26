@@ -26,7 +26,6 @@ import {
   DollarSign,
   Lightbulb,
   LocateFixed,
-  Globe,
 } from "lucide-react"
 import { skillCategories, experienceLevels, causes, workModes } from "../../../lib/skills-data"
 import { saveVolunteerOnboarding, completeOnboarding } from "@/lib/actions"
@@ -110,44 +109,6 @@ export default function VolunteerOnboardingPage() {
     setError(""); // Clear any previous errors
     setIsGettingLocation(true);
     getPosition();
-  };
-
-  // IP-based location detection (for fallback)
-  const getIPLocation = async () => {
-    console.log('[Location Debug] Starting IP location detection');
-    setError(""); // Clear any previous errors
-    setIsGettingLocation(true);
-    
-    try {
-      console.log('[Location Debug] Calling IP location API');
-      const response = await fetch('/api/location');
-      console.log('[Location Debug] IP location API response status:', response.status);
-      const data = await response.json();
-      console.log('[Location Debug] IP location API response:', data);
-      
-      if (data.success && data.location) {
-        console.log('[Location Debug] IP location data received:', data.location);
-        const { city, region, country } = data.location;
-        const locationParts = [city, region, country].filter(Boolean);
-        
-        if (locationParts.length > 0) {
-          console.log('[Location Debug] Setting location to:', locationParts.join(", "));
-          setProfile(prev => ({ ...prev, location: locationParts.join(", ") }));
-        } else {
-          console.log('[Location Debug] No location parts from IP');
-          setError("Could not determine location from your IP address");
-        }
-      } else {
-        console.log('[Location Debug] IP location failed with error:', data.error);
-        setError(data.error || "Failed to get location from IP");
-      }
-    } catch (err) {
-      console.error('[Location Debug] IP location error:', err);
-      setError("Failed to get location from IP. Please try manual entry.");
-    } finally {
-      console.log('[Location Debug] IP location detection finished');
-      setIsGettingLocation(false);
-    }
   };
 
   // Google Geocoding location detection
@@ -431,40 +392,22 @@ export default function VolunteerOnboardingPage() {
                 className="pl-10"
               />
             </div>
-            <div className="flex gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={getIPLocation}
-                disabled={isGettingLocation}
-                className="shrink-0"
-              >
-                {isGettingLocation ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <>
-                    <Globe className="h-4 w-4 mr-2" />
-                    IP Location
-                  </>
-                )}
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={getGoogleLocation}
-                disabled={isGettingLocation}
-                className="shrink-0"
-              >
-                {isGettingLocation ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <>
-                    <LocateFixed className="h-4 w-4 mr-2" />
-                    Use my location
-                  </>
-                )}
-              </Button>
-            </div>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={getGoogleLocation}
+              disabled={isGettingLocation}
+              className="shrink-0"
+            >
+              {isGettingLocation ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <>
+                  <LocateFixed className="h-4 w-4 mr-2" />
+                  Use my location
+                </>
+              )}
+            </Button>
           </div>
           {coordinates && (
             <p className="text-xs text-muted-foreground">
