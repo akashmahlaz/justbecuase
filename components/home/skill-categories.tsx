@@ -1,7 +1,7 @@
 import type React from "react"
 import Link from "next/link"
-import { skillCategories } from "@/lib/data"
-import { Megaphone, Code, Palette, Calculator, Target, Scale, Users, Heart } from "lucide-react"
+import { getSkillCategoryCounts } from "@/lib/actions"
+import { Megaphone, Code, Palette, Calculator, Target, Users, Heart } from "lucide-react"
 
 const iconMap: { [key: string]: React.ElementType } = {
   Megaphone,
@@ -9,12 +9,14 @@ const iconMap: { [key: string]: React.ElementType } = {
   Palette,
   Calculator,
   Target,
-  Scale,
   Users,
   Heart,
 }
 
-export function SkillCategories() {
+export async function SkillCategories() {
+  // Fetch real project counts from database
+  const categories = await getSkillCategoryCounts()
+  
   return (
     <section className="py-16 md:py-24">
       <div className="container mx-auto px-4 md:px-6">
@@ -26,12 +28,12 @@ export function SkillCategories() {
         </div>
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
-          {skillCategories.map((category) => {
+          {categories.map((category) => {
             const Icon = iconMap[category.icon] || Code
             return (
               <Link
-                key={category.name}
-                href={`/projects?skill=${encodeURIComponent(category.name)}`}
+                key={category.id}
+                href={`/projects?skill=${encodeURIComponent(category.id)}`}
                 className="group p-6 rounded-2xl bg-card border border-border hover:border-primary/50 hover:shadow-lg transition-all duration-300"
               >
                 <div className="flex flex-col items-center text-center">

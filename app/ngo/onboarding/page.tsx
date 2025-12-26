@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { useGeolocated } from "react-geolocated"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
@@ -26,6 +26,8 @@ import {
   FileText,
   Upload,
   LocateFixed,
+  Phone,
+  ShieldCheck,
 } from "lucide-react"
 import { skillCategories, causes } from "../../../lib/skills-data"
 import { saveNGOOnboarding, completeOnboarding } from "@/lib/actions"
@@ -87,6 +89,22 @@ export default function NGOOnboardingPage() {
     teamSize: "",
   })
 
+  // Phone verification state
+  const [phoneVerificationStep, setPhoneVerificationStep] = useState<"input" | "otp" | "verified">("input")
+  const [phoneOtp, setPhoneOtp] = useState(["", "", "", "", "", ""])
+  const [phoneOtpLoading, setPhoneOtpLoading] = useState(false)
+  const [phoneResendCooldown, setPhoneResendCooldown] = useState(0)
+  const [devOtp, setDevOtp] = useState<string | null>(null)
+  const phoneOtpRefs = useRef<(HTMLInputElement | null)[]>([])
+
+  // Phone resend cooldown timer
+  useEffect(() => {
+    if (phoneResendCooldown > 0) {
+      const timer = setTimeout(() => setPhoneResendCooldown(phoneResendCooldown - 1), 1000)
+      return () => clearTimeout(timer)
+    }
+  }, [phoneResendCooldown])
+
   // Use react-geolocated for geolocation
   const {
     coords,
@@ -101,6 +119,110 @@ export default function NGOOnboardingPage() {
   });
   const [coordinates, setCoordinates] = useState<{ lat: number; lng: number } | null>(null);
   const [isGettingLocation, setIsGettingLocation] = useState(false);
+
+  // Phone verification functions
+  const sendPhoneOtp = async () => {
+    if (!orgDetails.phone || orgDetails.phone.length < 10) {
+      setError("Please enter a valid phone number")
+      return
+    }
+    
+    setError("")
+    setPhoneOtpLoading(true)
+    
+    try {
+      const response = await fetch("/api/auth/send-sms-otp", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phone: orgDetails.phone }),
+      })
+      
+      const data = await response.json()
+      
+      if (!response.ok) {
+        setError(data.error || "Failed to send verification code")
+        setPhoneOtpLoading(false)
+        return
+      }
+      
+      if (data.devOtp) {
+        setDevOtp(data.devOtp)
+      }
+      
+      setPhoneVerificationStep("otp")
+      setPhoneResendCooldown(60)
+    } catch (err: any) {
+      setError("Failed to send verification code. Please try again.")
+    } finally {
+      setPhoneOtpLoading(false)
+    }
+  }
+
+  const verifyPhoneOtp = async () => {
+    const otpCode = phoneOtp.join("")
+    if (otpCode.length !== 6) {
+      setError("Please enter the complete 6-digit code")
+      return
+    }
+    
+    setError("")
+    setPhoneOtpLoading(true)
+    
+    try {
+      const response = await fetch("/api/auth/verify-sms-otp", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phone: orgDetails.phone, otp: otpCode }),
+      })
+      
+      const data = await response.json()
+      
+      if (!response.ok || !data.success) {
+        setError(data.error || "Invalid verification code")
+        setPhoneOtpLoading(false)
+        return
+      }
+      
+      setPhoneVerificationStep("verified")
+      setDevOtp(null)
+    } catch (err: any) {
+      setError("Failed to verify code. Please try again.")
+    } finally {
+      setPhoneOtpLoading(false)
+    }
+  }
+
+  const handlePhoneOtpChange = (index: number, value: string) => {
+    if (!/^\d*$/.test(value)) return
+    
+    const newOtp = [...phoneOtp]
+    newOtp[index] = value.slice(-1)
+    setPhoneOtp(newOtp)
+    
+    if (value && index < 5) {
+      phoneOtpRefs.current[index + 1]?.focus()
+    }
+  }
+
+  const handlePhoneOtpPaste = (e: React.ClipboardEvent) => {
+    e.preventDefault()
+    const pastedData = e.clipboardData.getData("text").replace(/\D/g, "").slice(0, 6)
+    if (pastedData) {
+      const newOtp = [...phoneOtp]
+      for (let i = 0; i < 6; i++) {
+        newOtp[i] = pastedData[i] || ""
+      }
+      setPhoneOtp(newOtp)
+      const lastIndex = Math.min(pastedData.length, 5)
+      phoneOtpRefs.current[lastIndex]?.focus()
+    }
+  }
+
+  const handlePhoneOtpKeyDown = (index: number, e: React.KeyboardEvent) => {
+    if (e.key === "Backspace" && !phoneOtp[index] && index > 0) {
+      phoneOtpRefs.current[index - 1]?.focus()
+    }
+  }
 
   // Geolocation function using react-geolocated
   const getExactLocation = async () => {
@@ -472,15 +594,142 @@ export default function NGOOnboardingPage() {
               />
             </div>
           </div>
-          <div className="space-y-2">
+          
+          {/* Phone Number with Verification */}
+          <div className="space-y-3">
             <Label htmlFor="phone">Phone Number *</Label>
-            <Input
-              id="phone"
-              placeholder="+91 98765 43210"
-              value={orgDetails.phone}
-              onChange={(e) => setOrgDetails({ ...orgDetails, phone: e.target.value })}
-              required
-            />
+            
+            {phoneVerificationStep === "input" && (
+              <div className="flex gap-2">
+                <div className="relative flex-1">
+                  <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="phone"
+                    placeholder="+91 98765 43210"
+                    value={orgDetails.phone}
+                    onChange={(e) => setOrgDetails({ ...orgDetails, phone: e.target.value })}
+                    className="pl-10"
+                  />
+                </div>
+                <Button
+                  type="button"
+                  onClick={sendPhoneOtp}
+                  disabled={phoneOtpLoading || !orgDetails.phone}
+                  className="shrink-0"
+                >
+                  {phoneOtpLoading ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    "Verify"
+                  )}
+                </Button>
+              </div>
+            )}
+
+            {phoneVerificationStep === "otp" && (
+              <div className="p-4 rounded-lg border bg-muted/50 space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium">Enter verification code</p>
+                    <p className="text-xs text-muted-foreground">Sent to {orgDetails.phone}</p>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setPhoneVerificationStep("input")
+                      setPhoneOtp(["", "", "", "", "", ""])
+                      setDevOtp(null)
+                    }}
+                  >
+                    Change
+                  </Button>
+                </div>
+                
+                {devOtp && (
+                  <div className="p-2 rounded bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200 text-xs text-center">
+                    <span className="font-medium">Dev Mode:</span> OTP is <span className="font-mono font-bold">{devOtp}</span>
+                  </div>
+                )}
+                
+                <div className="flex justify-center gap-2" onPaste={handlePhoneOtpPaste}>
+                  {phoneOtp.map((digit, index) => (
+                    <Input
+                      key={index}
+                      ref={(el) => { phoneOtpRefs.current[index] = el }}
+                      type="text"
+                      inputMode="numeric"
+                      maxLength={1}
+                      value={digit}
+                      onChange={(e) => handlePhoneOtpChange(index, e.target.value)}
+                      onKeyDown={(e) => handlePhoneOtpKeyDown(index, e)}
+                      className="w-10 h-12 text-center text-xl font-bold"
+                      autoFocus={index === 0}
+                    />
+                  ))}
+                </div>
+                
+                <div className="flex flex-col gap-2">
+                  <Button
+                    type="button"
+                    onClick={verifyPhoneOtp}
+                    disabled={phoneOtpLoading || phoneOtp.join("").length !== 6}
+                    className="w-full"
+                  >
+                    {phoneOtpLoading ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Verifying...
+                      </>
+                    ) : (
+                      <>
+                        <ShieldCheck className="mr-2 h-4 w-4" />
+                        Verify Phone
+                      </>
+                    )}
+                  </Button>
+                  
+                  <p className="text-xs text-center text-muted-foreground">
+                    Didn't receive code?{" "}
+                    {phoneResendCooldown > 0 ? (
+                      <span>Resend in {phoneResendCooldown}s</span>
+                    ) : (
+                      <button
+                        type="button"
+                        className="text-primary hover:underline"
+                        onClick={sendPhoneOtp}
+                        disabled={phoneOtpLoading}
+                      >
+                        Resend
+                      </button>
+                    )}
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {phoneVerificationStep === "verified" && (
+              <div className="flex items-center gap-2 p-3 rounded-lg bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800">
+                <CheckCircle className="h-5 w-5 text-green-600" />
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-green-700 dark:text-green-400">{orgDetails.phone}</p>
+                  <p className="text-xs text-green-600 dark:text-green-500">Phone verified</p>
+                </div>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setPhoneVerificationStep("input")
+                    setOrgDetails({ ...orgDetails, phone: "" })
+                    setPhoneOtp(["", "", "", "", "", ""])
+                  }}
+                >
+                  Change
+                </Button>
+              </div>
+            )}
           </div>
         </div>
 
@@ -930,7 +1179,25 @@ export default function NGOOnboardingPage() {
           </Button>
 
           {step < totalSteps ? (
-            <Button variant="secondary" onClick={() => setStep(step + 1)}>
+            <Button 
+              variant="secondary" 
+              onClick={() => {
+                // Validate step 1: phone must be verified
+                if (step === 1) {
+                  if (phoneVerificationStep !== "verified") {
+                    setError("Please verify your phone number to continue")
+                    return
+                  }
+                  if (!orgDetails.orgName) {
+                    setError("Please enter your organization name")
+                    return
+                  }
+                }
+                setError("")
+                setStep(step + 1)
+              }}
+              disabled={step === 1 && phoneVerificationStep !== "verified"}
+            >
               Continue
               <ArrowRight className="ml-2 h-4 w-4" />
             </Button>

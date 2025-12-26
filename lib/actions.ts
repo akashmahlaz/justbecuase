@@ -2059,6 +2059,42 @@ export async function browseProjects(filters?: {
   return serializeDocuments(filteredProjects)
 }
 
+// Get skill category project counts for home page
+export async function getSkillCategoryCounts() {
+  const db = await getDb()
+  
+  // Define skill categories with their IDs and icons
+  const categories = [
+    { id: "digital-marketing", name: "Digital Marketing", icon: "Megaphone" },
+    { id: "fundraising", name: "Fundraising Assistance", icon: "Heart" },
+    { id: "website", name: "Website Design & Maintenance", icon: "Code" },
+    { id: "finance", name: "Finance & Accounting", icon: "Calculator" },
+    { id: "content-creation", name: "Content Creation", icon: "Palette" },
+    { id: "communication", name: "Communication", icon: "Target" },
+    { id: "planning-support", name: "Planning & Support", icon: "Users" },
+  ]
+  
+  // Get all active projects
+  const activeProjects = await db.collection("projects").find({
+    status: { $in: ["active", "open", "published"] }
+  }).toArray()
+  
+  // Count projects per category
+  const categoryCounts = categories.map(category => {
+    const count = activeProjects.filter(project => {
+      const skills = project.skillsRequired || []
+      return skills.some((skill: any) => skill.categoryId === category.id)
+    }).length
+    
+    return {
+      ...category,
+      count
+    }
+  })
+  
+  return categoryCounts
+}
+
 export async function browseNGOs(filters?: {
   causes?: string[]
   location?: string

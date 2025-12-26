@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-import { useState } from "react"
+import { useState, useRef, useEffect } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
-import { Heart, Mail, Lock, User, Building2, Loader2, ArrowRight, ArrowLeft, CheckCircle, MailCheck } from "lucide-react"
+import { Heart, Mail, Lock, User, Building2, Loader2, ArrowRight, ArrowLeft, CheckCircle, MailCheck, ShieldCheck } from "lucide-react"
 import { signUp, signIn, getSession } from "@/lib/auth-client"
 import { selectRole } from "@/lib/actions"
 
@@ -29,7 +29,7 @@ type AccountType = "volunteer" | "ngo" | null
 
 export default function SignUpPage() {
   const router = useRouter()
-  const [step, setStep] = useState(1)
+  const [step, setStep] = useState(1) // 1: account type, 2: email/name, 3: OTP verification, 4: password
   const [accountType, setAccountType] = useState<AccountType>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [socialLoading, setSocialLoading] = useState<"google" | "linkedin" | null>(null)
@@ -41,6 +41,21 @@ export default function SignUpPage() {
     password: "",
     confirmPassword: "",
   })
+  
+  // OTP state
+  const [otp, setOtp] = useState(["", "", "", "", "", ""])
+  const [otpExpiry, setOtpExpiry] = useState<Date | null>(null)
+  const [resendCooldown, setResendCooldown] = useState(0)
+  const [emailVerified, setEmailVerified] = useState(false)
+  const otpRefs = useRef<(HTMLInputElement | null)[]>([])
+
+  // Resend cooldown timer
+  useEffect(() => {
+    if (resendCooldown > 0) {
+      const timer = setTimeout(() => setResendCooldown(resendCooldown - 1), 1000)
+      return () => clearTimeout(timer)
+    }
+  }, [resendCooldown])
 
   // Handle social sign-in/sign-up (Google/LinkedIn)
   // For social signup, we redirect to role-select since we don't know their intended role
@@ -57,6 +72,130 @@ export default function SignUpPage() {
     } catch (err: any) {
       setError(err.message || `Failed to sign up with ${provider}`)
       setSocialLoading(null)
+    }
+  }
+
+  // Send OTP to email
+  const sendOTP = async () => {
+    setError("")
+    setIsLoading(true)
+
+    try {
+      const response = await fetch("/api/auth/send-otp", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: formData.email, name: formData.name }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        setError(data.error || "Failed to send verification code")
+        setIsLoading(false)
+        return false
+      }
+
+      setOtpExpiry(new Date(data.expiresAt))
+      setResendCooldown(60) // 60 second cooldown before resend
+      setIsLoading(false)
+      return true
+    } catch (err: any) {
+      setError("Failed to send verification code. Please try again.")
+      setIsLoading(false)
+      return false
+    }
+  }
+
+  // Verify OTP
+  const verifyOTP = async () => {
+    const otpCode = otp.join("")
+    if (otpCode.length !== 6) {
+      setError("Please enter the complete 6-digit code")
+      return
+    }
+
+    setError("")
+    setIsLoading(true)
+
+    try {
+      const response = await fetch("/api/auth/verify-otp", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: formData.email, otp: otpCode }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok || !data.success) {
+        setError(data.error || "Invalid verification code")
+        setIsLoading(false)
+        return
+      }
+
+      setEmailVerified(true)
+      setStep(4) // Move to password step
+    } catch (err: any) {
+      setError("Failed to verify code. Please try again.")
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  // Handle OTP input
+  const handleOtpChange = (index: number, value: string) => {
+    if (!/^\d*$/.test(value)) return // Only allow digits
+
+    const newOtp = [...otp]
+    newOtp[index] = value.slice(-1) // Take only last digit
+    setOtp(newOtp)
+
+    // Auto-focus next input
+    if (value && index < 5) {
+      otpRefs.current[index + 1]?.focus()
+    }
+  }
+
+  // Handle OTP paste
+  const handleOtpPaste = (e: React.ClipboardEvent) => {
+    e.preventDefault()
+    const pastedData = e.clipboardData.getData("text").replace(/\D/g, "").slice(0, 6)
+    if (pastedData) {
+      const newOtp = [...otp]
+      for (let i = 0; i < 6; i++) {
+        newOtp[i] = pastedData[i] || ""
+      }
+      setOtp(newOtp)
+      // Focus last filled input or first empty one
+      const lastIndex = Math.min(pastedData.length, 5)
+      otpRefs.current[lastIndex]?.focus()
+    }
+  }
+
+  // Handle OTP backspace
+  const handleOtpKeyDown = (index: number, e: React.KeyboardEvent) => {
+    if (e.key === "Backspace" && !otp[index] && index > 0) {
+      otpRefs.current[index - 1]?.focus()
+    }
+  }
+
+  // Handle email/name submission -> send OTP
+  const handleEmailSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setError("")
+
+    if (!formData.email || !formData.email.includes("@")) {
+      setError("Please enter a valid email address")
+      return
+    }
+
+    if (!formData.name.trim()) {
+      setError("Please enter your name")
+      return
+    }
+
+    const sent = await sendOTP()
+    if (sent) {
+      setStep(3) // Move to OTP verification step
     }
   }
 
@@ -193,7 +332,7 @@ export default function SignUpPage() {
   )
 
   const renderStep2 = () => (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form onSubmit={handleEmailSubmit} className="space-y-4">
       <div className="flex items-center gap-2 mb-6">
         <Button type="button" variant="ghost" size="icon" onClick={() => setStep(1)}>
           <ArrowLeft className="h-4 w-4" />
@@ -243,6 +382,133 @@ export default function SignUpPage() {
         </div>
       </div>
 
+      <p className="text-xs text-muted-foreground">
+        We'll send a verification code to this email address
+      </p>
+
+      <Button
+        type="submit"
+        className="w-full bg-primary hover:bg-primary/90"
+        disabled={isLoading}
+      >
+        {isLoading ? (
+          <>
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            Sending code...
+          </>
+        ) : (
+          <>
+            <Mail className="mr-2 h-4 w-4" />
+            Send Verification Code
+          </>
+        )}
+      </Button>
+    </form>
+  )
+
+  const renderStep3 = () => (
+    <div className="space-y-6">
+      <div className="flex items-center gap-2 mb-6">
+        <Button type="button" variant="ghost" size="icon" onClick={() => { setStep(2); setOtp(["", "", "", "", "", ""]); setError("") }}>
+          <ArrowLeft className="h-4 w-4" />
+        </Button>
+        <div>
+          <h2 className="font-semibold text-foreground">Verify your email</h2>
+          <p className="text-sm text-muted-foreground">Enter the 6-digit code sent to {formData.email}</p>
+        </div>
+      </div>
+
+      {error && (
+        <div className="p-3 rounded-lg bg-destructive/10 text-destructive text-sm">
+          {error}
+        </div>
+      )}
+
+      <div className="text-center">
+        <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
+          <ShieldCheck className="h-8 w-8 text-primary" />
+        </div>
+        
+        {/* OTP Input */}
+        <div className="flex justify-center gap-2 mb-6" onPaste={handleOtpPaste}>
+          {otp.map((digit, index) => (
+            <Input
+              key={index}
+              ref={(el) => { otpRefs.current[index] = el }}
+              type="text"
+              inputMode="numeric"
+              maxLength={1}
+              value={digit}
+              onChange={(e) => handleOtpChange(index, e.target.value)}
+              onKeyDown={(e) => handleOtpKeyDown(index, e)}
+              className="w-12 h-14 text-center text-2xl font-bold"
+              autoFocus={index === 0}
+            />
+          ))}
+        </div>
+
+        <Button
+          onClick={verifyOTP}
+          className="w-full bg-primary hover:bg-primary/90 mb-4"
+          disabled={isLoading || otp.join("").length !== 6}
+        >
+          {isLoading ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Verifying...
+            </>
+          ) : (
+            <>
+              <CheckCircle className="mr-2 h-4 w-4" />
+              Verify Email
+            </>
+          )}
+        </Button>
+
+        <p className="text-sm text-muted-foreground">
+          Didn't receive the code?{" "}
+          {resendCooldown > 0 ? (
+            <span className="text-muted-foreground">Resend in {resendCooldown}s</span>
+          ) : (
+            <button
+              type="button"
+              className="text-primary hover:underline font-medium"
+              onClick={sendOTP}
+              disabled={isLoading}
+            >
+              Resend Code
+            </button>
+          )}
+        </p>
+      </div>
+    </div>
+  )
+
+  const renderStep4 = () => (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div className="flex items-center gap-2 mb-6">
+        <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
+          <CheckCircle className="h-5 w-5 text-green-600" />
+        </div>
+        <div>
+          <h2 className="font-semibold text-foreground">Email Verified!</h2>
+          <p className="text-sm text-muted-foreground">Create a password to complete signup</p>
+        </div>
+      </div>
+
+      {error && (
+        <div className="p-3 rounded-lg bg-destructive/10 text-destructive text-sm">
+          {error}
+        </div>
+      )}
+
+      <div className="p-3 rounded-lg bg-muted/50 mb-4">
+        <p className="text-sm text-muted-foreground">
+          <span className="font-medium text-foreground">{formData.name}</span><br/>
+          {formData.email}
+        </p>
+      </div>
+
       <div className="space-y-2">
         <Label htmlFor="password">Password</Label>
         <div className="relative">
@@ -256,6 +522,7 @@ export default function SignUpPage() {
             className="pl-10"
             required
             minLength={8}
+            autoFocus
           />
         </div>
       </div>
@@ -367,6 +634,8 @@ export default function SignUpPage() {
                 <>
                   {step === 1 && renderStep1()}
                   {step === 2 && renderStep2()}
+                  {step === 3 && renderStep3()}
+                  {step === 4 && renderStep4()}
 
               {step === 1 && (
                 <>
