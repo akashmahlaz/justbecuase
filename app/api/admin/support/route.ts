@@ -7,7 +7,7 @@ const DB_NAME = "justbecause"
 const COLLECTION_NAME = "support_tickets"
 
 interface SupportTicket {
-  _id?: string
+  _id?: any
   subject: string
   description: string
   status: "open" | "in-progress" | "resolved" | "closed"

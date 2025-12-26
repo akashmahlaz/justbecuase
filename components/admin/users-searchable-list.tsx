@@ -21,7 +21,7 @@ interface User {
   email: string
   role: "volunteer" | "ngo"
   avatar?: string
-  createdAt: string
+  createdAt: string | Date
   isVerified?: boolean
   isActive?: boolean
   isBanned?: boolean

@@ -12,30 +12,34 @@ import { getAdminAnalytics, getAllVolunteers, getAllNGOs, getAllProjects } from 
 import { ReportsGenerator } from "@/components/admin/reports-generator"
 
 export default async function AdminReportsPage() {
-  const [analytics, volunteers, ngos, projects] = await Promise.all([
+  const [analytics, volunteersData, ngosData, projectsData] = await Promise.all([
     getAdminAnalytics(),
-    getAllVolunteers(),
-    getAllNGOs(),
-    getAllProjects()
+    getAllVolunteers(1, 100),
+    getAllNGOs(1, 100),
+    getAllProjects(1, 100)
   ])
+
+  const volunteers = volunteersData.data
+  const ngos = ngosData.data
+  const projects = projectsData.data
 
   // Calculate this month's stats
   const now = new Date()
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
   
-  const newVolunteersThisMonth = volunteers.filter((v: { createdAt?: string | Date }) => {
+  const newVolunteersThisMonth = volunteers.filter((v: any) => {
     if (!v.createdAt) return false
     const date = new Date(v.createdAt)
     return date >= startOfMonth
   }).length
 
-  const newNGOsThisMonth = ngos.filter((n: { createdAt?: string | Date }) => {
+  const newNGOsThisMonth = ngos.filter((n: any) => {
     if (!n.createdAt) return false
     const date = new Date(n.createdAt)
     return date >= startOfMonth
   }).length
 
-  const newProjectsThisMonth = projects.filter((p: { createdAt?: string | Date }) => {
+  const newProjectsThisMonth = projects.filter((p: any) => {
     if (!p.createdAt) return false
     const date = new Date(p.createdAt)
     return date >= startOfMonth

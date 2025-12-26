@@ -29,7 +29,7 @@ interface Volunteer {
   isVerified?: boolean
   isActive?: boolean
   isBanned?: boolean
-  createdAt?: string
+  createdAt?: string | Date
 }
 
 interface VolunteersSearchableListProps {

@@ -79,11 +79,6 @@ export default function AdminSupportPage() {
       setLoading(false)
     }
   }
-  const [selectedTicket, setSelectedTicket] = useState<SupportTicket | null>(null)
-  const [showTicketDialog, setShowTicketDialog] = useState(false)
-  const [responseText, setResponseText] = useState("")
-  const [filter, setFilter] = useState<"all" | "open" | "in-progress" | "resolved">("all")
-  const [searchQuery, setSearchQuery] = useState("")
 
   const filteredTickets = tickets.filter((ticket) => {
     const matchesFilter = filter === "all" || ticket.status === filter
