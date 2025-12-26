@@ -13,7 +13,8 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Heart, Bell, Search, Menu, User, Settings, LogOut } from "lucide-react"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import { useNotificationStore } from "@/lib/store"
 
 interface DashboardHeaderProps {
   userType: "volunteer" | "ngo"
@@ -23,6 +24,7 @@ interface DashboardHeaderProps {
 
 export function DashboardHeader({ userType, userName, userAvatar }: DashboardHeaderProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const unreadCount = useNotificationStore((state) => state.unreadCount)
 
   const mobileLinks =
     userType === "volunteer"
@@ -94,12 +96,16 @@ export function DashboardHeader({ userType, userName, userAvatar }: DashboardHea
 
         {/* Right side */}
         <div className="flex items-center gap-2">
-          <Button variant="ghost" size="icon" className="relative">
-            <Bell className="h-5 w-5" />
-            <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-secondary text-secondary-foreground text-[10px] font-bold flex items-center justify-center">
-              3
-            </span>
-          </Button>
+          <Link href={userType === "volunteer" ? "/volunteer/notifications" : "/ngo/notifications"}>
+            <Button variant="ghost" size="icon" className="relative">
+              <Bell className="h-5 w-5" />
+              {unreadCount > 0 && (
+                <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold flex items-center justify-center">
+                  {unreadCount > 99 ? '99+' : unreadCount}
+                </span>
+              )}
+            </Button>
+          </Link>
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>

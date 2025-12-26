@@ -1220,13 +1220,27 @@ export async function getMatchedOpportunitiesForVolunteer(): Promise<
   { projectId: string; score: number; project: Project }[]
 > {
   const user = await getCurrentUser()
-  if (!user) return []
+  if (!user) {
+    console.log('[Matching] No user found')
+    return []
+  }
 
   const volunteerProfile = await volunteerProfilesDb.findByUserId(user.id)
-  if (!volunteerProfile) return []
+  if (!volunteerProfile) {
+    console.log('[Matching] No volunteer profile found for user:', user.id)
+    return []
+  }
 
   const projects = await projectsDb.findActive()
+  console.log('[Matching] Found', projects.length, 'active projects')
+  
+  if (projects.length === 0) {
+    console.log('[Matching] No active projects available')
+    return []
+  }
+
   const matches = matchOpportunitiesToVolunteer(volunteerProfile, projects)
+  console.log('[Matching] Generated', matches.length, 'matches')
 
   return matches.slice(0, 20).map((m) => ({
     projectId: m.projectId,

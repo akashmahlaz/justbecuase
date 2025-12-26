@@ -14,28 +14,12 @@ import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Camera, Save, Loader2, CheckCircle } from "lucide-react"
+import { Camera, Save, Loader2, CheckCircle, MapPin, LocateFixed } from "lucide-react"
 import { authClient } from "@/lib/auth-client"
 import { getVolunteerProfile, updateVolunteerProfile } from "@/lib/actions"
 import { skillCategories } from "@/lib/skills-data"
 import { uploadToCloudinary, validateImageFile } from "@/lib/upload"
-
-const locations = [
-  "Singapore",
-  "Hong Kong",
-  "Jakarta, Indonesia",
-  "Manila, Philippines",
-  "Mumbai, India",
-  "Delhi, India",
-  "Bangalore, India",
-  "Tokyo, Japan",
-  "Seoul, South Korea",
-  "Bangkok, Thailand",
-  "Kuala Lumpur, Malaysia",
-  "Remote / Anywhere",
-]
 
 export default function VolunteerProfileEditPage() {
   const router = useRouter()
@@ -46,6 +30,7 @@ export default function VolunteerProfileEditPage() {
   const [isSaved, setIsSaved] = useState(false)
   const [error, setError] = useState("")
   const [uploadingPhoto, setUploadingPhoto] = useState(false)
+  const [isGettingLocation, setIsGettingLocation] = useState(false)
 
   const [formData, setFormData] = useState({
     name: "",
@@ -56,6 +41,62 @@ export default function VolunteerProfileEditPage() {
     portfolioUrl: "",
     hoursPerWeek: "5-10",
   })
+
+  // Get location using browser geolocation + Google Geocoding
+  const getGoogleLocation = async () => {
+    setIsGettingLocation(true)
+    setError("")
+    
+    if (!navigator.geolocation) {
+      setError("Geolocation is not supported by your browser")
+      setIsGettingLocation(false)
+      return
+    }
+    
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const { latitude, longitude } = position.coords
+        
+        try {
+          const response = await fetch('/api/location', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ lat: latitude, lng: longitude }),
+          })
+          
+          const data = await response.json()
+          
+          if (data.success && data.location) {
+            const { city, state, country } = data.location
+            const locationParts = [city, state, country].filter(Boolean)
+            
+            if (locationParts.length > 0) {
+              setFormData(prev => ({ ...prev, location: locationParts.join(", ") }))
+              toast.success("Location updated!")
+            } else {
+              setError("Could not determine location details")
+            }
+          } else {
+            setError(data.error || "Failed to get location details")
+          }
+        } catch (err) {
+          console.error('Geocoding error:', err)
+          setError("Failed to get location details")
+        } finally {
+          setIsGettingLocation(false)
+        }
+      },
+      (error) => {
+        let errorMessage = "Unable to get your location."
+        if (error.code === 1) errorMessage = "Location permission denied."
+        else if (error.code === 2) errorMessage = "Location unavailable."
+        else if (error.code === 3) errorMessage = "Location request timed out."
+        setError(errorMessage)
+        setIsGettingLocation(false)
+      },
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+    )
+  }
 
   // Fetch profile data
   useEffect(() => {
@@ -304,21 +345,37 @@ export default function VolunteerProfileEditPage() {
 
                       <div className="space-y-2">
                         <Label htmlFor="location">Location</Label>
-                        <Select
-                          value={formData.location}
-                          onValueChange={(value) => setFormData({ ...formData, location: value })}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select your location" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {locations.map((loc) => (
-                              <SelectItem key={loc} value={loc}>
-                                {loc}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                        <div className="flex gap-2">
+                          <div className="relative flex-1">
+                            <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                            <Input
+                              id="location"
+                              value={formData.location}
+                              onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                              placeholder="City, State, Country"
+                              className="pl-10"
+                            />
+                          </div>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={getGoogleLocation}
+                            disabled={isGettingLocation}
+                            className="shrink-0"
+                          >
+                            {isGettingLocation ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <>
+                                <LocateFixed className="h-4 w-4 mr-2" />
+                                Update Location
+                              </>
+                            )}
+                          </Button>
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          Your location helps match you with nearby opportunities
+                        </p>
                       </div>
 
                       <div className="space-y-2">

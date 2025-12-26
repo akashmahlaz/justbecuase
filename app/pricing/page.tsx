@@ -77,6 +77,13 @@ export default function PricingPage() {
   const currency = (platformSettings?.currency || "INR") as SupportedCurrency
   const currencySymbol = CURRENCY_SYMBOLS[currency] || "₹"
   
+  // Show only the plans relevant to the user's role
+  // If user is logged in as volunteer, they can only see/buy volunteer plans
+  // If user is logged in as NGO, they can only see/buy NGO plans
+  // If not logged in, show both tabs for browsing
+  const showBothTabs = !user || (userRole !== "volunteer" && userRole !== "ngo")
+  const forcedTab = userRole === "volunteer" ? "volunteer" : userRole === "ngo" ? "ngo" : null
+  
   // Build dynamic plans from settings
   const ngoPlans = [
     {
@@ -97,7 +104,7 @@ export default function PricingPage() {
       limitations: [
         platformSettings?.ngoFreeProfileUnlocksPerMonth === 0
           ? `Pay-per-unlock available (${currencySymbol}${platformSettings?.singleProfileUnlockPrice || 499}/profile)`
-          : `${platformSettings?.ngoFreeProfileUnlocksPerMonth} free profile unlocks/month`,
+          : `${platformSettings?.ngoFreeProfileUnlocksPerMonth || 0} free profile unlocks/month`,
       ],
       popular: false,
     },
@@ -393,19 +400,34 @@ export default function PricingPage() {
         {settingsLoaded && (
         <section className="py-16">
           <div className="container mx-auto px-4 md:px-6">
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-              <div className="flex justify-center mb-12">
-                <TabsList className="grid w-full max-w-md grid-cols-2">
-                  <TabsTrigger value="ngo" className="flex items-center gap-2">
-                    <Building2 className="h-4 w-4" />
-                    For NGOs
-                  </TabsTrigger>
-                  <TabsTrigger value="volunteer" className="flex items-center gap-2">
-                    <User className="h-4 w-4" />
-                    For Volunteers
-                  </TabsTrigger>
-                </TabsList>
+            {/* Show message if user is logged in - they can only upgrade their own plan type */}
+            {user && forcedTab && (
+              <div className="text-center mb-8 p-4 bg-muted/50 rounded-lg max-w-2xl mx-auto">
+                <p className="text-muted-foreground">
+                  You're logged in as {userRole === "ngo" ? "an NGO" : "a volunteer"}. 
+                  {userRole === "ngo" 
+                    ? " Upgrade your NGO subscription below."
+                    : " Upgrade your volunteer subscription below."}
+                </p>
               </div>
+            )}
+            
+            <Tabs value={forcedTab || activeTab} onValueChange={showBothTabs ? setActiveTab : undefined} className="w-full">
+              {/* Only show tabs if user is not logged in OR is admin */}
+              {showBothTabs && (
+                <div className="flex justify-center mb-12">
+                  <TabsList className="grid w-full max-w-md grid-cols-2">
+                    <TabsTrigger value="ngo" className="flex items-center gap-2">
+                      <Building2 className="h-4 w-4" />
+                      For NGOs
+                    </TabsTrigger>
+                    <TabsTrigger value="volunteer" className="flex items-center gap-2">
+                      <User className="h-4 w-4" />
+                      For Volunteers
+                    </TabsTrigger>
+                  </TabsList>
+                </div>
+              )}
 
               <TabsContent value="ngo">
                 <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
