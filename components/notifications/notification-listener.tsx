@@ -17,7 +17,7 @@ interface NotificationListenerProps {
 export function NotificationListener({ 
   userId, 
   userType = "volunteer",
-  pollInterval = 5000 // 5 seconds for near real-time
+  pollInterval = 30000 // 30 seconds for reasonable polling
 }: NotificationListenerProps) {
   const router = useRouter()
   const { sendNotification, hasPermission } = useBrowserNotification()
@@ -82,12 +82,22 @@ export function NotificationListener({
     }
   }, [userId, userType, hasPermission, sendNotification, setNotifications, setUnreadCount, router])
 
-  // Poll for notifications
+  // Poll for notifications with stable interval
   useEffect(() => {
     if (!userId) return
 
-    // DEBUG: Log when polling for notifications
-    console.log('[NotificationListener] Polling for notifications for user:', userId)
+    // Initial fetch
+    fetchNotifications()
+
+    // Set up polling
+    const interval = setInterval(fetchNotifications, pollInterval)
+
+    return () => clearInterval(interval)
+  }, [userId, pollInterval, fetchNotifications])
+
+  // Poll for notifications
+  useEffect(() => {
+    if (!userId) return
 
     // Initial fetch
     fetchNotifications()

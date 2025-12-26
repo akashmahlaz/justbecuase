@@ -3,9 +3,6 @@ import { auth } from "@/lib/auth"
 import { headers } from "next/headers"
 import { getMyNotifications, getUnreadNotificationCount } from "@/lib/actions"
 
-// DEBUG: Log when API is called
-console.log('[API] /api/user/notifications called')
-
 export async function GET() {
   try {
     const session = await auth.api.getSession({

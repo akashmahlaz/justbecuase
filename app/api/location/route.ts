@@ -74,16 +74,27 @@ export async function POST(req: Request) {
     const getLocationData = () => {
       const findComponent = (types: string[]) => {
         const component = components.find((comp: any) => 
-          types.some(type => comp.types.includes(type))
+          types.every(type => comp.types.includes(type))
         );
         return component ? component.long_name : null;
       };
 
+      // Try to find city - look for locality first, then administrative_area_level_2
+      const city = findComponent(["locality", "political"]) || 
+                   findComponent(["administrative_area_level_2", "political"]) ||
+                   findComponent(["sublocality", "political"]);
+      
+      // State/region
+      const state = findComponent(["administrative_area_level_1", "political"]);
+      
+      // Country
+      const country = findComponent(["country", "political"]);
+
       const locationData = {
         formatted: result.formatted_address,
-        city: findComponent(["locality", "political"]) || findComponent(["sublocality", "political"]),
-        state: findComponent(["administrative_area_level_1", "political"]),
-        country: findComponent(["country", "political"]),
+        city: city,
+        state: state,
+        country: country,
         postalCode: findComponent(["postal_code"]),
         coordinates: {
           lat: result.geometry.location.lat,
