@@ -75,9 +75,11 @@ export function UserActions({
   const [deleteConfirmText, setDeleteConfirmText] = useState("")
 
   const handleVerify = async () => {
+    console.log(`[UserActions] handleVerify called for ${userType} ${userId}, current isVerified=${isVerified}`)
     setLoading(true)
     try {
       const result = await verifyUser(userId, userType, !isVerified)
+      console.log(`[UserActions] verifyUser result:`, result)
       if (result.success) {
         toast.success(isVerified ? "User unverified" : "User verified successfully")
       } else {

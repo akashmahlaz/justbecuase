@@ -1656,10 +1656,14 @@ export async function getAllProjects(page: number = 1, limit: number = 20) {
 export async function verifyNGO(userId: string, isVerified: boolean): Promise<ApiResponse<boolean>> {
   try {
     await requireRole(["admin"])
+    console.log(`[verifyNGO] Updating NGO ${userId} to isVerified=${isVerified}`)
     const result = await ngoProfilesDb.update(userId, { isVerified })
+    console.log(`[verifyNGO] Update result:`, result)
     revalidatePath("/admin/ngos")
+    revalidatePath("/admin/users")
     return { success: true, data: result }
   } catch (error) {
+    console.error("[verifyNGO] Error:", error)
     return { success: false, error: "Failed to update verification status" }
   }
 }
@@ -1667,10 +1671,14 @@ export async function verifyNGO(userId: string, isVerified: boolean): Promise<Ap
 export async function verifyVolunteer(userId: string, isVerified: boolean): Promise<ApiResponse<boolean>> {
   try {
     await requireRole(["admin"])
+    console.log(`[verifyVolunteer] Updating volunteer ${userId} to isVerified=${isVerified}`)
     const result = await volunteerProfilesDb.update(userId, { isVerified })
+    console.log(`[verifyVolunteer] Update result:`, result)
     revalidatePath("/admin/volunteers")
+    revalidatePath("/admin/users")
     return { success: true, data: result }
   } catch (error) {
+    console.error("[verifyVolunteer] Error:", error)
     return { success: false, error: "Failed to update verification status" }
   }
 }
