@@ -20,6 +20,7 @@ import { authClient } from "@/lib/auth-client"
 import { getVolunteerProfile, updateVolunteerProfile } from "@/lib/actions"
 import { skillCategories } from "@/lib/skills-data"
 import { uploadToCloudinary, validateImageFile } from "@/lib/upload"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 export default function VolunteerProfileEditPage() {
   const router = useRouter()
