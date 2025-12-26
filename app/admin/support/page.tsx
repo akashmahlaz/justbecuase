@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -25,6 +25,7 @@ import {
   Calendar,
   Send,
   Filter,
+  Loader2,
 } from "lucide-react"
 
 // Support ticket types
@@ -49,64 +50,35 @@ interface SupportTicket {
   }[]
 }
 
-// Demo tickets - in production, fetch from database
-const demoTickets: SupportTicket[] = [
-  {
-    id: "1",
-    subject: "Cannot upload profile photo",
-    description: "I'm trying to upload my profile picture but it keeps showing an error. I've tried different formats but nothing works.",
-    status: "open",
-    priority: "medium",
-    category: "technical",
-    userId: "user1",
-    userName: "Rajesh Kumar",
-    userEmail: "rajesh@example.com",
-    userType: "volunteer",
-    createdAt: "2025-12-15T10:00:00Z",
-    updatedAt: "2025-12-15T10:00:00Z",
-    responses: [],
-  },
-  {
-    id: "2",
-    subject: "Payment not reflecting after profile unlock",
-    description: "I paid ₹499 to unlock a volunteer's profile but the profile is still showing as locked. Payment was deducted from my account.",
-    status: "in-progress",
-    priority: "high",
-    category: "payment",
-    userId: "user2",
-    userName: "Hope Foundation",
-    userEmail: "contact@hopefoundation.org",
-    userType: "ngo",
-    createdAt: "2025-12-14T15:30:00Z",
-    updatedAt: "2025-12-15T09:00:00Z",
-    responses: [
-      {
-        id: "r1",
-        message: "Thank you for reporting this. We're looking into your payment. Can you please share the transaction ID?",
-        isAdmin: true,
-        createdAt: "2025-12-15T09:00:00Z",
-      },
-    ],
-  },
-  {
-    id: "3",
-    subject: "Account verification pending for weeks",
-    description: "We submitted our NGO registration documents 3 weeks ago but still haven't received verification. This is affecting our ability to hire volunteers.",
-    status: "open",
-    priority: "high",
-    category: "account",
-    userId: "user3",
-    userName: "Green Earth Initiative",
-    userEmail: "admin@greenearth.org",
-    userType: "ngo",
-    createdAt: "2025-12-10T08:00:00Z",
-    updatedAt: "2025-12-10T08:00:00Z",
-    responses: [],
-  },
-]
-
 export default function AdminSupportPage() {
-  const [tickets, setTickets] = useState<SupportTicket[]>(demoTickets)
+  const [tickets, setTickets] = useState<SupportTicket[]>([])
+  const [loading, setLoading] = useState(true)
+  const [selectedTicket, setSelectedTicket] = useState<SupportTicket | null>(null)
+  const [showTicketDialog, setShowTicketDialog] = useState(false)
+  const [responseText, setResponseText] = useState("")
+  const [filter, setFilter] = useState<"all" | "open" | "in-progress" | "resolved">("all")
+  const [searchQuery, setSearchQuery] = useState("")
+  const [submitting, setSubmitting] = useState(false)
+
+  // Fetch tickets on mount
+  useEffect(() => {
+    fetchTickets()
+  }, [])
+
+  const fetchTickets = async () => {
+    try {
+      setLoading(true)
+      const response = await fetch("/api/admin/support")
+      if (response.ok) {
+        const data = await response.json()
+        setTickets(data.tickets || [])
+      }
+    } catch (error) {
+      console.error("Error fetching tickets:", error)
+    } finally {
+      setLoading(false)
+    }
+  }
   const [selectedTicket, setSelectedTicket] = useState<SupportTicket | null>(null)
   const [showTicketDialog, setShowTicketDialog] = useState(false)
   const [responseText, setResponseText] = useState("")
@@ -128,43 +100,74 @@ export default function AdminSupportPage() {
     setResponseText("")
   }
 
-  const handleSendResponse = () => {
-    if (!selectedTicket || !responseText.trim()) return
+  const handleSendResponse = async () => {
+    if (!selectedTicket || !responseText.trim() || submitting) return
 
-    const newResponse = {
-      id: `r${Date.now()}`,
-      message: responseText,
-      isAdmin: true,
-      createdAt: new Date().toISOString(),
+    setSubmitting(true)
+    try {
+      const response = await fetch("/api/admin/support", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ticketId: selectedTicket.id,
+          response: responseText,
+          newStatus: "in-progress"
+        })
+      })
+
+      if (response.ok) {
+        const newResponse = {
+          id: `r${Date.now()}`,
+          message: responseText,
+          isAdmin: true,
+          createdAt: new Date().toISOString(),
+        }
+
+        const updatedTickets = tickets.map((t) =>
+          t.id === selectedTicket.id
+            ? {
+                ...t,
+                responses: [...t.responses, newResponse],
+                status: "in-progress" as const,
+                updatedAt: new Date().toISOString(),
+              }
+            : t
+        )
+
+        setTickets(updatedTickets)
+        setSelectedTicket({
+          ...selectedTicket,
+          responses: [...selectedTicket.responses, newResponse],
+          status: "in-progress",
+        })
+        setResponseText("")
+      }
+    } catch (error) {
+      console.error("Error sending response:", error)
+    } finally {
+      setSubmitting(false)
     }
-
-    const updatedTickets = tickets.map((t) =>
-      t.id === selectedTicket.id
-        ? {
-            ...t,
-            responses: [...t.responses, newResponse],
-            status: "in-progress" as const,
-            updatedAt: new Date().toISOString(),
-          }
-        : t
-    )
-
-    setTickets(updatedTickets)
-    setSelectedTicket({
-      ...selectedTicket,
-      responses: [...selectedTicket.responses, newResponse],
-      status: "in-progress",
-    })
-    setResponseText("")
   }
 
-  const handleUpdateStatus = (ticketId: string, status: SupportTicket["status"]) => {
-    const updatedTickets = tickets.map((t) =>
-      t.id === ticketId ? { ...t, status, updatedAt: new Date().toISOString() } : t
-    )
-    setTickets(updatedTickets)
-    if (selectedTicket?.id === ticketId) {
-      setSelectedTicket({ ...selectedTicket, status })
+  const handleUpdateStatus = async (ticketId: string, status: SupportTicket["status"]) => {
+    try {
+      const response = await fetch("/api/admin/support", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ticketId, status })
+      })
+
+      if (response.ok) {
+        const updatedTickets = tickets.map((t) =>
+          t.id === ticketId ? { ...t, status, updatedAt: new Date().toISOString() } : t
+        )
+        setTickets(updatedTickets)
+        if (selectedTicket?.id === ticketId) {
+          setSelectedTicket({ ...selectedTicket, status })
+        }
+      }
+    } catch (error) {
+      console.error("Error updating status:", error)
     }
   }
 
@@ -199,6 +202,14 @@ export default function AdminSupportPage() {
     open: tickets.filter((t) => t.status === "open").length,
     inProgress: tickets.filter((t) => t.status === "in-progress").length,
     resolved: tickets.filter((t) => t.status === "resolved").length,
+  }
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    )
   }
 
   return (
@@ -451,8 +462,12 @@ export default function AdminSupportPage() {
                         Close Ticket
                       </Button>
                     </div>
-                    <Button onClick={handleSendResponse} disabled={!responseText.trim()}>
-                      <Send className="h-4 w-4 mr-2" />
+                    <Button onClick={handleSendResponse} disabled={!responseText.trim() || submitting}>
+                      {submitting ? (
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      ) : (
+                        <Send className="h-4 w-4 mr-2" />
+                      )}
                       Send Response
                     </Button>
                   </div>

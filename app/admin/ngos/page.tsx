@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
-import { getAllNGOs } from "@/lib/actions"
+import { getAllNGOs, getAdminStats } from "@/lib/actions"
 import {
   Search,
   Filter,
@@ -24,6 +24,14 @@ import {
 import Link from "next/link"
 
 export default async function AdminNGOsPage() {
+  const stats = await getAdminStats()
+  const { data: ngos, total } = await getAllNGOs(1, 100)
+  
+  // Calculate stats from real data
+  const verifiedCount = ngos.filter(n => n.isVerified).length
+  const pendingCount = ngos.filter(n => !n.isVerified).length
+  const premiumCount = ngos.filter(n => n.subscriptionPlan && n.subscriptionPlan !== "free").length
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -43,25 +51,25 @@ export default async function AdminNGOsPage() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <Card>
           <CardContent className="p-4">
-            <p className="text-2xl font-bold text-foreground">0</p>
+            <p className="text-2xl font-bold text-foreground">{total}</p>
             <p className="text-sm text-muted-foreground">Total NGOs</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4">
-            <p className="text-2xl font-bold text-green-600">0</p>
+            <p className="text-2xl font-bold text-green-600">{verifiedCount}</p>
             <p className="text-sm text-muted-foreground">Verified</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4">
-            <p className="text-2xl font-bold text-yellow-600">0</p>
+            <p className="text-2xl font-bold text-yellow-600">{pendingCount}</p>
             <p className="text-sm text-muted-foreground">Pending Verification</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4">
-            <p className="text-2xl font-bold text-primary">0</p>
+            <p className="text-2xl font-bold text-primary">{premiumCount}</p>
             <p className="text-sm text-muted-foreground">Premium Subscribers</p>
           </CardContent>
         </Card>

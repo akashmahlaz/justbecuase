@@ -8,8 +8,45 @@ import {
   FolderKanban,
   TrendingUp,
 } from "lucide-react"
+import { getAdminAnalytics, getAllVolunteers, getAllNGOs, getAllProjects } from "@/lib/actions"
 
-export default function AdminReportsPage() {
+export default async function AdminReportsPage() {
+  const [analytics, volunteers, ngos, projects] = await Promise.all([
+    getAdminAnalytics(),
+    getAllVolunteers(),
+    getAllNGOs(),
+    getAllProjects()
+  ])
+
+  // Calculate this month's stats
+  const now = new Date()
+  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
+  
+  const newVolunteersThisMonth = volunteers.filter((v: { createdAt?: string | Date }) => {
+    if (!v.createdAt) return false
+    const date = new Date(v.createdAt)
+    return date >= startOfMonth
+  }).length
+
+  const newNGOsThisMonth = ngos.filter((n: { createdAt?: string | Date }) => {
+    if (!n.createdAt) return false
+    const date = new Date(n.createdAt)
+    return date >= startOfMonth
+  }).length
+
+  const newProjectsThisMonth = projects.filter((p: { createdAt?: string | Date }) => {
+    if (!p.createdAt) return false
+    const date = new Date(p.createdAt)
+    return date >= startOfMonth
+  }).length
+
+  const totalNewUsersThisMonth = newVolunteersThisMonth + newNGOsThisMonth
+
+  // Calculate conversion rate (applications to accepted)
+  const conversionRate = analytics.totalApplications > 0 
+    ? Math.round((analytics.completedProjects / analytics.totalApplications) * 100)
+    : 0
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -32,7 +69,7 @@ export default function AdminReportsPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">New Users (This Month)</p>
-                <p className="text-2xl font-bold text-foreground">0</p>
+                <p className="text-2xl font-bold text-foreground">{totalNewUsersThisMonth}</p>
               </div>
               <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
                 <Users className="h-5 w-5 text-primary" />
@@ -45,7 +82,7 @@ export default function AdminReportsPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">New NGOs (This Month)</p>
-                <p className="text-2xl font-bold text-foreground">0</p>
+                <p className="text-2xl font-bold text-foreground">{newNGOsThisMonth}</p>
               </div>
               <div className="w-10 h-10 rounded-lg bg-secondary/10 flex items-center justify-center">
                 <Building2 className="h-5 w-5 text-secondary" />
@@ -58,7 +95,7 @@ export default function AdminReportsPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">New Projects (This Month)</p>
-                <p className="text-2xl font-bold text-foreground">0</p>
+                <p className="text-2xl font-bold text-foreground">{newProjectsThisMonth}</p>
               </div>
               <div className="w-10 h-10 rounded-lg bg-green-100 flex items-center justify-center">
                 <FolderKanban className="h-5 w-5 text-green-600" />
@@ -71,7 +108,7 @@ export default function AdminReportsPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Conversion Rate</p>
-                <p className="text-2xl font-bold text-foreground">0%</p>
+                <p className="text-2xl font-bold text-foreground">{conversionRate}%</p>
               </div>
               <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center">
                 <TrendingUp className="h-5 w-5 text-blue-600" />
