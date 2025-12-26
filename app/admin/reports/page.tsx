@@ -9,6 +9,7 @@ import {
   TrendingUp,
 } from "lucide-react"
 import { getAdminAnalytics, getAllVolunteers, getAllNGOs, getAllProjects } from "@/lib/actions"
+import { ReportsGenerator } from "@/components/admin/reports-generator"
 
 export default async function AdminReportsPage() {
   const [analytics, volunteers, ngos, projects] = await Promise.all([
@@ -153,36 +154,13 @@ export default async function AdminReportsPage() {
         </Card>
       </div>
 
-      {/* Available Reports */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Available Reports</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {[
-              { title: "User Registration Report", description: "All user signups with details" },
-              { title: "NGO Activity Report", description: "NGO projects and engagement" },
-              { title: "Volunteer Activity Report", description: "Volunteer applications and matches" },
-              { title: "Revenue Report", description: "All payments and transactions" },
-              { title: "Matching Report", description: "Skill matching statistics" },
-              { title: "Platform Health Report", description: "Overall platform metrics" },
-            ].map((report, i) => (
-              <div
-                key={i}
-                className="p-4 border rounded-lg hover:border-primary transition-colors cursor-pointer"
-              >
-                <h4 className="font-medium text-foreground mb-1">{report.title}</h4>
-                <p className="text-sm text-muted-foreground mb-3">{report.description}</p>
-                <Button size="sm" variant="outline">
-                  <Download className="h-3 w-3 mr-1" />
-                  Generate
-                </Button>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
+      {/* Available Reports - Interactive */}
+      <ReportsGenerator 
+        volunteers={volunteers} 
+        ngos={ngos} 
+        projects={projects}
+        analytics={analytics}
+      />
     </div>
   )
 }

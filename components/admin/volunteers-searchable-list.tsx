@@ -5,92 +5,89 @@ import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Search, Download, Eye, MoreHorizontal, Globe, MapPin, CheckCircle, XCircle, Ban, Shield } from "lucide-react"
+import { Search, Download, Eye, MoreHorizontal, MapPin, CheckCircle, XCircle, Ban } from "lucide-react"
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-  DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu"
 import Link from "next/link"
 import { UserActions } from "@/components/admin/user-actions"
 
-interface NGO {
+interface Volunteer {
   userId: string
-  orgName?: string
-  organizationName?: string
-  contactEmail?: string
-  website?: string
+  name?: string
+  phone?: string
+  bio?: string
+  avatar?: string
   city?: string
   country?: string
-  subscriptionTier?: string
-  subscriptionPlan?: string
+  location?: string
+  volunteerType?: string
+  skills?: { subskillId?: string; skillId?: string }[] | string[]
   isVerified?: boolean
   isActive?: boolean
   isBanned?: boolean
-  projectsPosted?: number
-  projectsCompleted?: number
-  createdAt?: string | Date
-  logo?: string
+  createdAt?: string
 }
 
-interface NGOsSearchableListProps {
-  ngos: NGO[]
+interface VolunteersSearchableListProps {
+  volunteers: Volunteer[]
   title: string
 }
 
-export function NGOsSearchableList({ ngos, title }: NGOsSearchableListProps) {
+export function VolunteersSearchableList({ volunteers, title }: VolunteersSearchableListProps) {
   const [searchQuery, setSearchQuery] = useState("")
   const [statusFilter, setStatusFilter] = useState<"all" | "verified" | "pending" | "banned">("all")
-  const [subscriptionFilter, setSubscriptionFilter] = useState<string>("all")
+  const [typeFilter, setTypeFilter] = useState<string>("all")
 
-  // Get unique subscription types
-  const subscriptionTypes = useMemo(() => {
-    const types = new Set(ngos.map(n => n.subscriptionTier || n.subscriptionPlan || "free").filter(Boolean))
+  // Get unique volunteer types
+  const volunteerTypes = useMemo(() => {
+    const types = new Set(volunteers.map(v => v.volunteerType || "free").filter(Boolean))
     return Array.from(types)
-  }, [ngos])
+  }, [volunteers])
 
-  const filteredNGOs = useMemo(() => {
-    return ngos.filter((ngo) => {
+  const filteredVolunteers = useMemo(() => {
+    return volunteers.filter((volunteer) => {
       // Search filter
       const searchLower = searchQuery.toLowerCase()
-      const orgName = ngo.orgName || ngo.organizationName || ""
+      const name = volunteer.name || volunteer.bio?.slice(0, 30) || ""
+      const location = volunteer.location || `${volunteer.city || ""} ${volunteer.country || ""}`
       const matchesSearch = !searchQuery || 
-        orgName.toLowerCase().includes(searchLower) ||
-        (ngo.contactEmail && ngo.contactEmail.toLowerCase().includes(searchLower)) ||
-        (ngo.city && ngo.city.toLowerCase().includes(searchLower)) ||
-        (ngo.country && ngo.country.toLowerCase().includes(searchLower))
+        name.toLowerCase().includes(searchLower) ||
+        (volunteer.phone && volunteer.phone.toLowerCase().includes(searchLower)) ||
+        location.toLowerCase().includes(searchLower)
 
       // Status filter
       let matchesStatus = true
       if (statusFilter === "verified") {
-        matchesStatus = ngo.isVerified === true
+        matchesStatus = volunteer.isVerified === true
       } else if (statusFilter === "pending") {
-        matchesStatus = ngo.isVerified !== true
+        matchesStatus = volunteer.isVerified !== true
       } else if (statusFilter === "banned") {
-        matchesStatus = ngo.isBanned === true
+        matchesStatus = volunteer.isBanned === true
       }
 
-      // Subscription filter
-      const ngoSubscription = ngo.subscriptionTier || ngo.subscriptionPlan || "free"
-      const matchesSubscription = subscriptionFilter === "all" || ngoSubscription === subscriptionFilter
+      // Type filter
+      const volType = volunteer.volunteerType || "free"
+      const matchesType = typeFilter === "all" || volType === typeFilter
 
-      return matchesSearch && matchesStatus && matchesSubscription
+      return matchesSearch && matchesStatus && matchesType
     })
-  }, [ngos, searchQuery, statusFilter, subscriptionFilter])
+  }, [volunteers, searchQuery, statusFilter, typeFilter])
 
   const handleExport = () => {
     // Export to CSV
-    const headers = ["Organization", "Email", "Location", "Subscription", "Verified", "Projects Posted", "Joined"]
-    const rows = filteredNGOs.map(ngo => [
-      ngo.orgName || ngo.organizationName || "",
-      ngo.contactEmail || "",
-      `${ngo.city || ""}, ${ngo.country || ""}`,
-      ngo.subscriptionTier || ngo.subscriptionPlan || "free",
-      ngo.isVerified ? "Yes" : "No",
-      ngo.projectsPosted?.toString() || "0",
-      ngo.createdAt ? new Date(ngo.createdAt instanceof Date ? ngo.createdAt : ngo.createdAt).toLocaleDateString() : ""
+    const headers = ["Name", "Phone", "Location", "Type", "Verified", "Status", "Joined"]
+    const rows = filteredVolunteers.map(volunteer => [
+      volunteer.name || volunteer.bio?.slice(0, 30) || "Unnamed",
+      volunteer.phone || "",
+      `${volunteer.city || ""}, ${volunteer.country || ""}`,
+      volunteer.volunteerType || "free",
+      volunteer.isVerified ? "Yes" : "No",
+      volunteer.isActive !== false ? "Active" : "Inactive",
+      volunteer.createdAt ? new Date(volunteer.createdAt).toLocaleDateString() : ""
     ])
     
     const csvContent = [
@@ -102,11 +99,17 @@ export function NGOsSearchableList({ ngos, title }: NGOsSearchableListProps) {
     const url = URL.createObjectURL(blob)
     const a = document.createElement("a")
     a.href = url
-    a.download = `ngos-${new Date().toISOString().split("T")[0]}.csv`
+    a.download = `volunteers-${new Date().toISOString().split("T")[0]}.csv`
     document.body.appendChild(a)
     a.click()
     document.body.removeChild(a)
     URL.revokeObjectURL(url)
+  }
+
+  // Helper to display skills
+  const getSkillDisplay = (skill: { subskillId?: string; skillId?: string } | string) => {
+    if (typeof skill === "string") return skill
+    return skill.subskillId || skill.skillId || "Unknown"
   }
 
   return (
@@ -118,7 +121,7 @@ export function NGOsSearchableList({ ngos, title }: NGOsSearchableListProps) {
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input 
-                placeholder="Search by name, email, or location..." 
+                placeholder="Search by name, phone, or location..." 
                 className="pl-9"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
@@ -137,11 +140,11 @@ export function NGOsSearchableList({ ngos, title }: NGOsSearchableListProps) {
               </select>
               <select 
                 className="border rounded-md px-3 py-2 text-sm bg-background"
-                value={subscriptionFilter}
-                onChange={(e) => setSubscriptionFilter(e.target.value)}
+                value={typeFilter}
+                onChange={(e) => setTypeFilter(e.target.value)}
               >
-                <option value="all">All Subscriptions</option>
-                {subscriptionTypes.map(type => (
+                <option value="all">All Types</option>
+                {volunteerTypes.map(type => (
                   <option key={type} value={type}>{type}</option>
                 ))}
               </select>
@@ -154,79 +157,84 @@ export function NGOsSearchableList({ ngos, title }: NGOsSearchableListProps) {
         </CardContent>
       </Card>
 
-      {/* NGOs Table */}
+      {/* Volunteers Table */}
       <Card>
         <CardHeader className="pb-4">
-          <CardTitle className="text-lg">{title} ({filteredNGOs.length})</CardTitle>
+          <CardTitle className="text-lg">{title} ({filteredVolunteers.length})</CardTitle>
         </CardHeader>
         <CardContent>
-          {filteredNGOs.length > 0 ? (
+          {filteredVolunteers.length > 0 ? (
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
                   <tr className="border-b">
-                    <th className="text-left py-3 px-4 font-medium text-muted-foreground">Organization</th>
+                    <th className="text-left py-3 px-4 font-medium text-muted-foreground">Volunteer</th>
                     <th className="text-left py-3 px-4 font-medium text-muted-foreground">Location</th>
-                    <th className="text-left py-3 px-4 font-medium text-muted-foreground">Subscription</th>
-                    <th className="text-left py-3 px-4 font-medium text-muted-foreground">Projects</th>
+                    <th className="text-left py-3 px-4 font-medium text-muted-foreground">Type</th>
+                    <th className="text-left py-3 px-4 font-medium text-muted-foreground">Skills</th>
                     <th className="text-left py-3 px-4 font-medium text-muted-foreground">Status</th>
                     <th className="text-left py-3 px-4 font-medium text-muted-foreground">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredNGOs.map((ngo) => {
-                    const orgName = ngo.orgName || ngo.organizationName || "Unnamed NGO"
+                  {filteredVolunteers.map((volunteer) => {
+                    const name = volunteer.name || volunteer.bio?.slice(0, 20) || "Volunteer"
+                    const skills = volunteer.skills || []
                     return (
-                      <tr key={ngo.userId} className="border-b hover:bg-muted/50">
+                      <tr key={volunteer.userId} className="border-b hover:bg-muted/50">
                         <td className="py-3 px-4">
                           <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-lg bg-secondary/10 flex items-center justify-center text-sm font-medium overflow-hidden">
-                              {ngo.logo ? (
-                                <img src={ngo.logo} alt={orgName} className="w-full h-full object-cover" />
+                            <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-sm font-medium overflow-hidden">
+                              {volunteer.avatar ? (
+                                <img src={volunteer.avatar} alt={name} className="w-full h-full object-cover" />
                               ) : (
-                                orgName.charAt(0)
+                                name.charAt(0).toUpperCase()
                               )}
                             </div>
                             <div>
-                              <p className="font-medium text-foreground">{orgName}</p>
-                              {ngo.website && (
-                                <a 
-                                  href={ngo.website} 
-                                  target="_blank" 
-                                  rel="noopener noreferrer"
-                                  className="text-sm text-primary flex items-center gap-1"
-                                >
-                                  <Globe className="h-3 w-3" />
-                                  Website
-                                </a>
-                              )}
+                              <p className="font-medium text-foreground">{name}</p>
+                              <p className="text-sm text-muted-foreground">{volunteer.phone || "No phone"}</p>
                             </div>
                           </div>
                         </td>
                         <td className="py-3 px-4">
                           <div className="flex items-center gap-1 text-sm text-foreground">
                             <MapPin className="h-3 w-3 text-muted-foreground" />
-                            {ngo.city || "N/A"}, {ngo.country || "N/A"}
+                            {volunteer.city || "N/A"}, {volunteer.country || "N/A"}
                           </div>
                         </td>
                         <td className="py-3 px-4">
                           <Badge
-                            variant={(ngo.subscriptionTier || ngo.subscriptionPlan) === "free" ? "outline" : "default"}
+                            variant={volunteer.volunteerType === "free" ? "default" : "secondary"}
                           >
-                            {ngo.subscriptionTier || ngo.subscriptionPlan || "free"}
+                            {volunteer.volunteerType || "free"}
                           </Badge>
                         </td>
-                        <td className="py-3 px-4 text-sm text-foreground">
-                          {ngo.projectsPosted || 0} posted / {ngo.projectsCompleted || 0} completed
+                        <td className="py-3 px-4">
+                          <div className="flex gap-1 flex-wrap">
+                            {skills.slice(0, 2).map((skill, i) => (
+                              <Badge key={i} variant="outline" className="text-xs">
+                                {getSkillDisplay(skill)}
+                              </Badge>
+                            ))}
+                            {skills.length > 2 && (
+                              <Badge variant="outline" className="text-xs">
+                                +{skills.length - 2}
+                              </Badge>
+                            )}
+                            {skills.length === 0 && (
+                              <span className="text-xs text-muted-foreground">No skills</span>
+                            )}
+                          </div>
                         </td>
                         <td className="py-3 px-4">
                           <div className="flex items-center gap-2">
-                            {ngo.isBanned ? (
+                            {volunteer.isBanned ? (
                               <Badge variant="destructive" className="flex items-center gap-1">
                                 <Ban className="h-3 w-3" />
                                 Banned
                               </Badge>
-                            ) : ngo.isVerified ? (
+                            ) : volunteer.isVerified ? (
                               <Badge className="bg-green-100 text-green-700 flex items-center gap-1">
                                 <CheckCircle className="h-3 w-3" />
                                 Verified
@@ -237,17 +245,20 @@ export function NGOsSearchableList({ ngos, title }: NGOsSearchableListProps) {
                                 Unverified
                               </Badge>
                             )}
+                            {volunteer.isActive === false && !volunteer.isBanned && (
+                              <Badge variant="outline" className="text-yellow-600">Inactive</Badge>
+                            )}
                           </div>
                         </td>
                         <td className="py-3 px-4">
                           <UserActions
-                            userId={ngo.userId}
-                            userName={orgName}
-                            userType="ngo"
-                            isVerified={ngo.isVerified || false}
-                            isActive={ngo.isActive !== false}
-                            isBanned={ngo.isBanned || false}
-                            currentRole="ngo"
+                            userId={volunteer.userId}
+                            userName={name}
+                            userType="volunteer"
+                            isVerified={volunteer.isVerified || false}
+                            isActive={volunteer.isActive !== false}
+                            isBanned={volunteer.isBanned || false}
+                            currentRole="volunteer"
                           />
                         </td>
                       </tr>
@@ -258,7 +269,7 @@ export function NGOsSearchableList({ ngos, title }: NGOsSearchableListProps) {
             </div>
           ) : (
             <div className="text-center py-8 text-muted-foreground">
-              No NGOs found matching your criteria
+              No volunteers found matching your criteria
             </div>
           )}
         </CardContent>

@@ -15,7 +15,7 @@ import {
 import Link from "next/link"
 
 interface Project {
-  _id?: string
+  _id?: any
   id?: string
   title: string
   description?: string
@@ -23,7 +23,7 @@ interface Project {
   workMode: string
   status: string
   applicantsCount?: number
-  createdAt?: string
+  createdAt?: string | Date
   ngoName?: string
   skills?: string[]
   location?: string
@@ -83,7 +83,7 @@ export function ProjectsSearchableList({ projects, title }: ProjectsSearchableLi
       project.workMode,
       project.status,
       project.applicantsCount?.toString() || "0",
-      project.createdAt ? new Date(project.createdAt).toLocaleDateString() : ""
+      project.createdAt ? new Date(project.createdAt instanceof Date ? project.createdAt : project.createdAt).toLocaleDateString() : ""
     ])
     
     const csvContent = [
