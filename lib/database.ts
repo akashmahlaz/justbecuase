@@ -347,7 +347,8 @@ export const projectsDb = {
     options: FindOptions = {}
   ): Promise<Project[]> {
     const collection = await getCollection<Project>(COLLECTIONS.PROJECTS)
-    return collection.find({ ...filter, status: "active" }, options).toArray()
+    // Include active and open projects
+    return collection.find({ ...filter, status: { $in: ["active", "open"] } }, options).toArray()
   },
 
   async count(filter: Filter<Project> = {}): Promise<number> {

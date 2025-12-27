@@ -7,15 +7,19 @@ import { FeaturedProjects } from "@/components/home/featured-projects"
 import { SkillCategories } from "@/components/home/skill-categories"
 import { Testimonials } from "@/components/home/testimonials"
 import { CTASection } from "@/components/home/cta-section"
+import { getImpactMetrics } from "@/lib/actions"
 
 
-export default function HomePage() {
+export default async function HomePage() {
+  // Fetch real impact metrics from database
+  const impactMetrics = await getImpactMetrics()
+  
   return (
     <div className="min-h-screen flex flex-col">
       <Navbar />
       <main className="flex-1">
         <HeroSection />
-                  <ImpactMetrics impactMetrics={{ volunteers: 5000, projectsCompleted: 120, ngosSupported: 75, hoursContributed: 10000, valueGenerated: 250000 }} />
+                  <ImpactMetrics impactMetrics={impactMetrics} />
         <HowItWorks />
         <FeaturedProjects />
         <SkillCategories />
