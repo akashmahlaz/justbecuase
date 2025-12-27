@@ -121,7 +121,7 @@ export default function ForVolunteersPage() {
 
       <main className="flex-1">
         {/* Hero */}
-        <section className="py-20 bg-gradient-to-b from-primary/10 to-background">
+        <section className="py-20 bg-linear-to-b from-primary/10 to-background">
           <div className="container mx-auto px-4 md:px-6">
             <div className="grid lg:grid-cols-2 gap-12 items-center">
               <div>
