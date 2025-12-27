@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { Navbar } from "@/components/navbar"
 import { Footer } from "@/components/footer"
 import { ProjectCard } from "@/components/project-card"
@@ -83,6 +83,86 @@ export default function ProjectsPage() {
   }
 
   const hasActiveFilters = selectedSkills.length > 0 || selectedTimeCommitment.length > 0 || selectedLocation !== ""
+
+  // Filter and sort projects
+  const filteredProjects = useMemo(() => {
+    let result = [...projects]
+    
+    // Search filter
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase()
+      result = result.filter((project) => {
+        const titleMatch = project.title?.toLowerCase().includes(query)
+        const descMatch = project.description?.toLowerCase().includes(query)
+        const skillsMatch = project.skillsRequired?.some(s => 
+          s.categoryId?.toLowerCase().includes(query) || 
+          s.subskillId?.toLowerCase().includes(query)
+        )
+        const ngoMatch = project.ngo?.name?.toLowerCase().includes(query)
+        return titleMatch || descMatch || skillsMatch || ngoMatch
+      })
+    }
+    
+    // Skills filter (by category)
+    if (selectedSkills.length > 0) {
+      result = result.filter((project) => {
+        const projectCategories = project.skillsRequired?.map(s => s.categoryId) || []
+        return selectedSkills.some(skill => {
+          const category = skillCategories.find(c => c.name === skill)
+          return projectCategories.includes(category?.id || skill.toLowerCase().replace(/\s+/g, '-'))
+        })
+      })
+    }
+    
+    // Time commitment filter
+    if (selectedTimeCommitment.length > 0) {
+      result = result.filter((project) => {
+        return selectedTimeCommitment.some(time => {
+          const projectTime = project.timeCommitment?.toLowerCase() || ""
+          const filterTime = time.toLowerCase()
+          // Match similar time ranges
+          if (filterTime.includes("1-5") && (projectTime.includes("1-5") || projectTime.includes("few hours"))) return true
+          if (filterTime.includes("5-10") && projectTime.includes("5-10")) return true
+          if (filterTime.includes("10-20") && projectTime.includes("10-20")) return true
+          if (filterTime.includes("20+") && (projectTime.includes("20+") || projectTime.includes("full-time"))) return true
+          return projectTime.includes(filterTime)
+        })
+      })
+    }
+    
+    // Location/Work mode filter
+    if (selectedLocation && selectedLocation !== "all") {
+      result = result.filter((project) => {
+        const workMode = project.workMode?.toLowerCase() || ""
+        const location = project.location?.toLowerCase() || ""
+        const filterLocation = selectedLocation.toLowerCase()
+        return workMode === filterLocation || location.includes(filterLocation)
+      })
+    }
+    
+    // Sorting
+    switch (sortBy) {
+      case "newest":
+        result.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+        break
+      case "closing":
+        result.sort((a, b) => {
+          if (!a.deadline) return 1
+          if (!b.deadline) return -1
+          return new Date(a.deadline).getTime() - new Date(b.deadline).getTime()
+        })
+        break
+      case "popular":
+        result.sort((a, b) => (b.applicantsCount || 0) - (a.applicantsCount || 0))
+        break
+      case "relevant":
+      default:
+        // Keep original order for relevance (could be enhanced with matching algorithm)
+        break
+    }
+    
+    return result
+  }, [projects, searchQuery, selectedSkills, selectedTimeCommitment, selectedLocation, sortBy])
 
   const FilterContent = () => (
     <div className="space-y-6">
@@ -280,7 +360,7 @@ export default function ProjectsPage() {
             <div className="flex-1">
               <div className="flex items-center justify-between mb-6">
                 <p className="text-muted-foreground">
-                  Showing <span className="font-medium text-foreground">{projects.length}</span> projects
+                  Showing <span className="font-medium text-foreground">{filteredProjects.length}</span> of {projects.length} projects
                 </p>
               </div>
 
@@ -288,14 +368,21 @@ export default function ProjectsPage() {
                 <div className="flex items-center justify-center py-12">
                   <Loader2 className="h-8 w-8 animate-spin text-primary" />
                 </div>
-              ) : projects.length === 0 ? (
+              ) : filteredProjects.length === 0 ? (
                 <div className="text-center py-12">
                   <p className="text-muted-foreground">No projects found</p>
-                  <p className="text-sm text-muted-foreground mt-1">Check back later for new opportunities</p>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    {hasActiveFilters ? "Try adjusting your filters" : "Check back later for new opportunities"}
+                  </p>
+                  {hasActiveFilters && (
+                    <Button variant="outline" className="mt-4" onClick={clearFilters}>
+                      Clear Filters
+                    </Button>
+                  )}
                 </div>
               ) : (
                 <div className={viewMode === "grid" ? "grid sm:grid-cols-2 xl:grid-cols-3 gap-6" : "space-y-4"}>
-                  {projects.map((project) => (
+                  {filteredProjects.map((project) => (
                     <ProjectCard key={project._id?.toString() || project.id} project={{
                       id: project._id?.toString() || project.id || "",
                       title: project.title,

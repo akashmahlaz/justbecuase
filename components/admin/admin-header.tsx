@@ -1,7 +1,9 @@
 "use client"
 
 import Link from "next/link"
+import { useState } from "react"
 import { Button } from "@/components/ui/button"
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -10,9 +12,29 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Bell, Menu, LogOut, User, Settings, ExternalLink } from "lucide-react"
+import { 
+  Bell, Menu, LogOut, User, Settings, ExternalLink, 
+  LayoutDashboard, Users, Building2, FolderKanban, CreditCard, 
+  BarChart3, Shield, Heart, UsersRound, Ban 
+} from "lucide-react"
 import { signOut } from "@/lib/auth-client"
-import { useRouter } from "next/navigation"
+import { useRouter, usePathname } from "next/navigation"
+import { cn } from "@/lib/utils"
+
+const mobileNavItems = [
+  { title: "Dashboard", href: "/admin/dashboard", icon: LayoutDashboard },
+  { title: "Users", href: "/admin/users", icon: Users },
+  { title: "Volunteers", href: "/admin/volunteers", icon: Heart },
+  { title: "NGOs", href: "/admin/ngos", icon: Building2 },
+  { title: "Projects", href: "/admin/projects", icon: FolderKanban },
+  { title: "Payments", href: "/admin/payments", icon: CreditCard },
+  { title: "Notifications", href: "/admin/notifications", icon: Bell },
+  { title: "Reports", href: "/admin/reports", icon: BarChart3 },
+  { title: "Team", href: "/admin/team", icon: UsersRound },
+  { title: "Ban History", href: "/admin/bans", icon: Ban },
+  { title: "Admin Accounts", href: "/admin/admins", icon: Shield },
+  { title: "Settings", href: "/admin/settings", icon: Settings },
+]
 
 interface AdminHeaderProps {
   user: {
@@ -24,6 +46,8 @@ interface AdminHeaderProps {
 
 export function AdminHeader({ user }: AdminHeaderProps) {
   const router = useRouter()
+  const pathname = usePathname()
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
   const handleSignOut = async () => {
     await signOut()
@@ -34,11 +58,44 @@ export function AdminHeader({ user }: AdminHeaderProps) {
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="flex h-16 items-center justify-between px-4 lg:px-6">
         <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" className="lg:hidden">
-            <Menu className="h-5 w-5" />
-          </Button>
+          <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+            <SheetTrigger asChild>
+              <Button variant="ghost" size="icon" className="lg:hidden">
+                <Menu className="h-5 w-5" />
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="left" className="w-72 p-0">
+              <div className="p-4 border-b">
+                <div className="flex items-center gap-2">
+                  <Shield className="h-5 w-5 text-primary" />
+                  <span className="font-semibold text-foreground">Admin Panel</span>
+                </div>
+              </div>
+              <nav className="p-4 space-y-1 overflow-y-auto max-h-[calc(100vh-8rem)]">
+                {mobileNavItems.map((item) => {
+                  const isActive = pathname === item.href
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      onClick={() => setMobileMenuOpen(false)}
+                      className={cn(
+                        "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors",
+                        isActive
+                          ? "bg-primary text-primary-foreground"
+                          : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                      )}
+                    >
+                      <item.icon className="h-4 w-4" />
+                      {item.title}
+                    </Link>
+                  )
+                })}
+              </nav>
+            </SheetContent>
+          </Sheet>
           <Link href="/admin/dashboard" className="flex items-center gap-2">
-            <span className="text-xl font-bold text-primary">JustBecause</span>
+            <span className="text-lg sm:text-xl font-bold text-primary">JustBecause</span>
             <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded">Admin</span>
           </Link>
         </div>

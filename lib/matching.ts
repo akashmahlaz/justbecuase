@@ -15,18 +15,23 @@ import type {
 // WEIGHTS FOR SCORING
 // ============================================
 const VOLUNTEER_MATCH_WEIGHTS = {
-  skillMatch: 0.40,      // 40% - Most important
-  locationMatch: 0.15,   // 15%
-  hoursMatch: 0.15,      // 15%
-  causeMatch: 0.15,      // 15%
-  experienceMatch: 0.15, // 15%
+  skillMatch: 0.35,      // 35% - Most important
+  locationMatch: 0.12,   // 12%
+  hoursMatch: 0.13,      // 13%
+  causeMatch: 0.12,      // 12%
+  experienceMatch: 0.10, // 10%
+  availabilityMatch: 0.08, // 8% - NEW: Volunteer availability
+  verificationBonus: 0.05, // 5% - NEW: Verified profiles get bonus
+  activityScore: 0.05,   // 5% - NEW: Recent activity
 }
 
 const OPPORTUNITY_MATCH_WEIGHTS = {
-  skillMatch: 0.40,      // 40%
-  workModeMatch: 0.20,   // 20%
-  hoursMatch: 0.20,      // 20%
-  causeMatch: 0.20,      // 20%
+  skillMatch: 0.35,      // 35%
+  workModeMatch: 0.18,   // 18%
+  hoursMatch: 0.17,      // 17%
+  causeMatch: 0.15,      // 15%
+  urgencyBonus: 0.08,    // 8% - NEW: Urgent projects get highlighted
+  ngoVerification: 0.07, // 7% - NEW: Verified NGOs rank higher
 }
 
 // ============================================
@@ -220,6 +225,68 @@ function calculateExperienceMatch(
   return 40
 }
 
+/**
+ * Calculate availability score based on volunteer's stated availability
+ */
+function calculateAvailabilityScore(volunteer: VolunteerProfile): number {
+  // Check if volunteer is actively looking
+  if ((volunteer as any).isActivelyLooking === false) return 40
+  
+  // Check availability status
+  const availability = (volunteer as any).availability || "available"
+  switch (availability) {
+    case "available":
+    case "actively_looking":
+      return 100
+    case "limited":
+    case "busy":
+      return 60
+    case "not_available":
+      return 20
+    default:
+      return 80
+  }
+}
+
+/**
+ * Calculate verification bonus
+ */
+function calculateVerificationBonus(isVerified: boolean): number {
+  return isVerified ? 100 : 50
+}
+
+/**
+ * Calculate activity score based on recent activity
+ */
+function calculateActivityScore(lastActiveDate?: Date | string): number {
+  if (!lastActiveDate) return 50
+  
+  const lastActive = new Date(lastActiveDate)
+  const now = new Date()
+  const daysSinceActive = Math.floor((now.getTime() - lastActive.getTime()) / (1000 * 60 * 60 * 24))
+  
+  if (daysSinceActive <= 7) return 100  // Active in last week
+  if (daysSinceActive <= 30) return 80  // Active in last month
+  if (daysSinceActive <= 90) return 60  // Active in last 3 months
+  return 40  // Inactive
+}
+
+/**
+ * Calculate urgency bonus for projects
+ */
+function calculateUrgencyBonus(deadline?: Date | string): number {
+  if (!deadline) return 50
+  
+  const deadlineDate = new Date(deadline)
+  const now = new Date()
+  const daysUntilDeadline = Math.floor((deadlineDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
+  
+  if (daysUntilDeadline <= 7) return 100  // Urgent
+  if (daysUntilDeadline <= 14) return 80  // Soon
+  if (daysUntilDeadline <= 30) return 60  // Normal
+  return 40  // Not urgent
+}
+
 // ============================================
 // MAIN MATCHING FUNCTIONS
 // ============================================
@@ -249,6 +316,9 @@ export function matchVolunteersToProject(
       hoursMatch: calculateHoursMatch(volunteer.hoursPerWeek, project.timeCommitment),
       causeMatch: calculateCauseMatch(volunteer.causes, project.causes),
       experienceMatch: calculateExperienceMatch(volunteer.skills, project.experienceLevel),
+      availabilityMatch: calculateAvailabilityScore(volunteer),
+      verificationBonus: calculateVerificationBonus(volunteer.isVerified || false),
+      activityScore: calculateActivityScore((volunteer as any).lastActive || (volunteer as any).updatedAt),
     }
 
     const score =
@@ -256,7 +326,10 @@ export function matchVolunteersToProject(
       breakdown.locationMatch * VOLUNTEER_MATCH_WEIGHTS.locationMatch +
       breakdown.hoursMatch * VOLUNTEER_MATCH_WEIGHTS.hoursMatch +
       breakdown.causeMatch * VOLUNTEER_MATCH_WEIGHTS.causeMatch +
-      breakdown.experienceMatch * VOLUNTEER_MATCH_WEIGHTS.experienceMatch
+      breakdown.experienceMatch * VOLUNTEER_MATCH_WEIGHTS.experienceMatch +
+      breakdown.availabilityMatch * VOLUNTEER_MATCH_WEIGHTS.availabilityMatch +
+      breakdown.verificationBonus * VOLUNTEER_MATCH_WEIGHTS.verificationBonus +
+      breakdown.activityScore * VOLUNTEER_MATCH_WEIGHTS.activityScore
 
     scores.push({
       volunteerId: volunteer.userId,
@@ -294,13 +367,17 @@ export function matchOpportunitiesToVolunteer(
       ),
       hoursMatch: calculateHoursMatch(volunteer.hoursPerWeek, project.timeCommitment),
       causeMatch: calculateCauseMatch(volunteer.causes, project.causes),
+      urgencyBonus: calculateUrgencyBonus(project.deadline),
+      ngoVerification: calculateVerificationBonus((project as any).ngo?.isVerified || false),
     }
 
     const score =
       breakdown.skillMatch * OPPORTUNITY_MATCH_WEIGHTS.skillMatch +
       breakdown.workModeMatch * OPPORTUNITY_MATCH_WEIGHTS.workModeMatch +
       breakdown.hoursMatch * OPPORTUNITY_MATCH_WEIGHTS.hoursMatch +
-      breakdown.causeMatch * OPPORTUNITY_MATCH_WEIGHTS.causeMatch
+      breakdown.causeMatch * OPPORTUNITY_MATCH_WEIGHTS.causeMatch +
+      breakdown.urgencyBonus * OPPORTUNITY_MATCH_WEIGHTS.urgencyBonus +
+      breakdown.ngoVerification * OPPORTUNITY_MATCH_WEIGHTS.ngoVerification
 
     scores.push({
       projectId: project._id?.toString() || "",

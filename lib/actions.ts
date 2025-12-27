@@ -1630,7 +1630,7 @@ export async function getAllVolunteers(page: number = 1, limit: number = 20) {
     volunteerProfilesDb.findMany({}, { skip, limit } as any),
     volunteerProfilesDb.count(),
   ])
-  return { data: volunteers, total, page, limit, totalPages: Math.ceil(total / limit) }
+  return { data: serializeDocuments(volunteers), total, page, limit, totalPages: Math.ceil(total / limit) }
 }
 
 export async function getAllNGOs(page: number = 1, limit: number = 20) {
@@ -1640,7 +1640,7 @@ export async function getAllNGOs(page: number = 1, limit: number = 20) {
     ngoProfilesDb.findMany({}, { skip, limit } as any),
     ngoProfilesDb.count(),
   ])
-  return { data: ngos, total, page, limit, totalPages: Math.ceil(total / limit) }
+  return { data: serializeDocuments(ngos), total, page, limit, totalPages: Math.ceil(total / limit) }
 }
 
 export async function getAllProjects(page: number = 1, limit: number = 20) {
@@ -1737,16 +1737,22 @@ export async function adminDeleteUser(
     await requireRole(["admin"])
     
     const db = await getDb()
+    const { ObjectId } = await import("mongodb")
     
-    // Delete user data based on type
+    // Try to create ObjectId - user might be stored with ObjectId or string
+    let userObjectId: import("mongodb").ObjectId | null = null
+    try {
+      userObjectId = new ObjectId(userId)
+    } catch (e) {
+      // userId is not a valid ObjectId, will use string matching
+    }
+    
+    // Delete user data based on type - data is stored in user collection directly now
+    // But we still need to clean up applications and projects
     if (userType === "volunteer") {
-      await Promise.all([
-        db.collection("volunteer_profiles").deleteOne({ userId }),
-        db.collection("applications").deleteMany({ volunteerId: userId }),
-      ])
+      await db.collection("applications").deleteMany({ volunteerId: userId })
     } else {
       await Promise.all([
-        db.collection("ngo_profiles").deleteOne({ userId }),
         db.collection("projects").deleteMany({ ngoId: userId }),
         db.collection("applications").deleteMany({ ngoId: userId }),
       ])
@@ -1759,15 +1765,21 @@ export async function adminDeleteUser(
         $or: [{ senderId: userId }, { receiverId: userId }] 
       }),
       db.collection("notifications").deleteMany({ userId }),
-      db.collection("profile_unlocks").deleteMany({ 
+      db.collection("profileUnlocks").deleteMany({ 
         $or: [{ ngoId: userId }, { volunteerId: userId }] 
       }),
       db.collection("transactions").deleteMany({ userId }),
-      // Delete user account
-      db.collection("user").deleteOne({ id: userId }),
+      // Delete from session and account tables
       db.collection("session").deleteMany({ userId }),
       db.collection("account").deleteMany({ userId }),
     ])
+    
+    // Delete user account - try both ObjectId and string id
+    if (userObjectId) {
+      await db.collection("user").deleteOne({ _id: userObjectId })
+    } else {
+      await db.collection("user").deleteOne({ id: userId })
+    }
     
     revalidatePath("/admin/users")
     revalidatePath("/admin/volunteers")
