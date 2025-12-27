@@ -151,8 +151,7 @@ export default function ForVolunteersPage() {
                 <img
                   src="/diverse-professionals-volunteering-laptop-teamwork.png"
                   alt="Volunteers collaborating"
-                  className="rounded-2xl shadow-2xl"
-                />
+                  className="rounded-2xl shadow-2xl" />
                 <div className="absolute -bottom-6 -left-6 bg-card p-4 rounded-xl shadow-lg border border-border">
                   <div className="flex items-center gap-3">
                     <div className="w-12 h-12 rounded-full bg-success-light flex items-center justify-center">
@@ -218,121 +217,98 @@ export default function ForVolunteersPage() {
             </div>
           </div>
         </section>
-          <div className="container mx-auto px-4 md:px-6">
-            <div className="text-center mb-12">
-              <h2 className="text-3xl font-bold text-foreground mb-4">Why Volunteer With Us?</h2>
-              <p className="text-muted-foreground max-w-2xl mx-auto">
-                Skills-based volunteering offers unique benefits that traditional volunteering can't match
-              </p>
-            </div>
-            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {benefits.map((benefit) => (
-                <Card key={benefit.title}>
+
+      {/* How It Works */}
+      <section className="py-16 bg-muted/30">
+        <div className="container mx-auto px-4 md:px-6">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl font-bold text-foreground mb-4">How It Works</h2>
+            <p className="text-muted-foreground max-w-2xl mx-auto">
+              Getting started is easy. Here's how you can begin making an impact today.
+            </p>
+          </div>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-8">
+            {steps.map((step, index) => (
+              <div key={step.number} className="relative">
+                <div className="text-6xl font-bold text-primary/10 mb-4">{step.number}</div>
+                <h3 className="font-semibold text-foreground mb-2">{step.title}</h3>
+                <p className="text-sm text-muted-foreground">{step.description}</p>
+                {index < steps.length - 1 && (
+                  <ArrowRight className="hidden lg:block absolute top-8 -right-4 h-6 w-6 text-border" />
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Testimonials */}
+      <section className="py-16">
+        <div className="container mx-auto px-4 md:px-6">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl font-bold text-foreground mb-4">Volunteer Stories</h2>
+            <p className="text-muted-foreground max-w-2xl mx-auto">
+              Hear from volunteers who have made a difference through our platform
+            </p>
+          </div>
+          <div className="grid md:grid-cols-3 gap-6">
+            {testimonials
+              .filter((t) => t.type === "volunteer")
+              .concat(testimonials.filter((t) => t.type === "ngo").slice(0, 2))
+              .map((testimonial) => (
+                <Card key={testimonial.id}>
                   <CardContent className="pt-6">
-                    <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center mb-4">
-                      <benefit.icon className="h-6 w-6 text-primary" />
+                    <p className="text-foreground mb-6 italic">"{testimonial.quote}"</p>
+                    <div className="flex items-center gap-3">
+                      <img
+                        src={testimonial.avatar || "/placeholder.svg"}
+                        alt={testimonial.author}
+                        className="w-12 h-12 rounded-full object-cover" />
+                      <div>
+                        <p className="font-semibold text-foreground">{testimonial.author}</p>
+                        <p className="text-sm text-muted-foreground">{testimonial.role}</p>
+                      </div>
                     </div>
-                    <h3 className="font-semibold text-foreground mb-2">{benefit.title}</h3>
-                    <p className="text-sm text-muted-foreground">{benefit.description}</p>
                   </CardContent>
                 </Card>
               ))}
-            </div>
           </div>
-        </section>
+        </div>
+      </section>
 
-        {/* How It Works */}
-        <section className="py-16 bg-muted/30">
-          <div className="container mx-auto px-4 md:px-6">
-            <div className="text-center mb-12">
-              <h2 className="text-3xl font-bold text-foreground mb-4">How It Works</h2>
-              <p className="text-muted-foreground max-w-2xl mx-auto">
-                Getting started is easy. Here's how you can begin making an impact today.
-              </p>
-            </div>
-            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-8">
-              {steps.map((step, index) => (
-                <div key={step.number} className="relative">
-                  <div className="text-6xl font-bold text-primary/10 mb-4">{step.number}</div>
-                  <h3 className="font-semibold text-foreground mb-2">{step.title}</h3>
-                  <p className="text-sm text-muted-foreground">{step.description}</p>
-                  {index < steps.length - 1 && (
-                    <ArrowRight className="hidden lg:block absolute top-8 -right-4 h-6 w-6 text-border" />
-                  )}
-                </div>
-              ))}
-            </div>
+      {/* FAQs */}
+      <section className="py-16 bg-muted/30">
+        <div className="container mx-auto px-4 md:px-6 max-w-3xl">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl font-bold text-foreground mb-4">Frequently Asked Questions</h2>
+            <p className="text-muted-foreground">Everything you need to know about volunteering with us</p>
           </div>
-        </section>
+          <Accordion type="single" collapsible className="w-full">
+            {faqs.map((faq, index) => (
+              <AccordionItem key={index} value={`item-${index}`}>
+                <AccordionTrigger className="text-left text-foreground">{faq.question}</AccordionTrigger>
+                <AccordionContent className="text-muted-foreground">{faq.answer}</AccordionContent>
+              </AccordionItem>
+            ))}
+          </Accordion>
+        </div>
+      </section>
 
-        {/* Testimonials */}
-        <section className="py-16">
-          <div className="container mx-auto px-4 md:px-6">
-            <div className="text-center mb-12">
-              <h2 className="text-3xl font-bold text-foreground mb-4">Volunteer Stories</h2>
-              <p className="text-muted-foreground max-w-2xl mx-auto">
-                Hear from volunteers who have made a difference through our platform
-              </p>
-            </div>
-            <div className="grid md:grid-cols-3 gap-6">
-              {testimonials
-                .filter((t) => t.type === "volunteer")
-                .concat(testimonials.filter((t) => t.type === "ngo").slice(0, 2))
-                .map((testimonial) => (
-                  <Card key={testimonial.id}>
-                    <CardContent className="pt-6">
-                      <p className="text-foreground mb-6 italic">"{testimonial.quote}"</p>
-                      <div className="flex items-center gap-3">
-                        <img
-                          src={testimonial.avatar || "/placeholder.svg"}
-                          alt={testimonial.author}
-                          className="w-12 h-12 rounded-full object-cover"
-                        />
-                        <div>
-                          <p className="font-semibold text-foreground">{testimonial.author}</p>
-                          <p className="text-sm text-muted-foreground">{testimonial.role}</p>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-            </div>
-          </div>
-        </section>
-
-        {/* FAQs */}
-        <section className="py-16 bg-muted/30">
-          <div className="container mx-auto px-4 md:px-6 max-w-3xl">
-            <div className="text-center mb-12">
-              <h2 className="text-3xl font-bold text-foreground mb-4">Frequently Asked Questions</h2>
-              <p className="text-muted-foreground">Everything you need to know about volunteering with us</p>
-            </div>
-            <Accordion type="single" collapsible className="w-full">
-              {faqs.map((faq, index) => (
-                <AccordionItem key={index} value={`item-${index}`}>
-                  <AccordionTrigger className="text-left text-foreground">{faq.question}</AccordionTrigger>
-                  <AccordionContent className="text-muted-foreground">{faq.answer}</AccordionContent>
-                </AccordionItem>
-              ))}
-            </Accordion>
-          </div>
-        </section>
-
-        {/* CTA */}
-        <section className="py-16 bg-primary text-primary-foreground">
-          <div className="container mx-auto px-4 md:px-6 text-center">
-            <h2 className="text-3xl font-bold mb-4">Ready to Start Making an Impact?</h2>
-            <p className="text-lg opacity-90 max-w-2xl mx-auto mb-8">
-              Join our community of skilled volunteers and start contributing to causes you care about today.
-            </p>
-            <Button asChild size="lg" variant="secondary">
-              <Link href="/auth/signup">
-                Create Your Free Account
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Link>
-            </Button>
-          </div>
-        </section>
+      {/* CTA */}
+      <section className="py-16 bg-primary text-primary-foreground">
+        <div className="container mx-auto px-4 md:px-6 text-center">
+          <h2 className="text-3xl font-bold mb-4">Ready to Start Making an Impact?</h2>
+          <p className="text-lg opacity-90 max-w-2xl mx-auto mb-8">
+            Join our community of skilled volunteers and start contributing to causes you care about today.
+          </p>
+          <Button asChild size="lg" variant="secondary">
+            <Link href="/auth/signup">
+              Create Your Free Account
+              <ArrowRight className="ml-2 h-4 w-4" />
+            </Link>
+          </Button>
+        </div>
+      </section>
       </main>
 
       <Footer />

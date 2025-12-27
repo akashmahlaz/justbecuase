@@ -1,6 +1,7 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
+import Image from "next/image"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -8,6 +9,7 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
+import { Progress } from "@/components/ui/progress"
 import {
   Dialog,
   DialogContent,
@@ -29,6 +31,7 @@ import {
   updateTeamMember,
   deleteTeamMember,
 } from "@/lib/actions"
+import { uploadToCloudinary, validateImageFile } from "@/lib/upload"
 import {
   Plus,
   Users,
@@ -40,6 +43,8 @@ import {
   Linkedin,
   Twitter,
   User,
+  Upload,
+  X,
 } from "lucide-react"
 import type { TeamMember } from "@/lib/types"
 
@@ -51,6 +56,13 @@ export default function AdminTeamPage() {
   const [editingMember, setEditingMember] = useState<TeamMember | null>(null)
   const [deletingMember, setDeletingMember] = useState<TeamMember | null>(null)
   const [saving, setSaving] = useState(false)
+
+  // Photo upload state
+  const [avatarFile, setAvatarFile] = useState<File | null>(null)
+  const [avatarPreview, setAvatarPreview] = useState<string>("")
+  const [uploadingAvatar, setUploadingAvatar] = useState(false)
+  const [uploadProgress, setUploadProgress] = useState(0)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   // Form state
   const [formData, setFormData] = useState({
@@ -89,6 +101,9 @@ export default function AdminTeamPage() {
       twitterUrl: "",
       isActive: true,
     })
+    setAvatarFile(null)
+    setAvatarPreview("")
+    setUploadProgress(0)
     setShowDialog(true)
   }
 
@@ -103,12 +118,39 @@ export default function AdminTeamPage() {
       twitterUrl: member.twitterUrl || "",
       isActive: member.isActive,
     })
+    setAvatarFile(null)
+    setAvatarPreview(member.avatar || "")
+    setUploadProgress(0)
     setShowDialog(true)
   }
 
   function openDeleteDialog(member: TeamMember) {
     setDeletingMember(member)
     setShowDeleteDialog(true)
+  }
+
+  function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    const validation = validateImageFile(file)
+    if (!validation.valid) {
+      toast.error(validation.error || "Invalid file")
+      return
+    }
+
+    setAvatarFile(file)
+    const previewUrl = URL.createObjectURL(file)
+    setAvatarPreview(previewUrl)
+  }
+
+  function removeAvatar() {
+    setAvatarFile(null)
+    setAvatarPreview("")
+    setFormData({ ...formData, avatar: "" })
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ""
+    }
   }
 
   async function handleSubmit() {
@@ -119,12 +161,31 @@ export default function AdminTeamPage() {
 
     setSaving(true)
 
+    // Upload avatar if a new file is selected
+    let avatarUrl = formData.avatar
+    if (avatarFile) {
+      setUploadingAvatar(true)
+      try {
+        const result = await uploadToCloudinary(avatarFile, "team_avatars", {
+          onProgress: (progress) => setUploadProgress(progress),
+        })
+        avatarUrl = result.url
+        toast.success("Photo uploaded successfully")
+      } catch (error) {
+        toast.error("Failed to upload photo")
+        setSaving(false)
+        setUploadingAvatar(false)
+        return
+      }
+      setUploadingAvatar(false)
+    }
+
     if (editingMember && editingMember._id) {
       const result = await updateTeamMember(editingMember._id.toString(), {
         name: formData.name,
         role: formData.role,
         bio: formData.bio,
-        avatar: formData.avatar || undefined,
+        avatar: avatarUrl || undefined,
         linkedinUrl: formData.linkedinUrl || undefined,
         twitterUrl: formData.twitterUrl || undefined,
         isActive: formData.isActive,
@@ -142,7 +203,7 @@ export default function AdminTeamPage() {
         name: formData.name,
         role: formData.role,
         bio: formData.bio,
-        avatar: formData.avatar || undefined,
+        avatar: avatarUrl || undefined,
         linkedinUrl: formData.linkedinUrl || undefined,
         twitterUrl: formData.twitterUrl || undefined,
         order: members.length,
@@ -413,15 +474,65 @@ export default function AdminTeamPage() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="avatar">Avatar URL</Label>
-              <Input
-                id="avatar"
-                value={formData.avatar}
-                onChange={(e) =>
-                  setFormData({ ...formData, avatar: e.target.value })
-                }
-                placeholder="https://example.com/avatar.jpg"
-              />
+              <Label>Photo</Label>
+              <div className="flex items-start gap-4">
+                {/* Photo Preview */}
+                <div className="relative">
+                  {avatarPreview ? (
+                    <div className="relative w-24 h-24 rounded-lg overflow-hidden border">
+                      <Image
+                        src={avatarPreview}
+                        alt="Avatar preview"
+                        fill
+                        className="object-cover"
+                      />
+                      <button
+                        type="button"
+                        onClick={removeAvatar}
+                        className="absolute -top-2 -right-2 bg-destructive text-destructive-foreground rounded-full p-1 shadow-lg hover:bg-destructive/90"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="w-24 h-24 rounded-lg border-2 border-dashed border-muted-foreground/25 flex items-center justify-center">
+                      <User className="h-8 w-8 text-muted-foreground/50" />
+                    </div>
+                  )}
+                </div>
+                {/* Upload Button */}
+                <div className="flex-1 space-y-2">
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleFileSelect}
+                    className="hidden"
+                    id="avatar-upload"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={uploadingAvatar}
+                    className="w-full"
+                  >
+                    <Upload className="h-4 w-4 mr-2" />
+                    {avatarPreview ? "Change Photo" : "Upload Photo"}
+                  </Button>
+                  <p className="text-xs text-muted-foreground">
+                    JPG, PNG or WebP. Max 5MB.
+                  </p>
+                  {uploadingAvatar && (
+                    <div className="space-y-1">
+                      <Progress value={uploadProgress} className="h-2" />
+                      <p className="text-xs text-muted-foreground text-center">
+                        Uploading... {uploadProgress}%
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
@@ -467,13 +578,13 @@ export default function AdminTeamPage() {
             <Button
               variant="outline"
               onClick={() => setShowDialog(false)}
-              disabled={saving}
+              disabled={saving || uploadingAvatar}
             >
               Cancel
             </Button>
-            <Button onClick={handleSubmit} disabled={saving}>
-              {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-              {editingMember ? "Update" : "Add"} Member
+            <Button onClick={handleSubmit} disabled={saving || uploadingAvatar}>
+              {(saving || uploadingAvatar) && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              {uploadingAvatar ? "Uploading..." : (editingMember ? "Update" : "Add")} Member
             </Button>
           </DialogFooter>
         </DialogContent>
