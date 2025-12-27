@@ -1,26 +1,27 @@
 import Link from "next/link"
 import { Navbar } from "@/components/navbar"
+import { Footer } from "@/components/footer"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { impactMetrics } from "@/lib/data"
-import { Users, Clock, DollarSign, FileText, MessageSquare, Shield, ArrowRight, Star } from "lucide-react"
+import { Users, Clock, DollarSign, FileText, MessageSquare, Shield, ArrowRight, Star, Briefcase, Database, Target, Search, Gift } from "lucide-react"
 
 const benefits = [
   {
-    icon: Users,
-    title: "Access Top Talent",
+    icon: Briefcase,
+    title: "Custom Job Postings",
     description:
-      "Connect with verified professionals in marketing, tech, design, finance, legal, and more - all eager to help.",
+      "Post remote roles for specialized job roles and functions and reach a global pool of talented candidates who prioritize social impact as much as professional growth.",
   },
   {
-    icon: DollarSign,
-    title: "Zero Cost",
-    description: "All volunteer services are provided pro bono. Get expert help without impacting your budget.",
+    icon: Database,
+    title: "Pro Bono & Low Bono Database",
+    description: "Access our vetted directory of Skilled Volunteers. Filter by skills and availability to find experts offering services at zero cost (Pro Bono) or significantly reduced rates (Low Bono).",
   },
   {
-    icon: Clock,
-    title: "Save Time",
-    description: "Post a project in 5 minutes. Our platform handles matching, so you can focus on your mission.",
+    icon: Target,
+    title: "Skill-Matched Projects",
+    description: "Don't need a full-time hire? Post a specific project with your requirements and let our matching engine find the perfect specialist for the task.",
   },
   {
     icon: Shield,
@@ -60,9 +61,9 @@ const faqs = [
       "Volunteers browse projects based on their skills and interests. They apply to projects that match their expertise, and you review their profiles and past work before accepting an application.",
   },
   {
-    question: "Is there any cost to use the platform?",
+    question: "What's the difference between Pro Bono and Low Bono?",
     answer:
-      "JustBecause.asia is completely free for registered nonprofits. There are no fees, subscriptions, or hidden costs. We're funded by grants and sponsorships to keep the platform accessible to all.",
+      "Pro Bono means volunteers donate their services entirely for free. Low Bono means they offer services at significantly reduced rates (typically 50-80% below market rates). Both options help NGOs access professional talent within their budgets.",
   },
   {
     question: "How do we verify our organization?",
@@ -93,16 +94,19 @@ export default function ForNGOsPage() {
             <div className="grid lg:grid-cols-2 gap-12 items-center">
               <div>
                 <h1 className="text-4xl md:text-5xl font-bold text-foreground mb-6">
-                  Get Expert Help for Your NGO – For Free
+                  For NGOs: Build Your Dream Team
                 </h1>
-                <p className="text-xl text-muted-foreground mb-8">
+                <p className="text-xl text-muted-foreground mb-4">
+                  Get Professionals with specialized skill sets to support your NGO goals – available Pro Bono / Low Bono.
+                </p>
+                <p className="text-lg text-muted-foreground mb-8">
                   Access skilled professionals ready to help with marketing, tech, design, finance, and more. Post a
-                  project in 5 minutes and start receiving applications.
+                  project in 5 minutes and start receiving applications from our global pool of purpose-driven talent.
                 </p>
                 <div className="flex flex-wrap gap-4">
                   <Button asChild size="lg" className="bg-secondary hover:bg-secondary/90 text-secondary-foreground">
                     <Link href="/auth/signup">
-                      Post Your First Project
+                      NGO's – Register Now
                       <ArrowRight className="ml-2 h-4 w-4" />
                     </Link>
                   </Button>
@@ -133,8 +137,55 @@ export default function ForNGOsPage() {
           </div>
         </section>
 
+        {/* Key Features for NGOs */}
+        <section className="py-16 bg-muted/30">
+          <div className="container mx-auto px-4 md:px-6">
+            <div className="text-center mb-12">
+              <h2 className="text-3xl font-bold text-foreground mb-4">How We Help NGOs Build Their Dream Team</h2>
+              <p className="text-muted-foreground max-w-2xl mx-auto">
+                Access the talent you need through multiple pathways
+              </p>
+            </div>
+            <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
+              <Card className="border-2 hover:border-secondary/50 transition-colors">
+                <CardContent className="pt-6">
+                  <div className="w-12 h-12 rounded-xl bg-secondary/10 flex items-center justify-center mb-4">
+                    <Briefcase className="h-6 w-6 text-secondary" />
+                  </div>
+                  <h3 className="font-semibold text-foreground mb-2">Custom Job Postings</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Post remote roles for specialized job functions and reach a global pool of talented candidates who prioritize social impact as much as professional growth.
+                  </p>
+                </CardContent>
+              </Card>
+              <Card className="border-2 hover:border-secondary/50 transition-colors">
+                <CardContent className="pt-6">
+                  <div className="w-12 h-12 rounded-xl bg-secondary/10 flex items-center justify-center mb-4">
+                    <Database className="h-6 w-6 text-secondary" />
+                  </div>
+                  <h3 className="font-semibold text-foreground mb-2">Pro Bono & Low Bono Database</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Access our vetted directory of Skilled Volunteers. Filter by skills and availability to find experts offering services at zero cost (Pro Bono) or significantly reduced rates (Low Bono).
+                  </p>
+                </CardContent>
+              </Card>
+              <Card className="border-2 hover:border-secondary/50 transition-colors">
+                <CardContent className="pt-6">
+                  <div className="w-12 h-12 rounded-xl bg-secondary/10 flex items-center justify-center mb-4">
+                    <Target className="h-6 w-6 text-secondary" />
+                  </div>
+                  <h3 className="font-semibold text-foreground mb-2">Skill-Matched Projects</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Don't need a full-time hire? Post a specific project with your requirements and let our matching engine find the perfect specialist for the task.
+                  </p>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        </section>
+
         {/* Stats */}
-        <section className="py-12 bg-muted/30">
+        <section className="py-12">
           <div className="container mx-auto px-4 md:px-6">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
               <div>

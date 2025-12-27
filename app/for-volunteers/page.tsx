@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { testimonials } from "@/lib/data"
-import { Briefcase, Award, TrendingUp, Heart, Clock, Globe, ArrowRight, CheckCircle } from "lucide-react"
+import { Briefcase, Award, TrendingUp, Heart, Clock, Globe, ArrowRight, CheckCircle, Gift, DollarSign, Sparkles } from "lucide-react"
 
 const benefits = [
   {
@@ -37,6 +37,24 @@ const benefits = [
     icon: Clock,
     title: "Choose Your Commitment",
     description: "From 1-hour consultations to long-term projects, find opportunities that match your availability.",
+  },
+]
+
+const exchangeOptions = [
+  {
+    icon: Gift,
+    title: "Pro Bono (Free)",
+    description: "Donate your expertise entirely. This is pure-contribution volunteering for those who want to use their \"time currency\" to power a cause they love.",
+  },
+  {
+    icon: DollarSign,
+    title: "Low Bono (Discounted)",
+    description: "Offer your services at a significantly reduced rate. This allows NGOs to access high-tier professional work within their budgets while helping you sustain your livelihood.",
+  },
+  {
+    icon: Sparkles,
+    title: "Pro Bono + Low Bono",
+    description: "The option to do both? Yes. Combine pure volunteering with discounted work based on your preference and the NGO's needs.",
   },
 ]
 
@@ -85,9 +103,9 @@ const faqs = [
       "We verify all organizations on our platform to ensure they are legitimate nonprofits. We review their registration documents, mission, and track record before approving them.",
   },
   {
-    question: "Is there a cost to join?",
+    question: "What's the difference between Pro Bono and Low Bono?",
     answer:
-      "JustBecause.asia is completely free for volunteers. We believe in removing all barriers to volunteering and making it easy for anyone to contribute their skills.",
+      "Pro Bono means donating your services entirely for free. Low Bono means offering your services at a significantly reduced rate (typically 50-80% below market rates). You can choose either option or both based on your preference.",
   },
   {
     question: "How do I track my impact?",
@@ -107,15 +125,20 @@ export default function ForVolunteersPage() {
           <div className="container mx-auto px-4 md:px-6">
             <div className="grid lg:grid-cols-2 gap-12 items-center">
               <div>
-                <h1 className="text-4xl md:text-5xl font-bold text-foreground mb-6">Turn Your Skills Into Impact</h1>
-                <p className="text-xl text-muted-foreground mb-8">
-                  Join thousands of professionals using their expertise to help NGOs and nonprofits across Asia. Make a
-                  real difference while building your portfolio.
+                <h1 className="text-4xl md:text-5xl font-bold text-foreground mb-6">Your Skills Have the Power to Change a Life</h1>
+                <p className="text-xl text-muted-foreground mb-4">
+                  At the JustBecause Network, we believe your professional expertise is more than just a paycheck—it's a pathway to impact.
+                </p>
+                <p className="text-lg text-muted-foreground mb-6">
+                  Join our Purpose-Driven Exchange and lend your talent to NGOs who are changing the world. Not because you have to, but <span className="font-semibold text-primary">JustBecause you can</span>.
+                </p>
+                <p className="text-muted-foreground mb-8">
+                  Our platform serves as a high-impact marketplace connecting skilled and semi-skilled professionals with NGOs and grassroots causes in the development sector that are actively healing our planet.
                 </p>
                 <div className="flex flex-wrap gap-4">
                   <Button asChild size="lg" className="bg-primary hover:bg-primary/90">
                     <Link href="/auth/signup">
-                      Start Volunteering
+                      Volunteers – Register Now
                       <ArrowRight className="ml-2 h-4 w-4" />
                     </Link>
                   </Button>
@@ -146,8 +169,55 @@ export default function ForVolunteersPage() {
           </div>
         </section>
 
+        {/* The Global Purpose-Driven Exchange */}
+        <section className="py-16 bg-muted/30">
+          <div className="container mx-auto px-4 md:px-6">
+            <div className="text-center mb-12">
+              <h2 className="text-3xl font-bold text-foreground mb-4">The Global Purpose-Driven Exchange</h2>
+              <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+                Volunteers (Professionals): Your <span className="font-semibold text-primary">"Time"</span> is the new currency.
+              </p>
+            </div>
+            <div className="grid md:grid-cols-3 gap-6">
+              {exchangeOptions.map((option) => (
+                <Card key={option.title} className="border-2 hover:border-primary/50 transition-colors">
+                  <CardContent className="pt-6">
+                    <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center mb-4">
+                      <option.icon className="h-6 w-6 text-primary" />
+                    </div>
+                    <h3 className="font-semibold text-foreground mb-2">{option.title}</h3>
+                    <p className="text-sm text-muted-foreground">{option.description}</p>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </div>
+        </section>
+
         {/* Benefits */}
         <section className="py-16">
+          <div className="container mx-auto px-4 md:px-6">
+            <div className="text-center mb-12">
+              <h2 className="text-3xl font-bold text-foreground mb-4">Why Volunteer With Us?</h2>
+              <p className="text-muted-foreground max-w-2xl mx-auto">
+                Skills-based volunteering offers unique benefits that traditional volunteering can't match
+              </p>
+            </div>
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {benefits.map((benefit) => (
+                <Card key={benefit.title}>
+                  <CardContent className="pt-6">
+                    <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center mb-4">
+                      <benefit.icon className="h-6 w-6 text-primary" />
+                    </div>
+                    <h3 className="font-semibold text-foreground mb-2">{benefit.title}</h3>
+                    <p className="text-sm text-muted-foreground">{benefit.description}</p>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </div>
+        </section>
           <div className="container mx-auto px-4 md:px-6">
             <div className="text-center mb-12">
               <h2 className="text-3xl font-bold text-foreground mb-4">Why Volunteer With Us?</h2>

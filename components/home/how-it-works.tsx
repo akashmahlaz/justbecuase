@@ -1,5 +1,8 @@
-import { UserPlus, Search, Rocket, FileText, Users, CheckCircle } from "lucide-react"
+import { UserPlus, Search, Rocket, FileText, Users, CheckCircle, Clock, Gift, DollarSign, Briefcase, Target, Database, Sparkles } from "lucide-react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Card, CardContent } from "@/components/ui/card"
+import Link from "next/link"
+import { Button } from "@/components/ui/button"
 
 export function HowItWorks() {
   const volunteerSteps = [
@@ -38,20 +41,60 @@ export function HowItWorks() {
     },
   ]
 
+  const exchangeTypes = [
+    {
+      icon: Gift,
+      title: "Pro Bono (Free)",
+      description: "Donate your expertise entirely. This is pure-contribution volunteering for those who want to use their \"time currency\" to power a cause they love.",
+      color: "primary",
+    },
+    {
+      icon: DollarSign,
+      title: "Low Bono (Discounted)",
+      description: "Offer your services at a significantly reduced rate. This allows NGOs to access high-tier professional work within their budgets while helping professionals sustain their own livelihoods.",
+      color: "secondary",
+    },
+    {
+      icon: Sparkles,
+      title: "Pro Bono + Low Bono",
+      description: "The option to do both? Yes. Flexibility to contribute your way.",
+      color: "success",
+    },
+  ]
+
   return (
     <section className="py-16 md:py-24">
       <div className="container mx-auto px-4 md:px-6">
-        <div className="text-center mb-12">
-          <h2 className="text-3xl font-bold text-foreground mb-4">How It Works</h2>
+        {/* Main Header */}
+        {/* <div className="text-center mb-12">
+          <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">The Global Purpose-Driven Exchange</h2>
+          <p className="text-lg text-muted-foreground max-w-3xl mx-auto mb-2">
+            Your <span className="font-semibold text-primary">"Time"</span> is the new currency.
+          </p>
           <p className="text-muted-foreground max-w-2xl mx-auto">
             Whether you're a skilled professional or an NGO seeking support, getting started is simple.
           </p>
-        </div>
+        </div> */}
 
-        <Tabs defaultValue="volunteers" className="max-w-4xl mx-auto">
-          <TabsList className="grid w-full grid-cols-2 mb-12">
+        {/* Exchange Types */}
+        {/* <div className="grid md:grid-cols-3 gap-6 mb-16">
+          {exchangeTypes.map((type) => (
+            <Card key={type.title} className="border-2 hover:border-primary/50 transition-colors">
+              <CardContent className="pt-6">
+                <div className={`w-12 h-12 rounded-xl bg-${type.color}/10 flex items-center justify-center mb-4`}>
+                  <type.icon className={`h-6 w-6 text-${type.color}`} />
+                </div>
+                <h3 className="font-semibold text-foreground mb-2">{type.title}</h3>
+                <p className="text-sm text-muted-foreground">{type.description}</p>
+              </CardContent>
+            </Card>
+          ))}
+        </div> */}
+
+        <Tabs defaultValue="volunteers" className="max-w-4xl p-4 rounded-4xl mx-auto">
+          <TabsList className="grid w-full grid-cols-2  mb-12">
             <TabsTrigger value="volunteers" className="text-base py-3">
-              For Volunteers
+              <h1 className="text-primary">For Volunteers</h1>
             </TabsTrigger>
             <TabsTrigger value="ngos" className="text-base py-3">
               For NGOs
@@ -59,7 +102,7 @@ export function HowItWorks() {
           </TabsList>
 
           <TabsContent value="volunteers">
-            <div className="grid md:grid-cols-3 gap-8">
+            <div className="grid md:grid-cols-3 gap-8 mb-8">
               {volunteerSteps.map((step, index) => (
                 <div key={step.title} className="relative text-center">
                   {/* Step number connector */}
@@ -79,10 +122,17 @@ export function HowItWorks() {
                 </div>
               ))}
             </div>
+            <div className="text-center">
+              <Button asChild size="lg" className="bg-primary hover:bg-primary/90">
+                <Link href="/for-volunteers">
+                  Volunteers – Register Now
+                </Link>
+              </Button>
+            </div>
           </TabsContent>
 
           <TabsContent value="ngos">
-            <div className="grid md:grid-cols-3 gap-8">
+            <div className="grid md:grid-cols-3 gap-8 mb-8">
               {ngoSteps.map((step, index) => (
                 <div key={step.title} className="relative text-center">
                   {index < ngoSteps.length - 1 && (
@@ -100,6 +150,13 @@ export function HowItWorks() {
                   <p className="text-muted-foreground">{step.description}</p>
                 </div>
               ))}
+            </div>
+            <div className="text-center">
+              <Button asChild size="lg" className="bg-secondary hover:bg-secondary/90 text-secondary-foreground">
+                <Link href="/for-ngos">
+                  NGO's – Register Now
+                </Link>
+              </Button>
             </div>
           </TabsContent>
         </Tabs>
