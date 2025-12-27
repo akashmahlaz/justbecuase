@@ -15,7 +15,8 @@ const Counter = ({ value, prefix = "", suffix = "" }: { value: number; prefix?: 
       let start = 0;
       const end = value;
       const timer = setInterval(() => {
-        start += Math.ceil(end / 100);
+        const step = Math.max(1, Math.ceil(end / 60));
+        start += step;
         if (start >= end) {
           setDisplayValue(end);
           clearInterval(timer);
@@ -27,100 +28,81 @@ const Counter = ({ value, prefix = "", suffix = "" }: { value: number; prefix?: 
     }
   }, [isInView, value]);
 
-  const format = (num: number) => {
-    if (num >= 1000000) return (num / 1000000).toFixed(1) + "M";
-    if (num >= 1000) return num.toLocaleString();
-    return num.toString();
-  };
-
-  return <span ref={ref}>{prefix}{format(displayValue)}{suffix}</span>;
+  return <span ref={ref} className="tabular-nums font-medium">{prefix}{displayValue.toLocaleString()}{suffix}</span>;
 };
 
 export function ImpactMetrics({ impactMetrics }: { impactMetrics: any }) {
   const metrics = [
-    { icon: Users, value: impactMetrics.volunteers, label: "Skilled Volunteers", color: "var(--primary)" },
-    { icon: CheckCircle2, value: impactMetrics.projectsCompleted, label: "Projects Completed", color: "#10b981" },
-    { icon: Building2, value: impactMetrics.ngosSupported, label: "NGOs Supported", color: "var(--secondary)" },
-    { icon: Clock, value: impactMetrics.hoursContributed, label: "Hours Contributed", color: "var(--primary)", suffix: "+" },
-    { icon: DollarSign, value: impactMetrics.valueGenerated, label: "Value Generated", color: "#10b981", prefix: "$" },
+    { icon: Users, value: impactMetrics.volunteers, label: "Skilled Volunteers" },
+    { icon: CheckCircle2, value: impactMetrics.projectsCompleted, label: "Projects Completed" },
+    { icon: Building2, value: impactMetrics.ngosSupported, label: "NGOs Supported" },
+    { icon: Clock, value: impactMetrics.hoursContributed, label: "Hours Contributed", suffix: "+" },
+    { icon: DollarSign, value: impactMetrics.valueGenerated, label: "Value Generated", prefix: "$" },
   ];
 
   return (
-    <section className="py-24 bg-background overflow-hidden">
-      <div className="container mx-auto px-4">
-        {/* Header */}
-        <div className="mb-20 text-center">
-          <h2 className="text-4xl md:text-5xl font-black tracking-tight mb-4">Our Collective Impact</h2>
-          <p className="text-muted-foreground text-lg italic">The flow of professional capital into social change.</p>
+    <section className="py-32 bg-background border-y border-border/40">
+      <div className="container mx-auto px-6">
+        {/* Editorial Header */}
+        <div className="flex flex-col md:flex-row md:items-end justify-between mb-24 gap-8">
+          <div className="max-w-xl">
+            <h2 className="text-5xl md:text-7xl font-light tracking-tighter text-foreground mb-6">
+              Our <span className="font-semibold">Momentum.</span>
+            </h2>
+            <p className="text-lg text-muted-foreground leading-relaxed border-l-2 border-primary pl-6">
+              A quantitative overview of how professional skills are fueling social progress across the region.
+            </p>
+          </div>
+          <div className="text-right">
+            <span className="text-xs font-black uppercase tracking-[0.3em] text-primary/60">Annual Report 2025</span>
+          </div>
         </div>
 
-        <div className="relative">
-          {/* THE PASSING LINE: Animated SVG Path */}
-          <svg
-            className="absolute top-1/2 left-0 w-full h-32 -translate-y-1/2 hidden lg:block pointer-events-none"
-            viewBox="0 0 1200 100"
-            fill="none"
-          >
-            <path
-              d="M0 50 Q 300 0, 600 50 T 1200 50"
-              stroke="currentColor"
-              className="text-border"
-              strokeWidth="1"
+        {/* THE SPINE: Architectural Line Passing Through */}
+        <div className="relative pt-20">
+          {/* Main Horizontal Laser Line */}
+          <div className="absolute top-0 left-0 w-full h-[1px] bg-border/60">
+            {/* The "Pulse" - Moving Laser */}
+            <motion.div 
+              initial={{ left: "-20%" }}
+              animate={{ left: "120%" }}
+              transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+              className="absolute top-0 w-48 h-[1px] bg-gradient-to-r from-transparent via-primary to-transparent"
             />
-            {/* Animated Glow Pulse */}
-            <motion.path
-              d="M0 50 Q 300 0, 600 50 T 1200 50"
-              stroke="url(#impact-gradient)"
-              strokeWidth="3"
-              strokeLinecap="round"
-              initial={{ pathLength: 0, opacity: 0 }}
-              whileInView={{ pathLength: 1, opacity: 1 }}
-              transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
-            />
-            <defs>
-              <linearGradient id="impact-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                <stop offset="0%" stopColor="var(--primary)" stopOpacity="0" />
-                <stop offset="50%" stopColor="var(--primary)" />
-                <stop offset="100%" stopColor="var(--secondary)" stopOpacity="0" />
-              </linearGradient>
-            </defs>
-          </svg>
+          </div>
 
-          {/* Metrics Row */}
-          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-12 relative z-10">
+          <div className="grid grid-cols-1 md:grid-cols-5">
             {metrics.map((metric, idx) => (
               <motion.div
                 key={metric.label}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
+                initial={{ opacity: 0 }}
+                whileInView={{ opacity: 1 }}
                 transition={{ delay: idx * 0.1 }}
-                className="group relative flex flex-col items-center"
+                className="relative group pt-12 pb-8 md:px-8 border-l border-border/40 last:border-r"
               >
-                {/* Metric Node */}
-                <div className="relative mb-6">
-                  <div 
-                    className="absolute inset-0 rounded-full blur-2xl opacity-0 group-hover:opacity-40 transition-opacity duration-500"
-                    style={{ backgroundColor: metric.color }}
-                  />
-                  <div className="relative w-20 h-20 rounded-full bg-background border-2 border-border flex items-center justify-center group-hover:border-primary transition-colors duration-500 shadow-xl">
-                    <metric.icon className="w-8 h-8 text-foreground group-hover:scale-110 transition-transform duration-500" />
+                {/* Connector Dot to the Spine */}
+                <div className="absolute -top-[5px] left-[-5px] md:left-[-5px]">
+                  <div className="w-[9px] h-[9px] rounded-full border border-border bg-background group-hover:border-primary group-hover:bg-primary transition-all duration-500" />
+                </div>
+
+                <div className="space-y-6">
+                  {/* Icon with refined styling */}
+                  <div className="w-10 h-10 flex items-center justify-center rounded-lg bg-muted/30 text-muted-foreground group-hover:text-primary group-hover:bg-primary/5 transition-all">
+                    <metric.icon strokeWidth={1.5} className="w-5 h-5" />
+                  </div>
+
+                  <div className="space-y-1">
+                    <div className="text-3xl xl:text-4xl font-semibold tracking-tight text-foreground">
+                      <Counter value={metric.value} prefix={metric.prefix} suffix={metric.suffix} />
+                    </div>
+                    <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground group-hover:text-foreground transition-colors">
+                      {metric.label}
+                    </p>
                   </div>
                 </div>
 
-                {/* Content */}
-                <div className="text-center">
-                  <div className="text-4xl font-black tracking-tighter mb-1">
-                    <Counter value={metric.value} prefix={metric.prefix} suffix={metric.suffix} />
-                  </div>
-                  <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground group-hover:text-foreground transition-colors">
-                    {metric.label}
-                  </p>
-                </div>
-
-                {/* Vertical Line for Mobile/Tablet */}
-                {idx < metrics.length - 1 && (
-                  <div className="lg:hidden w-px h-12 bg-gradient-to-b from-border to-transparent mt-6" />
-                )}
+                {/* Subtle Background Interaction */}
+                <div className="absolute inset-0 bg-gradient-to-b from-primary/[0.02] to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
               </motion.div>
             ))}
           </div>
