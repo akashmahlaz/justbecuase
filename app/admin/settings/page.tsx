@@ -28,6 +28,11 @@ import {
   Building2,
   Plus,
   X,
+  MessageSquare,
+  Phone,
+  Send,
+  Check,
+  AlertCircle,
 } from "lucide-react"
 import { getAdminSettings, updateAdminSettings } from "@/lib/actions"
 import { toast } from "sonner"
@@ -49,9 +54,36 @@ export default function AdminSettingsPage() {
   const [isSaving, setIsSaving] = useState(false)
   const [newVolunteerFeature, setNewVolunteerFeature] = useState("")
   const [newNGOFeature, setNewNGOFeature] = useState("")
+  
+  // SMS Configuration State
+  const [smsConfig, setSmsConfig] = useState<{
+    provider: string
+    twilioConfigured: boolean
+    msg91Configured: boolean
+    textlocalConfigured: boolean
+    twilioAccountSid: string
+    twilioPhoneNumber: string
+    msg91SenderId: string
+    textlocalSender: string
+  } | null>(null)
+  const [smsForm, setSmsForm] = useState({
+    provider: "none",
+    twilioAccountSid: "",
+    twilioAuthToken: "",
+    twilioPhoneNumber: "",
+    msg91AuthKey: "",
+    msg91SenderId: "",
+    msg91TemplateId: "",
+    textlocalApiKey: "",
+    textlocalSender: "",
+  })
+  const [smsSaving, setSmsSaving] = useState(false)
+  const [smsTestPhone, setSmsTestPhone] = useState("")
+  const [smsTesting, setSmsTesting] = useState(false)
 
   useEffect(() => {
     loadSettings()
+    loadSmsConfig()
   }, [])
 
   const loadSettings = async () => {
@@ -59,6 +91,72 @@ export default function AdminSettingsPage() {
     const data = await getAdminSettings()
     setSettings(data)
     setIsLoading(false)
+  }
+
+  const loadSmsConfig = async () => {
+    try {
+      const response = await fetch("/api/admin/sms-config")
+      if (response.ok) {
+        const data = await response.json()
+        setSmsConfig(data)
+        setSmsForm(prev => ({
+          ...prev,
+          provider: data.provider || "none",
+          twilioPhoneNumber: data.twilioPhoneNumber || "",
+          msg91SenderId: data.msg91SenderId || "",
+          textlocalSender: data.textlocalSender || "",
+        }))
+      }
+    } catch (error) {
+      console.error("Failed to load SMS config:", error)
+    }
+  }
+
+  const saveSmsConfig = async () => {
+    setSmsSaving(true)
+    try {
+      const response = await fetch("/api/admin/sms-config", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(smsForm)
+      })
+      const data = await response.json()
+      if (response.ok) {
+        toast.success("SMS configuration saved successfully")
+        loadSmsConfig()
+      } else {
+        toast.error(data.error || "Failed to save SMS configuration")
+      }
+    } catch (error) {
+      toast.error("Failed to save SMS configuration")
+    } finally {
+      setSmsSaving(false)
+    }
+  }
+
+  const testSmsConfig = async () => {
+    if (!smsTestPhone) {
+      toast.error("Please enter a phone number to test")
+      return
+    }
+    setSmsTesting(true)
+    try {
+      const response = await fetch("/api/admin/sms-config", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phone: smsTestPhone })
+      })
+      const data = await response.json()
+      if (data.success) {
+        toast.success(data.message)
+      } else {
+        toast.error(data.error || "Failed to send test SMS")
+      }
+    } catch (error) {
+      toast.error("Failed to send test SMS")
+    } finally {
+      setSmsTesting(false)
+    }
   }
 
   const handleSave = async () => {
@@ -176,6 +274,10 @@ export default function AdminSettingsPage() {
           <TabsTrigger value="features" className="flex items-center gap-2">
             <Settings className="h-4 w-4" />
             Features
+          </TabsTrigger>
+          <TabsTrigger value="integrations" className="flex items-center gap-2">
+            <Phone className="h-4 w-4" />
+            SMS & Integrations
           </TabsTrigger>
           <TabsTrigger value="security" className="flex items-center gap-2">
             <Shield className="h-4 w-4" />
@@ -814,6 +916,256 @@ export default function AdminSettingsPage() {
                   checked={settings.enableNotifications}
                   onCheckedChange={(checked) =>
                     setSettings({ ...settings, enableNotifications: checked })
+                  }
+                />
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* SMS & Integrations */}
+        <TabsContent value="integrations" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Phone className="h-5 w-5" />
+                SMS Provider Configuration
+              </CardTitle>
+              <CardDescription>
+                Configure SMS provider for phone number verification during onboarding
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {/* Current Status */}
+              <div className="p-4 rounded-lg bg-muted/50">
+                <p className="text-sm font-medium mb-2">Current Status</p>
+                <div className="flex flex-wrap gap-2">
+                  {smsConfig?.provider === "none" ? (
+                    <Badge variant="outline" className="text-yellow-600 border-yellow-600">
+                      <AlertCircle className="h-3 w-3 mr-1" />
+                      No SMS Provider Configured (Dev Mode)
+                    </Badge>
+                  ) : (
+                    <Badge className="bg-green-100 text-green-700">
+                      <Check className="h-3 w-3 mr-1" />
+                      {smsConfig?.provider?.toUpperCase()} Configured
+                    </Badge>
+                  )}
+                </div>
+              </div>
+
+              {/* Provider Selection */}
+              <div className="space-y-2">
+                <Label>SMS Provider</Label>
+                <Select 
+                  value={smsForm.provider} 
+                  onValueChange={(value) => setSmsForm({ ...smsForm, provider: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select SMS provider" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">None (Development Mode)</SelectItem>
+                    <SelectItem value="twilio">Twilio</SelectItem>
+                    <SelectItem value="msg91">MSG91 (India)</SelectItem>
+                    <SelectItem value="textlocal">TextLocal</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  In development mode, OTP codes are shown in console/browser
+                </p>
+              </div>
+
+              <Separator />
+
+              {/* Twilio Configuration */}
+              {smsForm.provider === "twilio" && (
+                <div className="space-y-4">
+                  <h4 className="font-medium flex items-center gap-2">
+                    <MessageSquare className="h-4 w-4" />
+                    Twilio Configuration
+                  </h4>
+                  <div className="grid sm:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="twilioAccountSid">Account SID</Label>
+                      <Input
+                        id="twilioAccountSid"
+                        value={smsForm.twilioAccountSid}
+                        onChange={(e) => setSmsForm({ ...smsForm, twilioAccountSid: e.target.value })}
+                        placeholder={smsConfig?.twilioAccountSid || "ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="twilioAuthToken">Auth Token</Label>
+                      <Input
+                        id="twilioAuthToken"
+                        type="password"
+                        value={smsForm.twilioAuthToken}
+                        onChange={(e) => setSmsForm({ ...smsForm, twilioAuthToken: e.target.value })}
+                        placeholder="Enter auth token"
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="twilioPhoneNumber">Twilio Phone Number</Label>
+                    <Input
+                      id="twilioPhoneNumber"
+                      value={smsForm.twilioPhoneNumber}
+                      onChange={(e) => setSmsForm({ ...smsForm, twilioPhoneNumber: e.target.value })}
+                      placeholder="+1234567890"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      The phone number SMS messages will be sent from
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* MSG91 Configuration */}
+              {smsForm.provider === "msg91" && (
+                <div className="space-y-4">
+                  <h4 className="font-medium flex items-center gap-2">
+                    <MessageSquare className="h-4 w-4" />
+                    MSG91 Configuration
+                  </h4>
+                  <div className="grid sm:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="msg91AuthKey">Auth Key</Label>
+                      <Input
+                        id="msg91AuthKey"
+                        type="password"
+                        value={smsForm.msg91AuthKey}
+                        onChange={(e) => setSmsForm({ ...smsForm, msg91AuthKey: e.target.value })}
+                        placeholder="Enter MSG91 auth key"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="msg91SenderId">Sender ID</Label>
+                      <Input
+                        id="msg91SenderId"
+                        value={smsForm.msg91SenderId}
+                        onChange={(e) => setSmsForm({ ...smsForm, msg91SenderId: e.target.value })}
+                        placeholder="VERIFY"
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="msg91TemplateId">Template ID (Optional)</Label>
+                    <Input
+                      id="msg91TemplateId"
+                      value={smsForm.msg91TemplateId}
+                      onChange={(e) => setSmsForm({ ...smsForm, msg91TemplateId: e.target.value })}
+                      placeholder="DLT approved template ID"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Required for Indian DLT compliance
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* TextLocal Configuration */}
+              {smsForm.provider === "textlocal" && (
+                <div className="space-y-4">
+                  <h4 className="font-medium flex items-center gap-2">
+                    <MessageSquare className="h-4 w-4" />
+                    TextLocal Configuration
+                  </h4>
+                  <div className="grid sm:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="textlocalApiKey">API Key</Label>
+                      <Input
+                        id="textlocalApiKey"
+                        type="password"
+                        value={smsForm.textlocalApiKey}
+                        onChange={(e) => setSmsForm({ ...smsForm, textlocalApiKey: e.target.value })}
+                        placeholder="Enter TextLocal API key"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="textlocalSender">Sender Name</Label>
+                      <Input
+                        id="textlocalSender"
+                        value={smsForm.textlocalSender}
+                        onChange={(e) => setSmsForm({ ...smsForm, textlocalSender: e.target.value })}
+                        placeholder="VERIFY"
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Save Button */}
+              <Button onClick={saveSmsConfig} disabled={smsSaving} className="w-full sm:w-auto">
+                {smsSaving ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <Save className="h-4 w-4 mr-2" />
+                    Save SMS Configuration
+                  </>
+                )}
+              </Button>
+            </CardContent>
+          </Card>
+
+          {/* Test SMS */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Test SMS Configuration</CardTitle>
+              <CardDescription>
+                Send a test SMS to verify your configuration is working
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex gap-2">
+                <Input
+                  placeholder="Enter phone number (e.g., +919876543210)"
+                  value={smsTestPhone}
+                  onChange={(e) => setSmsTestPhone(e.target.value)}
+                />
+                <Button onClick={testSmsConfig} disabled={smsTesting || smsForm.provider === "none"}>
+                  {smsTesting ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <>
+                      <Send className="h-4 w-4 mr-2" />
+                      Send Test
+                    </>
+                  )}
+                </Button>
+              </div>
+              {smsForm.provider === "none" && (
+                <p className="text-sm text-yellow-600">
+                  Configure an SMS provider above before testing
+                </p>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Phone Verification Toggle */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Phone Verification Settings</CardTitle>
+              <CardDescription>
+                Control phone verification requirements
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="font-medium">Require Phone Verification</p>
+                  <p className="text-sm text-muted-foreground">
+                    Require volunteers to verify their phone number during onboarding
+                  </p>
+                </div>
+                <Switch
+                  checked={settings?.requirePhoneVerification || false}
+                  onCheckedChange={(checked) =>
+                    setSettings(settings ? { ...settings, requirePhoneVerification: checked } : null)
                   }
                 />
               </div>

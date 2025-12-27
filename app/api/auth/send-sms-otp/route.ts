@@ -75,51 +75,78 @@ export async function POST(request: NextRequest) {
     })
 
     // Send SMS via configured provider
-    // Check for configured SMS provider
-    const smsProvider = process.env.SMS_PROVIDER // 'twilio', 'msg91', 'textlocal', etc.
+    // Check database config first, then environment variables
+    const configCollection = db.collection("system_config")
+    const smsConfig = await configCollection.findOne({ type: "sms" })
+    const dbConfig = smsConfig?.data || {}
     
-    if (smsProvider === "twilio" && process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN && process.env.TWILIO_PHONE_NUMBER) {
-      // Send via Twilio
-      const twilio = require("twilio")
-      const client = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN)
+    const smsProvider = dbConfig.provider || process.env.SMS_PROVIDER || "none"
+    
+    if (smsProvider === "twilio") {
+      const accountSid = dbConfig.twilioAccountSid || process.env.TWILIO_ACCOUNT_SID
+      const authToken = dbConfig.twilioAuthToken || process.env.TWILIO_AUTH_TOKEN
+      const fromNumber = dbConfig.twilioPhoneNumber || process.env.TWILIO_PHONE_NUMBER
       
-      await client.messages.create({
-        body: `Your JustBecause.asia verification code is: ${otp}. Valid for 10 minutes.`,
-        from: process.env.TWILIO_PHONE_NUMBER,
-        to: formattedPhone
-      })
-    } else if (smsProvider === "msg91" && process.env.MSG91_AUTH_KEY && process.env.MSG91_SENDER_ID) {
-      // Send via MSG91 (popular in India)
-      const response = await fetch("https://api.msg91.com/api/v5/otp", {
-        method: "POST",
-        headers: {
-          "authkey": process.env.MSG91_AUTH_KEY,
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          template_id: process.env.MSG91_TEMPLATE_ID,
-          mobile: formattedPhone.replace("+", ""),
-          otp: otp,
-          sender: process.env.MSG91_SENDER_ID
+      if (accountSid && authToken && fromNumber) {
+        // Send via Twilio
+        const twilio = require("twilio")
+        const client = twilio(accountSid, authToken)
+        
+        await client.messages.create({
+          body: `Your JustBecause.asia verification code is: ${otp}. Valid for 10 minutes.`,
+          from: fromNumber,
+          to: formattedPhone
         })
-      })
-      
-      if (!response.ok) {
-        console.error("MSG91 error:", await response.text())
-        throw new Error("Failed to send SMS")
+      } else {
+        console.warn("Twilio selected but not fully configured")
       }
-    } else if (smsProvider === "textlocal" && process.env.TEXTLOCAL_API_KEY) {
-      // Send via TextLocal
-      const params = new URLSearchParams({
-        apikey: process.env.TEXTLOCAL_API_KEY,
-        numbers: formattedPhone.replace("+", ""),
-        message: `Your JustBecause.asia verification code is: ${otp}. Valid for 10 minutes.`,
-        sender: process.env.TEXTLOCAL_SENDER || "VERIFY"
-      })
+    } else if (smsProvider === "msg91") {
+      const authKey = dbConfig.msg91AuthKey || process.env.MSG91_AUTH_KEY
+      const senderId = dbConfig.msg91SenderId || process.env.MSG91_SENDER_ID
+      const templateId = dbConfig.msg91TemplateId || process.env.MSG91_TEMPLATE_ID
       
-      const response = await fetch(`https://api.textlocal.in/send/?${params.toString()}`)
-      if (!response.ok) {
-        throw new Error("Failed to send SMS")
+      if (authKey && senderId) {
+        // Send via MSG91 (popular in India)
+        const response = await fetch("https://api.msg91.com/api/v5/otp", {
+          method: "POST",
+          headers: {
+            "authkey": authKey,
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            template_id: templateId,
+            mobile: formattedPhone.replace("+", ""),
+            otp: otp,
+            sender: senderId
+          })
+        })
+        
+        if (!response.ok) {
+          console.error("MSG91 error:", await response.text())
+          throw new Error("Failed to send SMS")
+        }
+      } else {
+        console.warn("MSG91 selected but not fully configured")
+      }
+    } else if (smsProvider === "textlocal") {
+      const apiKey = dbConfig.textlocalApiKey || process.env.TEXTLOCAL_API_KEY
+      const sender = dbConfig.textlocalSender || process.env.TEXTLOCAL_SENDER || "VERIFY"
+      
+      if (apiKey) {
+        // Send via TextLocal
+        const params = new URLSearchParams({
+          apikey: apiKey,
+          numbers: formattedPhone.replace("+", ""),
+          message: `Your JustBecause.asia verification code is: ${otp}. Valid for 10 minutes.`,
+          sender: sender
+        })
+        
+        const response = await fetch(`https://api.textlocal.in/send/?${params.toString()}`)
+        if (!response.ok) {
+          throw new Error("Failed to send SMS")
+        }
+      } else {
+        console.warn("TextLocal selected but not fully configured")
       }
     } else {
       // No SMS provider configured - for development, log the OTP

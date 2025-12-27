@@ -478,6 +478,14 @@ export interface AdminSettings {
   enableNotifications: boolean
   requireEmailVerification: boolean
   requireNGOVerification: boolean
+  requirePhoneVerification: boolean
+  
+  // SMS Provider Settings (stored masked for security)
+  smsProvider?: "twilio" | "msg91" | "textlocal" | "none"
+  smsConfigured?: boolean
+  twilioConfigured?: boolean
+  msg91Configured?: boolean
+  textlocalConfigured?: boolean
   
   // Content
   maintenanceMode: boolean
