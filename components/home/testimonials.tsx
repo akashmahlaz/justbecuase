@@ -1,44 +1,98 @@
 import { testimonials } from "@/lib/data"
-import { Quote } from "lucide-react"
+import { Quote, ShieldCheck, Zap, Globe } from "lucide-react"
 
 export function Testimonials() {
   return (
-    <section className="py-16 md:py-24 bg-muted/30">
-      <div className="container mx-auto px-4 md:px-6">
-        <div className="text-center mb-12">
-          <h2 className="text-3xl font-bold text-foreground mb-4">Success Stories</h2>
-          <p className="text-muted-foreground max-w-2xl mx-auto">
-            Hear from volunteers and NGOs who have experienced the power of skills-based giving.
+    <section className="py-24 bg-[#FCFDFF]">
+      <div className="container mx-auto px-6">
+        {/* Modern Minimalist Header */}
+        <div className="max-w-3xl mb-16">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-100 border border-slate-200 mb-6">
+            <Zap className="h-3 w-3 text-slate-900 fill-slate-900" />
+            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-600">The Network Effect</span>
+          </div>
+          <h2 className="text-4xl md:text-5xl font-semibold text-slate-900 tracking-tight mb-6">
+            Trusted by the architects <br /> of social change.
+          </h2>
+          <p className="text-lg text-slate-500 font-light">
+            Real stories from professional volunteers and the NGOs they’ve helped scale.
           </p>
         </div>
 
-        <div className="grid md:grid-cols-3 gap-8">
-          {testimonials.map((testimonial) => (
-            <div key={testimonial.id} className="relative p-8 rounded-2xl bg-card border border-border shadow-sm">
-              <Quote className="h-10 w-10 text-primary/20 mb-4" />
-              <blockquote className="text-foreground mb-6 leading-relaxed">"{testimonial.quote}"</blockquote>
-              <div className="flex items-center gap-4">
-                <img
-                  src={testimonial.avatar || "/placeholder.svg"}
-                  alt={testimonial.author}
-                  className="w-12 h-12 rounded-full object-cover"
-                />
+        {/* Bento Grid Layout */}
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
+          {testimonials.map((testimonial, index) => (
+            <div 
+              key={testimonial.id}
+              className={`group relative overflow-hidden rounded-3xl border border-slate-200 bg-white p-8 transition-all duration-500 hover:shadow-[0_20px_50px_rgba(0,0,0,0.05)] hover:-translate-y-1 ${
+                index === 0 ? "md:col-span-8 md:row-span-2" : 
+                index === 1 ? "md:col-span-4" : 
+                "md:col-span-4"
+              }`}
+            >
+              {/* Top Row: Verification & Type */}
+              <div className="flex justify-between items-start mb-8">
+                <div className="flex items-center gap-2">
+                  <div className="h-8 w-8 rounded-full bg-slate-50 flex items-center justify-center border border-slate-100">
+                    <ShieldCheck className="h-4 w-4 text-slate-900" />
+                  </div>
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Verified {testimonial.type}</span>
+                </div>
+                {index === 0 && (
+                  <div className="flex items-center gap-1 text-emerald-600 bg-emerald-50 px-2 py-1 rounded-md">
+                    <Globe className="h-3 w-3" />
+                    <span className="text-[9px] font-bold uppercase">Regional Impact</span>
+                  </div>
+                )}
+              </div>
+
+              {/* The Quote - Dynamic sizing based on grid position */}
+              <div className="relative">
+                <Quote className="absolute -top-4 -left-2 h-12 w-12 text-slate-50 -z-10 group-hover:text-slate-100 transition-colors" />
+                <p className={`${
+                  index === 0 ? "text-2xl md:text-3xl" : "text-lg"
+                } font-medium text-slate-800 leading-snug tracking-tight mb-10`}>
+                  "{testimonial.quote}"
+                </p>
+              </div>
+
+              {/* Skill Tags - Direct link to your platform's core logic */}
+              <div className="flex flex-wrap gap-2 mb-8">
+                {["UI/UX", "Strategy", "Impact"].map((tag) => (
+                  <span key={tag} className="text-[9px] font-bold uppercase tracking-widest text-slate-400 border border-slate-100 px-2 py-0.5 rounded">
+                    {tag}
+                  </span>
+                ))}
+              </div>
+
+              {/* Bottom Attribution */}
+              <div className="flex items-center gap-4 border-t border-slate-50 pt-6">
+                <div className="relative">
+                  <img
+                    src={testimonial.avatar || "/placeholder.svg"}
+                    alt={testimonial.author}
+                    className="w-12 h-12 rounded-2xl object-cover ring-4 ring-slate-50"
+                  />
+                  <div className="absolute -bottom-1 -right-1 h-4 w-4 bg-white rounded-full flex items-center justify-center shadow-sm">
+                    <div className="h-2 w-2 bg-emerald-500 rounded-full animate-pulse" />
+                  </div>
+                </div>
                 <div>
-                  <p className="font-semibold text-foreground">{testimonial.author}</p>
-                  <p className="text-sm text-muted-foreground">
-                    {testimonial.role}, {testimonial.organization}
+                  <p className="text-xs font-black uppercase tracking-wider text-slate-900">{testimonial.author}</p>
+                  <p className="text-[11px] text-slate-400 font-medium">
+                    {testimonial.role} <span className="text-slate-200 mx-1">/</span> {testimonial.organization}
                   </p>
                 </div>
               </div>
-              <div
-                className={`absolute top-4 right-4 px-3 py-1 rounded-full text-xs font-medium ${
-                  testimonial.type === "volunteer" ? "bg-primary/10 text-primary" : "bg-secondary/10 text-secondary"
-                }`}
-              >
-                {testimonial.type === "volunteer" ? "Volunteer" : "NGO"}
-              </div>
             </div>
           ))}
+        </div>
+
+        {/* CTA Link - To keep users moving */}
+        <div className="mt-16 text-center">
+          <button className="text-sm font-bold text-slate-900 border-b-2 border-slate-900 pb-1 hover:text-slate-500 hover:border-slate-500 transition-all">
+            See more success stories →
+          </button>
         </div>
       </div>
     </section>
