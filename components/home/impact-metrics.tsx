@@ -1,139 +1,131 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Link2, Zap, ShieldCheck, Globe2, ArrowUpRight } from "lucide-react";
-import { Card } from "@/components/ui/card";
+import { Users, CheckCircle2, Building2, Clock, DollarSign } from "lucide-react";
+import { useEffect, useState, useRef } from "react";
+import { useInView } from "framer-motion";
 
-const connectionStats = [
-  { label: "Active Connections", value: "1,284", icon: Link2, color: "text-primary" },
-  { label: "Trust Score", value: "99.8%", icon: ShieldCheck, color: "text-emerald-500" },
-  { label: "Global Reach", value: "24+", icon: Globe2, color: "text-secondary" },
-];
+const Counter = ({ value, prefix = "", suffix = "" }: { value: number; prefix?: string; suffix?: string }) => {
+  const [displayValue, setDisplayValue] = useState(0);
+  const ref = useRef(null);
+  const isInView = useInView(ref, { once: true });
 
-export function ConnectivityNetwork() {
+  useEffect(() => {
+    if (isInView) {
+      let start = 0;
+      const end = value;
+      const timer = setInterval(() => {
+        start += Math.ceil(end / 100);
+        if (start >= end) {
+          setDisplayValue(end);
+          clearInterval(timer);
+        } else {
+          setDisplayValue(start);
+        }
+      }, 20);
+      return () => clearInterval(timer);
+    }
+  }, [isInView, value]);
+
+  const format = (num: number) => {
+    if (num >= 1000000) return (num / 1000000).toFixed(1) + "M";
+    if (num >= 1000) return num.toLocaleString();
+    return num.toString();
+  };
+
+  return <span ref={ref}>{prefix}{format(displayValue)}{suffix}</span>;
+};
+
+export function ImpactMetrics({ impactMetrics }: { impactMetrics: any }) {
+  const metrics = [
+    { icon: Users, value: impactMetrics.volunteers, label: "Skilled Volunteers", color: "var(--primary)" },
+    { icon: CheckCircle2, value: impactMetrics.projectsCompleted, label: "Projects Completed", color: "#10b981" },
+    { icon: Building2, value: impactMetrics.ngosSupported, label: "NGOs Supported", color: "var(--secondary)" },
+    { icon: Clock, value: impactMetrics.hoursContributed, label: "Hours Contributed", color: "var(--primary)", suffix: "+" },
+    { icon: DollarSign, value: impactMetrics.valueGenerated, label: "Value Generated", color: "#10b981", prefix: "$" },
+  ];
+
   return (
-    <section className="py-24 bg-background relative overflow-hidden">
-      <div className="container mx-auto px-4 md:px-6">
-        <div className="grid lg:grid-cols-5 gap-8 items-stretch">
-          
-          {/* Left Side: Stats (2 Columns) */}
-          <div className="lg:col-span-2 flex flex-col justify-center space-y-6">
-            <motion.div
-              initial={{ opacity: 0, x: -20 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true }}
-            >
-              <h2 className="text-4xl font-black tracking-tight text-foreground mb-4">
-                The Network <br />
-                <span className="text-primary text-5xl">Pulse</span>
-              </h2>
-              <p className="text-muted-foreground text-lg max-w-sm mb-8">
-                Our ecosystem thrives on high-speed professional exchange, moving expertise to where it is needed most.
-              </p>
-            </motion.div>
+    <section className="py-24 bg-background overflow-hidden">
+      <div className="container mx-auto px-4">
+        {/* Header */}
+        <div className="mb-20 text-center">
+          <h2 className="text-4xl md:text-5xl font-black tracking-tight mb-4">Our Collective Impact</h2>
+          <p className="text-muted-foreground text-lg italic">The flow of professional capital into social change.</p>
+        </div>
 
-            <div className="grid gap-4">
-              {connectionStats.map((stat, i) => (
-                <motion.div
-                  key={stat.label}
-                  initial={{ opacity: 0, y: 10 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  transition={{ delay: i * 0.1 }}
-                  className="p-4 rounded-2xl border border-border/50 bg-card/50 backdrop-blur-sm flex items-center justify-between group hover:border-primary/40 transition-all"
-                >
-                  <div className="flex items-center gap-4">
-                    <div className={`p-2 rounded-lg bg-background border border-border group-hover:scale-110 transition-transform`}>
-                      <stat.icon className={`w-5 h-5 ${stat.color}`} />
-                    </div>
-                    <span className="text-sm font-bold text-muted-foreground uppercase tracking-widest">{stat.label}</span>
-                  </div>
-                  <span className="text-xl font-black text-foreground">{stat.value}</span>
-                </motion.div>
-              ))}
-            </div>
-          </div>
-
-          {/* Right Side: The Abstract Network (3 Columns) */}
-          <motion.div 
-            initial={{ opacity: 0, scale: 0.95 }}
-            whileInView={{ opacity: 1, scale: 1 }}
-            viewport={{ once: true }}
-            className="lg:col-span-3 relative min-h-[450px] rounded-[3rem] border border-border bg-muted/20 overflow-hidden flex items-center justify-center p-12"
+        <div className="relative">
+          {/* THE PASSING LINE: Animated SVG Path */}
+          <svg
+            className="absolute top-1/2 left-0 w-full h-32 -translate-y-1/2 hidden lg:block pointer-events-none"
+            viewBox="0 0 1200 100"
+            fill="none"
           >
-            {/* The "Passing Lines" SVG Background */}
-            <svg className="absolute inset-0 w-full h-full pointer-events-none opacity-40" viewBox="0 0 400 400">
-                <defs>
-                    <linearGradient id="lineGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                        <stop offset="0%" stopColor="transparent" />
-                        <stop offset="50%" stopColor="var(--primary)" />
-                        <stop offset="100%" stopColor="transparent" />
-                    </linearGradient>
-                </defs>
-                {/* Abstract animated lines */}
-                <motion.path 
-                    d="M 50 100 Q 200 50 350 100" 
-                    stroke="url(#lineGradient)" 
-                    strokeWidth="0.5" 
-                    fill="transparent"
-                    initial={{ pathLength: 0, opacity: 0 }}
-                    animate={{ pathLength: 1, opacity: [0, 1, 0] }}
-                    transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
-                />
-                <motion.path 
-                    d="M 50 300 Q 200 350 350 300" 
-                    stroke="url(#lineGradient)" 
-                    strokeWidth="0.5" 
-                    fill="transparent"
-                    initial={{ pathLength: 0, opacity: 0 }}
-                    animate={{ pathLength: 1, opacity: [0, 1, 0] }}
-                    transition={{ duration: 5, repeat: Infinity, ease: "linear", delay: 1 }}
-                />
-            </svg>
+            <path
+              d="M0 50 Q 300 0, 600 50 T 1200 50"
+              stroke="currentColor"
+              className="text-border"
+              strokeWidth="1"
+            />
+            {/* Animated Glow Pulse */}
+            <motion.path
+              d="M0 50 Q 300 0, 600 50 T 1200 50"
+              stroke="url(#impact-gradient)"
+              strokeWidth="3"
+              strokeLinecap="round"
+              initial={{ pathLength: 0, opacity: 0 }}
+              whileInView={{ pathLength: 1, opacity: 1 }}
+              transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
+            />
+            <defs>
+              <linearGradient id="impact-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stopColor="var(--primary)" stopOpacity="0" />
+                <stop offset="50%" stopColor="var(--primary)" />
+                <stop offset="100%" stopColor="var(--secondary)" stopOpacity="0" />
+              </linearGradient>
+            </defs>
+          </svg>
 
-            {/* Central Node Visual */}
-            <div className="relative z-10 flex flex-col items-center">
-              <div className="relative">
-                {/* Concentric Pulsing Circles */}
-                <div className="absolute inset-0 rounded-full bg-primary/20 animate-ping" />
-                <div className="absolute inset-0 rounded-full bg-primary/10 animate-[ping_3s_infinite]" />
-                
-                <div className="relative w-32 h-32 rounded-full bg-card border-4 border-background shadow-2xl flex items-center justify-center">
-                  <Zap className="w-12 h-12 text-primary fill-primary/10" />
+          {/* Metrics Row */}
+          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-12 relative z-10">
+            {metrics.map((metric, idx) => (
+              <motion.div
+                key={metric.label}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                transition={{ delay: idx * 0.1 }}
+                className="group relative flex flex-col items-center"
+              >
+                {/* Metric Node */}
+                <div className="relative mb-6">
+                  <div 
+                    className="absolute inset-0 rounded-full blur-2xl opacity-0 group-hover:opacity-40 transition-opacity duration-500"
+                    style={{ backgroundColor: metric.color }}
+                  />
+                  <div className="relative w-20 h-20 rounded-full bg-background border-2 border-border flex items-center justify-center group-hover:border-primary transition-colors duration-500 shadow-xl">
+                    <metric.icon className="w-8 h-8 text-foreground group-hover:scale-110 transition-transform duration-500" />
+                  </div>
                 </div>
-              </div>
-              
-              <div className="mt-8 text-center">
-                <div className="px-4 py-1 rounded-full border border-primary/20 bg-primary/5 text-primary text-xs font-black uppercase tracking-tighter mb-2 inline-block">
-                  System Live
-                </div>
-                <h3 className="text-xl font-bold text-foreground">Cross-Border Exchange</h3>
-              </div>
-            </div>
 
-            {/* Orbiting Elements (Volunteers & NGOs) */}
-            <FloatingNode label="Elite Talent" position="top-12 left-12" delay={0} />
-            <FloatingNode label="Grassroots NGO" position="bottom-16 left-20" delay={1} />
-            <FloatingNode label="Impact Project" position="top-20 right-16" delay={2} />
-            <FloatingNode label="Professional" position="bottom-20 right-20" delay={1.5} />
-          </motion.div>
+                {/* Content */}
+                <div className="text-center">
+                  <div className="text-4xl font-black tracking-tighter mb-1">
+                    <Counter value={metric.value} prefix={metric.prefix} suffix={metric.suffix} />
+                  </div>
+                  <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground group-hover:text-foreground transition-colors">
+                    {metric.label}
+                  </p>
+                </div>
+
+                {/* Vertical Line for Mobile/Tablet */}
+                {idx < metrics.length - 1 && (
+                  <div className="lg:hidden w-px h-12 bg-gradient-to-b from-border to-transparent mt-6" />
+                )}
+              </motion.div>
+            ))}
+          </div>
         </div>
       </div>
     </section>
-  );
-}
-
-function FloatingNode({ label, position, delay }: { label: string, position: string, delay: number }) {
-  return (
-    <motion.div 
-      initial={{ opacity: 0 }}
-      whileInView={{ opacity: 1 }}
-      animate={{ y: [0, -10, 0] }}
-      transition={{ duration: 4, repeat: Infinity, delay, ease: "easeInOut" }}
-      className={`absolute ${position} hidden md:flex items-center gap-3 p-3 rounded-2xl bg-card border border-border shadow-lg z-20`}
-    >
-      <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
-      <span className="text-[10px] font-black uppercase tracking-widest text-foreground">{label}</span>
-      <ArrowUpRight className="w-3 h-3 text-muted-foreground" />
-    </motion.div>
   );
 }

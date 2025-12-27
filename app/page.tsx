@@ -1,7 +1,7 @@
 import { Navbar } from "@/components/navbar"
 import { Footer } from "@/components/footer"
 import { HeroSection } from "@/components/home/hero-section"
-import  { ConnectivityNetwork }  from "@/components/home/impact-metrics"
+import  { ImpactMetrics }  from "@/components/home/impact-metrics"
 import { HowItWorks } from "@/components/home/how-it-works"
 import { FeaturedProjects } from "@/components/home/featured-projects"
 import { SkillCategories } from "@/components/home/skill-categories"
@@ -15,7 +15,7 @@ export default function HomePage() {
       <Navbar />
       <main className="flex-1">
         <HeroSection />
-        <ConnectivityNetwork />
+                  <ImpactMetrics impactMetrics={{ volunteers: 5000, projectsCompleted: 120, ngosSupported: 75, hoursContributed: 10000, valueGenerated: 250000 }} />
         <HowItWorks />
         <FeaturedProjects />
         <SkillCategories />
