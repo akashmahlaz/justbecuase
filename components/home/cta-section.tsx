@@ -47,7 +47,7 @@ export function CTASection() {
             <div className="hidden md:flex justify-center">
               <div className="grid grid-cols-2 gap-4">
                 {[
-                  { value: "5 min", label: "To sign up" },
+                  { value: "1 min", label: "To sign up" },
                   { value: "100%", label: "Free for volunteers" },
                   { value: "24/7", label: "Support available" },
                   { value: "120+", label: "Partner NGOs" },
