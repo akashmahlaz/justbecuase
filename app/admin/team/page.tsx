@@ -169,8 +169,10 @@ export default function AdminTeamPage() {
         const result = await uploadToCloudinary(avatarFile, "team_avatars", {
           onProgress: (progress) => setUploadProgress(progress),
         })
-        avatarUrl = result.url
-        toast.success("Photo uploaded successfully")
+        if (result.url) {
+          avatarUrl = result.url
+          toast.success("Photo uploaded successfully")
+        }
       } catch (error) {
         toast.error("Failed to upload photo")
         setSaving(false)
