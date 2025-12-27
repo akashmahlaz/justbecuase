@@ -846,6 +846,11 @@ export const adminSettingsDb = {
         enableNotifications: true,
         requireEmailVerification: false,
         requireNGOVerification: false,
+        requirePhoneVerification: false,
+        
+        // SMS Provider Settings
+        smsProvider: "none",
+        smsConfigured: false,
         
         // Content
         maintenanceMode: false,
