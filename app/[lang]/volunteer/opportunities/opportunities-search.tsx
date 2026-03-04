@@ -80,7 +80,11 @@ export function OpportunitiesSearchCard() {
         )
         const data = await res.json()
         if (data.success && !controller.signal.aborted) {
-          setResults(data.results || [])
+          // Only show opportunity results — filter out any volunteers/NGOs/blogs
+          const opportunityResults = (data.results || []).filter(
+            (r: SearchResult) => r.type === "opportunity"
+          )
+          setResults(opportunityResults)
         }
       } catch (err: any) {
         if (err.name !== "AbortError") {
@@ -117,6 +121,7 @@ export function OpportunitiesSearchCard() {
         <CardContent className="p-4">
           <UnifiedSearchBar
             defaultType="opportunity"
+            allowedTypes={["opportunity"]}
             variant="default"
             placeholder="Search by title, skills, or cause..."
             value={searchQuery}

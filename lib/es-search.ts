@@ -136,6 +136,7 @@ export async function elasticSearch(params: ESSearchParams): Promise<{
       sort: sortConfig,
       _source: true,
       track_total_hits: true,
+      min_score: 2.0, // Filter out very low relevance / tangential matches
     })
 
     const total = typeof response.hits.total === "number"
@@ -155,12 +156,25 @@ export async function elasticSearch(params: ESSearchParams): Promise<{
       }
     })
 
-    if (results.length > 0) {
-      console.log(`[ES Search] Top result: type=${results[0].type} title="${results[0].title}" score=${results[0].score}`)
+    // Post-filter: drop results scoring below 15% of the top result's score.
+    // This removes tail matches where the MUST clause barely passed
+    // (e.g. fuzzy single-token match with low TF-IDF).
+    const topScore = results.length > 0 ? results[0].score : 0
+    const scoreThreshold = topScore * 0.15
+    const qualityResults = topScore > 0
+      ? results.filter(r => r.score >= scoreThreshold)
+      : results
+
+    if (qualityResults.length < results.length) {
+      console.log(`[ES Search] Dropped ${results.length - qualityResults.length} low-quality results (threshold=${scoreThreshold.toFixed(2)})`)
+    }
+
+    if (qualityResults.length > 0) {
+      console.log(`[ES Search] Top result: type=${qualityResults[0].type} title="${qualityResults[0].title}" score=${qualityResults[0].score}`)
     }
 
     return {
-      results,
+      results: qualityResults,
       total,
       took: response.took || 0,
     }
@@ -574,6 +588,16 @@ async function getPrefixSearchSuggestions(
       bool: {
         should: shouldClauses,
         minimum_should_match: 1,
+        filter: [
+          {
+            bool: {
+              should: [
+                { term: { isActive: true } },
+                { bool: { must_not: { exists: { field: "isActive" } } } },
+              ],
+            },
+          },
+        ],
       },
     },
     size: limit,
@@ -1360,6 +1384,11 @@ export function buildSearchQuery(query: string, filters?: ESSearchParams["filter
     })
     .join(" ")
 
+  // Safety: if processing stripped everything, fall back to original query
+  if (!searchText || searchText.length < 2) {
+    searchText = query.trim()
+  }
+
   // Determine if this query matches any known skill names or IDs. We'll also
   // collect the matching skill IDs, which we can use to *require* a result to
   // actually contain that skill. This avoids generic hits like projects that
@@ -1369,15 +1398,24 @@ export function buildSearchQuery(query: string, filters?: ESSearchParams["filter
 
   console.log(`[ES Search] searchText="${searchText}" isSkillQuery=${isSkillQuery} skillIds=${matchedSkillIds}`)
 
-  // Adaptive minimum_should_match based on cleaned word count
+  // Adaptive minimum_should_match based on cleaned word count.
+  // Use concrete numbers instead of percentages — ES percentage rounds DOWN
+  // which gives counterintuitive results (e.g. 75% of 2 = 1.5 → 1, not 2).
   const wordCount = searchText.split(/\s+/).length
-  const minMatch = wordCount <= 2 ? "75%" : wordCount <= 4 ? "60%" : "40%"
+  const mustMinMatch = wordCount <= 2
+    ? `${wordCount}`  // 1→"1", 2→"2" (all words required for short queries)
+    : `${Math.max(2, Math.ceil(wordCount * 0.65))}` // 3→"2", 4→"3", 5→"4"
 
   // When the user types a very short query (3 characters or fewer) we
   // want strict prefix matching and no fuzziness. Fuzzy matching on tiny
   // terms causes noisy hits like "fim" → "financial".
   const useFuzziness: any = searchText.length <= 3 ? 0 : "AUTO"
   const prefixLen = searchText.length <= 3 ? 0 : 2
+
+  // For the MUST clause, use operator "and" for very short queries (1-2 words)
+  // to require ALL terms to be present. For longer queries, "or" + mustMinMatch
+  // lets role/filler words miss while core terms still gate.
+  const mustOperator = wordCount <= 2 ? "and" : "or"
 
   // ============================================
   // MUST: Core text match — every result MUST match the cleaned query
@@ -1388,49 +1426,49 @@ export function buildSearchQuery(query: string, filters?: ESSearchParams["filter
   must.push({
     bool: {
       should: [
-        // Primary multi_match across key searchable fields
-        // NOTE: skillCategories intentionally excluded from must — it's too
-        //   broad ("Content Creation & Design" matches "content" but
-        //   includes Graphic Designers who aren't content creators).
-        //   It's included in should[] below as a bonus signal.
+        // 1. Cross-fields (PRIMARY gate): treats all key fields as one corpus
+        //    so "web design" matches even if "web" is in title and "design"
+        //    is in skillNames. Stricter operator for short queries.
         {
           multi_match: {
             query: searchText,
-            type: "most_fields",
+            type: "cross_fields",
             fields: [
               "title^10",
-              "title.exact^15",
               "skillNames^12",
               "causeNames^6",
               "headline^6",
               "name^8",
               "orgName^8",
             ],
-            fuzziness: useFuzziness,
-            prefix_length: prefixLen,
-            operator: "or",
-            minimum_should_match: "1",
+            operator: mustOperator,
+            minimum_should_match: mustMinMatch,
           },
         },
+        // 2. Most-fields with fuzziness (fuzzy fallback): allows typo
+        //    tolerance but restricted to key fields and stricter matching.
+        //    NOTE: skillCategories intentionally excluded from must — it's too
+        //    broad ("Content Creation & Design" matches "content" but
+        //    includes Graphic Designers who aren't content creators).
         {
-          // Cross-fields: treats fields as one corpus
           multi_match: {
             query: searchText,
-            type: "cross_fields",
+            type: "most_fields",
             fields: [
-              "name^5",
-              "orgName^5",
-              "title^5",
-              "headline^4",
-              "skillNames^8",
+              "title^10",
+              "skillNames^12",
+              "causeNames^6",
+              "ngoName^8",
             ],
-            operator: "or",
-            minimum_should_match: minMatch,
+            fuzziness: useFuzziness,
+            prefix_length: prefixLen,
+            operator: mustOperator,
+            minimum_should_match: mustMinMatch,
           },
         },
-        // If this query appears to be a skill search, also allow description to
-        // satisfy the MUST clause so projects mentioning the skill only in the
-        // description are returned.
+        // 3. If this query appears to be a skill search, also allow description
+        //    to satisfy the MUST clause so projects mentioning the skill only
+        //    in the description are returned. Requires ALL terms.
         ...(isSkillQuery ? [{
           multi_match: {
             query: searchText,
@@ -1438,28 +1476,33 @@ export function buildSearchQuery(query: string, filters?: ESSearchParams["filter
             fields: ["description"],
             fuzziness: useFuzziness,
             prefix_length: prefixLen,
-            operator: "or",
+            operator: "and",
           },
         }] : []),
-        // When we actually recognized a specific skill, require the result to
-        // have that skill present. This stops generic projects (e.g. web
-        // development with a vague mention of "partnerships") from sneaking in.
+        // 4. When we actually recognized a specific skill, require the result
+        //    to have that skill present. This stops generic projects from
+        //    sneaking in.
         ...(matchedSkillIds.length > 0 ? [{ terms: { skillIds: matchedSkillIds } }] : []),
-        // Prefix matching for search-as-you-type
-        {
-          multi_match: {
-            query: searchText,
-            type: "bool_prefix",
-            fields: [
-              "title^8",
-              "skillNames^8",
-              "name^6",
-              "headline^5",
-            ],
-          },
-        },
       ],
       minimum_should_match: 1,
+    },
+  })
+
+  // ============================================
+  // bool_prefix for search-as-you-type (moved to SHOULD — bonus only,
+  // not a gate; prefix matches alone shouldn't qualify a result)
+  // ============================================
+  should.push({
+    multi_match: {
+      query: searchText,
+      type: "bool_prefix",
+      fields: [
+        "title^8",
+        "skillNames^8",
+        "name^6",
+        "headline^5",
+      ],
+      boost: 1.5,
     },
   })
 
@@ -1497,6 +1540,7 @@ export function buildSearchQuery(query: string, filters?: ESSearchParams["filter
   })
 
   // Secondary text match on broader fields (bio, description) — bonus, not required
+  // No fuzziness here — avoid inflating scores for tangential fuzzy matches
   should.push({
     multi_match: {
       query: searchText,
@@ -1510,11 +1554,9 @@ export function buildSearchQuery(query: string, filters?: ESSearchParams["filter
         "languages^2",
         "interests^2",
       ],
-      fuzziness: "AUTO",
-      prefix_length: 2,
       operator: "or",
-      minimum_should_match: minMatch,
-      boost: 0.8,
+      minimum_should_match: mustMinMatch,
+      boost: 0.5,
     },
   })
 
@@ -1653,19 +1695,16 @@ export function buildSearchQuery(query: string, filters?: ESSearchParams["filter
         },
       },
       functions: [
-        // Boost verified users
-        { filter: { term: { isVerified: true } }, weight: 1.3 },
+        // Boost verified users — small uplift, not enough to distort relevance
+        { filter: { term: { isVerified: true } }, weight: 1.1 },
         // Boost profiles with ratings
-        { filter: { range: { rating: { gte: 3 } } }, weight: 1.2 },
+        { filter: { range: { rating: { gte: 3 } } }, weight: 1.05 },
         // Boost profiles with completed projects (experienced)
-        { filter: { range: { completedProjects: { gte: 1 } } }, weight: 1.1 },
-        // Slight boost for profiles that have an avatar/logo (more complete)
-        { filter: { exists: { field: "avatar" } }, weight: 1.05 },
-        { filter: { exists: { field: "logo" } }, weight: 1.05 },
+        { filter: { range: { completedProjects: { gte: 1 } } }, weight: 1.05 },
       ],
       score_mode: "multiply",
       boost_mode: "multiply",
-      max_boost: 2.0,
+      max_boost: 1.5,
     },
   }
 }
