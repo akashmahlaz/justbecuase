@@ -2,7 +2,7 @@
 
 import type React from "react"
 import { useState, useEffect, useRef } from "react"
-import { useGeolocated } from "react-geolocated"
+
 import { useRouter } from "next/navigation"
 import { useLocale, localePath } from "@/hooks/use-locale"
 import { useDictionary } from "@/components/dictionary-provider"
@@ -26,7 +26,6 @@ import {
   Users,
   FileText,
   Upload,
-  LocateFixed,
   Phone,
   ShieldCheck,
   X,
@@ -117,17 +116,7 @@ export default function NGOOnboardingPage() {
     }
   }, [phoneResendCooldown])
 
-  // Use react-geolocated for geolocation
-  const {
-    coords,
-    getPosition,
-    positionError,
-  } = useGeolocated({
-    positionOptions: { enableHighAccuracy: false, timeout: 15000, maximumAge: 0 },
-    watchPosition: false,
-    suppressLocationOnMount: true,
-  });
-  const [isGettingLocation, setIsGettingLocation] = useState(false);
+
 
   // Phone verification functions
   const sendPhoneOtp = async () => {
@@ -287,161 +276,7 @@ export default function NGOOnboardingPage() {
     setVerificationDocuments(prev => prev.filter((_, i) => i !== index))
   }
 
-  // IP-based location detection (for fallback) — state/region level
-  const getIPLocation = async () => {
-    setError("");
-    setIsGettingLocation(true);
-    
-    try {
-      const response = await fetch('/api/location');
-      const data = await response.json();
-      
-      if (data.success && data.location) {
-        const { region, country } = data.location;
-        
-        if (region || country) {
-          setOrgDetails(prev => ({ 
-            ...prev, 
-            city: region || prev.city,
-            country: country || prev.country
-          }));
-        } else {
-          setError("Could not determine location from your IP address");
-        }
-      } else {
-        setError(data.error || "Failed to get location from IP");
-      }
-    } catch (err) {
-      console.error('IP location error:', err);
-      setError("Failed to get location from IP. Please try manual entry.");
-    } finally {
-      setIsGettingLocation(false);
-    }
-  };
 
-  // Reverse geocode location using free Nominatim (OpenStreetMap) — state/region level
-  const getGoogleLocation = () => {
-    setError("");
-    setIsGettingLocation(true);
-    
-    if (!navigator.geolocation) {
-      setError("Geolocation is not supported by your browser");
-      setIsGettingLocation(false);
-      return;
-    }
-    
-    // Must call getCurrentPosition synchronously in click handler for browser to show permission prompt
-    navigator.geolocation.getCurrentPosition(
-      async (position) => {
-        const { latitude, longitude } = position.coords;
-        
-        try {
-          const response = await fetch(
-            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=5&addressdetails=1`,
-            {
-              headers: {
-                'User-Agent': 'JustBecauseNetwork/1.0',
-                'Accept-Language': 'en-US,en;q=0.9',
-              },
-            }
-          );
-          
-          if (!response.ok) throw new Error('Geocoding failed');
-          const data = await response.json();
-          
-          const state = data.address?.state || data.address?.region || data.address?.state_district;
-          const country = data.address?.country;
-          
-          if (state || country) {
-            setOrgDetails(prev => ({ 
-              ...prev, 
-              city: state || prev.city,
-              country: country || prev.country
-            }));
-          } else {
-            setError("Could not determine your region. Please enter manually.");
-          }
-        } catch (err) {
-          console.error('Nominatim reverse geocoding error:', err);
-          setError("Failed to get location details. Please try manual entry.");
-        } finally {
-          setIsGettingLocation(false);
-        }
-      },
-      (error) => {
-        let errorMessage = "Unable to get your location.";
-        if (error.code === 1) {
-          errorMessage = "Location permission denied. Click the lock/site-settings icon in your browser's address bar, set Location to 'Allow', then reload and try again.";
-        } else if (error.code === 2) {
-          errorMessage = "Location unavailable. Your device may not support geolocation or network location services are disabled.";
-        } else if (error.code === 3) {
-          errorMessage = "Location request timed out. Please check your internet connection and try again.";
-        }
-        setError(errorMessage);
-        setIsGettingLocation(false);
-      },
-      {
-        enableHighAccuracy: false,
-        timeout: 15000,
-        maximumAge: 0
-      }
-    );
-  };
-
-  // When coords change, reverse geocode to state/region level
-  useEffect(() => {
-    const fetchLocation = async () => {
-      if (coords) {
-        try {
-          const response = await fetch(
-            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${coords.latitude}&lon=${coords.longitude}&zoom=5&addressdetails=1`,
-            {
-              headers: {
-                'User-Agent': 'JustBecauseNetwork/1.0',
-                'Accept-Language': 'en-US,en;q=0.9'
-              }
-            }
-          );
-          if (!response.ok) throw new Error('Failed to fetch address');
-          const data = await response.json();
-          const state = data.address?.state || data.address?.region || data.address?.state_district;
-          const country = data.address?.country;
-          
-          if (state || country) {
-            setOrgDetails(prev => ({ 
-              ...prev, 
-              city: state || prev.city,
-              country: country || prev.country
-            }));
-          } else {
-            setError('Could not determine your region. Please enter manually.');
-            setTimeout(() => setError(''), 5000);
-          }
-        } catch (error) {
-          console.error('Reverse geocoding failed:', error);
-          setError('Failed to fetch location details. Please enter manually.');
-          setTimeout(() => setError(''), 5000);
-        }
-        setIsGettingLocation(false);
-      }
-    };
-    if (isGettingLocation && coords) {
-      fetchLocation();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [coords]);
-
-  useEffect(() => {
-    if (positionError && isGettingLocation) {
-      let errorMessage = "Unable to get your location.";
-      if (positionError.code === 1) errorMessage = "Location permission denied. Please enable location services in your browser settings.";
-      else if (positionError.code === 2) errorMessage = "Location unavailable. Your device may not support geolocation or network location services are disabled.";
-      else if (positionError.code === 3) errorMessage = "Location request timed out. Please check your internet connection and try again. This can happen in areas with poor GPS signal.";
-      setError(errorMessage);
-      setIsGettingLocation(false);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [positionError]);
 
   // Step 2: Cause & Focus
   const [selectedCauses, setSelectedCauses] = useState<string[]>([])
@@ -726,51 +561,15 @@ export default function NGOOnboardingPage() {
 
         <div className="space-y-2">
           <Label htmlFor="address">{dict.ngo?.common?.address || "Address"}</Label>
-          <div className="flex gap-2">
-            <div className="relative flex-1">
-              <MapPin className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-              <Textarea
-                id="address"
-                placeholder={dict.ngo?.onboarding?.fullAddress || "Full address"}
-                value={orgDetails.address}
-                onChange={(e) => setOrgDetails({ ...orgDetails, address: e.target.value })}
-                className="pl-10 min-h-[80px]"
-              />
-            </div>
-            <div className="flex gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={getIPLocation}
-                disabled={isGettingLocation}
-                className="shrink-0"
-              >
-                {isGettingLocation ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <>
-                    <Globe className="h-4 w-4 mr-2" />
-                    {dict.ngo?.onboarding?.ipLocation || "IP Location"}
-                  </>
-                )}
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={getGoogleLocation}
-                disabled={isGettingLocation}
-                className="shrink-0"
-              >
-                {isGettingLocation ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <>
-                    <LocateFixed className="h-4 w-4 mr-2" />
-                    {dict.ngo?.onboarding?.useMyLocation || "Use my location"}
-                  </>
-                )}
-              </Button>
-            </div>
+          <div className="relative">
+            <MapPin className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+            <Textarea
+              id="address"
+              placeholder={dict.ngo?.onboarding?.fullAddress || "Full address"}
+              value={orgDetails.address}
+              onChange={(e) => setOrgDetails({ ...orgDetails, address: e.target.value })}
+              className="pl-10 min-h-[80px]"
+            />
           </div>
         </div>
 
