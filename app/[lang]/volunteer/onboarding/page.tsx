@@ -112,50 +112,26 @@ export default function VolunteerOnboardingPage() {
     getPosition,
     positionError,
   } = useGeolocated({
-    positionOptions: { enableHighAccuracy: false, timeout: 15000, maximumAge: 300000 },
+    positionOptions: { enableHighAccuracy: false, timeout: 15000, maximumAge: 0 },
     watchPosition: false,
     suppressLocationOnMount: true,
   });
   const [isGettingLocation, setIsGettingLocation] = useState(false);
 
   // Reverse geocode location using free Nominatim (OpenStreetMap) — state/region level
-  const getGoogleLocation = async () => {
-    console.log('[GEO-DEBUG] === getGoogleLocation called ===' );
-    console.log('[GEO-DEBUG] window.isSecureContext:', window.isSecureContext);
-    console.log('[GEO-DEBUG] location.protocol:', window.location.protocol);
-    console.log('[GEO-DEBUG] navigator.geolocation exists:', !!navigator.geolocation);
-    
+  const getGoogleLocation = () => {
     setError("");
     setIsGettingLocation(true);
     
     if (!navigator.geolocation) {
-      console.log('[GEO-DEBUG] navigator.geolocation is falsy — not supported');
       setError(dict.volunteer?.onboarding?.geoNotSupported || "Geolocation is not supported by your browser");
       setIsGettingLocation(false);
       return;
     }
     
-    // Log current permission state for debugging (but never block — always try getCurrentPosition)
-    try {
-      if (navigator.permissions) {
-        const permStatus = await navigator.permissions.query({ name: 'geolocation' });
-        console.log('[GEO-DEBUG] Permission state BEFORE request:', permStatus.state);
-        // 'granted' → will succeed immediately
-        // 'prompt'  → browser will show the permission popup
-        // 'denied'  → getCurrentPosition will fire error callback, but some browsers re-prompt
-      } else {
-        console.log('[GEO-DEBUG] navigator.permissions not available, skipping pre-check');
-      }
-    } catch (permErr) {
-      console.log('[GEO-DEBUG] Permissions API query failed:', permErr);
-    }
-    
-    console.log('[GEO-DEBUG] Calling navigator.geolocation.getCurrentPosition...');
-    
-    // This triggers the browser permission prompt if state is 'prompt'
+    // Must call getCurrentPosition synchronously in click handler for browser to show permission prompt
     navigator.geolocation.getCurrentPosition(
       async (position) => {
-        console.log('[GEO-DEBUG] SUCCESS! Got position:', position.coords.latitude, position.coords.longitude);
         const { latitude, longitude } = position.coords;
         
         try {
@@ -189,9 +165,6 @@ export default function VolunteerOnboardingPage() {
         }
       },
       (error) => {
-        console.log('[GEO-DEBUG] ERROR callback fired!');
-        console.log('[GEO-DEBUG] error.code:', error.code, '(1=PERMISSION_DENIED, 2=POSITION_UNAVAILABLE, 3=TIMEOUT)');
-        console.log('[GEO-DEBUG] error.message:', error.message);
         let errorMessage = "Unable to get your location.";
         if (error.code === 1) {
           errorMessage = "Location permission denied. Click the lock/site-settings icon in your browser's address bar, set Location to 'Allow', then reload and try again.";
@@ -206,7 +179,7 @@ export default function VolunteerOnboardingPage() {
       {
         enableHighAccuracy: false,
         timeout: 15000,
-        maximumAge: 300000
+        maximumAge: 0
       }
     );
   };
