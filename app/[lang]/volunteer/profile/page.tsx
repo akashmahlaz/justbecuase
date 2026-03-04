@@ -52,7 +52,7 @@ export default function VolunteerProfileEditPage() {
     hoursPerWeek: "5-10",
   })
 
-  // Get location using browser geolocation + Google Geocoding
+  // Get location using browser geolocation + Nominatim (OpenStreetMap) — state/region level
   const getGoogleLocation = async () => {
     setIsGettingLocation(true)
     setError("")
@@ -68,29 +68,31 @@ export default function VolunteerProfileEditPage() {
         const { latitude, longitude } = position.coords
         
         try {
-          const response = await fetch('/api/location', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ lat: latitude, lng: longitude }),
-          })
+          const response = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=5&addressdetails=1`,
+            {
+              headers: {
+                'User-Agent': 'JustBecauseNetwork/1.0',
+                'Accept-Language': 'en-US,en;q=0.9',
+              },
+            }
+          )
           
+          if (!response.ok) throw new Error('Geocoding failed')
           const data = await response.json()
           
-          if (data.success && data.location) {
-            const { city, state, country } = data.location
-            const locationParts = [city, state, country].filter(Boolean)
-            
-            if (locationParts.length > 0) {
-              setFormData(prev => ({ ...prev, location: locationParts.join(", ") }))
-              toast.success("Location updated!")
-            } else {
-              setError("Could not determine location details")
-            }
+          const state = data.address?.state || data.address?.region || data.address?.state_district
+          const country = data.address?.country
+          const locationParts = [state, country].filter(Boolean)
+          
+          if (locationParts.length > 0) {
+            setFormData(prev => ({ ...prev, location: locationParts.join(", ") }))
+            toast.success("Location updated!")
           } else {
-            setError(data.error || "Failed to get location details")
+            setError("Could not determine your region. Please enter manually.")
           }
         } catch (err) {
-          console.error('Geocoding error:', err)
+          console.error('Nominatim geocoding error:', err)
           setError("Failed to get location details")
         } finally {
           setIsGettingLocation(false)
@@ -104,7 +106,7 @@ export default function VolunteerProfileEditPage() {
         setError(errorMessage)
         setIsGettingLocation(false)
       },
-      { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+      { enableHighAccuracy: false, timeout: 15000, maximumAge: 300000 }
     )
   }
 
