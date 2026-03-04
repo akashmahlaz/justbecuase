@@ -20,9 +20,11 @@
 
 import type {
   VolunteerProfile,
+  NGOProfile,
   Project,
   MatchScore,
   OpportunityMatchScore,
+  PersonalizedOpportunity,
   RequiredSkill,
   VolunteerSkill,
 } from "./types"
@@ -809,4 +811,355 @@ export function getMatchColor(score: number): string {
   if (score >= 40) return "text-yellow-600 bg-yellow-100"
   if (score >= 25) return "text-orange-600 bg-orange-100"
   return "text-red-600 bg-red-100"
+}
+
+// ============================================
+// GEO-DISTANCE CALCULATION (Haversine)
+// ============================================
+
+interface Coordinates {
+  lat: number
+  lng: number
+}
+
+/**
+ * Haversine formula — accurate distance between two GPS coordinates
+ * Returns distance in kilometers
+ */
+export function haversineDistance(a: Coordinates, b: Coordinates): number {
+  const R = 6371 // Earth's radius in km
+  const dLat = ((b.lat - a.lat) * Math.PI) / 180
+  const dLng = ((b.lng - a.lng) * Math.PI) / 180
+  const lat1 = (a.lat * Math.PI) / 180
+  const lat2 = (b.lat * Math.PI) / 180
+
+  const sinDLat = Math.sin(dLat / 2)
+  const sinDLng = Math.sin(dLng / 2)
+  const h = sinDLat * sinDLat + Math.cos(lat1) * Math.cos(lat2) * sinDLng * sinDLng
+  const c = 2 * Math.atan2(Math.sqrt(h), Math.sqrt(1 - h))
+  return R * c
+}
+
+/**
+ * Convert a raw distance (km) to a 0-100 score.
+ *
+ * Scoring curve:
+ *   0-25 km    → 100  (same city / neighbourhood)
+ *   25-100 km  → 90-100 (nearby cities)
+ *   100-300 km → 70-90  (same region)
+ *   300-1000 km → 40-70 (same country, far away)
+ *   1000-5000 km → 15-40 (different country / continent)
+ *   5000+ km   → 5-15 (other side of the world)
+ */
+function distanceToScore(distanceKm: number): number {
+  if (distanceKm <= 25) return 100
+  if (distanceKm <= 100) return 90 + (100 - distanceKm) / 75 * 10
+  if (distanceKm <= 300) return 70 + (300 - distanceKm) / 200 * 20
+  if (distanceKm <= 1000) return 40 + (1000 - distanceKm) / 700 * 30
+  if (distanceKm <= 5000) return 15 + (5000 - distanceKm) / 4000 * 25
+  return Math.max(5, 15 - (distanceKm - 5000) / 10000 * 10)
+}
+
+/**
+ * Fuzzy city / country matching as a fallback when coordinates aren't available.
+ * Returns estimated distance score based on string matching.
+ */
+function fuzzyLocationScore(
+  volunteerCity?: string,
+  volunteerCountry?: string,
+  ngoCity?: string,
+  ngoCountry?: string,
+): number {
+  const vCity = volunteerCity?.toLowerCase().trim()
+  const vCountry = volunteerCountry?.toLowerCase().trim()
+  const nCity = ngoCity?.toLowerCase().trim()
+  const nCountry = ngoCountry?.toLowerCase().trim()
+
+  // Both locations unknown
+  if ((!vCity && !vCountry) || (!nCity && !nCountry)) return 50 // neutral
+
+  // Same city
+  if (vCity && nCity) {
+    if (vCity === nCity) return 100
+    // Fuzzy city: one contains the other (e.g. "new delhi" vs "delhi")
+    if (vCity.includes(nCity) || nCity.includes(vCity)) return 92
+  }
+
+  // Same country, different city
+  if (vCountry && nCountry && vCountry === nCountry) return 60
+
+  // Different country
+  if (vCountry && nCountry && vCountry !== nCountry) return 20
+
+  return 40 // partial info
+}
+
+// ============================================
+// FRESHNESS + URGENCY SCORING
+// ============================================
+
+/**
+ * Scores a project based on how recently it was posted and how urgent
+ * the deadline is.  Newer + more urgent → higher score.
+ */
+function freshnessScore(project: Project): number {
+  let score = 50
+
+  // Recency: posted recently → bonus
+  const createdAt = project.createdAt ? new Date(project.createdAt) : null
+  if (createdAt) {
+    const daysOld = (Date.now() - createdAt.getTime()) / (1000 * 60 * 60 * 24)
+    if (daysOld <= 1) score = 100
+    else if (daysOld <= 3) score = 92
+    else if (daysOld <= 7) score = 80
+    else if (daysOld <= 14) score = 68
+    else if (daysOld <= 30) score = 55
+    else score = Math.max(20, 55 - (daysOld - 30) * 0.3)
+  }
+
+  // Deadline urgency bonus
+  if (project.deadline) {
+    const daysLeft = Math.ceil(
+      (new Date(project.deadline).getTime() - Date.now()) / (1000 * 60 * 60 * 24)
+    )
+    if (daysLeft > 0 && daysLeft <= 3) score = Math.min(100, score + 20)
+    else if (daysLeft > 0 && daysLeft <= 7) score = Math.min(100, score + 12)
+    else if (daysLeft > 0 && daysLeft <= 14) score = Math.min(100, score + 5)
+    else if (daysLeft <= 0) score = Math.max(10, score - 30) // past deadline
+  }
+
+  // Low competition bonus — fewer applicants = better chance
+  const applicants = project.applicantsCount || 0
+  if (applicants === 0) score = Math.min(100, score + 8)
+  else if (applicants < 3) score = Math.min(100, score + 4)
+  else if (applicants > 20) score = Math.max(0, score - 5)
+
+  return Math.max(0, Math.min(100, score))
+}
+
+// ============================================
+// PRO-LEVEL PERSONALIZED SCORING
+// ============================================
+
+export interface PersonalizedScoringInput {
+  volunteer: VolunteerProfile
+  project: Project & { ngo?: { name: string; logo?: string; verified: boolean; city?: string; country?: string; coordinates?: Coordinates } }
+  ngoProfile?: NGOProfile | null
+  volunteerCoords?: Coordinates | null  // From profile or IP geolocation
+  ngoCoords?: Coordinates | null         // From NGO profile or IP geolocation
+}
+
+/**
+ * Master personalized scoring function.
+ *
+ * Combines 7 signals into a single relevance score:
+ *
+ * | Signal           | Weight | Why                                              |
+ * |------------------|--------|--------------------------------------------------|
+ * | Skill match      | 35%    | Skills are the #1 predictor of fit               |
+ * | Geo distance     | 20%    | Closer NGOs = easier collaboration               |
+ * | Cause alignment  | 15%    | Shared mission = higher motivation               |
+ * | Work mode match  | 10%    | Remote vs onsite compatibility                   |
+ * | Freshness        | 8%     | Newer & urgent posts get attention               |
+ * | NGO quality      | 7%     | Verified NGOs with good track records            |
+ * | Experience fit   | 5%     | Beginner/intermediate/expert alignment            |
+ */
+export function scorePersonalizedOpportunity(
+  input: PersonalizedScoringInput
+): PersonalizedOpportunity {
+  const { volunteer, project, ngoProfile, volunteerCoords, ngoCoords } = input
+
+  // ------- 1. SKILL MATCH (35%) -------
+  const skill = volunteerSkillFit(volunteer.skills || [], project.skillsRequired || [])
+  const skillScore = skill.score
+
+  // ------- 2. GEO DISTANCE (20%) -------
+  let geoScore = 50 // neutral default
+  let distanceKm: number | null = null
+
+  if (volunteerCoords && ngoCoords) {
+    // Real coordinates available — use haversine
+    distanceKm = Math.round(haversineDistance(volunteerCoords, ngoCoords) * 10) / 10
+    geoScore = distanceToScore(distanceKm)
+  } else {
+    // Fallback: fuzzy city/country matching
+    const vCity = volunteer.city
+    const vCountry = volunteer.country
+    const nCity = ngoProfile?.city || (project as any).ngo?.city
+    const nCountry = ngoProfile?.country || (project as any).ngo?.country
+    geoScore = fuzzyLocationScore(vCity, vCountry, nCity, nCountry)
+  }
+
+  // For remote projects, geo matters less — floor the geo score higher
+  if (project.workMode === "remote") {
+    geoScore = Math.max(geoScore, 85)
+  }
+
+  // ------- 3. CAUSE ALIGNMENT (15%) -------
+  const causeAlign = causeScore(volunteer.causes || [], project.causes || [])
+
+  // ------- 4. WORK MODE COMPATIBILITY (10%) -------
+  const workMode = locationScore(
+    volunteer.workMode,
+    project.workMode,
+    volunteer.location,
+    project.location,
+  )
+
+  // ------- 5. FRESHNESS + URGENCY (8%) -------
+  const freshness = freshnessScore(project)
+
+  // ------- 6. NGO QUALITY (7%) -------
+  let ngoQuality = 50
+  const ngo = ngoProfile || (project as any).ngo
+  if (ngo) {
+    if (ngo.isVerified || ngo.verified) ngoQuality += 25
+    if ((ngo.projectsCompleted || 0) >= 3) ngoQuality += 10
+    if ((ngo.volunteersEngaged || 0) >= 5) ngoQuality += 10
+    if ((ngo.projectsPosted || 0) >= 2) ngoQuality += 5
+    ngoQuality = Math.min(100, ngoQuality)
+  }
+
+  // ------- 7. EXPERIENCE FIT (5%) -------
+  const expFit = experienceFitScore(
+    volunteer.skills || [],
+    project.skillsRequired || [],
+    project.experienceLevel,
+  )
+
+  // ------- COMPOSITE SCORE -------
+  const WEIGHTS = {
+    skill: 0.35,
+    geo: 0.20,
+    cause: 0.15,
+    workMode: 0.10,
+    freshness: 0.08,
+    ngoQuality: 0.07,
+    experience: 0.05,
+  }
+
+  let composite =
+    skillScore * WEIGHTS.skill +
+    geoScore * WEIGHTS.geo +
+    causeAlign * WEIGHTS.cause +
+    workMode * WEIGHTS.workMode +
+    freshness * WEIGHTS.freshness +
+    ngoQuality * WEIGHTS.ngoQuality +
+    expFit * WEIGHTS.experience
+
+  // ------- HARD GATES (skill relevance is non-negotiable) -------
+  if (skillScore < 5) composite = Math.min(composite, 12)
+  else if (skillScore < 15) composite = Math.min(composite, 22)
+  else if (skillScore < 25) composite = Math.min(composite, 35)
+
+  // Missing must-have penalty
+  const missedMustHaves = skill.totalMustHaves - skill.mustHavesMet
+  if (missedMustHaves > 0) {
+    composite *= Math.pow(0.72, missedMustHaves)
+  }
+
+  composite = Math.round(Math.max(0, Math.min(100, composite)) * 100) / 100
+
+  // ------- MATCH REASONS (human-readable for the UI) -------
+  const reasons: string[] = []
+
+  if (skillScore >= 70) reasons.push("Strong skill match")
+  else if (skillScore >= 40) reasons.push("Good skill overlap")
+  else if (skillScore >= 20) reasons.push("Some relevant skills")
+
+  if (distanceKm !== null) {
+    if (distanceKm <= 25) reasons.push("In your city")
+    else if (distanceKm <= 100) reasons.push("Nearby location")
+    else if (distanceKm <= 300) reasons.push("In your region")
+  } else if (geoScore >= 90) {
+    reasons.push("Same city")
+  } else if (geoScore >= 60) {
+    reasons.push("Same country")
+  }
+
+  if (project.workMode === "remote") reasons.push("Remote opportunity")
+
+  if (causeAlign >= 70) reasons.push("Aligned with your causes")
+  else if (causeAlign >= 40) reasons.push("Related to your interests")
+
+  if (freshness >= 85) reasons.push("Recently posted")
+  if (project.deadline) {
+    const daysLeft = Math.ceil(
+      (new Date(project.deadline).getTime() - Date.now()) / (1000 * 60 * 60 * 24)
+    )
+    if (daysLeft > 0 && daysLeft <= 7) reasons.push("Closing soon")
+  }
+
+  if ((project.applicantsCount || 0) === 0) reasons.push("Be the first to apply")
+  else if ((project.applicantsCount || 0) < 3) reasons.push("Low competition")
+
+  if (ngoQuality >= 75) reasons.push("Verified organization")
+
+  return {
+    projectId: project._id?.toString() || "",
+    project,
+    score: composite,
+    distanceKm,
+    breakdown: {
+      skillMatch: Math.round(skillScore * 100) / 100,
+      geoDistance: Math.round(geoScore * 100) / 100,
+      causeAlignment: Math.round(causeAlign * 100) / 100,
+      workModeMatch: Math.round(workMode * 100) / 100,
+      freshness: Math.round(freshness * 100) / 100,
+      ngoQuality: Math.round(ngoQuality * 100) / 100,
+      experienceFit: Math.round(expFit * 100) / 100,
+    },
+    matchReasons: reasons.slice(0, 4), // Max 4 reasons for clean UI
+  }
+}
+
+/**
+ * Score and rank all projects for a volunteer — the main entry point for
+ * the personalized opportunity feed.
+ *
+ * Projects are sorted by composite score descending.  Only projects with
+ * score >= minScore are returned (default 10 — practically everything
+ * except total mismatches).
+ */
+export function rankPersonalizedOpportunities(
+  volunteer: VolunteerProfile,
+  projects: (Project & { ngo?: any })[],
+  ngoProfileMap: Map<string, NGOProfile>,
+  volunteerCoords: { lat: number; lng: number } | null,
+  ngoCoordMap: Map<string, { lat: number; lng: number }>,
+  minScore: number = 10,
+): PersonalizedOpportunity[] {
+  const results: PersonalizedOpportunity[] = []
+
+  for (const project of projects) {
+    // Only score active / open projects
+    const status = (project.status || "").toLowerCase()
+    if (status !== "active" && status !== "open") continue
+
+    const ngoId = project.ngoId
+    const ngoProfile = ngoProfileMap.get(ngoId) || null
+    const ngoCoords = ngoCoordMap.get(ngoId) || null
+
+    const scored = scorePersonalizedOpportunity({
+      volunteer,
+      project,
+      ngoProfile,
+      volunteerCoords,
+      ngoCoords,
+    })
+
+    if (scored.score >= minScore) {
+      results.push(scored)
+    }
+  }
+
+  // Sort: highest score first, skill match as tiebreaker
+  results.sort((a, b) => {
+    if (Math.abs(b.score - a.score) < 0.01) {
+      return b.breakdown.skillMatch - a.breakdown.skillMatch
+    }
+    return b.score - a.score
+  })
+
+  return results
 }

@@ -827,6 +827,24 @@ export interface OpportunityMatchScore {
   }
 }
 
+// Enriched personalized opportunity — includes all scoring signals for the UI
+export interface PersonalizedOpportunity {
+  projectId: string
+  project: Project & { ngo?: { name: string; logo?: string; verified: boolean } }
+  score: number
+  distanceKm: number | null  // null = unknown location
+  breakdown: {
+    skillMatch: number      // 0-100: how well your skills fit
+    geoDistance: number      // 0-100: proximity score (closer = higher)
+    causeAlignment: number   // 0-100: shared mission
+    workModeMatch: number    // 0-100: remote/onsite/hybrid compatibility
+    freshness: number        // 0-100: recency + urgency
+    ngoQuality: number       // 0-100: verified, track record
+    experienceFit: number    // 0-100: experience level match
+  }
+  matchReasons: string[]      // Human-readable match reasons for the UI
+}
+
 // ============================================
 // API RESPONSE TYPES
 // ============================================
