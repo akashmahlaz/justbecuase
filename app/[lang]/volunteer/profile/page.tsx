@@ -14,7 +14,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Camera, Save, Loader2, CheckCircle, MapPin, LocateFixed, FileText, Upload, X } from "lucide-react"
+import { Camera, Save, Loader2, CheckCircle, MapPin, FileText, Upload, X } from "lucide-react"
 import { authClient } from "@/lib/auth-client"
 import { getVolunteerProfile, updateVolunteerProfile } from "@/lib/actions"
 import { skillCategories } from "@/lib/skills-data"
@@ -440,33 +440,15 @@ export default function VolunteerProfileEditPage() {
 
                       <div className="space-y-2">
                         <Label htmlFor="location">{dict.volunteer?.common?.location || "Location"}</Label>
-                        <div className="flex gap-2">
-                          <div className="relative flex-1">
-                            <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                            <Input
-                              id="location"
-                              value={formData.location}
-                              onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                              placeholder="City, State, Country"
-                              className="pl-10"
-                            />
-                          </div>
-                          <Button
-                            type="button"
-                            variant="outline"
-                            onClick={getGoogleLocation}
-                            disabled={isGettingLocation}
-                            className="shrink-0"
-                          >
-                            {isGettingLocation ? (
-                              <Loader2 className="h-4 w-4 animate-spin" />
-                            ) : (
-                              <>
-                                <LocateFixed className="h-4 w-4 mr-2" />
-                                {dict.volunteer?.profile?.updateLocation || "Update Location"}
-                              </>
-                            )}
-                          </Button>
+                        <div className="relative">
+                          <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                          <Input
+                            id="location"
+                            value={formData.location}
+                            onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                            placeholder="City, State, Country"
+                            className="pl-10"
+                          />
                         </div>
                         <p className="text-xs text-muted-foreground">
                           {dict.volunteer?.profile?.locationHint || "Your location helps match you with nearby opportunities"}
