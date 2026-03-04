@@ -47,6 +47,20 @@ const nextConfig = {
   turbopack: {
     root: process.cwd(),
   },
+
+  // Custom redirects to fix missing language prefix issues (e.g., /auth → /en/auth)
+  async redirects() {
+    return [
+      {
+        source: '/:path*',
+        has: [
+          { type: 'query', key: 'lang', value: undefined },
+        ],
+        destination: '/en/:path*',
+        permanent: true,
+      },
+    ]
+  },
 }
 
-export default nextConfig
+module.exports = nextConfig;
