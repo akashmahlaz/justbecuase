@@ -106,7 +106,7 @@ export default function VolunteerProfileEditPage() {
         setError(errorMessage)
         setIsGettingLocation(false)
       },
-      { enableHighAccuracy: false, timeout: 15000, maximumAge: 300000 }
+      { enableHighAccuracy: false, timeout: 15000, maximumAge: 0 }
     )
   }
 
