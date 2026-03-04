@@ -126,8 +126,12 @@ export function OpportunitiesBrowser() {
         )
         const data = await res.json()
         if (data.success && !controller.signal.aborted) {
+          // Only use opportunity results — filter out any other types
+          const opportunityResults = (data.results || []).filter(
+            (r: any) => r.type === "opportunity" || r.type === "project"
+          )
           // use mongoId when available since ES document IDs may differ
-        const ids = (data.results || []).map((r: any) => r.mongoId || r.id)
+          const ids = opportunityResults.map((r: any) => r.mongoId || r.id)
           setUnifiedMatchedIds(ids)
           const orderMap = new Map<string, number>()
           ids.forEach((id: string, idx: number) => orderMap.set(id, ids.length - idx))
@@ -199,27 +203,38 @@ export function OpportunitiesBrowser() {
   const filteredProjects = useMemo(() => {
     let result = [...projects]
 
-    // Search filter — powered by unified search API
+    // Only show active/open opportunities
+    result = result.filter((project) => {
+      const status = project.status?.toLowerCase()
+      return status === "active" || status === "open"
+    })
+
+    // Search filter — powered by unified search API with client-side fallback
     if (searchQuery.trim()) {
-      if (unifiedMatchedIds !== null) {
+      const query = searchQuery.toLowerCase()
+      const clientSideFilter = (project: Project) => {
+        const titleMatch = project.title?.toLowerCase().includes(query)
+        const descMatch = project.description?.toLowerCase().includes(query)
+        const skillsMatch = project.skillsRequired?.some(
+          (s) =>
+            s.categoryId?.toLowerCase().includes(query) ||
+            s.subskillId?.toLowerCase().includes(query) ||
+            resolveSkillName(s.subskillId)?.toLowerCase().includes(query) ||
+            resolveSkillName(s.categoryId)?.toLowerCase().includes(query)
+        )
+        const ngoMatch = project.ngo?.name?.toLowerCase().includes(query)
+        return titleMatch || descMatch || skillsMatch || ngoMatch
+      }
+
+      if (unifiedMatchedIds !== null && unifiedMatchedIds.length > 0) {
+        // ES returned results — use them
         result = result.filter((project) => {
           const projectId = project._id?.toString() || project.id || ""
           return unifiedMatchedIds.includes(projectId)
         })
       } else {
-        // API loading — basic client-side fallback
-        const query = searchQuery.toLowerCase()
-        result = result.filter((project) => {
-          const titleMatch = project.title?.toLowerCase().includes(query)
-          const descMatch = project.description?.toLowerCase().includes(query)
-          const skillsMatch = project.skillsRequired?.some(
-            (s) =>
-              s.categoryId?.toLowerCase().includes(query) ||
-              s.subskillId?.toLowerCase().includes(query)
-          )
-          const ngoMatch = project.ngo?.name?.toLowerCase().includes(query)
-          return titleMatch || descMatch || skillsMatch || ngoMatch
-        })
+        // ES returned nothing or is still loading — use client-side search
+        result = result.filter(clientSideFilter)
       }
     }
 
@@ -305,6 +320,7 @@ export function OpportunitiesBrowser() {
         <div className="flex-1">
           <UnifiedSearchBar
             defaultType="opportunity"
+            allowedTypes={["opportunity"]}
             variant="default"
             placeholder={opp?.searchPlaceholder || "Search by title, skills, cause, or organization..."}
             value={searchQuery}
