@@ -3,12 +3,6 @@
   "framework": "nextjs",
   "installCommand": "bun install",
   "buildCommand": "next build",
-  "builds": [
-    {
-      "src": "package.json",
-      "use": "@vercel/next"
-    }
-  ],
   "crons": [
     {
       "path": "/api/cron/es-sync?mode=incremental",
