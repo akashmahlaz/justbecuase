@@ -895,6 +895,11 @@ function cleanQueryForTextSearch(query: string): string {
   cleaned = cleaned.replace(/\([^)]*\)/g, " ")
   cleaned = cleaned.replace(/[\/\\]/g, " ")
 
+  // Strip currency amounts early so "$8 per hour" doesn't pollute text matching.
+  // Handles: $8, ₹500, Rs.50, 8 USD, 8 dollars, 8 usd, 8 inr
+  cleaned = cleaned.replace(/(?:[$₹])\s*\d+(?:\.\d+)?/g, " ")
+  cleaned = cleaned.replace(/\b\d+(?:\.\d+)?\s*(?:dollars?|usd|inr|rs\.?|rupees?)\b/gi, " ")
+
   // Remove numeric experience patterns: "2 year experience", "5+ years of exp", "10 yrs"
   cleaned = cleaned.replace(/\b\d+\+?\s*(?:years?|yrs?|yr)\s*(?:of\s+)?(?:experience|exp)?\b/gi, " ")
 
@@ -920,6 +925,8 @@ function cleanQueryForTextSearch(query: string): string {
     // Common filler prepositions / articles (only if not the entire query)
     "with", "for", "who", "that", "has", "have", "having",
     "looking", "need", "find", "search", "looking for",
+    // English conjunctions / stop words — never meaningful in skill search
+    "and", "or", "per", "at", "the", "an", "of", "to", "in", "is", "are", "be",
     // NL sentence starters
     "i need a", "i need an", "i need", "i am looking for", "i want a", "i want an",
     "i want", "find me a", "find me an", "find me", "get me a", "get me an",
@@ -1231,6 +1238,17 @@ function detectQueryIntent(query: string): QueryIntent {
     boosts.push({ range: { hourlyRate: { lte: maxRate, boost: 4.0 } } })
     boosts.push({ term: { volunteerType: { value: "free", boost: 3.0 } } })
     signals.push(`price:under_${maxRate}`)
+  }
+  // "$8 per hour", "₹500/hr", "8 usd per hour", "at $8/hr", "8 dollars"
+  // Direct rate mention without "under/below" prefix
+  const directRateMatch = q.match(/(?:[@$₹]|\bat\s+[$₹]?)\s*(\d+(?:\.\d+)?)\s*(?:\/\s*hr|per\s*h(?:our|r)?)?/) ||
+    q.match(/(\d+(?:\.\d+)?)\s*(?:dollars?|usd|inr|rs\.?|rupees?)\s*(?:per\s*h(?:our|r)?)?/)
+  if (directRateMatch && !rateMatch) {
+    const rate = parseFloat(directRateMatch[1])
+    if (rate > 0 && rate < 10000) {
+      boosts.push({ range: { hourlyRate: { lte: rate, boost: 3.0 } } })
+      signals.push(`price:rate_${rate}`)
+    }
   }
 
   // --- EXPERIENCE LEVEL INTENT ---
