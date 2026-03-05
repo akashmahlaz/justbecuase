@@ -268,9 +268,20 @@ function ProjectsContent() {
     if (selectedLocation && selectedLocation !== "all") {
       result = result.filter((project) => {
         const workMode = project.workMode?.toLowerCase() || ""
-        const location = project.location?.toLowerCase() || ""
         const filterLocation = selectedLocation.toLowerCase()
-        return workMode === filterLocation || location.includes(filterLocation)
+        
+        // Strict matching for work modes
+        if (filterLocation === "remote") {
+          return workMode === "remote"
+        } else if (filterLocation === "on-site" || filterLocation === "onsite") {
+          return workMode === "onsite" || workMode === "on-site"
+        } else if (filterLocation === "hybrid") {
+          return workMode === "hybrid"
+        }
+        
+        // For other location strings, do partial match on location field
+        const location = project.location?.toLowerCase() || ""
+        return location.includes(filterLocation)
       })
     }
     
