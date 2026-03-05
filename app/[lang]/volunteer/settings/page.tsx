@@ -364,7 +364,7 @@ export default function VolunteerSettingsPage() {
                           {dict.volunteer?.settings?.noSkills || "No skills added yet. Add skills to get matched with projects."}
                         </p>
                       ) : (
-                        <div className="flex flex-wrap gap-2">
+                        <div className="flex flex-wrap gap-2 w-full">
                           {skills.map((skill, index) => {
                             const category = skillCategories.find((c) => c.id === skill.categoryId)
                             const subskill = category?.subskills.find((s) => s.id === skill.subskillId)
