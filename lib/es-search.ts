@@ -627,11 +627,12 @@ async function getPrefixSearchSuggestions(
 /** Common role/title → platform skill names */
 const ROLE_TO_SKILLS: Record<string, string[]> = {
   // Content Creation roles
-  "content creator": ["Social Media Content", "Video Editing", "Photo Editing", "Graphic Design", "Social Media Copywriting", "Reels", "Shorts"],
-  "video editor": ["Video Editing", "Premiere Pro", "DaVinci", "Motion Graphics", "After Effects"],
-  "video maker": ["Video Editing", "Videography", "Motion Graphics", "Premiere Pro"],
-  "videographer": ["Videography", "Video Editing", "Documentary"],
-  "photographer": ["Photography", "Photo Editing", "Retouching", "Event", "Documentary"],
+  "content creator": ["Social Media Content", "Video Editing", "Photo Editing", "Graphic Design", "Social Media Copywriting", "Reels", "Shorts", "Content Creation"],
+  "video editor": ["Video Editing", "Premiere Pro", "DaVinci", "Motion Graphics", "After Effects", "Content Creation"],
+  "video maker": ["Video Editing", "Videography", "Motion Graphics", "Premiere Pro", "Content Creation"],
+  "videographer": ["Videography", "Video Editing", "Documentary", "Content Creation", "Video Production"],
+  "videography": ["Videography", "Video Editing", "Documentary", "Content Creation", "Video Production"],
+  "photographer": ["Photography", "Photo Editing", "Retouching", "Event", "Documentary", "Content Creation"],
   "photo editor": ["Photo Editing", "Retouching", "Photoshop"],
   "graphic designer": ["Graphic Design", "Canva", "Figma", "Photoshop", "Branding", "Visual Identity"],
   "logo designer": ["Graphic Design", "Branding", "Visual Identity", "Illustration"],
