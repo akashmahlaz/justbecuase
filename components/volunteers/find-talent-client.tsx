@@ -48,46 +48,32 @@ import { UnifiedSearchBar } from "@/components/unified-search-bar"
 
 // ==========================================
 // SKILL NAME TO ID MAPPING
-// Build a lookup map from human-readable skill names to skill IDs
 // ==========================================
 
 const skillNameToIdMap: Map<string, string> = new Map()
 const skillIdToNameMap: Map<string, string> = new Map()
 
-// Populate the maps
 skillCategories.forEach(cat => {
-  // Add category mappings
   skillNameToIdMap.set(cat.name.toLowerCase(), cat.id)
   skillIdToNameMap.set(cat.id, cat.name)
-  
   cat.subskills.forEach(sub => {
-    // Add subskill mappings
     skillNameToIdMap.set(sub.name.toLowerCase(), sub.id)
     skillIdToNameMap.set(sub.id, sub.name)
-    
-    // Also add partial matches (e.g., "graphic design" -> "graphic-design")
-    // Handle words separately for better matching
     const words = sub.name.toLowerCase().split(/\s+/)
     words.forEach(word => {
       if (word.length > 2 && !skillNameToIdMap.has(word)) {
-        // Map significant words to the skill ID (first match wins)
         skillNameToIdMap.set(word, sub.id)
       }
     })
   })
 })
 
-// Helper function to find matching skill IDs from a search term
 function findMatchingSkillIds(term: string): string[] {
   const lowercaseTerm = term.toLowerCase()
   const matches: string[] = []
-  
-  // Direct match in name map
   if (skillNameToIdMap.has(lowercaseTerm)) {
     matches.push(skillNameToIdMap.get(lowercaseTerm)!)
   }
-  
-  // Partial matches
   skillNameToIdMap.forEach((skillId, skillName) => {
     if (skillName.includes(lowercaseTerm) || lowercaseTerm.includes(skillName)) {
       if (!matches.includes(skillId)) {
@@ -95,8 +81,6 @@ function findMatchingSkillIds(term: string): string[] {
       }
     }
   })
-  
-  // Also check skill IDs directly
   skillIdToNameMap.forEach((_, skillId) => {
     if (skillId.includes(lowercaseTerm) || lowercaseTerm.includes(skillId)) {
       if (!matches.includes(skillId)) {
@@ -104,17 +88,15 @@ function findMatchingSkillIds(term: string): string[] {
       }
     }
   })
-  
   return matches
 }
 
-// Get human-readable skill name from ID
 function getSkillDisplayName(skillId: string): string {
   return skillIdToNameMap.get(skillId) || skillId.replace(/-/g, ' ')
 }
 
 // ==========================================
-// ADVANCED SEARCH TYPES & UTILITIES
+// TYPES
 // ==========================================
 
 interface Volunteer {
@@ -151,26 +133,19 @@ interface SearchFilters {
 
 type SortOption = "relevance" | "rating" | "projects" | "rate-low" | "rate-high" | "hours"
 
-// Fuzzy match function - handles typos with Levenshtein distance
+// ==========================================
+// SEARCH UTILITIES
+// ==========================================
+
 function fuzzyMatch(str: string, pattern: string, threshold: number = 2): boolean {
   if (!str || !pattern) return false
   str = str.toLowerCase()
   pattern = pattern.toLowerCase()
-  
-  // Exact match or contains
   if (str.includes(pattern)) return true
-  
-  // For short patterns, require exact match
   if (pattern.length < 3) return str.includes(pattern)
-  
-  // Levenshtein distance for fuzzy matching
   const matrix: number[][] = []
-  for (let i = 0; i <= pattern.length; i++) {
-    matrix[i] = [i]
-  }
-  for (let j = 0; j <= str.length; j++) {
-    matrix[0][j] = j
-  }
+  for (let i = 0; i <= pattern.length; i++) matrix[i] = [i]
+  for (let j = 0; j <= str.length; j++) matrix[0][j] = j
   for (let i = 1; i <= pattern.length; i++) {
     for (let j = 1; j <= str.length; j++) {
       const cost = pattern[i - 1] === str[j - 1] ? 0 : 1
@@ -181,13 +156,9 @@ function fuzzyMatch(str: string, pattern: string, threshold: number = 2): boolea
       )
     }
   }
-  
-  // Check if any substring matches within threshold
-  const minDist = Math.min(...matrix[pattern.length])
-  return minDist <= threshold
+  return Math.min(...matrix[pattern.length]) <= threshold
 }
 
-// Parse advanced search query with operators
 interface ParsedQuery {
   skills: string[]
   locations: string[]
@@ -200,135 +171,82 @@ interface ParsedQuery {
 
 function parseSearchQuery(query: string): ParsedQuery {
   const result: ParsedQuery = {
-    skills: [],
-    locations: [],
-    names: [],
-    generalTerms: [],
-    exactPhrases: [],
-    excludeTerms: [],
-    orGroups: [],
+    skills: [], locations: [], names: [], generalTerms: [],
+    exactPhrases: [], excludeTerms: [], orGroups: [],
   }
-  
   if (!query.trim()) return result
-  
-  // Extract exact phrases (quoted strings)
+
   const phraseRegex = /"([^"]+)"/g
   let match
   while ((match = phraseRegex.exec(query)) !== null) {
     result.exactPhrases.push(match[1].toLowerCase())
   }
-  // Remove quoted phrases from query for further parsing
   let remainingQuery = query.replace(/"[^"]+"/g, " ")
-  
-  // Extract skill: operator
+
   const skillRegex = /skill:(\S+)/gi
-  while ((match = skillRegex.exec(remainingQuery)) !== null) {
-    result.skills.push(match[1].toLowerCase())
-  }
+  while ((match = skillRegex.exec(remainingQuery)) !== null) result.skills.push(match[1].toLowerCase())
   remainingQuery = remainingQuery.replace(/skill:\S+/gi, " ")
-  
-  // Extract location: operator
+
   const locationRegex = /location:(\S+)/gi
-  while ((match = locationRegex.exec(remainingQuery)) !== null) {
-    result.locations.push(match[1].toLowerCase())
-  }
+  while ((match = locationRegex.exec(remainingQuery)) !== null) result.locations.push(match[1].toLowerCase())
   remainingQuery = remainingQuery.replace(/location:\S+/gi, " ")
-  
-  // Extract name: operator
+
   const nameRegex = /name:(\S+)/gi
-  while ((match = nameRegex.exec(remainingQuery)) !== null) {
-    result.names.push(match[1].toLowerCase())
-  }
+  while ((match = nameRegex.exec(remainingQuery)) !== null) result.names.push(match[1].toLowerCase())
   remainingQuery = remainingQuery.replace(/name:\S+/gi, " ")
-  
-  // Extract exclusions (-)
+
   const excludeRegex = /-(\S+)/g
-  while ((match = excludeRegex.exec(remainingQuery)) !== null) {
-    result.excludeTerms.push(match[1].toLowerCase())
-  }
+  while ((match = excludeRegex.exec(remainingQuery)) !== null) result.excludeTerms.push(match[1].toLowerCase())
   remainingQuery = remainingQuery.replace(/-\S+/g, " ")
-  
-  // Handle OR groups
+
   const orParts = remainingQuery.split(/\s+OR\s+/i)
   if (orParts.length > 1) {
-    result.orGroups = orParts.map(part => 
+    result.orGroups = orParts.map(part =>
       part.trim().toLowerCase().split(/[,\s]+/).filter(t => t.length > 0)
     )
   } else {
-    // Regular terms
-    result.generalTerms = remainingQuery
-      .toLowerCase()
-      .split(/[,\s]+/)
-      .filter(t => t.length > 0)
+    result.generalTerms = remainingQuery.toLowerCase().split(/[,\s]+/).filter(t => t.length > 0)
   }
-  
   return result
 }
 
-// Calculate relevance score for sorting
 function calculateRelevanceScore(volunteer: Volunteer, parsedQuery: ParsedQuery): number {
   let score = 0
-  
-  // Exact phrase matches score highest
   for (const phrase of parsedQuery.exactPhrases) {
     if (volunteer.name?.toLowerCase().includes(phrase)) score += 100
     if (volunteer.headline?.toLowerCase().includes(phrase)) score += 80
     if (volunteer.skills?.some(s => s.subskillId.toLowerCase().includes(phrase))) score += 90
-    // Also check against skill display names
     if (volunteer.skills?.some(s => getSkillDisplayName(s.subskillId).toLowerCase().includes(phrase))) score += 85
   }
-  
-  // Skill operator matches
   for (const skill of parsedQuery.skills) {
     const matchingIds = findMatchingSkillIds(skill)
-    if (volunteer.skills?.some(s => 
-      s.subskillId.toLowerCase().includes(skill) || 
+    if (volunteer.skills?.some(s =>
+      s.subskillId.toLowerCase().includes(skill) ||
       s.categoryId.toLowerCase().includes(skill) ||
       matchingIds.includes(s.subskillId) ||
       matchingIds.includes(s.categoryId)
-    )) {
-      score += 50
-    }
+    )) score += 50
   }
-  
-  // Location operator matches
   for (const loc of parsedQuery.locations) {
     if (volunteer.location?.toLowerCase().includes(loc) ||
         volunteer.city?.toLowerCase().includes(loc) ||
-        volunteer.country?.toLowerCase().includes(loc)) {
-      score += 40
-    }
+        volunteer.country?.toLowerCase().includes(loc)) score += 40
   }
-  
-  // Name operator matches
   for (const name of parsedQuery.names) {
     if (volunteer.name?.toLowerCase().includes(name)) score += 60
   }
-  
-  // General term matches - ENHANCED with skill name matching
   for (const term of parsedQuery.generalTerms) {
     if (volunteer.name?.toLowerCase().includes(term)) score += 30
     if (volunteer.headline?.toLowerCase().includes(term)) score += 20
     if (volunteer.location?.toLowerCase().includes(term)) score += 15
-    
-    // Direct skill ID match
     if (volunteer.skills?.some(s => s.subskillId.toLowerCase().includes(term))) score += 25
-    
-    // Skill DISPLAY NAME match (e.g., "Graphic Design" matches "graphic-design")
     const matchingSkillIds = findMatchingSkillIds(term)
-    if (volunteer.skills?.some(s => matchingSkillIds.includes(s.subskillId) || matchingSkillIds.includes(s.categoryId))) {
-      score += 35 // Higher score for proper skill name matches
-    }
-    
-    // Fuzzy match bonus (lower score for fuzzy)
+    if (volunteer.skills?.some(s => matchingSkillIds.includes(s.subskillId) || matchingSkillIds.includes(s.categoryId))) score += 35
     if (fuzzyMatch(volunteer.name || "", term)) score += 10
     if (volunteer.skills?.some(s => fuzzyMatch(s.subskillId, term))) score += 8
   }
-  
-  // Bonus for verified/high-quality profiles
   if (volunteer.rating && volunteer.rating >= 4.5) score += 20
   if ((volunteer.completedProjects || 0) >= 5) score += 15
-  
   return score
 }
 
@@ -343,7 +261,7 @@ interface FindTalentClientProps {
 
 export function FindTalentClient({ volunteers, subscriptionPlan }: FindTalentClientProps) {
   const searchParams = useSearchParams()
-  
+
   // Search state
   const [searchQuery, setSearchQuery] = useState("")
   const [categoryFilter, setCategoryFilter] = useState<string>("all")
@@ -358,32 +276,42 @@ export function FindTalentClient({ volunteers, subscriptionPlan }: FindTalentCli
   const [aiLocationFilter, setAiLocationFilter] = useState<string | null>(null)
 
   // ==========================================
-  // UNIFIED SEARCH API Ã¢â‚¬â€ drives the volunteer grid
-  // When user types, we call the powerful unified search API
-  // (synonyms, multi-strategy, fuzzy, 30+ fields)
-  // and use returned IDs to filter the local volunteer list,
-  // so advanced filters still work on top.
+  // UNIFIED SEARCH API — drives the volunteer grid
+  //
+  // ID CROSS-REFERENCING DESIGN:
+  // The API returns volunteer results with these IDs:
+  //   r.userId  = user._id.toString()  (set by es-sync: doc._id.toString())
+  //   r.mongoId = user._id.toString()  (same value)
+  //   r.id      = ES document _id      (same value)
+  // All three are the same 24-hex Better Auth user ID.
+  //
+  // The pre-loaded volunteer list (from page.tsx) has:
+  //   v.userId = v.id = user._id.toString()
+  //
+  // So we extract: r.userId || r.mongoId || r.id  (from API)
+  // And compare:   v.userId || v.id                (from pre-loaded list)
+  // Both should be the same 24-hex string.
   // ==========================================
   const [unifiedMatchedIds, setUnifiedMatchedIds] = useState<string[] | null>(null)
   const [unifiedRelevanceOrder, setUnifiedRelevanceOrder] = useState<Map<string, number>>(new Map())
   const [isUnifiedSearching, setIsUnifiedSearching] = useState(false)
   const unifiedAbortRef = useRef<AbortController | null>(null)
 
-  // Debounced unified search Ã¢â‚¬â€ fires when searchQuery changes
+  // Debounced unified search — fires when searchQuery changes
   useEffect(() => {
-    // Don't search when AI search is applied (AI has its own filters)
     if (aiSearchApplied) return
 
     const trimmed = searchQuery.trim()
     if (trimmed.length < 1) {
       setUnifiedMatchedIds(null)
       setUnifiedRelevanceOrder(new Map())
+      setIsUnifiedSearching(false)
       return
     }
 
-    // Immediately invalidate stale IDs from the previous query so the filter
-    // falls back to client-side text matching during the debounce window
-    // instead of using IDs from a completely different search.
+    // CRITICAL: Immediately invalidate stale IDs from the PREVIOUS query.
+    // Without this, the filter uses IDs from search "X" to filter volunteers
+    // for search "Y" during the 300ms debounce — showing wrong people.
     unifiedAbortRef.current?.abort()
     setUnifiedMatchedIds(null)
     setIsUnifiedSearching(true)
@@ -399,12 +327,17 @@ export function FindTalentClient({ volunteers, subscriptionPlan }: FindTalentCli
         )
         const data = await res.json()
         if (data.success && !controller.signal.aborted) {
-          // Use userId (Better Auth user ID) for cross-referencing with the
-          // pre-loaded volunteer list whose IDs are userId, not MongoDB _id.
-          // Fall back to mongoId/id for non-volunteer result types.
-          const ids = (data.results || []).map((r: any) => r.userId || r.mongoId || r.id)
+          // Extract volunteer IDs for cross-referencing.
+          // r.userId is preferred (explicitly set), fallback to mongoId/id.
+          const ids: string[] = (data.results || []).map((r: any) =>
+            r.userId || r.mongoId || r.id
+          ).filter(Boolean)
+
+          console.log(`[FindTalent] Search "${trimmed}" → ${ids.length} matched IDs:`, ids)
+
           setUnifiedMatchedIds(ids)
-          // Store relevance order from API (index 0 = most relevant)
+
+          // Store relevance order (higher number = more relevant)
           const orderMap = new Map<string, number>()
           ids.forEach((id: string, idx: number) => orderMap.set(id, ids.length - idx))
           setUnifiedRelevanceOrder(orderMap)
@@ -433,13 +366,12 @@ export function FindTalentClient({ volunteers, subscriptionPlan }: FindTalentCli
   // Read initial search query from URL
   useEffect(() => {
     const q = searchParams.get("q")
-    if (q) {
-      setSearchQuery(q)
-    }
+    if (q) setSearchQuery(q)
   }, [searchParams])
+
   const [aiVolunteerType, setAiVolunteerType] = useState<string | null>(null)
   const [aiSearchIntent, setAiSearchIntent] = useState<string>("")
-  
+
   // AI Search handler
   const handleAISearch = async () => {
     if (!searchQuery.trim() || searchQuery.length < 3) return
@@ -453,7 +385,6 @@ export function FindTalentClient({ volunteers, subscriptionPlan }: FindTalentCli
       const data = await res.json()
       if (data.success && data.data) {
         const f = data.data
-        // Set all AI filters
         if (f.skills?.length) setAiSkillFilters(f.skills)
         if (f.causes?.length) setAiCauseFilters(f.causes)
         if (f.matchedVolunteerIds?.length) setAiMatchedIds(f.matchedVolunteerIds)
@@ -484,29 +415,17 @@ export function FindTalentClient({ volunteers, subscriptionPlan }: FindTalentCli
     setCategoryFilter("all")
     setLocationFilter("all")
     setFilters({
-      minRating: 0,
-      minHoursPerWeek: 0,
-      maxHoursPerWeek: 40,
-      minProjects: 0,
-      verifiedOnly: false,
-      hasDiscountedRate: false,
-      maxHourlyRate: 500,
-      experienceLevel: "all",
-      hasFreeHours: false,
+      minRating: 0, minHoursPerWeek: 0, maxHoursPerWeek: 40, minProjects: 0,
+      verifiedOnly: false, hasDiscountedRate: false, maxHourlyRate: 500,
+      experienceLevel: "all", hasFreeHours: false,
     })
   }
-  
+
   // Advanced filters
   const [filters, setFilters] = useState<SearchFilters>({
-    minRating: 0,
-    minHoursPerWeek: 0,
-    maxHoursPerWeek: 40,
-    minProjects: 0,
-    verifiedOnly: false,
-    hasDiscountedRate: false,
-    maxHourlyRate: 500,
-    experienceLevel: "all",
-    hasFreeHours: false,
+    minRating: 0, minHoursPerWeek: 0, maxHoursPerWeek: 40, minProjects: 0,
+    verifiedOnly: false, hasDiscountedRate: false, maxHourlyRate: 500,
+    experienceLevel: "all", hasFreeHours: false,
   })
 
   // Separate volunteers by type
@@ -523,35 +442,33 @@ export function FindTalentClient({ volunteers, subscriptionPlan }: FindTalentCli
     return Array.from(locs).filter(Boolean).slice(0, 10)
   }, [volunteers])
 
-  // Parse the search query
   const parsedQuery = useMemo(() => parseSearchQuery(searchQuery), [searchQuery])
 
-  // Advanced filter and search function
+  // ==========================================
+  // FILTER & SCORE VOLUNTEERS
+  //
   // When a search query is active and API results are available,
-  // we use unifiedMatchedIds to determine which volunteers match the search.
-  // Advanced filters (rating, hourly rate, etc.) still apply on top.
+  // we use unifiedMatchedIds to determine which volunteers match.
+  // This gives us the full power of the ES search engine
+  // (synonyms, fuzzy, 30+ fields). Advanced filters apply on top.
+  // ==========================================
   const filterAndScoreVolunteers = useCallback((vols: Volunteer[]): Array<Volunteer & { relevanceScore: number }> => {
     return vols
       .map(v => {
         let matches = true
+        // CRITICAL: Extract the volunteer's ID the same way the page
+        // serialized it: userId = id = user._id.toString()
         const volunteerId = v.userId || v.id
-        
-        // ==========================================
-        // UNIFIED SEARCH API MATCHING
-        // If the user typed a search query and API results are ready,
-        // only show volunteers whose IDs were returned by the API.
-        // This gives us synonym expansion, multi-strategy fuzzy,
-        // 30+ field matching Ã¢â‚¬â€ the full power of the search engine.
-        // ==========================================
+
+        // --- UNIFIED SEARCH API MATCHING ---
         if (!aiSearchApplied && searchQuery.trim().length >= 1) {
           if (unifiedMatchedIds !== null) {
-            // API results are ready Ã¢â‚¬â€ only include matched IDs
+            // API results ready — ONLY show volunteers whose IDs are in the list
             if (!unifiedMatchedIds.includes(volunteerId)) {
               matches = false
             }
           } else {
-            // API hasn't returned yet Ã¢â‚¬â€ fall back to basic client-side text match
-            // so results don't flash empty while loading
+            // API hasn't returned yet — basic client-side text match as fallback
             const query = searchQuery.toLowerCase()
             const nameMatch = v.name?.toLowerCase().includes(query)
             const headlineMatch = v.headline?.toLowerCase().includes(query)
@@ -562,7 +479,6 @@ export function FindTalentClient({ volunteers, subscriptionPlan }: FindTalentCli
               getSkillDisplayName(s.subskillId).toLowerCase().includes(query) ||
               getSkillDisplayName(s.categoryId).toLowerCase().includes(query)
             )
-            // Also match multi-word queries against category names (e.g. "content creator" matches "content-creation-design")
             const categoryNameMatch = v.skills?.some(s => {
               const catName = getSkillDisplayName(s.categoryId).toLowerCase()
               return query.split(/\s+/).every(word => catName.includes(word) || s.categoryId.toLowerCase().includes(word))
@@ -572,11 +488,8 @@ export function FindTalentClient({ volunteers, subscriptionPlan }: FindTalentCli
             }
           }
         }
-        
-        // ==========================================
-        // DROPDOWN FILTERS
-        // ==========================================
-        
+
+        // --- DROPDOWN FILTERS ---
         if (categoryFilter && categoryFilter !== "all" && matches) {
           const hasCategory = v.skills?.some(s => {
             const categoryId = s.categoryId?.toLowerCase() || ""
@@ -584,121 +497,83 @@ export function FindTalentClient({ volunteers, subscriptionPlan }: FindTalentCli
           })
           if (!hasCategory) matches = false
         }
-        
+
         if (locationFilter && locationFilter !== "all" && matches) {
           const matchLocation = v.location?.toLowerCase().includes(locationFilter.toLowerCase()) ||
                                v.city?.toLowerCase().includes(locationFilter.toLowerCase())
           if (!matchLocation) matches = false
         }
-        
-        // ==========================================
-        // ADVANCED FILTERS
-        // ==========================================
-        
+
+        // --- ADVANCED FILTERS ---
         if (matches && filters.minRating > 0) {
           if ((v.rating || 0) < filters.minRating) matches = false
         }
-        
         if (matches && filters.minProjects > 0) {
           if ((v.completedProjects || 0) < filters.minProjects) matches = false
         }
-        
-        if (matches && (v.hoursPerWeek || 10) < filters.minHoursPerWeek) {
-          matches = false
-        }
-        
-        if (matches && (v.hoursPerWeek || 10) > filters.maxHoursPerWeek) {
-          matches = false
-        }
-        
+        if (matches && (v.hoursPerWeek || 10) < filters.minHoursPerWeek) matches = false
+        if (matches && (v.hoursPerWeek || 10) > filters.maxHoursPerWeek) matches = false
         if (matches && filters.hasDiscountedRate) {
           if (!v.discountedRate || v.discountedRate <= 0) matches = false
         }
-        
         if (matches && filters.maxHourlyRate < 500) {
           if ((v.hourlyRate || 0) > filters.maxHourlyRate) matches = false
         }
-        
         if (matches && filters.experienceLevel !== "all") {
           const hasExpertise = v.skills?.some(s => s.level === filters.experienceLevel)
           if (!hasExpertise) matches = false
         }
-        
         if (matches && filters.hasFreeHours) {
           if (!v.freeHoursPerMonth || v.freeHoursPerMonth <= 0) matches = false
         }
 
-        // ==========================================
-        // AI SEARCH FILTERS
-        // When AI search is applied, use matched IDs from server-side DB search
-        // as the primary filter. Fall back to skill-based filtering if no IDs.
-        // ==========================================
+        // --- AI SEARCH FILTERS ---
         if (matches && aiSearchApplied) {
           if (aiMatchedIds.length > 0) {
-            // Primary: Use server-side matched volunteer IDs
-            const volunteerId = v.userId || v.id
-            if (!aiMatchedIds.includes(volunteerId)) {
-              matches = false
-            }
+            if (!aiMatchedIds.includes(volunteerId)) matches = false
           } else if (aiSkillFilters.length > 0) {
-            // Fallback: Only filter by skills (no location restriction)
-            // This ensures we always show skill-matched volunteers even if
-            // nobody is in the specific city the user searched for
             const hasAISkill = v.skills?.some(s => aiSkillFilters.includes(s.subskillId))
             if (!hasAISkill) matches = false
           }
-          // If neither matchedIds nor skills Ã¢â‚¬â€ show all (no AI filter applied)
         }
-        
-        // Calculate relevance score
+
+        // --- RELEVANCE SCORE ---
         let relevanceScore = -1
         if (matches) {
-          // Use API relevance order when unified search is active
           if (!aiSearchApplied && unifiedMatchedIds !== null && searchQuery.trim().length >= 1) {
-            const volunteerId = v.userId || v.id
+            // Use ES relevance order
             relevanceScore = unifiedRelevanceOrder.get(volunteerId) || 1
           } else {
             relevanceScore = calculateRelevanceScore(v, parsedQuery)
           }
-          
-          // Boost relevance for AI-matched volunteers based on skill match count
+
           if (aiSearchApplied && aiSkillFilters.length > 0) {
             const matchedSkillCount = v.skills?.filter(s => aiSkillFilters.includes(s.subskillId)).length || 0
             relevanceScore += matchedSkillCount * 15
           }
-          
-          // Boost for location match when AI specified a location
           if (aiSearchApplied && aiLocationFilter) {
-            const hasLocMatch = 
+            const hasLocMatch =
               v.location?.toLowerCase().includes(aiLocationFilter.toLowerCase()) ||
               v.city?.toLowerCase().includes(aiLocationFilter.toLowerCase())
             if (hasLocMatch) relevanceScore += 20
           }
         }
-        
+
         return { ...v, relevanceScore }
       })
       .filter(v => v.relevanceScore >= 0)
   }, [parsedQuery, categoryFilter, locationFilter, filters, aiSearchApplied, aiSkillFilters, aiCauseFilters, aiMatchedIds, aiLocationFilter, aiVolunteerType, searchQuery, unifiedMatchedIds, unifiedRelevanceOrder])
 
-  // Sort volunteers
   const sortVolunteers = useCallback((vols: Array<Volunteer & { relevanceScore: number }>) => {
     return [...vols].sort((a, b) => {
       switch (sortBy) {
-        case "relevance":
-          return b.relevanceScore - a.relevanceScore
-        case "rating":
-          return (b.rating || 0) - (a.rating || 0)
-        case "projects":
-          return (b.completedProjects || 0) - (a.completedProjects || 0)
-        case "rate-low":
-          return (a.hourlyRate || 0) - (b.hourlyRate || 0)
-        case "rate-high":
-          return (b.hourlyRate || 0) - (a.hourlyRate || 0)
-        case "hours":
-          return (b.hoursPerWeek || 0) - (a.hoursPerWeek || 0)
-        default:
-          return 0
+        case "relevance": return b.relevanceScore - a.relevanceScore
+        case "rating": return (b.rating || 0) - (a.rating || 0)
+        case "projects": return (b.completedProjects || 0) - (a.completedProjects || 0)
+        case "rate-low": return (a.hourlyRate || 0) - (b.hourlyRate || 0)
+        case "rate-high": return (b.hourlyRate || 0) - (a.hourlyRate || 0)
+        case "hours": return (b.hoursPerWeek || 0) - (a.hoursPerWeek || 0)
+        default: return 0
       }
     })
   }, [sortBy])
@@ -708,8 +583,8 @@ export function FindTalentClient({ volunteers, subscriptionPlan }: FindTalentCli
   const filteredPaid = useMemo(() => sortVolunteers(filterAndScoreVolunteers(paidVolunteers)), [paidVolunteers, filterAndScoreVolunteers, sortVolunteers])
   const filteredFree = useMemo(() => sortVolunteers(filterAndScoreVolunteers(freeVolunteers)), [freeVolunteers, filterAndScoreVolunteers, sortVolunteers])
 
-  const hasActiveFilters = searchQuery.trim() !== "" || 
-    categoryFilter !== "all" || 
+  const hasActiveFilters = searchQuery.trim() !== "" ||
+    categoryFilter !== "all" ||
     locationFilter !== "all" ||
     filters.minRating > 0 ||
     filters.minProjects > 0 ||
@@ -723,20 +598,13 @@ export function FindTalentClient({ volunteers, subscriptionPlan }: FindTalentCli
     setCategoryFilter("all")
     setLocationFilter("all")
     setFilters({
-      minRating: 0,
-      minHoursPerWeek: 0,
-      maxHoursPerWeek: 40,
-      minProjects: 0,
-      verifiedOnly: false,
-      hasDiscountedRate: false,
-      maxHourlyRate: 500,
-      experienceLevel: "all",
-      hasFreeHours: false,
+      minRating: 0, minHoursPerWeek: 0, maxHoursPerWeek: 40, minProjects: 0,
+      verifiedOnly: false, hasDiscountedRate: false, maxHourlyRate: 500,
+      experienceLevel: "all", hasFreeHours: false,
     })
     setSortBy("relevance")
   }
 
-  // Count active advanced filters
   const activeAdvancedFilterCount = [
     filters.minRating > 0,
     filters.minProjects > 0,
@@ -767,8 +635,8 @@ export function FindTalentClient({ volunteers, subscriptionPlan }: FindTalentCli
                 navigateOnSelect={false}
               />
             </div>
-            <Button 
-              onClick={handleAISearch} 
+            <Button
+              onClick={handleAISearch}
               disabled={isAISearching || searchQuery.length < 3}
               variant={aiSearchApplied ? "default" : "secondary"}
               size="lg"
@@ -833,45 +701,33 @@ export function FindTalentClient({ volunteers, subscriptionPlan }: FindTalentCli
                     </SheetTitle>
                   </SheetHeader>
                   <div className="space-y-6 mt-6">
-                    
-                    {/* Minimum Rating */}
                     <div className="space-y-2">
                       <Label className="text-sm">Minimum Rating (0-5)</Label>
                       <Input
                         type="number"
-                        min={0}
-                        max={5}
-                        step={0.5}
+                        min={0} max={5} step={0.5}
                         value={filters.minRating || ""}
                         placeholder="Any"
                         onChange={(e) => setFilters(f => ({ ...f, minRating: parseFloat(e.target.value) || 0 }))}
                       />
                     </div>
-                    
-                    {/* Minimum Opportunities */}
                     <div className="space-y-2">
                       <Label className="text-sm">Minimum Completed Opportunities</Label>
                       <Input
                         type="number"
-                        min={0}
-                        max={100}
-                        step={1}
+                        min={0} max={100} step={1}
                         value={filters.minProjects || ""}
                         placeholder="Any"
                         onChange={(e) => setFilters(f => ({ ...f, minProjects: parseInt(e.target.value) || 0 }))}
                       />
                     </div>
-                    
-                    {/* Experience Level */}
                     <div className="space-y-2">
                       <Label className="text-sm">Experience Level</Label>
-                      <Select 
-                        value={filters.experienceLevel} 
+                      <Select
+                        value={filters.experienceLevel}
                         onValueChange={(val) => setFilters(f => ({ ...f, experienceLevel: val as SearchFilters["experienceLevel"] }))}
                       >
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
                         <SelectContent>
                           <SelectItem value="all">All Levels</SelectItem>
                           <SelectItem value="beginner">Beginner</SelectItem>
@@ -880,21 +736,16 @@ export function FindTalentClient({ volunteers, subscriptionPlan }: FindTalentCli
                         </SelectContent>
                       </Select>
                     </div>
-                    
-                    {/* Max Hourly Rate */}
                     <div className="space-y-2">
                       <Label className="text-sm">Max Hourly Rate ($)</Label>
                       <Input
                         type="number"
-                        min={0}
-                        step={10}
+                        min={0} step={10}
                         value={filters.maxHourlyRate >= 500 ? "" : filters.maxHourlyRate}
                         placeholder="No limit"
                         onChange={(e) => setFilters(f => ({ ...f, maxHourlyRate: parseInt(e.target.value) || 500 }))}
                       />
                     </div>
-                    
-                    {/* Toggle Filters */}
                     <div className="space-y-4 pt-4 border-t">
                       <div className="flex items-center justify-between">
                         <Label className="text-sm">Has NGO Discounted Rate</Label>
@@ -911,21 +762,13 @@ export function FindTalentClient({ volunteers, subscriptionPlan }: FindTalentCli
                         />
                       </div>
                     </div>
-
-                    {/* Reset Filters */}
-                    <Button 
-                      variant="outline" 
+                    <Button
+                      variant="outline"
                       className="w-full"
                       onClick={() => setFilters({
-                        minRating: 0,
-                        minHoursPerWeek: 0,
-                        maxHoursPerWeek: 40,
-                        minProjects: 0,
-                        verifiedOnly: false,
-                        hasDiscountedRate: false,
-                        maxHourlyRate: 500,
-                        experienceLevel: "all",
-                        hasFreeHours: false,
+                        minRating: 0, minHoursPerWeek: 0, maxHoursPerWeek: 40, minProjects: 0,
+                        verifiedOnly: false, hasDiscountedRate: false, maxHourlyRate: 500,
+                        experienceLevel: "all", hasFreeHours: false,
                       })}
                     >
                       Reset Filters
@@ -1079,38 +922,26 @@ export function FindTalentClient({ volunteers, subscriptionPlan }: FindTalentCli
         </TabsList>
 
         <TabsContent value="all">
-          <VolunteerGrid
-            volunteers={filteredAll}
-          />
+          <VolunteerGrid volunteers={filteredAll} />
         </TabsContent>
 
         <TabsContent value="paid">
-          <VolunteerGrid
-            volunteers={filteredPaid}
-          />
+          <VolunteerGrid volunteers={filteredPaid} />
         </TabsContent>
 
         <TabsContent value="free">
-          <VolunteerGrid
-            volunteers={filteredFree}
-          />
+          <VolunteerGrid volunteers={filteredFree} />
         </TabsContent>
 
         <TabsContent value="recommended">
-          <RecommendedVolunteers 
-            volunteers={volunteers.slice(0, 6)} 
-          />
+          <RecommendedVolunteers volunteers={volunteers.slice(0, 6)} />
         </TabsContent>
       </Tabs>
     </>
   )
 }
 
-function VolunteerGrid({
-  volunteers,
-}: {
-  volunteers: Volunteer[]
-}) {
+function VolunteerGrid({ volunteers }: { volunteers: Volunteer[] }) {
   if (volunteers.length === 0) {
     return (
       <Card>
@@ -1125,20 +956,13 @@ function VolunteerGrid({
   return (
     <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
       {volunteers.map((volunteer) => (
-        <VolunteerCard
-          key={volunteer.id || volunteer.userId}
-          volunteer={volunteer}
-        />
+        <VolunteerCard key={volunteer.id || volunteer.userId} volunteer={volunteer} />
       ))}
     </div>
   )
 }
 
-function VolunteerCard({
-  volunteer,
-}: {
-  volunteer: Volunteer
-}) {
+function VolunteerCard({ volunteer }: { volunteer: Volunteer }) {
   const isFree = volunteer.volunteerType === "free"
   const isPaid = volunteer.volunteerType === "paid"
   const isBoth = volunteer.volunteerType === "both"
@@ -1255,19 +1079,13 @@ function VolunteerCard({
   )
 }
 
-function RecommendedVolunteers({ 
-  volunteers,
-}: { 
-  volunteers: Volunteer[]
-}) {
+function RecommendedVolunteers({ volunteers }: { volunteers: Volunteer[] }) {
   return (
     <div>
       <p className="text-muted-foreground mb-4">
         Impact agents recommended based on your active opportunities and hiring history
       </p>
-      <VolunteerGrid
-        volunteers={volunteers}
-      />
+      <VolunteerGrid volunteers={volunteers} />
     </div>
   )
 }
