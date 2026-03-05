@@ -686,6 +686,8 @@ const ROLE_TO_SKILLS: Record<string, string[]> = {
   "programmer": ["React / Next.js", "Node.js", "Python", "HTML / CSS"],
   "coder": ["React / Next.js", "Node.js", "Python", "HTML / CSS"],
   "website designer": ["WordPress Development", "UX / UI Design", "Website Redesign", "HTML / CSS"],
+  "web designer": ["WordPress Development", "UX / UI Design", "Website Redesign", "HTML / CSS", "Graphic Design"],
+  "web design": ["WordPress Development", "UX / UI Design", "Website Redesign", "HTML / CSS"],
 
   // Communication & Writing roles
   "writer": ["Blog / Article Writing", "Impact Story Writing", "Newsletter Creation", "Social Media Copywriting"],
@@ -1564,6 +1566,22 @@ export function buildSearchQuery(query: string, filters?: ESSearchParams["filter
         //    to have that skill present. This stops generic projects from
         //    sneaking in.
         ...(matchedSkillIds.length > 0 ? [{ terms: { skillIds: matchedSkillIds } }] : []),
+        // 5. When synonym expansion found matching role→skills, allow documents
+        //    that have ANY of those skill names in skillNames to pass the gate.
+        //    This handles "web designer" matching "Web Design" in skillNames even
+        //    when cross_fields/most_fields can't fuzzy-bridge "designer" → "design".
+        ...(expansion.synonymBoosts.length > 0 ? [{
+          bool: {
+            should: expansion.synonymBoosts.map((sb: any) => ({
+              multi_match: {
+                query: sb.multi_match.query,
+                fields: ["skillNames^12", "title^8", "headline^6"],
+                type: "phrase_prefix",
+              },
+            })),
+            minimum_should_match: 1,
+          },
+        }] : []),
       ],
       minimum_should_match: 1,
     },
