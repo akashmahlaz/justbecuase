@@ -15,6 +15,8 @@ import { Bell, Menu, User, Settings, LogOut } from "lucide-react"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { UnifiedSearchBar } from "@/components/unified-search-bar"
 import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
+import { useLocale, localePath } from "@/hooks/use-locale"
 import { useNotificationStore } from "@/lib/store"
 import { MessageNotificationBadge } from "@/components/messages/message-notification-badge"
 import { signOut } from "@/lib/auth-client"
@@ -28,6 +30,8 @@ interface DashboardHeaderProps {
 export function DashboardHeader({ userType, userName, userAvatar }: DashboardHeaderProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const unreadCount = useNotificationStore((state) => state.unreadCount)
+  const router = useRouter()
+  const locale = useLocale()
 
   const mobileLinks =
     userType === "volunteer"
@@ -92,6 +96,12 @@ export function DashboardHeader({ userType, userName, userAvatar }: DashboardHea
               ? ["opportunity", "ngo"] 
               : ["volunteer", "opportunity"]}
             className="w-full"
+            onSubmit={(query) => {
+              const target = userType === "volunteer"
+                ? `/projects?q=${encodeURIComponent(query)}`
+                : `/ngo/find-talent?q=${encodeURIComponent(query)}`
+              router.push(localePath(target, locale))
+            }}
           />
         </div>
 
