@@ -62,7 +62,10 @@ function ProjectsContent() {
   const [selectedSkills, setSelectedSkills] = useState<string[]>([])
   const [selectedTimeCommitment, setSelectedTimeCommitment] = useState<string[]>([])
   const [selectedLocation, setSelectedLocation] = useState<string>("")
-  const [sortBy, setSortBy] = useState("newest")
+  const [sortBy, setSortBy] = useState("bestMatch")
+  const [isPersonalized, setIsPersonalized] = useState(false)
+  // Map of projectId → { score, matchReasons }
+  const [matchScores, setMatchScores] = useState<Map<string, { score: number; matchReasons: string[] }>>(new Map())
 
   // ==========================================
   // UNIFIED SEARCH API — drives project filtering
@@ -133,10 +136,37 @@ function ProjectsContent() {
   useEffect(() => {
     async function fetchProjects() {
       try {
-        const res = await fetch("/api/projects")
-        if (res.ok) {
-          const data = await res.json()
-          setProjects(data.projects || [])
+        // Try personalized endpoint first (works for logged-in volunteers)
+        let personalized = false
+        try {
+          const pRes = await fetch("/api/projects/personalized")
+          if (pRes.ok) {
+            const pData = await pRes.json()
+            if (pData.success && pData.opportunities?.length > 0) {
+              const scoreMap = new Map<string, { score: number; matchReasons: string[] }>()
+              const projectList = pData.opportunities.map((opp: any) => {
+                const p = opp.project
+                const pid = p._id?.toString?.() || p.id || opp.projectId
+                scoreMap.set(pid, { score: opp.score, matchReasons: opp.matchReasons || [] })
+                return { ...p, _id: p._id || { toString: () => pid }, id: pid }
+              })
+              setProjects(projectList)
+              setMatchScores(scoreMap)
+              setIsPersonalized(true)
+              personalized = true
+            }
+          }
+        } catch {
+          // Personalized endpoint failed — fall back silently
+        }
+
+        // Fallback to regular endpoint
+        if (!personalized) {
+          const res = await fetch("/api/projects")
+          if (res.ok) {
+            const data = await res.json()
+            setProjects(data.projects || [])
+          }
         }
       } catch (error) {
         console.error("Failed to fetch projects:", error)
@@ -245,7 +275,7 @@ function ProjectsContent() {
     }
     
     // Sorting — auto-use relevance when searching
-    const effectiveSort = (searchQuery.trim().length >= 2 && unifiedMatchedIds !== null && sortBy === "newest") ? "relevant" : sortBy
+    const effectiveSort = (searchQuery.trim().length >= 2 && unifiedMatchedIds !== null && sortBy === "bestMatch") ? "relevant" : sortBy
     switch (effectiveSort) {
       case "newest":
         result.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
@@ -260,8 +290,22 @@ function ProjectsContent() {
       case "popular":
         result.sort((a, b) => (b.applicantsCount || 0) - (a.applicantsCount || 0))
         break
+      case "bestMatch":
+        // Sort by personalization score if available, then by date
+        if (isPersonalized && matchScores.size > 0) {
+          result.sort((a, b) => {
+            const idA = a._id?.toString() || a.id || ""
+            const idB = b._id?.toString() || b.id || ""
+            const scoreA = matchScores.get(idA)?.score || 0
+            const scoreB = matchScores.get(idB)?.score || 0
+            if (scoreA !== scoreB) return scoreB - scoreA
+            return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+          })
+        } else {
+          result.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+        }
+        break
       case "relevant":
-      default:
         // When search is active and API results are available, sort by API relevance
         if (searchQuery.trim().length >= 2 && unifiedMatchedIds !== null) {
           result.sort((a, b) => {
@@ -274,7 +318,7 @@ function ProjectsContent() {
     }
     
     return result
-  }, [projects, searchQuery, selectedSkills, selectedTimeCommitment, selectedLocation, sortBy, unifiedMatchedIds, unifiedRelevanceOrder])
+  }, [projects, searchQuery, selectedSkills, selectedTimeCommitment, selectedLocation, sortBy, unifiedMatchedIds, unifiedRelevanceOrder, isPersonalized, matchScores])
 
   const FilterContent = () => (
     <div className="space-y-6">
@@ -403,6 +447,7 @@ function ProjectsContent() {
                   <SelectValue placeholder={dict.projectsListing?.sortBy || "Sort by"} />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="bestMatch">{isPersonalized ? "Best Match" : (dict.projectsListing?.newestFirst || "Newest First")}</SelectItem>
                   <SelectItem value="newest">{dict.projectsListing?.newestFirst || "Newest First"}</SelectItem>
                   <SelectItem value="relevant">{dict.projectsListing?.mostRelevant || "Most Relevant"}</SelectItem>
                   <SelectItem value="closing">{dict.projectsListing?.closingSoon || "Closing Soon"}</SelectItem>
@@ -493,9 +538,12 @@ function ProjectsContent() {
                 </div>
               ) : (
                 <div className={viewMode === "grid" ? "grid sm:grid-cols-2 xl:grid-cols-3 gap-6" : "space-y-4"}>
-                  {filteredProjects.map((project) => (
-                    <ProjectCard key={project._id?.toString() || project.id} project={{
-                      id: project._id?.toString() || project.id || "",
+                  {filteredProjects.map((project) => {
+                    const pid = project._id?.toString() || project.id || ""
+                    const scoreData = matchScores.get(pid)
+                    return (
+                    <ProjectCard key={pid} project={{
+                      id: pid,
                       title: project.title,
                       description: project.description,
                       skills: (project.skills || project.skillsRequired?.map(s => s.subskillId) || []).map(resolveSkillName),
@@ -504,9 +552,12 @@ function ProjectsContent() {
                       applicants: project.applicantsCount || 0,
                       postedAt: project.createdAt ? new Date(project.createdAt).toLocaleDateString() : (dict.projectsListing?.recently || "Recently"),
                       projectType: project.projectType,
-                      ngo: project.ngo || { name: dict.projectsListing?.ngoFallback || "NGO", verified: false }
+                      ngo: project.ngo || { name: dict.projectsListing?.ngoFallback || "NGO", verified: false },
+                      matchScore: scoreData?.score,
+                      matchReasons: scoreData?.matchReasons,
                     }} />
-                  ))}
+                    )
+                  })}
                 </div>
               )}
 

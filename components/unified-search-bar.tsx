@@ -56,6 +56,8 @@ export interface UnifiedSearchBarProps {
   className?: string
   /** Show popular tags below the search bar */
   showPopularTags?: boolean
+  /** Callback when user submits the search (Enter without selecting a suggestion) */
+  onSubmit?: (query: string) => void
 }
 
 // ============================================
@@ -185,6 +187,7 @@ export function UnifiedSearchBar({
   autoFocus = false,
   className = "",
   showPopularTags = false,
+  onSubmit,
 }: UnifiedSearchBarProps) {
   const router = useRouter()
   const locale = useLocale()
@@ -341,6 +344,10 @@ export function UnifiedSearchBar({
       if (e.key === "Escape") {
         setShowDropdown(false)
         inputRef.current?.blur()
+      } else if (e.key === "Enter" && searchQuery.trim()) {
+        e.preventDefault()
+        addRecentSearch(searchQuery)
+        onSubmit?.(searchQuery.trim())
       }
       return
     }
@@ -366,6 +373,7 @@ export function UnifiedSearchBar({
           }
         } else if (searchQuery.trim()) {
           addRecentSearch(searchQuery)
+          onSubmit?.(searchQuery.trim())
         }
         setShowDropdown(false)
         break
@@ -374,7 +382,7 @@ export function UnifiedSearchBar({
         inputRef.current?.blur()
         break
     }
-  }, [showDropdown, dropdownItems, selectedIndex, searchQuery, addRecentSearch, setSearchQuery])
+  }, [showDropdown, dropdownItems, selectedIndex, searchQuery, addRecentSearch, setSearchQuery, onSubmit])
 
   useEffect(() => {
     setSelectedIndex(-1)

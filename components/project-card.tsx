@@ -3,7 +3,7 @@
 import LocaleLink from "@/components/locale-link"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Clock, MapPin, Users, CheckCircle, ArrowRight } from "lucide-react"
+import { Clock, MapPin, Users, CheckCircle, ArrowRight, Star } from "lucide-react"
 import { useDictionary } from "@/components/dictionary-provider"
 
 interface Project {
@@ -23,6 +23,8 @@ interface Project {
   applicants: number
   postedAt?: string
   status?: string
+  matchScore?: number
+  matchReasons?: string[]
 }
 
 export function ProjectCard({ project }: { project: Project }) {
@@ -36,6 +38,23 @@ export function ProjectCard({ project }: { project: Project }) {
 
   return (
     <div className="group flex flex-col h-full p-6 rounded-2xl bg-card border border-border hover:border-primary/30 hover:shadow-lg transition-all duration-300">
+      {/* Match Score Badge */}
+      {project.matchScore != null && project.matchScore > 0 && (
+        <div className="flex items-center gap-2 mb-3">
+          <Badge className={`text-xs font-semibold ${
+            project.matchScore >= 75 ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400" :
+            project.matchScore >= 50 ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400" :
+            "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400"
+          }`}>
+            <Star className="h-3 w-3 mr-1" />
+            {Math.round(project.matchScore)}% Match
+          </Badge>
+          {project.matchReasons && project.matchReasons.length > 0 && (
+            <span className="text-xs text-muted-foreground truncate">{project.matchReasons[0]}</span>
+          )}
+        </div>
+      )}
+
       {/* NGO Info */}
       <div className="flex items-center gap-3 mb-4">
         <img
