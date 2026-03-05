@@ -13,10 +13,20 @@
 const TEST_QUERIES = [
   "web designer 10 year experience",
   "web designer",
-  "website designer",
-  "website designer 10 year experience",
-  "graphic designer",
-  "web developer",
+  "content creator",
+  "video creator for youtube",
+  "social media expert",
+  "teacher for kids",
+  "grant writer",
+  "someone who can edit videos",
+  "react developer",
+  "fundraising help",
+  "logo maker",
+  "data entry",
+  "mentor",
+  "wordpress expert",
+  "social worker",
+  "excel expert for reports",
 ]
 
 // ==========================================
@@ -154,40 +164,84 @@ function detectQueryIntent(query: string) {
 }
 
 // ==========================================
-// INLINE: expandQueryWithSynonyms (simplified — just check role map)
+// INLINE: expandQueryWithSynonyms — reads from actual es-search.ts
 // ==========================================
-const ROLE_TO_SKILLS: Record<string, string[]> = {
-  "content creator": ["Social Media Content", "Video Editing", "Photo Editing", "Graphic Design"],
-  "video editor": ["Video Editing", "Premiere Pro", "DaVinci", "Motion Graphics"],
-  "graphic designer": ["Graphic Design", "Canva", "Figma", "Photoshop", "Branding"],
-  "web developer": ["React / Next.js", "HTML / CSS", "WordPress", "Node.js", "Website Redesign"],
-  "website designer": ["WordPress Development", "UX / UI Design", "Website Redesign", "HTML / CSS"],
-  "web designer": ["WordPress Development", "UX / UI Design", "Website Redesign", "HTML / CSS", "Graphic Design"],
-  "ui designer": ["UX / UI Design", "Figma", "Wireframing"],
-  "ux designer": ["UX / UI Design", "Figma", "Wireframing", "User Research"],
+const esSearchPath = require("path").join(__dirname, "..", "lib", "es-search.ts")
+const esSearchContent = require("fs").readFileSync(esSearchPath, "utf-8")
+
+// Parse ROLE_TO_SKILLS from the real file
+function parseRoleToSkills(): Record<string, string[]> {
+  const match = esSearchContent.match(/const ROLE_TO_SKILLS[^{]*\{([\s\S]*?)\n\}/)
+  if (!match) return {}
+  const map: Record<string, string[]> = {}
+  const lineRegex = /"([^"]+)":\s*\[([^\]]*)\]/g
+  let m: RegExpExecArray | null
+  while ((m = lineRegex.exec(match[1])) !== null) {
+    const role = m[1]
+    const skills = m[2].match(/"([^"]+)"/g)?.map(s => s.replace(/"/g, "")) || []
+    map[role] = skills
+  }
+  return map
 }
+const ROLE_TO_SKILLS = parseRoleToSkills()
 
 function checkSynonymExpansion(query: string) {
   const q = query.toLowerCase().trim()
+  const words = q.split(/\s+/)
   const matches: string[] = []
 
+  // Step 2: Exact key match (longest first)
   const sortedRoles = Object.keys(ROLE_TO_SKILLS).sort((a, b) => b.length - a.length)
+  let roleMatched = false
   for (const role of sortedRoles) {
     if (q.includes(role)) {
       matches.push(`role:"${role}" → [${ROLE_TO_SKILLS[role].join(", ")}]`)
+      roleMatched = true
       break
     }
   }
 
-  if (matches.length === 0) {
-    // Check partial
-    const words = q.split(/\s+/)
-    if (words.length === 1) {
-      for (const role of sortedRoles) {
-        if (role.includes(words[0]) || words[0].includes(role.split(" ")[0])) {
-          matches.push(`partial:"${words[0]}" ~ "${role}" → [${ROLE_TO_SKILLS[role].slice(0, 3).join(", ")}]`)
-          break
+  // Step 2b: Fuzzy word-overlap fallback
+  if (!roleMatched && words.length >= 1) {
+    const queryWords = q.split(/\s+/).filter(w => w.length > 2)
+    let bestScore = 0
+    let bestRole = ""
+    let bestSkills: string[] = []
+
+    for (const role of sortedRoles) {
+      const roleWords = role.split(/\s+/)
+      let score = 0
+      for (const rw of roleWords) {
+        for (const qw of queryWords) {
+          if (qw === rw) { score += 2; continue }
+          if (qw.length >= 4 && rw.length >= 4) {
+            const shorter = qw.length <= rw.length ? qw : rw
+            const longer = qw.length > rw.length ? qw : rw
+            if (longer.startsWith(shorter.slice(0, Math.max(4, shorter.length - 2)))) {
+              score += 1.5
+            }
+          }
         }
+      }
+      if (score > bestScore) {
+        bestScore = score
+        bestRole = role
+        bestSkills = ROLE_TO_SKILLS[role]
+      }
+    }
+
+    if (bestScore >= 1.5 && bestSkills.length > 0) {
+      matches.push(`fuzzy-role:"${bestRole}" (score=${bestScore}) → [${bestSkills.join(", ")}]`)
+      roleMatched = true
+    }
+  }
+
+  // Step 4: Single-word partial match
+  if (!roleMatched && words.length === 1) {
+    for (const role of sortedRoles) {
+      if (role.includes(words[0]) || words[0].includes(role.split(" ")[0])) {
+        matches.push(`partial:"${words[0]}" ~ "${role}" → [${ROLE_TO_SKILLS[role].slice(0, 3).join(", ")}]`)
+        break
       }
     }
   }
@@ -288,48 +342,36 @@ for (const query of TEST_QUERIES) {
 }
 
 // ==========================================
-// CHECK: Does "web designer" exist in the ACTUAL es-search.ts ROLE_TO_SKILLS?
+// SUMMARY: Role map coverage stats
 // ==========================================
 console.log("\n" + "=".repeat(80))
-console.log("  CHECKING es-search.ts ROLE_TO_SKILLS for 'web designer' entry")
+console.log("  ROLE_TO_SKILLS COVERAGE SUMMARY")
 console.log("=".repeat(80))
 
-// Read the file and check
-import { readFileSync } from "fs"
-const esSearchContent = readFileSync("lib/es-search.ts", "utf-8")
-const webDesignerLine = esSearchContent.match(/.*"web designer".*$/m)
-const websiteDesignerLine = esSearchContent.match(/.*"website designer".*$/m)
+const totalRoles = Object.keys(ROLE_TO_SKILLS).length
+console.log(`\n  Total roles in map: ${totalRoles}`)
 
-console.log(`\n"web designer" in ROLE_TO_SKILLS? → ${webDesignerLine ? `✅ YES: ${webDesignerLine[0].trim()}` : "❌ MISSING!"}`)
-console.log(`"website designer" in ROLE_TO_SKILLS? → ${websiteDesignerLine ? `✅ YES: ${websiteDesignerLine[0].trim()}` : "❌ MISSING!"}`)
-console.log(`"web design" in ROLE_TO_SKILLS? → ${esSearchContent.includes('"web design"') ? "✅ YES" : "❌ MISSING!"}`)
-
-// Check synonym MUST gate exists
+// Check synonym MUST gate and fuzzy fallback exist
 const hasSynonymGate = esSearchContent.includes("synonym expansion found matching role")
-console.log(`\nSynonym MUST gate clause exists? → ${hasSynonymGate ? "✅ YES (clause 5 in MUST bool)" : "❌ MISSING!"}`)
+const hasFuzzyFallback = esSearchContent.includes("Fuzzy word-overlap fallback")
+console.log(`  Synonym MUST gate clause: ${hasSynonymGate ? "✅ YES" : "❌ MISSING"}`)
+console.log(`  Fuzzy word-overlap fallback: ${hasFuzzyFallback ? "✅ YES" : "❌ MISSING"}`)
 
-if (webDesignerLine && hasSynonymGate) {
-  console.log(`\n✅ FIX VERIFIED: "web designer 10 year experience" will now:`)
-  console.log(`   1. Clean to "web designer" ✅`)
-  console.log(`   2. Detect exp:years_10_expert intent → boost expert volunteers ✅`)
-  console.log(`   3. Expand synonyms: role:"web designer" → [WordPress, UX/UI, Web Redesign, HTML/CSS, Graphic Design] ✅`)
-  console.log(`   4. MUST gate: synonym clause matches volunteers with ANY of those skills in skillNames ✅`)
-  console.log(`   5. SHOULD boosts: synonym skill names boost matching volunteers even higher ✅`)
-} else {
-  console.log(`\n🚨 FIX INCOMPLETE:`)
-  if (!webDesignerLine) console.log(`   - "web designer" still missing from ROLE_TO_SKILLS`)
-  if (!hasSynonymGate) console.log(`   - Synonym MUST gate clause not found in buildSearchQuery`)
+// Sample category counts
+const categories = { design: 0, dev: 0, marketing: 0, writing: 0, finance: 0, operations: 0, ngo: 0, other: 0 }
+for (const role of Object.keys(ROLE_TO_SKILLS)) {
+  if (/design|graphic|logo|illustr|ux|ui|brand|creat|anim|photo|video/i.test(role)) categories.design++
+  else if (/develop|dev|code|program|react|node|python|web\s|app\s|mobile|software|full.?stack|frontend|backend|wordpress|shopify|webflow/i.test(role)) categories.dev++
+  else if (/market|seo|ads|social|email|analytics|crm|influencer|growth|whatsapp|instagram/i.test(role)) categories.marketing++
+  else if (/writ|blog|copy|edit|translat|newsletter|speak|trainer|communic|pr\s|story|report/i.test(role)) categories.writing++
+  else if (/account|book|financ|audit|tax|payroll|ca$|chartered/i.test(role)) categories.finance++
+  else if (/event|project|recrui|hr|operations|volunteer|research|data entry|telecall|customer|outreach|field|program/i.test(role)) categories.operations++
+  else if (/teach|tutor|mentor|coach|counsel|social worker|ngo|impact|m&e|monitor|campaign|activ|health|doctor|nurse/i.test(role)) categories.ngo++
+  else categories.other++
 }
-
-// Also check ROLE_TO_SKILLS entries containing 'design'
-console.log("\n" + "=".repeat(80))
-console.log("  ALL ROLE_TO_SKILLS entries containing 'design' or 'web'")
-console.log("=".repeat(80))
-const roleLines = esSearchContent.match(/^\s*"[^"]+":.*$/gm) || []
-for (const line of roleLines) {
-  if ((line.includes("design") || line.includes("web")) && line.includes("[")) {
-    console.log(`  ${line.trim()}`)
-  }
+console.log(`\n  By category:`)
+for (const [cat, count] of Object.entries(categories)) {
+  if (count > 0) console.log(`    ${cat}: ${count} roles`)
 }
 
 console.log("\n\nDone.")
