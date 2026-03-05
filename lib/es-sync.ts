@@ -323,7 +323,8 @@ function transformProject(doc: any, ngoNameMap: Map<string, string>): Record<str
 
   const { skillIds, skillNames, skillCategories } = denormalizeSkills(doc.skillsRequired)
   const { causeIds, causeNames } = denormalizeCauses(doc.causes)
-  const ngoName = ngoNameMap.get(doc.ngoProfileId) || ngoNameMap.get(doc.ngoId) || ""
+  // Always use string keys — ObjectId objects won't match string-keyed Map entries
+  const ngoName = ngoNameMap.get(doc.ngoProfileId?.toString()) || ngoNameMap.get(doc.ngoId?.toString()) || ""
 
   const parts: string[] = []
   if (doc.title) parts.push(doc.title)
@@ -781,13 +782,19 @@ export async function syncSingleDocument(
       case "projects": {
         // Fetch NGO name from user collection
         const ngoNameMap = new Map<string, string>()
-        if (doc.ngoProfileId || doc.ngoId) {
+        const ngoRef = doc.ngoProfileId || doc.ngoId
+        if (ngoRef) {
+          let ngoObjId: any
+          try { ngoObjId = new ObjectId(ngoRef.toString()) } catch { ngoObjId = ngoRef }
           const ngoUser = await db.collection(USER_COLLECTION).findOne(
-            { _id: new ObjectId(doc.ngoProfileId || doc.ngoId) },
+            { _id: ngoObjId },
             { projection: { orgName: 1, organizationName: 1, name: 1 } }
           ).catch(() => null)
           if (ngoUser) {
-            ngoNameMap.set((doc.ngoProfileId || doc.ngoId).toString(), ngoUser.orgName || ngoUser.organizationName || ngoUser.name || "")
+            const ngoNameVal = ngoUser.orgName || ngoUser.organizationName || ngoUser.name || ""
+            // Set BOTH possible key formats so transformProject.get() always finds it
+            if (doc.ngoProfileId) ngoNameMap.set(doc.ngoProfileId.toString(), ngoNameVal)
+            if (doc.ngoId) ngoNameMap.set(doc.ngoId.toString(), ngoNameVal)
           }
         }
         esDoc = transformProject(doc, ngoNameMap)
