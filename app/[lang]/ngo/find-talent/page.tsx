@@ -36,6 +36,11 @@ export default async function NGOFindTalentPage({ params }: { params: Promise<{ 
   const volunteers = await browseVolunteers()
   const ngoSubscription = await getNGOSubscriptionStatus()
 
+  // Serialize volunteer data for client component.
+  // CRITICAL: v.id comes from getVolunteerProfileView which sets
+  // id = volunteerProfile.userId = user._id.toString() (the Better Auth user ID).
+  // We set BOTH id and userId to the same value so the client can cross-reference
+  // with ES search results that also use user._id as their ID.
   const serializedVolunteers = volunteers.map((v: any) => ({
     id: v.id || "",
     userId: v.id,
