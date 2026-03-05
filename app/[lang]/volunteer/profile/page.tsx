@@ -50,6 +50,7 @@ export default function VolunteerProfileEditPage() {
     linkedinUrl: "",
     portfolioUrl: "",
     hoursPerWeek: "5-10",
+    workMode: "remote" as "remote" | "onsite" | "hybrid",
   })
 
   // Get location using browser geolocation + Nominatim (OpenStreetMap) — state/region level
@@ -128,6 +129,7 @@ export default function VolunteerProfileEditPage() {
             linkedinUrl: profileData.linkedinUrl || "",
             portfolioUrl: profileData.portfolioUrl || "",
             hoursPerWeek: profileData.hoursPerWeek || "5-10",
+            workMode: profileData.workMode || "remote",
           })
         }
       } catch (err) {
@@ -293,6 +295,7 @@ export default function VolunteerProfileEditPage() {
         linkedinUrl: formData.linkedinUrl,
         portfolioUrl: formData.portfolioUrl,
         hoursPerWeek: formData.hoursPerWeek,
+        workMode: formData.workMode,
       })
 
       if (!result.success) {
@@ -680,9 +683,19 @@ export default function VolunteerProfileEditPage() {
 
                       <div className="space-y-2">
                         <Label>{dict.volunteer?.common?.workMode || "Work Mode"}</Label>
-                        <Badge variant="secondary" className="capitalize">
-                          {profile?.workMode || (dict.volunteer?.common?.notSet || "Not set")}
-                        </Badge>
+                        <Select
+                          value={formData.workMode}
+                          onValueChange={(value) => setFormData({ ...formData, workMode: value as "remote" | "onsite" | "hybrid" })}
+                        >
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="remote">{dict.volunteer?.common?.remote || "Remote"}</SelectItem>
+                            <SelectItem value="onsite">{dict.volunteer?.common?.onSite || "On-site"}</SelectItem>
+                            <SelectItem value="hybrid">{dict.volunteer?.common?.hybrid || "Hybrid"}</SelectItem>
+                          </SelectContent>
+                        </Select>
                       </div>
 
                       <div className="space-y-2">
