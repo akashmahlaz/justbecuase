@@ -626,55 +626,96 @@ async function getPrefixSearchSuggestions(
 
 /** Common role/title → platform skill names */
 const ROLE_TO_SKILLS: Record<string, string[]> = {
-  // Content Creation roles
+  // ── Content Creation roles ──────────────────────────────────────────
   "content creator": ["Social Media Content", "Video Editing", "Photo Editing", "Graphic Design", "Social Media Copywriting", "Reels", "Shorts", "Content Creation"],
+  "content creation": ["Social Media Content", "Video Editing", "Photo Editing", "Graphic Design", "Social Media Copywriting"],
   "video editor": ["Video Editing", "Premiere Pro", "DaVinci", "Motion Graphics", "After Effects", "Content Creation"],
+  "video editing": ["Video Editing", "Premiere Pro", "DaVinci", "Motion Graphics", "After Effects"],
   "video maker": ["Video Editing", "Videography", "Motion Graphics", "Premiere Pro", "Content Creation"],
+  "video creator": ["Video Editing", "Videography", "Social Media Content", "Content Creation"],
   "videographer": ["Videography", "Video Editing", "Documentary", "Content Creation", "Video Production"],
   "videography": ["Videography", "Video Editing", "Documentary", "Content Creation", "Video Production"],
   "photographer": ["Photography", "Photo Editing", "Retouching", "Event", "Documentary", "Content Creation"],
+  "photography": ["Photography", "Photo Editing", "Retouching", "Event", "Documentary"],
   "photo editor": ["Photo Editing", "Retouching", "Photoshop"],
   "graphic designer": ["Graphic Design", "Canva", "Figma", "Photoshop", "Branding", "Visual Identity"],
+  "graphic design": ["Graphic Design", "Canva", "Figma", "Photoshop", "Branding"],
   "logo designer": ["Graphic Design", "Branding", "Visual Identity", "Illustration"],
+  "logo design": ["Graphic Design", "Branding", "Visual Identity", "Illustration"],
   "illustrator": ["Illustration", "Infographics", "Graphic Design"],
+  "illustration": ["Illustration", "Infographics", "Graphic Design"],
   "animator": ["Motion Graphics", "After Effects", "Animation"],
+  "animation": ["Motion Graphics", "After Effects", "Animation"],
   "motion designer": ["Motion Graphics", "After Effects", "Animation"],
   "podcaster": ["Podcast Production"],
+  "podcast": ["Podcast Production"],
   "brand designer": ["Branding", "Visual Identity", "Graphic Design"],
+  "branding expert": ["Branding", "Visual Identity", "Graphic Design", "Logo Design"],
   "presentation designer": ["Presentation Design", "PowerPoint", "Google Slides"],
   "ui designer": ["UX / UI Design", "Figma", "Graphic Design"],
   "ux designer": ["UX / UI Design", "Figma", "User Experience"],
+  "ux ui designer": ["UX / UI Design", "Figma", "Graphic Design", "User Experience"],
+  "reel maker": ["Social Media Content", "Video Editing", "Reels", "Shorts"],
+  "reels editor": ["Social Media Content", "Video Editing", "Reels"],
+  "youtube editor": ["Video Editing", "Social Media Content", "Premiere Pro"],
+  "thumbnail designer": ["Graphic Design", "Photo Editing", "Canva"],
+  "canva designer": ["Graphic Design", "Canva", "Social Media Content"],
+  "canva expert": ["Graphic Design", "Canva", "Social Media Content"],
+  "figma designer": ["UX / UI Design", "Figma", "Graphic Design"],
+  "photoshop expert": ["Photo Editing", "Graphic Design", "Photoshop"],
 
-  // Digital Marketing roles
+  // Generic single-word design/creative roles
+  "designer": ["Graphic Design", "UX / UI Design", "Canva", "Figma", "Branding", "Website Redesign"],
+  "designing": ["Graphic Design", "UX / UI Design", "Canva", "Figma", "Branding"],
+  "creative": ["Graphic Design", "Content Creation", "Social Media Content", "Video Editing", "Branding"],
+
+  // ── Digital Marketing roles ─────────────────────────────────────────
   "social media manager": ["Social Media Strategy", "Social Media Content", "Social Media Copywriting", "Social Media Ads", "Reels", "Shorts"],
+  "social media expert": ["Social Media Strategy", "Social Media Content", "Social Media Ads", "Social Media Copywriting"],
+  "social media": ["Social Media Strategy", "Social Media Content", "Social Media Ads"],
+  "social media marketing": ["Social Media Strategy", "Social Media Content", "Social Media Ads", "Digital Marketing"],
   "digital marketer": ["Digital Marketing", "Content Marketing", "Social Media Strategy", "SEO", "Analytics"],
+  "digital marketing": ["Digital Marketing", "Content Marketing", "Social Media Strategy", "SEO", "Analytics"],
   "seo expert": ["SEO / Content", "Content Marketing", "Analytics"],
   "seo specialist": ["SEO / Content", "Content Marketing", "Analytics"],
   "marketer": ["Digital Marketing", "Content Marketing", "Social Media Strategy"],
+  "marketing": ["Digital Marketing", "Content Marketing", "Social Media Strategy", "Email Marketing"],
   "marketing manager": ["Digital Marketing", "Content Marketing", "Social Media Strategy", "Analytics"],
   "email marketer": ["Email Marketing", "Automation", "Email Copywriting", "Newsletter"],
+  "email marketing": ["Email Marketing", "Automation", "Email Copywriting", "Newsletter"],
   "ads expert": ["Social Media Ads", "Meta Ads", "Facebook Ads", "PPC", "Google Ads"],
   "ads manager": ["Social Media Ads", "Meta Ads", "Facebook Ads", "PPC", "Google Ads"],
+  "facebook ads": ["Social Media Ads", "Meta Ads", "Facebook Ads"],
+  "google ads": ["PPC", "Google Ads", "Digital Marketing"],
   "community manager": ["Community Management", "Social Media Strategy"],
   "influencer": ["Influencer Marketing", "Social Media Content"],
+  "influencer marketing": ["Influencer Marketing", "Social Media Content"],
   "growth hacker": ["Digital Marketing", "SEO", "Social Media Ads", "Analytics"],
   "analytics expert": ["Analytics & Reporting", "GA4", "Meta Insights", "Data Analysis"],
   "crm manager": ["CRM Management", "HubSpot", "Mailchimp", "Zoho"],
   "whatsapp marketer": ["WhatsApp Marketing"],
+  "instagram manager": ["Social Media Strategy", "Social Media Content", "Reels", "Shorts"],
 
-  // Web Development roles
+  // ── Web Development roles ───────────────────────────────────────────
   "web developer": ["React / Next.js", "HTML / CSS", "WordPress", "Node.js", "Website Redesign"],
+  "web development": ["React / Next.js", "HTML / CSS", "WordPress", "Node.js", "Website Redesign"],
   "frontend developer": ["React / Next.js", "HTML / CSS", "UX / UI Design", "JavaScript"],
   "frontend dev": ["React / Next.js", "HTML / CSS", "JavaScript"],
+  "frontend development": ["React / Next.js", "HTML / CSS", "JavaScript"],
   "backend developer": ["Node.js", "Backend Development", "Database Management", "API Integration"],
   "backend dev": ["Node.js", "Backend Development", "Database Management"],
+  "backend development": ["Node.js", "Backend Development", "Database Management", "API Integration"],
   "fullstack developer": ["React / Next.js", "Node.js", "Database Management", "API Integration"],
   "full stack developer": ["React / Next.js", "Node.js", "Database Management", "API Integration"],
+  "full stack": ["React / Next.js", "Node.js", "Database Management", "API Integration"],
   "app developer": ["Mobile App Development", "React Native", "Flutter"],
+  "app development": ["Mobile App Development", "React Native", "Flutter"],
   "mobile developer": ["Mobile App Development", "React Native", "Flutter"],
+  "mobile development": ["Mobile App Development", "React Native", "Flutter"],
   "ios developer": ["Mobile App Development", "React Native"],
   "android developer": ["Mobile App Development", "React Native", "Flutter"],
   "wordpress developer": ["WordPress Development", "CMS Maintenance", "Website Redesign"],
+  "wordpress expert": ["WordPress Development", "CMS Maintenance", "Website Redesign"],
   "shopify developer": ["Shopify", "E-Commerce"],
   "webflow designer": ["Webflow", "No-Code"],
   "no-code developer": ["Webflow", "No-Code Tools"],
@@ -683,76 +724,148 @@ const ROLE_TO_SKILLS: Record<string, string[]> = {
   "react developer": ["React / Next.js", "JavaScript", "Frontend"],
   "nextjs developer": ["React / Next.js", "Node.js"],
   "software engineer": ["React / Next.js", "Node.js", "Database Management", "API Integration", "Python"],
+  "software development": ["React / Next.js", "Node.js", "Database Management", "API Integration"],
   "programmer": ["React / Next.js", "Node.js", "Python", "HTML / CSS"],
+  "programming": ["React / Next.js", "Node.js", "Python", "HTML / CSS"],
   "coder": ["React / Next.js", "Node.js", "Python", "HTML / CSS"],
+  "coding": ["React / Next.js", "Node.js", "Python", "HTML / CSS"],
   "website designer": ["WordPress Development", "UX / UI Design", "Website Redesign", "HTML / CSS"],
   "web designer": ["WordPress Development", "UX / UI Design", "Website Redesign", "HTML / CSS", "Graphic Design"],
   "web design": ["WordPress Development", "UX / UI Design", "Website Redesign", "HTML / CSS"],
+  "website builder": ["WordPress Development", "Website Redesign", "HTML / CSS", "Webflow"],
 
-  // Communication & Writing roles
+  // Generic single-word dev roles
+  "developer": ["React / Next.js", "Node.js", "HTML / CSS", "WordPress", "Mobile App Development"],
+  "development": ["React / Next.js", "Node.js", "HTML / CSS", "WordPress"],
+
+  // ── Communication & Writing roles ───────────────────────────────────
   "writer": ["Blog / Article Writing", "Impact Story Writing", "Newsletter Creation", "Social Media Copywriting"],
+  "writing": ["Blog / Article Writing", "Impact Story Writing", "Newsletter Creation", "Social Media Copywriting"],
   "content writer": ["Blog / Article Writing", "Content Marketing", "SEO / Content", "Social Media Copywriting"],
+  "content writing": ["Blog / Article Writing", "Content Marketing", "SEO / Content"],
   "blog writer": ["Blog / Article Writing", "Content Marketing"],
+  "blogger": ["Blog / Article Writing", "Content Marketing", "SEO / Content"],
+  "blogging": ["Blog / Article Writing", "Content Marketing", "SEO / Content"],
   "copywriter": ["Email Copywriting", "Social Media Copywriting", "Blog / Article Writing"],
+  "copywriting": ["Email Copywriting", "Social Media Copywriting", "Blog / Article Writing"],
   "editor": ["Blog / Article Writing", "Newsletter Creation", "Annual Report Writing"],
   "grant writer": ["Grant Writing", "Grant Research", "Proposal / RFP Writing"],
+  "grant writing": ["Grant Writing", "Grant Research", "Proposal / RFP Writing"],
   "proposal writer": ["Proposal / RFP Writing", "Grant Writing"],
   "translator": ["Translation / Localization"],
+  "translation": ["Translation / Localization"],
   "public speaker": ["Public Speaking", "Training"],
   "trainer": ["Training & Workshop Facilitation", "Public Speaking"],
+  "training": ["Training & Workshop Facilitation", "Public Speaking"],
   "communications manager": ["Donor Communications", "Press Release", "Media Outreach", "Impact Story Writing"],
   "pr manager": ["Press Release", "Media Outreach"],
   "newsletter writer": ["Newsletter Creation", "Email Copywriting"],
+  "story writer": ["Impact Story Writing", "Blog / Article Writing", "Content Creation"],
+  "report writer": ["Annual Report Writing", "Impact Story Writing", "Financial Reporting"],
 
-  // Finance & Accounting roles
+  // ── Finance & Accounting roles ──────────────────────────────────────
   "accountant": ["Bookkeeping", "Financial Reporting", "Tax Compliance", "Audit Support", "Accounting Software"],
+  "accounting": ["Bookkeeping", "Financial Reporting", "Tax Compliance", "Accounting Software"],
   "bookkeeper": ["Bookkeeping", "Accounting Software", "Tally", "QuickBooks"],
+  "bookkeeping": ["Bookkeeping", "Accounting Software", "Tally", "QuickBooks"],
   "financial analyst": ["Financial Modelling", "Budgeting & Forecasting", "Financial Reporting"],
   "auditor": ["Audit Support", "Financial Reporting", "Tax Compliance"],
   "tax consultant": ["Tax Compliance", "80G", "12A", "FCRA"],
+  "tax expert": ["Tax Compliance", "80G", "12A", "FCRA"],
   "payroll specialist": ["Payroll Processing", "Accounting Software"],
   "finance manager": ["Financial Reporting", "Budgeting & Forecasting", "Financial Modelling"],
+  "finance": ["Financial Reporting", "Bookkeeping", "Budgeting & Forecasting"],
   "ca": ["Bookkeeping", "Financial Reporting", "Tax Compliance", "Audit Support"],
   "chartered accountant": ["Bookkeeping", "Financial Reporting", "Tax Compliance", "Audit Support"],
+  "tally expert": ["Bookkeeping", "Accounting Software", "Tally"],
 
-  // Fundraising roles
+  // ── Fundraising roles ───────────────────────────────────────────────
   "fundraiser": ["Grant Writing", "Crowdfunding", "Peer-to-Peer Campaigns", "Fundraising Pitch Deck"],
+  "fundraising": ["Grant Writing", "Crowdfunding", "Peer-to-Peer Campaigns", "Fundraising Pitch Deck"],
   "grant researcher": ["Grant Research", "Grant Writing"],
   "crowdfunding expert": ["Crowdfunding", "GoFundMe", "Ketto", "Milaap"],
   "donor manager": ["Donor Database Management", "Major Gift Strategy"],
+  "donor management": ["Donor Database Management", "Major Gift Strategy", "Donor Communications"],
   "csr expert": ["CSR Partnerships", "Corporate Sponsorship"],
   "sponsorship manager": ["Corporate Sponsorship", "CSR Partnerships"],
 
-  // Operations & Planning roles
+  // ── Operations & Planning roles ─────────────────────────────────────
   "event planner": ["Event Planning", "Event On-Ground Support", "Logistics"],
+  "event planning": ["Event Planning", "Event On-Ground Support", "Logistics"],
   "event manager": ["Event Planning", "Event On-Ground Support", "Logistics"],
   "event coordinator": ["Event Planning", "Event On-Ground Support"],
   "project manager": ["Project Management", "Notion", "Trello", "Asana"],
+  "project management": ["Project Management", "Notion", "Trello", "Asana"],
+  "program manager": ["Project Management", "Monitoring & Evaluation", "Volunteer Recruitment"],
+  "program coordinator": ["Project Management", "Volunteer Recruitment", "Event Planning"],
   "recruiter": ["HR & Recruitment", "Volunteer Recruitment"],
+  "recruitment": ["HR & Recruitment", "Volunteer Recruitment"],
   "hr manager": ["HR & Recruitment", "Volunteer Recruitment", "Training"],
   "operations manager": ["Logistics", "Project Management", "Volunteer Recruitment"],
+  "operations": ["Logistics", "Project Management", "Volunteer Recruitment"],
   "volunteer coordinator": ["Volunteer Recruitment & Management", "Event Planning"],
+  "volunteer manager": ["Volunteer Recruitment & Management", "Event Planning"],
   "researcher": ["Research & Surveys", "Data Analysis", "Grant Research"],
+  "research": ["Research & Surveys", "Data Analysis", "Grant Research"],
   "data entry": ["Data Entry & Documentation"],
   "telecaller": ["Telecalling", "Outreach"],
   "customer support": ["Customer / Beneficiary Support"],
+  "outreach coordinator": ["Telecalling", "Community Management", "Volunteer Recruitment"],
+  "field worker": ["Event On-Ground Support", "Logistics", "Telecalling"],
+  "field coordinator": ["Event On-Ground Support", "Logistics", "Volunteer Recruitment"],
 
-  // Legal roles
+  // ── NGO-specific / Social sector roles ──────────────────────────────
+  "teacher": ["Training & Workshop Facilitation", "Public Speaking", "Content Creation"],
+  "teaching": ["Training & Workshop Facilitation", "Public Speaking"],
+  "tutor": ["Training & Workshop Facilitation", "Public Speaking"],
+  "mentor": ["Training & Workshop Facilitation", "Public Speaking", "Community Management"],
+  "mentoring": ["Training & Workshop Facilitation", "Public Speaking"],
+  "coach": ["Training & Workshop Facilitation", "Public Speaking"],
+  "counselor": ["Customer / Beneficiary Support", "Community Management", "Training"],
+  "counsellor": ["Customer / Beneficiary Support", "Community Management", "Training"],
+  "social worker": ["Customer / Beneficiary Support", "Community Management", "Monitoring & Evaluation"],
+  "ngo consultant": ["Project Management", "Monitoring & Evaluation", "Grant Writing"],
+  "impact analyst": ["Monitoring & Evaluation", "Data Analysis", "Impact Story Writing"],
+  "m&e specialist": ["Monitoring & Evaluation", "Data Analysis", "Research & Surveys"],
+  "monitoring evaluation": ["Monitoring & Evaluation", "Data Analysis", "Research & Surveys"],
+  "campaigner": ["Social Media Strategy", "Community Management", "Fundraising Pitch Deck"],
+  "activist": ["RTI / Legal Advocacy", "Community Management", "Public Speaking"],
+  "healthcare worker": ["Customer / Beneficiary Support", "Community Management"],
+  "doctor": ["Customer / Beneficiary Support", "Training & Workshop Facilitation"],
+  "nurse": ["Customer / Beneficiary Support", "Training & Workshop Facilitation"],
+
+  // ── Legal roles ─────────────────────────────────────────────────────
   "lawyer": ["Legal Advisory", "Pro Bono Counsel", "Contract Drafting"],
   "advocate": ["Legal Advisory", "Pro Bono Counsel", "RTI"],
   "legal advisor": ["Legal Advisory", "Pro Bono Counsel", "Policy Drafting"],
+  "legal": ["Legal Advisory", "Pro Bono Counsel", "Contract Drafting", "Policy Drafting"],
   "compliance officer": ["FCRA Compliance", "Tax Compliance", "Policy Drafting"],
   "company secretary": ["NGO Registration", "Contract Drafting", "Policy Drafting"],
 
-  // Data & Technology roles
+  // ── Data & Technology roles ─────────────────────────────────────────
   "data analyst": ["Data Analysis", "Excel", "Google Sheets", "Power BI"],
+  "data analysis": ["Data Analysis", "Excel", "Google Sheets", "Power BI"],
   "data scientist": ["AI / Machine Learning", "Data Analysis", "Python"],
+  "data science": ["AI / Machine Learning", "Data Analysis", "Python"],
   "ai engineer": ["AI / Machine Learning", "Python", "Chatbot"],
   "ml engineer": ["AI / Machine Learning", "Python"],
   "chatbot developer": ["Chatbot Development"],
   "it support": ["IT Support", "Google Workspace", "Microsoft 365"],
+  "it expert": ["IT Support", "Google Workspace", "Microsoft 365"],
   "cybersecurity": ["Cybersecurity Basics", "Website Security"],
   "automation expert": ["Automation", "Zapier", "Make", "n8n"],
+  "excel expert": ["Data Analysis", "Excel", "Google Sheets"],
+  "powerpoint expert": ["Presentation Design", "PowerPoint", "Google Slides"],
+
+  // ── Generic single-word catch-alls ──────────────────────────────────
+  "manager": ["Project Management", "Social Media Strategy", "Community Management"],
+  "consultant": ["Project Management", "Digital Marketing", "Grant Writing", "Financial Reporting"],
+  "strategist": ["Social Media Strategy", "Digital Marketing", "Content Marketing"],
+  "specialist": ["Digital Marketing", "Social Media Strategy", "Data Analysis"],
+  "coordinator": ["Event Planning", "Volunteer Recruitment", "Project Management"],
+  "assistant": ["Data Entry & Documentation", "Project Management", "Customer / Beneficiary Support"],
+  "intern": ["Data Entry & Documentation", "Social Media Content", "Content Creation"],
+  "volunteer": ["Event On-Ground Support", "Volunteer Recruitment", "Community Management"],
 }
 
 /** Abbreviation / shorthand → expanded search term */
@@ -1117,10 +1230,10 @@ function expandQueryWithSynonyms(query: string): QueryExpansion {
   // --- Step 2: Check if query matches a known role → boost those skill names ---
   // Check multi-word roles first (longest match wins)
   const sortedRoles = Object.keys(ROLE_TO_SKILLS).sort((a, b) => b.length - a.length)
+  let roleMatched = false
   for (const role of sortedRoles) {
     if (expandedQuery.includes(role)) {
       const skillNames = ROLE_TO_SKILLS[role]
-      // Add a should clause that boosts documents with any of these skill names
       for (const skillName of skillNames) {
         synonymBoosts.push({
           multi_match: {
@@ -1132,7 +1245,62 @@ function expandQueryWithSynonyms(query: string): QueryExpansion {
         })
       }
       expansions.push(`role:${role}→[${skillNames.slice(0, 4).join(", ")}${skillNames.length > 4 ? "..." : ""}]`)
+      roleMatched = true
       break // Only match the first (longest) role
+    }
+  }
+
+  // --- Step 2b: Fuzzy word-overlap fallback ---
+  // If no exact role match, find the best role by scoring word overlap.
+  // e.g. "video creator for youtube" → words ["video","creator","youtube"]
+  //       "video editor" shares "video" → score 1
+  //       "content creator" shares "creator" → score 1
+  // Pick the highest-scoring role(s).
+  if (!roleMatched && words.length >= 1) {
+    const queryWords = expandedQuery.split(/\s+/).filter(w => w.length > 2)
+    let bestScore = 0
+    let bestRole = ""
+    let bestSkills: string[] = []
+
+    for (const role of sortedRoles) {
+      const roleWords = role.split(/\s+/)
+      let score = 0
+      for (const rw of roleWords) {
+        for (const qw of queryWords) {
+          // Exact word match
+          if (qw === rw) { score += 2; continue }
+          // Stem-like match: one word starts with the other (design/designer, create/creator, edit/editor)
+          if (qw.length >= 4 && rw.length >= 4) {
+            const shorter = qw.length <= rw.length ? qw : rw
+            const longer = qw.length > rw.length ? qw : rw
+            if (longer.startsWith(shorter.slice(0, Math.max(4, shorter.length - 2)))) {
+              score += 1.5
+            }
+          }
+        }
+      }
+      // Prefer multi-word roles with higher overlap
+      if (score > bestScore) {
+        bestScore = score
+        bestRole = role
+        bestSkills = ROLE_TO_SKILLS[role]
+      }
+    }
+
+    // Only use fuzzy match if we got meaningful overlap (at least one full word match or strong stem match)
+    if (bestScore >= 1.5 && bestSkills.length > 0) {
+      for (const skillName of bestSkills) {
+        synonymBoosts.push({
+          multi_match: {
+            query: skillName,
+            fields: ["skillNames^14", "skillCategories^4", "title^6", "description^3"],
+            type: "phrase_prefix",
+            boost: 2.0, // slightly lower boost than exact match
+          },
+        })
+      }
+      expansions.push(`fuzzy-role:${bestRole}→[${bestSkills.slice(0, 4).join(", ")}${bestSkills.length > 4 ? "..." : ""}]`)
+      roleMatched = true
     }
   }
 
@@ -1157,7 +1325,7 @@ function expandQueryWithSynonyms(query: string): QueryExpansion {
   }
 
   // --- Step 4: For single-word queries, check if it's a partial skill match ---
-  if (words.length === 1 && synonymBoosts.length === 0) {
+  if (words.length === 1 && !roleMatched && synonymBoosts.length === 0) {
     const word = words[0]
     // Check if it partially matches any role
     for (const role of sortedRoles) {
