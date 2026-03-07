@@ -46,16 +46,15 @@ export function DashboardContentHeader({ userType, userName, userAvatar }: Dashb
         </LocaleLink>
       </div>
 
-      {/* Search - Desktop */}
+      {/* Center - Opportunities-only search (volunteer) / Talent search (NGO) */}
       <div className="hidden md:flex flex-1 max-w-md mx-4 lg:mx-8">
         <UnifiedSearchBar
           variant="compact"
           placeholder={userType === "volunteer"
-            ? d.searchVolunteerPlaceholder || "Search opportunities or NGOs..."
+            ? d.searchOpportunitiesPlaceholder || "Search opportunities..."
             : d.searchNgoPlaceholder || "Search impact agents, skills, or projects..."}
-          allowedTypes={userType === "volunteer"
-            ? ["opportunity", "ngo"]
-            : ["volunteer", "opportunity"]}
+          allowedTypes={userType === "volunteer" ? ["opportunity"] : ["volunteer", "opportunity"]}
+          disableSuggestions={userType === "volunteer"}
           className="w-full"
           onSubmit={(query) => {
             const target = userType === "volunteer"

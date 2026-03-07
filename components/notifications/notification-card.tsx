@@ -278,7 +278,7 @@ function getNotificationActions(notification: NotificationData, dict?: any): Not
       break
     case "badge_earned":
     case "milestone":
-      actions.push({ label: dict?.volunteer?.notifications?.actionViewAchievement || "View Achievement", href: primaryLink || "/volunteer/impact" })
+      actions.push({ label: dict?.volunteer?.notifications?.actionViewAchievement || "View Achievement", href: primaryLink || "/volunteer/dashboard" })
       break
     case "application_limit_warning":
     case "application_limit_reached":

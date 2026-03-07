@@ -42,9 +42,14 @@ import {
   TrendingUp,
   CheckCircle,
   Zap,
+  Bookmark,
+  GraduationCap,
+  Heart,
 } from "lucide-react"
 import { UnifiedSearchBar } from "@/components/unified-search-bar"
 import { useDictionary } from "@/components/dictionary-provider"
+import { toggleSaveProject } from "@/lib/actions"
+import { causes as causesList } from "@/lib/skills-data"
 // ============================================
 // TYPES
 // ============================================
@@ -107,6 +112,14 @@ const WORK_MODES = [
   { value: "onsite", label: "On-site" },
   { value: "hybrid", label: "Hybrid" },
 ]
+
+const EXPERIENCE_LEVELS = [
+  { value: "beginner", label: "Beginner" },
+  { value: "intermediate", label: "Intermediate" },
+  { value: "expert", label: "Expert" },
+]
+
+const PAGE_SIZE = 12
 
 // ============================================
 // MATCH SCORE BADGE
@@ -229,7 +242,12 @@ export function OpportunitiesBrowser() {
   const [selectedSkills, setSelectedSkills] = useState<string[]>([])
   const [selectedTimeCommitment, setSelectedTimeCommitment] = useState<string[]>([])
   const [selectedWorkMode, setSelectedWorkMode] = useState("")
+  const [selectedExperienceLevel, setSelectedExperienceLevel] = useState("")
+  const [selectedCauses, setSelectedCauses] = useState<string[]>([])
   const [sortBy, setSortBy] = useState("best-match")
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE)
+  const [savedProjects, setSavedProjects] = useState<Set<string>>(new Set())
+  const [savingProject, setSavingProject] = useState<string | null>(null)
 
   // ---- UNIFIED SEARCH ----
   const [unifiedMatchedIds, setUnifiedMatchedIds] = useState<string[] | null>(null)
@@ -339,15 +357,42 @@ export function OpportunitiesBrowser() {
     )
   }
 
+  const toggleCause = (cause: string) => {
+    setSelectedCauses((prev) =>
+      prev.includes(cause) ? prev.filter((c) => c !== cause) : [...prev, cause]
+    )
+  }
+
+  const handleSaveProject = async (projectId: string) => {
+    setSavingProject(projectId)
+    try {
+      const result = await toggleSaveProject(projectId)
+      if (result.success) {
+        setSavedProjects((prev) => {
+          const next = new Set(prev)
+          if (result.data?.isSaved) {
+            next.add(projectId)
+          } else {
+            next.delete(projectId)
+          }
+          return next
+        })
+      }
+    } catch {}
+    setSavingProject(null)
+  }
+
   const clearFilters = () => {
     setSelectedSkills([])
     setSelectedTimeCommitment([])
     setSelectedWorkMode("")
+    setSelectedExperienceLevel("")
+    setSelectedCauses([])
     setSearchQuery("")
   }
 
   const hasActiveFilters =
-    selectedSkills.length > 0 || selectedTimeCommitment.length > 0 || selectedWorkMode !== ""
+    selectedSkills.length > 0 || selectedTimeCommitment.length > 0 || selectedWorkMode !== "" || selectedExperienceLevel !== "" || selectedCauses.length > 0
 
   // ---- UNIFIED DATA SHAPE ----
   const allItems = useMemo(() => {
@@ -440,6 +485,21 @@ export function OpportunitiesBrowser() {
       )
     }
 
+    // Experience level
+    if (selectedExperienceLevel) {
+      result = result.filter((item) =>
+        item.project.experienceLevel?.toLowerCase() === selectedExperienceLevel.toLowerCase()
+      )
+    }
+
+    // Causes
+    if (selectedCauses.length > 0) {
+      result = result.filter((item) => {
+        const projectCauses = item.project.causes || []
+        return selectedCauses.some((c) => projectCauses.includes(c))
+      })
+    }
+
     // Sort
     switch (sortBy) {
       case "best-match":
@@ -474,8 +534,15 @@ export function OpportunitiesBrowser() {
     }
 
     return result
-  }, [allItems, searchQuery, selectedSkills, selectedTimeCommitment, selectedWorkMode, sortBy, unifiedMatchedIds, unifiedRelevanceOrder])
+  }, [allItems, searchQuery, selectedSkills, selectedTimeCommitment, selectedWorkMode, selectedExperienceLevel, selectedCauses, sortBy, unifiedMatchedIds, unifiedRelevanceOrder])
 
+  // Reset visible count when filters change
+  useEffect(() => {
+    setVisibleCount(PAGE_SIZE)
+  }, [searchQuery, selectedSkills, selectedTimeCommitment, selectedWorkMode, selectedExperienceLevel, selectedCauses, sortBy])
+
+  const visibleItems = filteredItems.slice(0, visibleCount)
+  const hasMore = visibleCount < filteredItems.length
   const totalCount = isPersonalized ? personalizedData.length : fallbackProjects.length
   // ============================================
   // RENDER
@@ -651,6 +718,83 @@ export function OpportunitiesBrowser() {
           )}
         </div>
 
+          {/* Experience Level */}
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" size="sm" className="h-8 bg-transparent">
+                <GraduationCap className="h-3.5 w-3.5 mr-1.5" />
+                {common?.experienceLevel || "Experience"}
+                {selectedExperienceLevel && (
+                  <Badge className="ml-1.5 h-4 w-4 p-0 flex items-center justify-center text-[10px] bg-primary text-primary-foreground">
+                    1
+                  </Badge>
+                )}
+                <ChevronDown className="h-3.5 w-3.5 ml-1" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-44 p-3" align="start">
+              <div className="space-y-2">
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="opp-exp-all"
+                    checked={selectedExperienceLevel === ""}
+                    onCheckedChange={() => setSelectedExperienceLevel("")}
+                  />
+                  <Label htmlFor="opp-exp-all" className="text-sm font-normal cursor-pointer">
+                    {common?.any || "Any"}
+                  </Label>
+                </div>
+                {EXPERIENCE_LEVELS.map((level) => (
+                  <div key={level.value} className="flex items-center space-x-2">
+                    <Checkbox
+                      id={`opp-exp-${level.value}`}
+                      checked={selectedExperienceLevel === level.value}
+                      onCheckedChange={() =>
+                        setSelectedExperienceLevel((prev) => (prev === level.value ? "" : level.value))
+                      }
+                    />
+                    <Label htmlFor={`opp-exp-${level.value}`} className="text-sm font-normal cursor-pointer capitalize">
+                      {level.label}
+                    </Label>
+                  </div>
+                ))}
+              </div>
+            </PopoverContent>
+          </Popover>
+
+          {/* Causes */}
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" size="sm" className="h-8 bg-transparent">
+                <Heart className="h-3.5 w-3.5 mr-1.5" />
+                {common?.causes || "Causes"}
+                {selectedCauses.length > 0 && (
+                  <Badge className="ml-1.5 h-4 w-4 p-0 flex items-center justify-center text-[10px] bg-primary text-primary-foreground">
+                    {selectedCauses.length}
+                  </Badge>
+                )}
+                <ChevronDown className="h-3.5 w-3.5 ml-1" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-56 p-3" align="start">
+              <div className="space-y-2 max-h-60 overflow-y-auto">
+                {causesList.map((cause) => (
+                  <div key={cause.id} className="flex items-center space-x-2">
+                    <Checkbox
+                      id={`opp-cause-${cause.id}`}
+                      checked={selectedCauses.includes(cause.id)}
+                      onCheckedChange={() => toggleCause(cause.id)}
+                    />
+                    <Label htmlFor={`opp-cause-${cause.id}`} className="text-sm font-normal cursor-pointer">
+                      {cause.name}
+                    </Label>
+                  </div>
+                ))}
+              </div>
+            </PopoverContent>
+          </Popover>
+        </div>
+
         {/* Active Filter Badges */}
         {hasActiveFilters && (
           <div className="flex flex-wrap items-center gap-2 mb-4">
@@ -672,6 +816,21 @@ export function OpportunitiesBrowser() {
                 <button onClick={() => setSelectedWorkMode("")}><X className="h-3 w-3" /></button>
               </Badge>
             )}
+            {selectedExperienceLevel && (
+              <Badge variant="secondary" className="flex items-center gap-1 text-xs capitalize">
+                {selectedExperienceLevel}
+                <button onClick={() => setSelectedExperienceLevel("")}><X className="h-3 w-3" /></button>
+              </Badge>
+            )}
+            {selectedCauses.map((causeId) => {
+              const causeName = causesList.find((c) => c.id === causeId)?.name || causeId
+              return (
+                <Badge key={causeId} variant="secondary" className="flex items-center gap-1 text-xs">
+                  {causeName}
+                  <button onClick={() => toggleCause(causeId)}><X className="h-3 w-3" /></button>
+                </Badge>
+              )
+            })}
           </div>
         )}
 
@@ -679,9 +838,9 @@ export function OpportunitiesBrowser() {
         <div className="flex items-center justify-between mb-4">
           <p className="text-sm text-muted-foreground">
             {opp?.showingOf || "Showing"}{" "}
-            <span className="font-medium text-foreground">{filteredItems.length}</span>{" "}
+            <span className="font-medium text-foreground">{Math.min(visibleCount, filteredItems.length)}</span>{" "}
             {opp?.of || "of"}{" "}
-            {totalCount} {opp?.opportunitiesLabel || "opportunities"}
+            {filteredItems.length} {opp?.opportunitiesLabel || "opportunities"}
             {isUnifiedSearching && <Loader2 className="inline h-3.5 w-3.5 animate-spin ml-2" />}
           </p>
         </div>
@@ -727,16 +886,28 @@ export function OpportunitiesBrowser() {
             )}
           </div>
         ) : (
+          <>
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {filteredItems.map((item) => {
+            {visibleItems.map((item) => {
               const project = item.project
               const projectId = item.projectId
+              const isSaved = savedProjects.has(projectId)
 
               return (
                 <Card key={projectId} className="hover:shadow-lg transition-all duration-200 group relative">
+                  {/* Save/Bookmark button */}
+                  <button
+                    onClick={() => handleSaveProject(projectId)}
+                    disabled={savingProject === projectId}
+                    className="absolute top-3 right-3 z-10 p-1.5 rounded-full bg-background/80 backdrop-blur hover:bg-background border border-border/50 transition-colors"
+                    aria-label={isSaved ? "Unsave" : "Save"}
+                  >
+                    <Bookmark className={`h-4 w-4 transition-colors ${isSaved ? "fill-primary text-primary" : "text-muted-foreground hover:text-foreground"}`} />
+                  </button>
+
                   <CardContent className="p-5">
                     {/* Header */}
-                    <div className="flex items-start justify-between mb-3">
+                    <div className="flex items-start justify-between mb-3 pr-8">
                       <Badge variant="outline" className="text-xs capitalize">
                         {project.projectType}
                       </Badge>
@@ -863,6 +1034,18 @@ export function OpportunitiesBrowser() {
               )
             })}
           </div>
+
+          {hasMore && (
+            <div className="flex justify-center mt-8">
+              <Button
+                variant="outline"
+                onClick={() => setVisibleCount((prev) => prev + PAGE_SIZE)}
+              >
+                Load More ({filteredItems.length - visibleCount} remaining)
+              </Button>
+            </div>
+          )}
+          </>
         )}
       </div>
     </TooltipProvider>
