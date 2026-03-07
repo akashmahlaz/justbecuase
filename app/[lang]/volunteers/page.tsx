@@ -503,30 +503,28 @@ export default function VolunteersPage({ embed }: VolunteersPageProps = {}) {
             </div>
           )}
 
-          <div className="flex gap-8">
+          <div className="flex gap-6">
             {/* Desktop Sidebar */}
-            <aside className="hidden lg:block w-64 flex-shrink-0">
-              <div className="sticky top-24 bg-card border border-border rounded-xl p-6">
-                <h3 className="font-semibold text-foreground mb-4">{dict.volunteersListing?.filters || "Filters"}</h3>
+            <aside className="hidden lg:block w-60 flex-shrink-0">
+              <div className="sticky top-24 bg-card border border-border rounded-xl p-5">
+                <h3 className="font-semibold text-foreground text-sm mb-4">{dict.volunteersListing?.filters || "Filters"}</h3>
                 <FilterContent />
               </div>
             </aside>
 
             {/* Volunteers Grid */}
-            <div className="flex-1">
-              <div className="flex items-center justify-between mb-6">
-                <p className="text-muted-foreground">
-                  {(dict.volunteersListing?.showingTemplate || "Showing {shown} of {total} impact agents")
-                    .replace("{shown}", String(filteredVolunteers.length))
-                    .replace("{total}", String(volunteers.length))}
-                  {isUnifiedSearching && (
-                    <Loader2 className="inline h-4 w-4 animate-spin ml-2" />
-                  )}
-                </p>
-              </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm text-muted-foreground mb-4">
+                {(dict.volunteersListing?.showingTemplate || "Showing {shown} of {total} impact agents")
+                  .replace("{shown}", String(filteredVolunteers.length))
+                  .replace("{total}", String(volunteers.length))}
+                {isUnifiedSearching && (
+                  <Loader2 className="inline h-4 w-4 animate-spin ml-2" />
+                )}
+              </p>
 
               {loading ? (
-                <BrowseGridSkeleton columns={3} count={6} />
+                <BrowseGridSkeleton columns={2} count={6} />
               ) : filteredVolunteers.length === 0 ? (
                 <div className="text-center py-12">
                   <p className="text-muted-foreground">{dict.volunteersListing?.noAgentsFound || "No impact agents found"}</p>
@@ -542,7 +540,7 @@ export default function VolunteersPage({ embed }: VolunteersPageProps = {}) {
                   )}
                 </div>
               ) : (
-                <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
                   {filteredVolunteers.map((volunteer) => (
                     <VolunteerCard key={volunteer.id} volunteer={volunteer} />
                   ))}
