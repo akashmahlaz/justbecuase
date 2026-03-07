@@ -540,7 +540,7 @@ export default function VolunteersPage({ embed }: VolunteersPageProps = {}) {
                   )}
                 </div>
               ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {filteredVolunteers.map((volunteer) => (
                     <VolunteerCard key={volunteer.id} volunteer={volunteer} />
                   ))}
