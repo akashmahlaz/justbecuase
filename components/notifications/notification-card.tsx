@@ -157,6 +157,20 @@ function getNotificationConfig(type: NotificationType) {
       badgeText: "Pro",
       badgeVariant: "default",
     },
+    subscription_expiring: {
+      icon: <AlertTriangle className="h-5 w-5" />,
+      iconBg: "bg-amber-100 dark:bg-amber-900/30",
+      iconColor: "text-amber-600 dark:text-amber-400",
+      badgeText: "Expiring",
+      badgeVariant: "outline",
+    },
+    subscription_expired: {
+      icon: <AlertCircle className="h-5 w-5" />,
+      iconBg: "bg-red-100 dark:bg-red-900/30",
+      iconColor: "text-red-600 dark:text-red-400",
+      badgeText: "Expired",
+      badgeVariant: "destructive",
+    },
     // Project related
     project_match: {
       icon: <Star className="h-5 w-5" />,
@@ -283,6 +297,12 @@ function getNotificationActions(notification: NotificationData, dict?: any): Not
     case "application_limit_warning":
     case "application_limit_reached":
       actions.push({ label: dict?.volunteer?.notifications?.actionUpgrade || "Upgrade", href: "/pricing" })
+      break
+    case "subscription_expiring":
+      actions.push({ label: "Renew Now", href: "/pricing" })
+      break
+    case "subscription_expired":
+      actions.push({ label: "Resubscribe", href: "/pricing", variant: "destructive" })
       break
     default:
       if (primaryLink) {

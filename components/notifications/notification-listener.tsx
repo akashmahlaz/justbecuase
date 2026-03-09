@@ -135,8 +135,8 @@ export function NotificationPermissionButton() {
 
   if (hasPermission) {
     return (
-      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-        <BellRing className="h-4 w-4 text-green-500" />
+      <div className="flex items-center gap-2 text-sm text-muted-foreground flex-wrap">
+        <BellRing className="h-4 w-4 text-green-500 shrink-0" />
         <span>{n.browserEnabled || "Browser notifications enabled"}</span>
       </div>
     )
@@ -156,8 +156,8 @@ export function NotificationPermissionButton() {
   }
 
   return (
-    <Button variant="outline" onClick={handleRequest}>
-      <Bell className="h-4 w-4 mr-2" />
+    <Button variant="outline" onClick={handleRequest} className="w-full sm:w-auto whitespace-normal h-auto py-2">
+      <Bell className="h-4 w-4 mr-2 shrink-0" />
       {n.enableBrowser || "Enable Browser Notifications"}
     </Button>
   )

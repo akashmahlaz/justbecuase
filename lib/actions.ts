@@ -332,6 +332,7 @@ export async function getVolunteerSubscriptionStatus(): Promise<{
   applicationsLimit: number
   canApply: boolean
   expiryDate?: Date
+  isExpired?: boolean
 } | null> {
   const user = await getCurrentUser()
   if (!user || user.role !== "volunteer") return null
@@ -339,13 +340,15 @@ export async function getVolunteerSubscriptionStatus(): Promise<{
   const profile = await volunteerProfilesDb.findByUserId(user.id)
   if (!profile) return null
 
-  const plan = profile.subscriptionPlan || "free"
+  const rawPlan = profile.subscriptionPlan || "free"
+  const now = new Date()
+  const isExpired = rawPlan === "pro" && profile.subscriptionExpiry && new Date(profile.subscriptionExpiry) < now
+  const plan = isExpired ? "free" : rawPlan
   const applicationsUsed = profile.monthlyApplicationsUsed || 0
   const FREE_LIMIT = 3
   const applicationsLimit = plan === "pro" ? 999999 : FREE_LIMIT
   
   // Check if reset needed
-  const now = new Date()
   const resetDate = profile.subscriptionResetDate ? new Date(profile.subscriptionResetDate) : null
   
   let currentUsed = applicationsUsed
@@ -359,6 +362,7 @@ export async function getVolunteerSubscriptionStatus(): Promise<{
     applicationsLimit,
     canApply: plan === "pro" || currentUsed < FREE_LIMIT,
     expiryDate: profile.subscriptionExpiry,
+    isExpired: !!isExpired,
   }
 }
 
@@ -367,6 +371,7 @@ export async function getNGOSubscriptionStatus(): Promise<{
   plan: "free" | "pro"
   canViewFreeVolunteers: boolean
   expiryDate?: Date
+  isExpired?: boolean
 } | null> {
   const user = await getCurrentUser()
   if (!user || user.role !== "ngo") return null
@@ -374,12 +379,16 @@ export async function getNGOSubscriptionStatus(): Promise<{
   const profile = await ngoProfilesDb.findByUserId(user.id)
   if (!profile) return null
 
-  const plan = profile.subscriptionPlan || "free"
+  const rawPlan = profile.subscriptionPlan || "free"
+  const now = new Date()
+  const isExpired = rawPlan === "pro" && profile.subscriptionExpiry && new Date(profile.subscriptionExpiry) < now
+  const plan = isExpired ? "free" : rawPlan
 
   return {
     plan,
     canViewFreeVolunteers: plan === "pro",
     expiryDate: profile.subscriptionExpiry,
+    isExpired: !!isExpired,
   }
 }
 

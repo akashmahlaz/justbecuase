@@ -78,10 +78,10 @@ export function AISkillSuggestions({
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <div>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="min-w-0">
           <h3 className="text-sm font-medium text-foreground flex items-center gap-2">
-            <Sparkles className="h-4 w-4 text-primary" />
+            <Sparkles className="h-4 w-4 text-primary shrink-0" />
             AI Skill Recommendations
           </h3>
           <p className="text-xs text-muted-foreground mt-0.5">
@@ -94,7 +94,7 @@ export function AISkillSuggestions({
           size="sm"
           onClick={handleGenerate}
           disabled={isGenerating}
-          className="gap-2 border-primary/30 text-primary hover:bg-primary/5"
+          className="gap-2 border-primary/30 text-primary hover:bg-primary/5 shrink-0 self-start sm:self-auto"
         >
           {isGenerating ? (
             <>
@@ -133,17 +133,17 @@ export function AISkillSuggestions({
             {result.suggestions.map((s, i) => (
               <div
                 key={i}
-                className="flex items-center justify-between gap-2 p-2.5 bg-background rounded-md border"
+                className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-2.5 bg-background rounded-md border"
               >
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-0.5">
+                  <div className="flex flex-wrap items-center gap-2 mb-0.5">
                     <span className="text-sm font-medium text-foreground">{s.skill}</span>
                     <Badge variant="secondary" className={`text-[10px] ${demandColor(s.demandLevel)}`}>
                       <TrendingUp className="h-2.5 w-2.5 mr-0.5" />
                       {s.demandLevel} demand
                     </Badge>
                   </div>
-                  <p className="text-xs text-muted-foreground truncate">{s.reason}</p>
+                  <p className="text-xs text-muted-foreground">{s.reason}</p>
                 </div>
                 <Button
                   type="button"
@@ -151,7 +151,7 @@ export function AISkillSuggestions({
                   size="sm"
                   onClick={() => handleAddSkill(s.skill)}
                   disabled={addedSkills.has(s.skill) || currentSkills.includes(s.skill)}
-                  className="h-7 text-xs shrink-0 gap-1"
+                  className="h-7 text-xs shrink-0 self-start sm:self-auto gap-1"
                 >
                   {addedSkills.has(s.skill) || currentSkills.includes(s.skill) ? (
                     "Added"

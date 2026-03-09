@@ -623,6 +623,81 @@ export function getSubscriptionConfirmationEmailHtml(
 }
 
 /**
+ * Email template for subscription expiry reminder
+ */
+export function getSubscriptionExpiryReminderEmailHtml(
+  recipientName: string,
+  daysLeft: number,
+  expiryDate: string,
+  role: "ngo" | "volunteer"
+): string {
+  const pricingUrl = "/pricing"
+  const isExpired = daysLeft <= 0
+  const heading = isExpired ? "Your Pro Plan Has Expired" : `Your Pro Plan Expires in ${daysLeft} Day${daysLeft === 1 ? "" : "s"}`
+  const headerColor = isExpired ? "linear-gradient(135deg, #ef4444 0%, #dc2626 100%)" : "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)"
+  const subColor = isExpired ? "#fecaca" : "#fef3c7"
+  const ctaText = isExpired ? "Renew Now" : "Renew Early"
+  const ctaColor = isExpired ? "#ef4444" : "#f59e0b"
+  
+  const lostFeatures = role === "ngo" 
+    ? [
+        "Unlimited access to pro bono Impact Agents",
+        "Unlimited profile unlocks",
+        "Priority project visibility",
+        "Advanced matching &amp; search",
+      ]
+    : [
+        "Unlimited project applications",
+        "Priority in search results",
+        "Pro badge on your profile",
+        "Advanced analytics",
+      ]
+
+  const urgencyMessage = isExpired
+    ? "Your Pro subscription has expired and you've been downgraded to the Free plan. Renew now to regain access to all Pro features."
+    : `Your Pro subscription will expire on <strong>${expiryDate}</strong>. Renew now to avoid losing access to these features:`
+
+  return `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    </head>
+    <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; background: #f3f4f6;">
+      <div style="background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
+        <div style="background: ${headerColor}; padding: 30px; text-align: center;">
+          <h1 style="color: white; margin: 0; font-size: 24px;">${heading}</h1>
+          <p style="color: ${subColor}; margin-top: 8px;">JustBeCause Network</p>
+        </div>
+        
+        <div style="padding: 30px;">
+          <p>Hi ${recipientName},</p>
+          <p>${urgencyMessage}</p>
+          
+          <ul style="padding-left: 20px; margin: 20px 0;">
+            ${lostFeatures.map(f => '<li style="margin-bottom: 8px; color: #374151;">' + f + '</li>').join("")}
+          </ul>
+          
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="https://justbecausenetwork.com${pricingUrl}" style="display: inline-block; background: ${ctaColor}; color: white; padding: 14px 30px; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 16px;">${ctaText}</a>
+          </div>
+          
+          <p style="color: #6b7280; font-size: 13px; text-align: center;">
+            Questions? Reply to this email and we'll be happy to help.
+          </p>
+        </div>
+        
+        <div style="background: #f9fafb; padding: 20px; text-align: center; border-top: 1px solid #e5e7eb;">
+          <p style="color: #9ca3af; font-size: 12px; margin: 0;">&copy; ${new Date().getFullYear()} JustBeCause Network. All rights reserved.</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `
+}
+
+/**
  * Email template for profile completeness nudge (sent to users who haven't completed onboarding)
  */
 export function getProfileNudgeEmailHtml(
