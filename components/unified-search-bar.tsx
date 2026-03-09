@@ -58,6 +58,8 @@ export interface UnifiedSearchBarProps {
   showPopularTags?: boolean
   /** Callback when user submits the search (Enter without selecting a suggestion) */
   onSubmit?: (query: string) => void
+  /** Disable the suggestions/autocomplete dropdown entirely */
+  disableSuggestions?: boolean
 }
 
 // ============================================
@@ -188,6 +190,7 @@ export function UnifiedSearchBar({
   className = "",
   showPopularTags = false,
   onSubmit,
+  disableSuggestions = false,
 }: UnifiedSearchBarProps) {
   const router = useRouter()
   const locale = useLocale()
@@ -284,6 +287,7 @@ export function UnifiedSearchBar({
 
   // Suggestions debounce
   useEffect(() => {
+    if (disableSuggestions) return
     const timer = setTimeout(() => {
       if (searchQuery.trim().length >= 1) {
         fetchSuggestions(searchQuery)
@@ -293,7 +297,7 @@ export function UnifiedSearchBar({
       }
     }, DEBOUNCE_MS)
     return () => clearTimeout(timer)
-  }, [searchQuery, fetchSuggestions])
+  }, [searchQuery, fetchSuggestions, disableSuggestions])
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -424,6 +428,7 @@ export function UnifiedSearchBar({
   }
 
   const handleInputFocus = () => {
+    if (disableSuggestions) return
     if (searchQuery.trim().length >= 1 || recentSearches.length > 0) {
       setShowDropdown(true)
     }

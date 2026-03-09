@@ -374,30 +374,29 @@ export default function VolunteersPage({ embed }: VolunteersPageProps = {}) {
   )
 
   return (
-    <div className="min-h-screen flex flex-col bg-background">
+    <div className={embed ? "" : "min-h-screen flex flex-col bg-background"}>
       {!embed && <Navbar />}
 
-      <main className="flex-1">
+      <main className={embed ? "" : "flex-1"}>
         {/* Hero Section */}
         {!embed && (
           <div className="bg-gradient-to-r from-primary/10 to-secondary/10 py-12">
-        )
-          <div className="container mx-auto px-4 md:px-6">
-            <div className="max-w-3xl mx-auto text-center">
-              <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
-                {dict.volunteersListing?.title || "Find Skilled Impact Agents"}
-              </h1>
-              <p className="text-lg text-muted-foreground mb-8">
-                {dict.volunteersListing?.subtitle || "Connect with talented professionals ready to contribute their skills to your cause"}
-              </p>
+            <div className="container mx-auto px-4 md:px-6">
+              <div className="max-w-3xl mx-auto text-center">
+                <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
+                  {dict.volunteersListing?.title || "Find Skilled Impact Agents"}
+                </h1>
+                <p className="text-lg text-muted-foreground mb-8">
+                  {dict.volunteersListing?.subtitle || "Connect with talented professionals ready to contribute their skills to your cause"}
+                </p>
+              </div>
             </div>
-          </div>
           </div>
         )}
 
-        <div className="container mx-auto px-4 md:px-6 py-8">
+        <div className={embed ? "py-0" : "container mx-auto px-4 md:px-6 py-8"}>
           {/* Search and Controls */}
-          <div className="flex flex-col md:flex-row gap-4 mb-8">
+          <div className="flex flex-col md:flex-row gap-4 mb-6">
             <div className="flex-1">
               <UnifiedSearchBar
                 defaultType="volunteer"
@@ -504,30 +503,28 @@ export default function VolunteersPage({ embed }: VolunteersPageProps = {}) {
             </div>
           )}
 
-          <div className="flex gap-8">
+          <div className="flex gap-6">
             {/* Desktop Sidebar */}
-            <aside className="hidden lg:block w-64 flex-shrink-0">
-              <div className="sticky top-24 bg-card border border-border rounded-xl p-6">
-                <h3 className="font-semibold text-foreground mb-4">{dict.volunteersListing?.filters || "Filters"}</h3>
+            <aside className="hidden lg:block w-60 flex-shrink-0">
+              <div className="sticky top-24 bg-card border border-border rounded-xl p-5">
+                <h3 className="font-semibold text-foreground text-sm mb-4">{dict.volunteersListing?.filters || "Filters"}</h3>
                 <FilterContent />
               </div>
             </aside>
 
             {/* Volunteers Grid */}
-            <div className="flex-1">
-              <div className="flex items-center justify-between mb-6">
-                <p className="text-muted-foreground">
-                  {(dict.volunteersListing?.showingTemplate || "Showing {shown} of {total} impact agents")
-                    .replace("{shown}", String(filteredVolunteers.length))
-                    .replace("{total}", String(volunteers.length))}
-                  {isUnifiedSearching && (
-                    <Loader2 className="inline h-4 w-4 animate-spin ml-2" />
-                  )}
-                </p>
-              </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm text-muted-foreground mb-4">
+                {(dict.volunteersListing?.showingTemplate || "Showing {shown} of {total} impact agents")
+                  .replace("{shown}", String(filteredVolunteers.length))
+                  .replace("{total}", String(volunteers.length))}
+                {isUnifiedSearching && (
+                  <Loader2 className="inline h-4 w-4 animate-spin ml-2" />
+                )}
+              </p>
 
               {loading ? (
-                <BrowseGridSkeleton columns={3} count={6} />
+                <BrowseGridSkeleton columns={2} count={6} />
               ) : filteredVolunteers.length === 0 ? (
                 <div className="text-center py-12">
                   <p className="text-muted-foreground">{dict.volunteersListing?.noAgentsFound || "No impact agents found"}</p>
@@ -543,7 +540,7 @@ export default function VolunteersPage({ embed }: VolunteersPageProps = {}) {
                   )}
                 </div>
               ) : (
-                <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {filteredVolunteers.map((volunteer) => (
                     <VolunteerCard key={volunteer.id} volunteer={volunteer} />
                   ))}
@@ -554,7 +551,7 @@ export default function VolunteersPage({ embed }: VolunteersPageProps = {}) {
         </div>
       </main>
 
-      <Footer />
+      {!embed && <Footer />}
     </div>
   )
 }

@@ -5,11 +5,12 @@ import { auth } from "@/lib/auth"
 import { getDictionary } from "@/app/[lang]/dictionaries"
 import { Locale } from "@/lib/i18n-config"
 import { WelcomeToast } from "@/components/dashboard/welcome-toast"
+import { SubscriptionExpiryToast } from "@/components/dashboard/subscription-expiry-toast"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { getNGOProfile, getMyProjectsAsNGO, getNGOApplications, getNGOSubscriptionStatus, getRecommendedVolunteersForNGO } from "@/lib/actions"
-import { PlusCircle, FolderKanban, Users, CheckCircle2, Eye, MessageSquare, Clock, ArrowRight, CreditCard, Zap, Unlock, Star, Sparkles } from "lucide-react"
+import { PlusCircle, FolderKanban, Users, CheckCircle2, Eye, MessageSquare, Clock, ArrowRight, CreditCard, Zap, Unlock, Star, Sparkles, AlertTriangle } from "lucide-react"
 import Link from "next/link"
 
 export default async function NGODashboard({ params }: { params: Promise<{ lang: string }> }) {
@@ -56,6 +57,10 @@ export default async function NGODashboard({ params }: { params: Promise<{ lang:
       <Suspense fallback={null}>
         <WelcomeToast />
       </Suspense>
+      {(subscriptionStatus?.plan === "pro" || subscriptionStatus?.isExpired) && subscriptionStatus?.expiryDate && (() => {
+        const daysLeft = Math.ceil((new Date(subscriptionStatus.expiryDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+        return daysLeft <= 7 ? <SubscriptionExpiryToast daysLeft={daysLeft} role="ngo" locale={lang} /> : null
+      })()}
       <div className="flex-1 p-4 sm:p-6 lg:p-8">
           {/* Welcome Section */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
@@ -351,6 +356,21 @@ export default async function NGODashboard({ params }: { params: Promise<{ lang:
                 <CardContent className="space-y-4">
                   {subscriptionStatus?.plan === "free" ? (
                     <>
+                      {subscriptionStatus?.isExpired && (
+                        <div className="p-3 rounded-lg border bg-red-50 border-red-200 dark:bg-red-950/20 dark:border-red-800">
+                          <div className="flex items-center gap-2 mb-2">
+                            <AlertTriangle className="h-4 w-4 text-red-500" />
+                            <span className="text-sm font-medium text-red-700 dark:text-red-400">Your Pro plan has expired</span>
+                          </div>
+                          <p className="text-xs text-muted-foreground mb-3">You've been downgraded to the Free plan. Renew to regain unlimited access.</p>
+                          <Button asChild size="sm" className="w-full" variant="destructive">
+                            <Link href={`/${lang}/pricing`}>
+                              <Zap className="h-4 w-4 mr-2" />
+                              Renew Now
+                            </Link>
+                          </Button>
+                        </div>
+                      )}
                       <div className="p-4 rounded-lg bg-muted/50 border border-yellow-200">
                         <div className="flex items-center gap-2 text-yellow-600 mb-2">
                           <Unlock className="h-4 w-4" />
@@ -368,7 +388,7 @@ export default async function NGODashboard({ params }: { params: Promise<{ lang:
                           {dict.ngo?.dashboard?.viewContactDetails || "View contact details of any impact agent"}
                         </p>
                         <Button asChild size="sm" className="w-full">
-                          <Link href="/checkout?plan=ngo-pro">
+                          <Link href={`/${lang}/pricing`}>
                             <Zap className="h-4 w-4 mr-2" />
                             {dict.ngo?.common?.upgradeToPro || "Upgrade to Pro"}
                           </Link>
@@ -376,6 +396,7 @@ export default async function NGODashboard({ params }: { params: Promise<{ lang:
                       </div>
                     </>
                   ) : (
+                    <>
                     <div className="p-4 rounded-lg bg-gradient-to-br from-primary/10 to-secondary/10 border border-primary/20">
                       <div className="flex items-center gap-2 mb-2">
                         <Zap className="h-5 w-5 text-primary" />
@@ -390,6 +411,31 @@ export default async function NGODashboard({ params }: { params: Promise<{ lang:
                         </p>
                       )}
                     </div>
+                    {subscriptionStatus?.expiryDate && (() => {
+                      const daysLeft = Math.ceil((new Date(subscriptionStatus.expiryDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+                      if (daysLeft > 7) return null
+                      const isExpired = daysLeft <= 0
+                      return (
+                        <div className={`p-3 rounded-lg border ${isExpired ? "bg-red-50 border-red-200 dark:bg-red-950/20 dark:border-red-800" : "bg-yellow-50 border-yellow-200 dark:bg-yellow-950/20 dark:border-yellow-800"}`}>
+                          <div className="flex items-center gap-2 mb-2">
+                            <AlertTriangle className={`h-4 w-4 ${isExpired ? "text-red-500" : "text-yellow-500"}`} />
+                            <span className={`text-sm font-medium ${isExpired ? "text-red-700 dark:text-red-400" : "text-yellow-700 dark:text-yellow-400"}`}>
+                              {isExpired ? "Your Pro plan has expired" : `Pro plan expires in ${daysLeft} day${daysLeft === 1 ? "" : "s"}`}
+                            </span>
+                          </div>
+                          <p className="text-xs text-muted-foreground mb-3">
+                            {isExpired ? "You've been downgraded to the Free plan. Renew to regain unlimited access." : "Renew now to keep unlimited unlocks and Pro features."}
+                          </p>
+                          <Button asChild size="sm" className="w-full" variant={isExpired ? "destructive" : "default"}>
+                            <Link href={`/${lang}/pricing`}>
+                              <Zap className="h-4 w-4 mr-2" />
+                              {isExpired ? "Renew Now" : "Renew Early"}
+                            </Link>
+                          </Button>
+                        </div>
+                      )
+                    })()}
+                    </>
                   )}
                 </CardContent>
               </Card>

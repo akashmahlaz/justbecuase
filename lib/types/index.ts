@@ -439,6 +439,8 @@ export type NotificationType =
   | "application_limit_warning"
   | "application_limit_reached"
   | "subscription_activated"
+  | "subscription_expiring"
+  | "subscription_expired"
   | "new_review"
   | "new_endorsement"
   | "badge_earned"

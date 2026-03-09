@@ -13,7 +13,6 @@ import {
   Bell,
   Sparkles,
   Bookmark,
-  Trophy,
   Gift,
   MessageSquare,
 } from "lucide-react"
@@ -41,7 +40,6 @@ export function VolunteerAppSidebar({ ...props }: React.ComponentProps<typeof Si
       label: d.main || "Main",
       items: [
         { title: d.dashboard || "Dashboard", href: "/volunteer/dashboard", icon: LayoutDashboard },
-        { title: d.impactDashboard || "Impact Dashboard", href: "/volunteer/impact", icon: Trophy },
         { title: d.opportunities || "Opportunities", href: "/volunteer/opportunities", icon: Sparkles },
         { title: d.applications || "Applications", href: "/volunteer/applications", icon: FolderKanban },
         { title: d.savedOpportunities || "Saved Opportunities", href: "/volunteer/saved-projects", icon: Bookmark },
