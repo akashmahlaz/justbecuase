@@ -181,9 +181,9 @@ export default function ForVolunteersPage() {
             </p>
           </div>
           <div className="grid md:grid-cols-3 gap-6">
-            {testimonials
+            {(testimonials as any[])
               .filter((t) => t.type === "volunteer")
-              .concat(testimonials.filter((t) => t.type === "ngo").slice(0, 2))
+              .concat((testimonials as any[]).filter((t) => t.type === "ngo").slice(0, 2))
               .map((testimonial) => (
                 <Card key={testimonial.id}>
                   <CardContent className="pt-6">
