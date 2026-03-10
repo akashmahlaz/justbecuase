@@ -267,10 +267,13 @@ export function GlobalSearchSection() {
       // Only update if this request wasn't cancelled
       if (!controller.signal.aborted) {
         if (data.success) {
-          // Only show volunteer/ngo/opportunity results on home page
-          const filtered = (data.results || []).filter(
+          let filtered = (data.results || []).filter(
             (r: any) => r.type === "volunteer" || r.type === "ngo" || r.type === "opportunity"
           )
+          // Strictly enforce the selected type — only show results matching the tab
+          if (type !== "all") {
+            filtered = filtered.filter((r: any) => r.type === type)
+          }
           setResults(filtered)
         } else {
           setResults([])
