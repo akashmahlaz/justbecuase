@@ -87,6 +87,7 @@ const CATEGORY_SIMILARITY: Record<string, Record<string, number>> = {
 const LEVEL_VALUE: Record<string, number> = {
   beginner: 1,
   intermediate: 2,
+  advanced: 2.5,
   expert: 3,
 }
 
@@ -136,7 +137,7 @@ function deepSkillMatch(
     )
 
     if (exactMatch) {
-      const levelMultiplier = { beginner: 0.60, intermediate: 0.80, expert: 1.0 }[exactMatch.level] || 0.70
+      const levelMultiplier = { beginner: 0.60, intermediate: 0.80, advanced: 0.90, expert: 1.0 }[exactMatch.level] || 0.70
       totalWeightedScore += weight * levelMultiplier * 100
       matchedCount++
       continue
@@ -150,7 +151,7 @@ function deepSkillMatch(
 
     if (sameCategoryMatch.length > 0) {
       const bestLevel = sameCategoryMatch[0].level
-      const levelScore = { beginner: 10, intermediate: 18, expert: 25 }[bestLevel] || 15
+      const levelScore = { beginner: 10, intermediate: 18, advanced: 22, expert: 25 }[bestLevel] || 15
       totalWeightedScore += weight * levelScore
       continue
     }
@@ -213,7 +214,7 @@ function volunteerSkillFit(
       (s) => s.categoryId === req.categoryId && s.subskillId === req.subskillId
     )
     if (exact) {
-      const levelBonus = { beginner: 0.7, intermediate: 0.85, expert: 1.0 }[exact.level] || 0.75
+      const levelBonus = { beginner: 0.7, intermediate: 0.85, advanced: 0.93, expert: 1.0 }[exact.level] || 0.75
       mustHaveScore += levelBonus
       mustHavesMet++
     } else {
