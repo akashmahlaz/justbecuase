@@ -321,8 +321,10 @@ function hoursScore(volunteerHours: string, projectHours: string): number {
     "1-5": 3,
     "5-10": 7.5,
     "10-15": 12.5,
+    "10-20": 15,
     "15-20": 17.5,
     "20-30": 25,
+    "20+": 25,
     "30+": 35,
     "full-time": 40,
   }
