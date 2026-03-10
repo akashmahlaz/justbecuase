@@ -1,14 +1,13 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import Image from "next/image"
 import LocaleLink from "@/components/locale-link"
-import { ArrowRight, MapPin, Star, CheckCircle, Briefcase } from "lucide-react"
+import { ArrowRight, MapPin, Star, CheckCircle } from "lucide-react"
 import { browseVolunteers } from "@/lib/actions"
 import { skillCategories } from "@/lib/skills-data"
 import { useDictionary } from "@/components/dictionary-provider"
 import { Skeleton } from "@/components/ui/skeleton"
-import { Badge } from "@/components/ui/badge"
 import type { VolunteerProfileView } from "@/lib/types"
 
 export function FeaturedCandidates() {
@@ -16,20 +15,41 @@ export function FeaturedCandidates() {
   const home = (dict as any).home || {}
   const [candidates, setCandidates] = useState<VolunteerProfileView[]>([])
   const [loading, setLoading] = useState(true)
+  const [activeIndex, setActiveIndex] = useState(0)
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   useEffect(() => {
-    browseVolunteers()
+    browseVolunteers({ limit: 15 })
       .then((volunteers) => {
-        // Show top candidates — prefer those with avatars, ratings, completed projects
         const sorted = [...volunteers].sort((a, b) => {
           const scoreA = (a.rating || 0) * 2 + (a.completedProjects || 0) + (a.avatar ? 5 : 0)
           const scoreB = (b.rating || 0) * 2 + (b.completedProjects || 0) + (b.avatar ? 5 : 0)
           return scoreB - scoreA
         })
-        setCandidates(sorted.slice(0, 8))
+        setCandidates(sorted)
       })
       .finally(() => setLoading(false))
   }, [])
+
+  // Auto-advance with ref to avoid stale closures
+  useEffect(() => {
+    if (candidates.length === 0) return
+    const id = setInterval(() => {
+      setActiveIndex((prev) => (prev + 1) % candidates.length)
+    }, 5000)
+    timerRef.current = id
+    return () => clearInterval(id)
+  }, [candidates.length])
+
+  const pause = () => { if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null } }
+  const resume = () => {
+    if (timerRef.current) clearInterval(timerRef.current)
+    if (candidates.length === 0) return
+    const id = setInterval(() => {
+      setActiveIndex((prev) => (prev + 1) % candidates.length)
+    }, 5000)
+    timerRef.current = id
+  }
 
   function getSkillLabel(volunteer: VolunteerProfileView) {
     if (!volunteer.skills?.length) return null
@@ -38,128 +58,171 @@ export function FeaturedCandidates() {
   }
 
   return (
-    <section className="py-20 md:py-28 bg-muted/30">
+    <section className="py-24 bg-background overflow-hidden">
       <div className="container mx-auto px-4 md:px-6">
         {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-end justify-between mb-14">
-          <div>
-            <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold mb-3 block">
-              {home.candidatesTag || "Top Talent"}
+        <header className="flex flex-col md:flex-row md:items-end justify-between mb-16 border-b border-border pb-8">
+          <div className="max-w-2xl">
+            <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold mb-4 block">
+              {home.candidatesTag || "Selection . 02"}
             </span>
-            <h2 className="text-3xl md:text-4xl font-bold text-foreground tracking-tight mb-3">
-              {home.featuredCandidates || "Browse our Featured Candidates"}
+            <h2 className="text-4xl md:text-5xl font-medium text-foreground tracking-tighter mb-6">
+              {home.featuredCandidates || "Featured Candidates"}
             </h2>
-            <p className="text-muted-foreground max-w-xl">
-              {home.featuredCandidatesDesc || "Discover skilled professionals ready to contribute their expertise to meaningful causes."}
+            <p className="text-muted-foreground leading-relaxed">
+              {home.featuredCandidatesDesc || "Skilled professionals ready to contribute their expertise to meaningful causes worldwide."}
             </p>
           </div>
-          <div className="mt-6 md:mt-0">
+          <div className="mt-8 md:mt-0">
             <LocaleLink
               href="/volunteers"
-              className="group inline-flex items-center gap-2 text-sm font-semibold text-primary hover:text-primary/80 transition-colors"
+              className="group flex items-center gap-3 text-xs uppercase tracking-widest font-bold text-foreground transition-all"
             >
               {home.browseAllCandidates || "Browse All Candidates"}
-              <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+              <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-3" />
             </LocaleLink>
           </div>
-        </div>
+        </header>
 
-        {/* Candidates Grid */}
+        {/* Carousel */}
         {loading ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {Array.from({ length: 8 }).map((_, i) => (
-              <div key={i} className="rounded-2xl border border-border bg-card p-5 space-y-4">
-                <div className="flex items-center gap-3">
-                  <Skeleton className="w-14 h-14 rounded-full" />
-                  <div className="space-y-2 flex-1">
-                    <Skeleton className="h-4 w-24" />
+          <div className="flex items-center justify-between w-full max-w-5xl mx-auto px-2 py-4">
+            {[60, 80, 112, 160, 112, 80, 60].map((s, i) => (
+              <div key={i} className="flex flex-col items-center gap-3">
+                <Skeleton className="rounded-full" style={{ width: s, height: s }} />
+                {i === 3 && (
+                  <>
+                    <Skeleton className="h-4 w-24 mt-2" />
                     <Skeleton className="h-3 w-16" />
-                  </div>
-                </div>
-                <Skeleton className="h-3 w-full" />
-                <div className="flex gap-2">
-                  <Skeleton className="h-5 w-14 rounded-full" />
-                  <Skeleton className="h-5 w-14 rounded-full" />
-                </div>
+                  </>
+                )}
               </div>
             ))}
           </div>
         ) : candidates.length === 0 ? (
-          <p className="text-center text-muted-foreground py-12">
-            {home.noCandidatesYet || "No candidates to display yet."}
-          </p>
+          <div className="text-center py-16 border border-dashed border-border rounded-2xl">
+            <p className="text-muted-foreground uppercase tracking-widest text-xs">
+              {home.noCandidatesYet || "No candidates to display yet"}
+            </p>
+          </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {candidates.map((candidate) => {
-              const skill = getSkillLabel(candidate)
-              return (
-                <LocaleLink
-                  key={candidate.id}
-                  href={`/volunteers/${candidate.id}`}
-                  className="group relative flex flex-col rounded-2xl border border-border bg-card p-5 hover:shadow-lg hover:border-primary/30 transition-all duration-300"
-                >
-                  {/* Verified badge */}
-                  {candidate.isVerified && (
-                    <div className="absolute top-3 right-3">
-                      <CheckCircle className="h-4 w-4 text-primary" />
-                    </div>
-                  )}
+          <div
+            onMouseEnter={pause}
+            onMouseLeave={resume}
+          >
+            {/* Avatar row — 7 visible, fills width */}
+            <div className="flex items-center justify-between w-full max-w-5xl mx-auto px-2">
+              {(() => {
+                const total = candidates.length
+                const slots = [-3, -2, -1, 0, 1, 2, 3]
+                return slots.map((offset) => {
+                  let idx = (activeIndex + offset + total) % total
+                  const candidate = candidates[idx]
+                  const isCenter = offset === 0
+                  const absDist = Math.abs(offset)
 
-                  {/* Avatar + Name row */}
-                  <div className="flex items-center gap-3.5 mb-4">
-                    <div className="relative flex-shrink-0">
-                      <div className="w-14 h-14 rounded-full overflow-hidden ring-2 ring-border group-hover:ring-primary/40 transition-all">
-                        {candidate.avatar ? (
-                          <Image
-                            src={candidate.avatar}
-                            alt={candidate.name || "Impact Agent"}
-                            width={56}
-                            height={56}
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          <div className="w-full h-full bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center text-lg font-bold text-primary">
-                            {candidate.name ? candidate.name.charAt(0).toUpperCase() : "?"}
-                          </div>
-                        )}
-                      </div>
-                      {candidate.rating > 0 && (
-                        <div className="absolute -bottom-1 -right-1 flex items-center gap-0.5 bg-background border border-border rounded-full px-1.5 py-0.5 shadow-sm">
-                          <Star className="h-2.5 w-2.5 text-yellow-500 fill-yellow-500" />
-                          <span className="text-[10px] font-semibold text-foreground">{candidate.rating.toFixed(1)}</span>
+                  // Sizes: center 160px, ±1 = 110px, ±2 = 80px, ±3 = 60px
+                  const avatarSize = isCenter
+                    ? "w-28 h-28 sm:w-32 sm:h-32 md:w-40 md:h-40"
+                    : absDist === 1
+                    ? "w-20 h-20 sm:w-24 sm:h-24 md:w-28 md:h-28"
+                    : absDist === 2
+                    ? "w-16 h-16 sm:w-18 sm:h-18 md:w-20 md:h-20"
+                    : "w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16"
+                  const imgSize = isCenter ? 160 : absDist === 1 ? 112 : absDist === 2 ? 80 : 64
+                  const avatarOpacity = isCenter ? "opacity-100" : absDist === 1 ? "opacity-70" : absDist === 2 ? "opacity-45" : "opacity-25"
+
+                  const avatarContent = (
+                    <div className={`rounded-full overflow-hidden bg-muted border-2 transition-all duration-500 ${avatarSize} ${
+                      isCenter ? "border-primary/40 shadow-lg" : "border-border"
+                    }`}>
+                      {candidate.avatar ? (
+                        <Image
+                          src={candidate.avatar}
+                          alt={candidate.name || "Candidate"}
+                          width={imgSize}
+                          height={imgSize}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className={`w-full h-full flex items-center justify-center font-semibold text-muted-foreground ${isCenter ? "text-xl" : "text-sm"}`}>
+                          {candidate.name ? candidate.name.charAt(0).toUpperCase() : "?"}
                         </div>
                       )}
                     </div>
-                    <div className="min-w-0">
-                      <h3 className="font-semibold text-sm text-foreground group-hover:text-primary transition-colors truncate">
-                        {candidate.name || "Impact Agent"}
-                      </h3>
-                      {candidate.location && (
-                        <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
-                          <MapPin className="h-3 w-3 flex-shrink-0" />
-                          <span className="truncate">{candidate.location.split(",")[0]?.trim()}</span>
-                        </p>
-                      )}
-                    </div>
-                  </div>
+                  )
 
-                  {/* Skill badge + projects */}
-                  <div className="flex flex-wrap items-center gap-2 mt-auto">
-                    {skill && (
-                      <Badge variant="secondary" className="text-[11px] font-medium">
-                        {skill}
-                      </Badge>
+                  return isCenter ? (
+                    <LocaleLink
+                      key={`${idx}-${offset}`}
+                      href={`/volunteers/${candidate.id}`}
+                      className={`flex-shrink-0 cursor-pointer transition-all duration-500 ${avatarOpacity}`}
+                    >
+                      {avatarContent}
+                    </LocaleLink>
+                  ) : (
+                    <div
+                      key={`${idx}-${offset}`}
+                      className={`flex-shrink-0 cursor-pointer transition-all duration-500 ${avatarOpacity}`}
+                      onClick={() => setActiveIndex(idx)}
+                    >
+                      {avatarContent}
+                    </div>
+                  )
+                })
+              })()}
+            </div>
+
+            {/* Center candidate info — below the avatar row */}
+            {(() => {
+              const candidate = candidates[activeIndex]
+              if (!candidate) return null
+              const skill = getSkillLabel(candidate)
+              return (
+                <div className="flex flex-col items-center mt-5">
+                  <div className="flex items-center gap-1.5">
+                    <h3 className="text-base font-semibold text-foreground">
+                      {candidate.name || "Impact Agent"}
+                    </h3>
+                    {candidate.isVerified && (
+                      <CheckCircle className="h-4 w-4 text-primary" />
                     )}
-                    {(candidate.completedProjects || 0) > 0 && (
-                      <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground">
-                        <Briefcase className="h-3 w-3" />
-                        {candidate.completedProjects} projects
+                  </div>
+                  {skill && (
+                    <p className="text-sm text-muted-foreground mt-1">{skill}</p>
+                  )}
+                  <div className="flex items-center gap-3 mt-1.5 text-xs text-muted-foreground">
+                    {candidate.location && (
+                      <span className="flex items-center gap-1">
+                        <MapPin className="h-3 w-3" />
+                        {candidate.location.split(",")[0]?.trim()}
+                      </span>
+                    )}
+                    {(candidate.rating ?? 0) > 0 && (
+                      <span className="flex items-center gap-1">
+                        <Star className="h-3 w-3 text-yellow-500 fill-yellow-500" />
+                        {(candidate.rating ?? 0).toFixed(1)}
                       </span>
                     )}
                   </div>
-                </LocaleLink>
+                </div>
               )
-            })}
+            })()}
+
+            {/* Dot indicators */}
+            <div className="flex items-center justify-center gap-1.5 mt-6">
+              {candidates.map((_, i) => (
+                <button
+                  key={i}
+                  onClick={() => setActiveIndex(i)}
+                  className={`rounded-full transition-all duration-300 ${
+                    i === activeIndex
+                      ? "w-6 h-1.5 bg-primary"
+                      : "w-1.5 h-1.5 bg-border hover:bg-muted-foreground/40"
+                  }`}
+                />
+              ))}
+            </div>
           </div>
         )}
       </div>
