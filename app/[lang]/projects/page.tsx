@@ -160,7 +160,24 @@ function ProjectsContent() {
           // Personalized endpoint failed — fall back silently
         }
 
-        // Fallback to regular endpoint
+        // Fallback: try skill-matched endpoint for volunteers without
+        // a full profile, so they still see relevant projects
+        if (!personalized) {
+          try {
+            const mRes = await fetch("/api/projects/matched")
+            if (mRes.ok) {
+              const mData = await mRes.json()
+              if (mData.matched && mData.projects?.length > 0) {
+                setProjects(mData.projects)
+                personalized = true
+              }
+            }
+          } catch {
+            // fall through to generic
+          }
+        }
+
+        // Last resort: generic listing (for non-volunteers / guests)
         if (!personalized) {
           const res = await fetch("/api/projects")
           if (res.ok) {
