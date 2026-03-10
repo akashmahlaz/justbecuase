@@ -4,6 +4,7 @@ import { HeroSection } from "@/components/home/hero-section"
 import { GlobalSearchSection } from "@/components/home/global-search-section"
 import { HowItWorks } from "@/components/home/how-it-works"
 import { FeaturedProjects } from "@/components/home/featured-projects"
+import { FeaturedCandidates } from "@/components/home/featured-candidates"
 import { Testimonials } from "@/components/home/testimonials"
 import { CTASection } from "@/components/home/cta-section"
 
@@ -18,8 +19,9 @@ export default async function HomePage() {
       <main className="flex-1">
         <HeroSection />
         <GlobalSearchSection />
-        <FeaturedProjects />
         <HowItWorks />
+        <FeaturedProjects />
+        <FeaturedCandidates />
         <Testimonials />
         <CTASection />
       </main>
