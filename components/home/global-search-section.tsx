@@ -206,7 +206,7 @@ export function GlobalSearchSection() {
   // SEARCH FUNCTIONS
   // ============================================
 
-  const fetchSuggestions = useCallback(async (query: string) => {
+  const fetchSuggestions = useCallback(async (query: string, type: string) => {
     if (!query || query.trim().length < 1) {
       setSuggestions([])
       return
@@ -219,8 +219,10 @@ export function GlobalSearchSection() {
 
     setIsSuggestionsLoading(true)
     try {
+      // Respect the selected search type — only fetch suggestions for that type
+      const types = type === "all" ? ALLOWED_TYPES : type
       const res = await fetch(
-        `/api/unified-search?q=${encodeURIComponent(query)}&mode=suggestions&limit=6&types=${ALLOWED_TYPES}`,
+        `/api/unified-search?q=${encodeURIComponent(query)}&mode=suggestions&limit=6&types=${types}`,
         { signal: controller.signal }
       )
       const data = await res.json()
@@ -294,14 +296,14 @@ export function GlobalSearchSection() {
   useEffect(() => {
     const timer = setTimeout(() => {
       if (searchQuery.trim().length >= 1) {
-        fetchSuggestions(searchQuery)
+        fetchSuggestions(searchQuery, searchType)
         setShowDropdown(true)
       } else {
         setSuggestions([])
       }
     }, DEBOUNCE_SUGGESTIONS_MS)
     return () => clearTimeout(timer)
-  }, [searchQuery, fetchSuggestions])
+  }, [searchQuery, searchType, fetchSuggestions])
 
   // Full results (slower debounce - 300ms)
   useEffect(() => {
@@ -432,7 +434,8 @@ export function GlobalSearchSection() {
       switch (item.resultType) {
         case "volunteer": path = `/volunteers/${item.id}`; break
         case "ngo": path = `/ngos/${item.id}`; break
-        default: path = `/projects/${item.id}`; break
+        case "opportunity": path = `/projects/${item.id}`; break
+        default: return // Unknown type — don't navigate to a wrong page
       }
       router.push(localePath(path, locale))
     }

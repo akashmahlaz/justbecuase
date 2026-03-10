@@ -421,7 +421,7 @@ export function UnifiedSearchBar({
         case "opportunity": path = `/projects/${item.id}`; break
         case "blog": path = `/blog/${item.id}`; break
         case "page": path = item.id.startsWith("/") ? item.id : `/${item.id}`; break
-        default: path = `/projects/${item.id}`
+        default: return // Unknown type — don't navigate to a wrong page
       }
       router.push(localePath(path, locale))
     }
