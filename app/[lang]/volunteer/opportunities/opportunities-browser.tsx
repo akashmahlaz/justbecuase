@@ -354,7 +354,7 @@ export function OpportunitiesBrowser() {
     async function fetchData() {
       setLoading(true)
 
-      // Try personalized endpoint first
+      // Try personalized endpoint first (scores + ranks for this volunteer)
       try {
         const res = await fetch("/api/projects/personalized")
         if (res.ok) {
@@ -370,7 +370,23 @@ export function OpportunitiesBrowser() {
         // fall through
       }
 
-      // Fallback
+      // Fallback: use skill-matched endpoint so the volunteer still sees
+      // relevant projects instead of every project on the platform
+      try {
+        const res = await fetch("/api/projects/matched")
+        if (res.ok && !cancelled) {
+          const data = await res.json()
+          if (data.projects?.length > 0) {
+            setFallbackProjects(data.projects)
+            setLoading(false)
+            return
+          }
+        }
+      } catch {
+        // fall through to generic
+      }
+
+      // Last resort: generic listing (only if matched also fails)
       try {
         const res = await fetch("/api/projects")
         if (res.ok && !cancelled) {

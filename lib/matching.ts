@@ -1127,7 +1127,7 @@ export function rankPersonalizedOpportunities(
   ngoProfileMap: Map<string, NGOProfile>,
   volunteerCoords: { lat: number; lng: number } | null,
   ngoCoordMap: Map<string, { lat: number; lng: number }>,
-  minScore: number = 10,
+  minScore: number = 15,
 ): PersonalizedOpportunity[] {
   const results: PersonalizedOpportunity[] = []
 

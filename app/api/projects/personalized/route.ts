@@ -148,7 +148,9 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Score & rank
+    // Score & rank — return ALL scored results, even if few.
+    // The volunteer should always see their best-matched opportunities,
+    // never a random unscored dump of every project on the platform.
     const ranked = rankPersonalizedOpportunities(
       volunteer,
       projectsWithNgo,
@@ -156,24 +158,6 @@ export async function GET(request: NextRequest) {
       volunteerCoords,
       ngoCoordMap,
     )
-
-    // If too few personalized results, signal the client to fall back
-    // to the generic /api/projects endpoint instead of returning raw projects
-    // (raw projects don't have the PersonalizedOpportunity shape the client expects)
-    if (ranked.length < 8 && allProjects.length > ranked.length) {
-      return NextResponse.json({
-        success: true,
-        opportunities: [],
-        message: "Too few personalized matches — client should use fallback",
-        meta: {
-          total: 0,
-          totalProjects: allProjects.length,
-          hasCoordinates: !!volunteerCoords,
-          personalized: false,
-          took: Date.now() - startTime,
-        },
-      })
-    }
 
     const serialized = serializeDocuments(ranked)
 
