@@ -3,11 +3,12 @@
 import { useState, useEffect } from "react"
 import Image from "next/image"
 import LocaleLink from "@/components/locale-link"
-import { ArrowRight, MapPin, Star, CheckCircle } from "lucide-react"
+import { ArrowRight, MapPin, Star, CheckCircle, Briefcase } from "lucide-react"
 import { browseVolunteers } from "@/lib/actions"
 import { skillCategories } from "@/lib/skills-data"
 import { useDictionary } from "@/components/dictionary-provider"
 import { Skeleton } from "@/components/ui/skeleton"
+import { Badge } from "@/components/ui/badge"
 import type { VolunteerProfileView } from "@/lib/types"
 
 export function FeaturedCandidates() {
@@ -65,12 +66,21 @@ export function FeaturedCandidates() {
 
         {/* Candidates Grid */}
         {loading ? (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {Array.from({ length: 8 }).map((_, i) => (
-              <div key={i} className="flex flex-col items-center gap-3">
-                <Skeleton className="w-24 h-24 rounded-full" />
-                <Skeleton className="h-4 w-20" />
-                <Skeleton className="h-3 w-16" />
+              <div key={i} className="rounded-2xl border border-border bg-card p-5 space-y-4">
+                <div className="flex items-center gap-3">
+                  <Skeleton className="w-14 h-14 rounded-full" />
+                  <div className="space-y-2 flex-1">
+                    <Skeleton className="h-4 w-24" />
+                    <Skeleton className="h-3 w-16" />
+                  </div>
+                </div>
+                <Skeleton className="h-3 w-full" />
+                <div className="flex gap-2">
+                  <Skeleton className="h-5 w-14 rounded-full" />
+                  <Skeleton className="h-5 w-14 rounded-full" />
+                </div>
               </div>
             ))}
           </div>
@@ -79,61 +89,71 @@ export function FeaturedCandidates() {
             {home.noCandidatesYet || "No candidates to display yet."}
           </p>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-x-6 gap-y-10">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {candidates.map((candidate) => {
               const skill = getSkillLabel(candidate)
               return (
                 <LocaleLink
                   key={candidate.id}
                   href={`/volunteers/${candidate.id}`}
-                  className="group flex flex-col items-center text-center"
+                  className="group relative flex flex-col rounded-2xl border border-border bg-card p-5 hover:shadow-lg hover:border-primary/30 transition-all duration-300"
                 >
-                  {/* Circular Avatar */}
-                  <div className="relative mb-3">
-                    <div className="w-24 h-24 md:w-28 md:h-28 rounded-full overflow-hidden ring-4 ring-background shadow-lg group-hover:ring-primary/30 transition-all">
-                      {candidate.avatar ? (
-                        <Image
-                          src={candidate.avatar}
-                          alt={candidate.name || "Impact Agent"}
-                          width={112}
-                          height={112}
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <div className="w-full h-full bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center text-2xl font-bold text-primary">
-                          {candidate.name ? candidate.name.charAt(0).toUpperCase() : "?"}
+                  {/* Verified badge */}
+                  {candidate.isVerified && (
+                    <div className="absolute top-3 right-3">
+                      <CheckCircle className="h-4 w-4 text-primary" />
+                    </div>
+                  )}
+
+                  {/* Avatar + Name row */}
+                  <div className="flex items-center gap-3.5 mb-4">
+                    <div className="relative flex-shrink-0">
+                      <div className="w-14 h-14 rounded-full overflow-hidden ring-2 ring-border group-hover:ring-primary/40 transition-all">
+                        {candidate.avatar ? (
+                          <Image
+                            src={candidate.avatar}
+                            alt={candidate.name || "Impact Agent"}
+                            width={56}
+                            height={56}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <div className="w-full h-full bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center text-lg font-bold text-primary">
+                            {candidate.name ? candidate.name.charAt(0).toUpperCase() : "?"}
+                          </div>
+                        )}
+                      </div>
+                      {candidate.rating > 0 && (
+                        <div className="absolute -bottom-1 -right-1 flex items-center gap-0.5 bg-background border border-border rounded-full px-1.5 py-0.5 shadow-sm">
+                          <Star className="h-2.5 w-2.5 text-yellow-500 fill-yellow-500" />
+                          <span className="text-[10px] font-semibold text-foreground">{candidate.rating.toFixed(1)}</span>
                         </div>
                       )}
                     </div>
-                    {candidate.isVerified && (
-                      <CheckCircle className="absolute bottom-0 right-0 h-5 w-5 text-primary bg-background rounded-full" />
-                    )}
+                    <div className="min-w-0">
+                      <h3 className="font-semibold text-sm text-foreground group-hover:text-primary transition-colors truncate">
+                        {candidate.name || "Impact Agent"}
+                      </h3>
+                      {candidate.location && (
+                        <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
+                          <MapPin className="h-3 w-3 flex-shrink-0" />
+                          <span className="truncate">{candidate.location.split(",")[0]?.trim()}</span>
+                        </p>
+                      )}
+                    </div>
                   </div>
 
-                  {/* Name */}
-                  <h3 className="font-semibold text-sm text-foreground group-hover:text-primary transition-colors truncate max-w-full">
-                    {candidate.name || "Impact Agent"}
-                  </h3>
-
-                  {/* Skill */}
-                  {skill && (
-                    <p className="text-xs text-muted-foreground mt-0.5 truncate max-w-full">
-                      {skill}
-                    </p>
-                  )}
-
-                  {/* Location + Rating */}
-                  <div className="flex items-center gap-2 mt-1 text-[11px] text-muted-foreground">
-                    {candidate.location && (
-                      <span className="flex items-center gap-0.5">
-                        <MapPin className="h-2.5 w-2.5" />
-                        {candidate.location.split(",")[0]?.trim()}
-                      </span>
+                  {/* Skill badge + projects */}
+                  <div className="flex flex-wrap items-center gap-2 mt-auto">
+                    {skill && (
+                      <Badge variant="secondary" className="text-[11px] font-medium">
+                        {skill}
+                      </Badge>
                     )}
-                    {candidate.rating > 0 && (
-                      <span className="flex items-center gap-0.5">
-                        <Star className="h-2.5 w-2.5 text-yellow-500 fill-yellow-500" />
-                        {candidate.rating.toFixed(1)}
+                    {(candidate.completedProjects || 0) > 0 && (
+                      <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground">
+                        <Briefcase className="h-3 w-3" />
+                        {candidate.completedProjects} projects
                       </span>
                     )}
                   </div>
