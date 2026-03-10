@@ -8,15 +8,19 @@ import { ArrowRight } from "lucide-react"
 import { resolveSkillName } from "@/lib/skills-data"
 import { useDictionary } from "@/components/dictionary-provider"
 import { useLocale } from "@/hooks/use-locale"
+import { Skeleton } from "@/components/ui/skeleton"
 
 export function FeaturedProjects() {
   const dict = useDictionary()
   const locale = useLocale()
   const home = dict.home || {}
   const [featuredProjects, setFeaturedProjects] = useState<Awaited<ReturnType<typeof browseProjects>>>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    browseProjects().then(projects => setFeaturedProjects(projects.slice(0, 6)));
+    browseProjects()
+      .then(projects => setFeaturedProjects(projects.slice(0, 6)))
+      .finally(() => setLoading(false));
   }, []);
 
   return (
@@ -57,9 +61,32 @@ export function FeaturedProjects() {
         </header>
 
         {/* Horizontal Scroll */}
-        {featuredProjects.length === 0 ? (
-          <div className="text-center py-24 border border-dashed border-slate-200 dark:border-slate-700">
-            <p className="text-slate-400 uppercase tracking-widest text-xs">{home.noEntries || "No entries found"}</p>
+        {loading ? (
+          <div className="flex gap-6 overflow-hidden -mx-4 px-4 md:-mx-6 md:px-6">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="min-w-[320px] max-w-[380px] flex-shrink-0 rounded-2xl border border-border bg-card p-6 space-y-4">
+                <div className="flex items-center gap-3">
+                  <Skeleton className="w-10 h-10 rounded-lg" />
+                  <Skeleton className="h-4 w-28" />
+                </div>
+                <Skeleton className="h-5 w-3/4" />
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-4 w-2/3" />
+                <div className="flex gap-2">
+                  <Skeleton className="h-5 w-16 rounded-full" />
+                  <Skeleton className="h-5 w-16 rounded-full" />
+                  <Skeleton className="h-5 w-16 rounded-full" />
+                </div>
+                <div className="flex justify-between items-center pt-3 border-t border-border">
+                  <Skeleton className="h-5 w-20 rounded-full" />
+                  <Skeleton className="h-8 w-16 rounded-md" />
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : featuredProjects.length === 0 ? (
+          <div className="text-center py-24 border border-dashed border-border rounded-2xl">
+            <p className="text-muted-foreground uppercase tracking-widest text-xs">{home.noEntries || "No entries found"}</p>
           </div>
         ) : (
           <div className="flex gap-6 overflow-x-auto pb-6 snap-x snap-mandatory scrollbar-hide -mx-4 px-4 md:-mx-6 md:px-6">
