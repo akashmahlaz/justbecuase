@@ -67,12 +67,19 @@ export async function GET(request: NextRequest) {
           limit: Math.min(limit, 8),
         })
 
-        const mappedSuggestions = suggestions.map(s => ({
-          text: s.text,
-          type: mapResultType(s.type),
-          id: s.id,
-          subtitle: s.subtitle,
-        }))
+        // Filter suggestions to only include requested types (the ES suggester
+        // may inject in-memory skill/cause suggestions that don't match the filter).
+        // Always allow skill/cause suggestions through — they help refine searches
+        // regardless of the selected entity type.
+        const requestedTypes = rawTypes ? new Set(rawTypes) : null
+        const mappedSuggestions = suggestions
+          .map(s => ({
+            text: s.text,
+            type: mapResultType(s.type),
+            id: s.id,
+            subtitle: s.subtitle,
+          }))
+          .filter(s => !requestedTypes || requestedTypes.has(s.type) || s.type === "skill" || s.type === "cause")
 
         return NextResponse.json({
           success: true,
@@ -143,10 +150,18 @@ export async function GET(request: NextRequest) {
         }
       })
 
+      // Strictly enforce type filter on the final result set — even if ES
+      // returned cross-index matches, only send back what was requested.
+      let finalResults = mappedResults
+      if (rawTypes && rawTypes.length > 0) {
+        const allowedSet = new Set(rawTypes.map(t => t === "project" ? "opportunity" : t))
+        finalResults = mappedResults.filter(r => allowedSet.has(r.type))
+      }
+
       // When ES returns no results, fall back to MongoDB.
       // Skip fallback for pure work-mode queries (remote/onsite/hybrid).
       const isPureWorkModeQuery = /^(remote|onsite|on-site|on site|in-person|in person|office|wfh|work from home|virtual|online|hybrid)$/i.test(query.trim())
-      if (mappedResults.length === 0 && mode !== "suggestions" && !isPureWorkModeQuery) {
+      if (finalResults.length === 0 && mode !== "suggestions" && !isPureWorkModeQuery) {
         console.log(`[Search API] ES returned 0 results for "${query}" — falling back to MongoDB`)
         const mongoFallbackTypes = rawTypes as ("volunteer" | "ngo" | "opportunity")[] | undefined
         try {
@@ -165,9 +180,9 @@ export async function GET(request: NextRequest) {
 
       return NextResponse.json({
         success: true,
-        results: mappedResults,
+        results: finalResults,
         query,
-        count: result.total,
+        count: finalResults.length,
         took: result.took,
         engine: "elasticsearch",
       })
@@ -215,10 +230,13 @@ export async function GET(request: NextRequest) {
         const { searchParams } = new URL(request.url)
         const query = searchParams.get("q") || ""
         const mode = searchParams.get("mode")
+        const typesParam = searchParams.get("types")
+        const fallbackTypes = typesParam ? typesParam.split(",") as ("volunteer" | "ngo" | "opportunity")[] : undefined
 
         if (mode === "suggestions") {
           const suggestions = await getSearchSuggestions({
             query,
+            types: fallbackTypes,
             limit: 6,
           })
           return NextResponse.json({
@@ -230,7 +248,7 @@ export async function GET(request: NextRequest) {
           })
         }
 
-        const results = await unifiedSearch({ query, limit: 20 })
+        const results = await unifiedSearch({ query, types: fallbackTypes, limit: 20 })
         return NextResponse.json({
           success: true,
           results,
