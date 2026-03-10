@@ -499,11 +499,18 @@ export function GlobalSearchSection() {
         >
           {/* Header */}
           <div className="text-center mb-8">
-            <h2 className="text-2xl md:text-3xl font-bold text-foreground mb-3">
+            <h2 className="text-2xl md:text-3xl font-bold text-foreground mb-2">
               {s.findTitle || "Find What You're Looking For"}
             </h2>
+            {/* JBCerta AI Branding */}
+            <div className="flex items-center justify-center gap-2 mb-3">
+              <Badge variant="secondary" className="bg-primary/10 text-primary border-primary/20 px-3 py-1 text-xs font-semibold flex items-center gap-1.5">
+                <Sparkles className="h-3 w-3" />
+                {s.jbcertaBrand || "Powered by JBCerta AI"}
+              </Badge>
+            </div>
             <p className="text-muted-foreground text-sm md:text-base">
-              {s.findSubtitle || "Search across opportunities, skilled impact agents, and NGOs — instantly"}
+              {s.findSubtitle || "Advanced AI search engine specifically engineered for NGOs and social impact talent"}
             </p>
           </div>
 
