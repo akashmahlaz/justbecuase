@@ -575,7 +575,8 @@
   },
   "search": {
     "findTitle": "Find What You're Looking For",
-    "findSubtitle": "Search across opportunities, skilled impact agents, and NGOs — instantly",
+    "jbcertaBrand": "Powered by JBCerta AI",
+    "findSubtitle": "Advanced AI search engine specifically engineered for NGOs and social impact talent",
     "all": "All",
     "impactAgent": "Impact Agent",
     "impactAgents": "Impact Agents",
