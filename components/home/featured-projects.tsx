@@ -20,7 +20,7 @@ export function FeaturedProjects() {
   }, []);
 
   return (
-    <section className="relative py-24 bg-white overflow-hidden">
+    <section className="relative py-24 bg-background overflow-hidden">
       {/* Editorial Dot Grid Pattern */}
       <div 
         className="absolute inset-0 z-0 pointer-events-none" 
@@ -32,15 +32,15 @@ export function FeaturedProjects() {
 
       <div className="container relative z-10 mx-auto px-4 md:px-6">
         {/* Header Section */}
-        <header className="flex flex-col md:flex-row md:items-end justify-between mb-20 border-b border-slate-100 pb-8">
+        <header className="flex flex-col md:flex-row md:items-end justify-between mb-20 border-b border-border pb-8">
           <div className="max-w-2xl">
-            <span className="text-[10px] uppercase tracking-widest text-slate-400 font-bold mb-4 block">
+            <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold mb-4 block">
               {home.featuredSelection || "Selection . 01"}
             </span>
-            <h2 className="text-4xl md:text-5xl font-medium text-slate-900 tracking-tighter mb-6">
+            <h2 className="text-4xl md:text-5xl font-medium text-foreground tracking-tighter mb-6">
               {home.featuredProjects || "Featured Opportunities"}
             </h2>
-            <p className="text-slate-500 leading-relaxed">
+            <p className="text-muted-foreground leading-relaxed">
               {home.featuredProjectsDesc || "A curated directory of high-impact opportunities from verified NGOs worldwide. Designed for architects of social change."}
             </p>
           </div>
@@ -48,7 +48,7 @@ export function FeaturedProjects() {
           <div className="mt-8 md:mt-0">
             <LocaleLink 
               href="/projects" 
-              className="group flex items-center gap-3 text-xs uppercase tracking-widest font-bold text-slate-900 transition-all"
+              className="group flex items-center gap-3 text-xs uppercase tracking-widest font-bold text-foreground transition-all"
             >
               {home.browseAllOpportunities || "Browse All Opportunities"}
               <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-3" />
@@ -56,47 +56,29 @@ export function FeaturedProjects() {
           </div>
         </header>
 
-        {/* Asymmetric Grid */}
+        {/* Horizontal Scroll */}
         {featuredProjects.length === 0 ? (
-          <div className="text-center py-24 border border-dashed border-slate-200">
+          <div className="text-center py-24 border border-dashed border-slate-200 dark:border-slate-700">
             <p className="text-slate-400 uppercase tracking-widest text-xs">{home.noEntries || "No entries found"}</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-12 gap-y-20 gap-x-12">
-            {featuredProjects.map((project, index) => {
-              // Stagger Logic: Even rows span 7, Odd rows span 5 (and vice-versa for balance)
-              const isLarge = index % 2 === 0;
-              const colSpan = isLarge ? "md:col-span-7" : "md:col-span-5";
-              const marginTop = index > 1 ? "md:-mt-12" : ""; // Subtle vertical overlap
-
-              return (
-                <div key={project._id?.toString()} className={`${colSpan} ${marginTop} flex flex-col`}>
-                  {/* Linear Spine & Index Marker */}
-                  <div className="flex items-center gap-4 mb-6">
-                    <span className="text-[10px] font-mono font-bold text-slate-400">
-                      {String(index + 1).padStart(2, '0')}
-                    </span>
-                    <div className="h-[1px] flex-grow bg-slate-100" />
-                  </div>
-
-                  {/* Project Card Wrapper */}
-                  <div className="hover:opacity-90 transition-opacity">
-                    <ProjectCard project={{
-                      id: project._id?.toString() || "",
-                      title: project.title,
-                      description: project.description,
-                      skills: project.skillsRequired?.map((s: any) => resolveSkillName(s.subskillId)) || [],
-                      location: project.workMode === "remote" ? (dict.search?.remote || "Remote") : project.location || (dict.search?.onsite || "On-site"),
-                      timeCommitment: project.timeCommitment,
-                      applicants: project.applicantsCount || 0,
-                      postedAt: project.createdAt ? new Date(project.createdAt).toLocaleDateString(locale) : (dict.common?.recently || "Recently"),
-                      projectType: project.projectType,
-                      ngo: { name: (project as any).ngoName || (dict.common?.verifiedPartner || "Verified Partner"), verified: true }
-                    }} />
-                  </div>
-                </div>
-              );
-            })}
+          <div className="flex gap-6 overflow-x-auto pb-6 snap-x snap-mandatory scrollbar-hide -mx-4 px-4 md:-mx-6 md:px-6">
+            {featuredProjects.map((project) => (
+              <div key={project._id?.toString()} className="min-w-[320px] max-w-[380px] flex-shrink-0 snap-start">
+                <ProjectCard project={{
+                  id: project._id?.toString() || "",
+                  title: project.title,
+                  description: project.description,
+                  skills: project.skillsRequired?.map((s: any) => resolveSkillName(s.subskillId)) || [],
+                  location: project.workMode === "remote" ? (dict.search?.remote || "Remote") : project.location || (dict.search?.onsite || "On-site"),
+                  timeCommitment: project.timeCommitment,
+                  applicants: project.applicantsCount || 0,
+                  postedAt: project.createdAt ? new Date(project.createdAt).toLocaleDateString(locale) : (dict.common?.recently || "Recently"),
+                  projectType: project.projectType,
+                  ngo: { name: (project as any).ngoName || (dict.common?.verifiedPartner || "Verified Partner"), verified: true }
+                }} />
+              </div>
+            ))}
           </div>
         )}
       </div>

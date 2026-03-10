@@ -155,5 +155,49 @@ export const impactMetrics = {
 }
 
 export const testimonials = [
-  // Testimonials go here
+  {
+    id: 1,
+    quote: "JustBecause connected us with a brilliant UX strategist who redesigned our donor portal in just three weeks. Online donations increased 140% the following quarter.",
+    author: "Amira Osei",
+    role: "Executive Director",
+    organization: "WaterBridge Foundation",
+    avatar: "/placeholder.svg",
+    type: "NGO",
+  },
+  {
+    id: 2,
+    quote: "I wanted to use my product skills for something meaningful. Within days I was embedded with an education nonprofit, leading their mobile app launch.",
+    author: "Carlos Méndez",
+    role: "Senior Product Designer",
+    organization: "Pro-bono Volunteer",
+    avatar: "/placeholder.svg",
+    type: "Volunteer",
+  },
+  {
+    id: 3,
+    quote: "The matching algorithm found us a data engineer who automated our impact reporting. What took two weeks now takes two hours.",
+    author: "Fatima Al-Rashid",
+    role: "Programs Director",
+    organization: "GreenLeaf Initiative",
+    avatar: "/placeholder.svg",
+    type: "NGO",
+  },
+  {
+    id: 4,
+    quote: "As a retired CFO, I thought my best years were behind me. JustBecause proved me wrong — I've helped three nonprofits restructure their finances.",
+    author: "David Chen",
+    role: "Financial Advisor",
+    organization: "Pro-bono Volunteer",
+    avatar: "/placeholder.svg",
+    type: "Volunteer",
+  },
+  {
+    id: 5,
+    quote: "We struggled for months to find legal help we could afford. JustBecause matched us with a corporate lawyer who handled our entire compliance audit pro bono.",
+    author: "Priya Sharma",
+    role: "Founder",
+    organization: "SafeHaven Trust",
+    avatar: "/placeholder.svg",
+    type: "NGO",
+  },
 ]
