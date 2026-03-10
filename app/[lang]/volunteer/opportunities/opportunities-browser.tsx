@@ -136,10 +136,12 @@ function extractWorkModeFromQuery(query: string): string | null {
 // ============================================
 
 const TIME_COMMITMENTS = [
-  "1-5 hours/week",
-  "5-10 hours/week",
-  "10-20 hours/week",
-  "20+ hours/week",
+  "1-2 hours",
+  "5-10 hours",
+  "10-15 hours",
+  "15-25 hours",
+  "25-40 hours",
+  "40+ hours",
 ]
 
 const WORK_MODES = [
@@ -248,10 +250,12 @@ export function OpportunitiesBrowser() {
   const common = (dict as any).volunteer?.common
 
   const timeCommitmentLabels: Record<string, string> = {
-    "1-5 hours/week": common?.time1to5 || "1-5 hours/week",
-    "5-10 hours/week": common?.time5to10 || "5-10 hours/week",
-    "10-20 hours/week": common?.time10to20 || "10-20 hours/week",
-    "20+ hours/week": common?.time20plus || "20+ hours/week",
+    "1-2 hours": common?.time1to2 || "1-2 hours",
+    "5-10 hours": common?.time5to10 || "5-10 hours",
+    "10-15 hours": common?.time10to15 || "10-15 hours",
+    "15-25 hours": common?.time15to25 || "15-25 hours",
+    "25-40 hours": common?.time25to40 || "25-40 hours",
+    "40+ hours": common?.time40plus || "40+ hours",
   }
 
   const workModeLabels: Record<string, string> = {
@@ -515,17 +519,28 @@ export function OpportunitiesBrowser() {
       })
     }
 
-    // Time commitment
+    // Time commitment — uses numeric range overlap so stored values
+    // like "10-15 hours" match filter "10-15 hours" reliably, even
+    // when templates create non-standard ranges like "20-30 hours".
     if (selectedTimeCommitment.length > 0) {
+      const parseRange = (s: string): [number, number] | null => {
+        const plus = s.match(/(\d+)\+/)
+        if (plus) return [parseInt(plus[1], 10), Infinity]
+        const range = s.match(/(\d+)\s*-\s*(\d+)/)
+        if (range) return [parseInt(range[1], 10), parseInt(range[2], 10)]
+        return null
+      }
+      const overlaps = (a: [number, number], b: [number, number]) =>
+        a[0] <= b[1] && b[0] <= a[1]
+
       result = result.filter((item) => {
+        const projectTime = item.project.timeCommitment || ""
+        const projRange = parseRange(projectTime)
         return selectedTimeCommitment.some((time) => {
-          const pt = item.project.timeCommitment?.toLowerCase() || ""
-          const ft = time.toLowerCase()
-          if (ft.includes("1-5") && (pt.includes("1-5") || pt.includes("few hours"))) return true
-          if (ft.includes("5-10") && pt.includes("5-10")) return true
-          if (ft.includes("10-20") && pt.includes("10-20")) return true
-          if (ft.includes("20+") && (pt.includes("20+") || pt.includes("full-time"))) return true
-          return pt.includes(ft)
+          if (!projRange) return projectTime.toLowerCase().includes(time.toLowerCase())
+          const filterRange = parseRange(time)
+          if (!filterRange) return false
+          return overlaps(projRange, filterRange)
         })
       })
     }

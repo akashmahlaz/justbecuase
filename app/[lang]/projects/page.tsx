@@ -194,14 +194,16 @@ function ProjectsContent() {
     fetchProjects()
   }, [])
 
-  const timeCommitments = ["1-5 hours/week", "5-10 hours/week", "10-20 hours/week", "20+ hours/week"]
+  const timeCommitments = ["1-2 hours", "5-10 hours", "10-15 hours", "15-25 hours", "25-40 hours", "40+ hours"]
   const locations = ["Remote", "On-site", "Hybrid"]
 
   const timeCommitmentLabels: Record<string, string> = {
-    "1-5 hours/week": dict.projectsListing?.hours1to5 || "1-5 hours/week",
-    "5-10 hours/week": dict.projectsListing?.hours5to10 || "5-10 hours/week",
-    "10-20 hours/week": dict.projectsListing?.hours10to20 || "10-20 hours/week",
-    "20+ hours/week": dict.projectsListing?.hours20plus || "20+ hours/week",
+    "1-2 hours": dict.projectsListing?.hours1to2 || "1-2 hours",
+    "5-10 hours": dict.projectsListing?.hours5to10 || "5-10 hours",
+    "10-15 hours": dict.projectsListing?.hours10to15 || "10-15 hours",
+    "15-25 hours": dict.projectsListing?.hours15to25 || "15-25 hours",
+    "25-40 hours": dict.projectsListing?.hours25to40 || "25-40 hours",
+    "40+ hours": dict.projectsListing?.hours40plus || "40+ hours",
   }
 
   const locationLabels: Record<string, string> = {
@@ -265,18 +267,28 @@ function ProjectsContent() {
       })
     }
     
-    // Time commitment filter
+    // Time commitment filter — uses numeric range overlap so stored
+    // values like "10-15 hours" match filter "10-15 hours" reliably,
+    // even when templates create non-standard ranges like "20-30 hours".
     if (selectedTimeCommitment.length > 0) {
+      const parseRange = (s: string): [number, number] | null => {
+        const plus = s.match(/(\d+)\+/)
+        if (plus) return [parseInt(plus[1], 10), Infinity]
+        const range = s.match(/(\d+)\s*-\s*(\d+)/)
+        if (range) return [parseInt(range[1], 10), parseInt(range[2], 10)]
+        return null
+      }
+      const overlaps = (a: [number, number], b: [number, number]) =>
+        a[0] <= b[1] && b[0] <= a[1]
+
       result = result.filter((project) => {
+        const projectTime = project.timeCommitment || ""
+        const projRange = parseRange(projectTime)
         return selectedTimeCommitment.some(time => {
-          const projectTime = project.timeCommitment?.toLowerCase() || ""
-          const filterTime = time.toLowerCase()
-          // Match similar time ranges
-          if (filterTime.includes("1-5") && (projectTime.includes("1-5") || projectTime.includes("few hours"))) return true
-          if (filterTime.includes("5-10") && projectTime.includes("5-10")) return true
-          if (filterTime.includes("10-20") && projectTime.includes("10-20")) return true
-          if (filterTime.includes("20+") && (projectTime.includes("20+") || projectTime.includes("full-time"))) return true
-          return projectTime.includes(filterTime)
+          if (!projRange) return projectTime.toLowerCase().includes(time.toLowerCase())
+          const filterRange = parseRange(time)
+          if (!filterRange) return false
+          return overlaps(projRange, filterRange)
         })
       })
     }
