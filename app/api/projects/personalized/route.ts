@@ -157,16 +157,16 @@ export async function GET(request: NextRequest) {
       ngoCoordMap,
     )
 
-    // If too few personalized results, fall back to all active projects
-    // This prevents showing 2 opportunities when 16 are available
-    let finalOpportunities = ranked
+    // If too few personalized results, signal the client to fall back
+    // to the generic /api/projects endpoint instead of returning raw projects
+    // (raw projects don't have the PersonalizedOpportunity shape the client expects)
     if (ranked.length < 8 && allProjects.length > ranked.length) {
-      // Return all active projects as fallback (no personalization)
       return NextResponse.json({
         success: true,
-        opportunities: serializeDocuments(allProjects),
+        opportunities: [],
+        message: "Too few personalized matches — client should use fallback",
         meta: {
-          total: allProjects.length,
+          total: 0,
           totalProjects: allProjects.length,
           hasCoordinates: !!volunteerCoords,
           personalized: false,
@@ -175,7 +175,7 @@ export async function GET(request: NextRequest) {
       })
     }
 
-    const serialized = serializeDocuments(finalOpportunities)
+    const serialized = serializeDocuments(ranked)
 
     return NextResponse.json({
       success: true,

@@ -3,13 +3,14 @@ import { headers } from "next/headers"
 import { Suspense } from "react"
 import { auth } from "@/lib/auth"
 import { WelcomeToast } from "@/components/dashboard/welcome-toast"
+import { SubscriptionExpiryToast } from "@/components/dashboard/subscription-expiry-toast"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { getVolunteerProfile, getMyApplications, getMatchedOpportunitiesForVolunteer, getVolunteerSubscriptionStatus } from "@/lib/actions"
-import { Clock, CheckCircle2, FolderKanban, TrendingUp, Star, ArrowRight, Edit, Briefcase, CreditCard, Zap } from "lucide-react"
+import { Clock, CheckCircle2, FolderKanban, TrendingUp, Star, ArrowRight, Edit, Briefcase, CreditCard, Zap, AlertTriangle } from "lucide-react"
 import { AIMatchExplanation } from "@/components/ai/match-explanation"
 import Link from "next/link"
 import { resolveSkillName } from "@/lib/skills-data"
@@ -69,6 +70,10 @@ export default async function VolunteerDashboard({ params }: { params: Promise<{
       <Suspense fallback={null}>
         <WelcomeToast />
       </Suspense>
+      {(subscriptionStatus?.plan === "pro" || subscriptionStatus?.isExpired) && subscriptionStatus?.expiryDate && (() => {
+        const daysLeft = Math.ceil((new Date(subscriptionStatus.expiryDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+        return daysLeft <= 7 ? <SubscriptionExpiryToast daysLeft={daysLeft} role="volunteer" locale={lang} /> : null
+      })()}
       <div className="flex-1 p-4 sm:p-6 lg:p-8">
           {/* Welcome Section */}
           <div className="mb-8">
@@ -318,6 +323,21 @@ export default async function VolunteerDashboard({ params }: { params: Promise<{
                 <CardContent className="space-y-4">
                   {subscriptionStatus?.plan === "free" ? (
                     <>
+                      {subscriptionStatus?.isExpired && (
+                        <div className="p-3 rounded-lg border bg-red-50 border-red-200 dark:bg-red-950/20 dark:border-red-800">
+                          <div className="flex items-center gap-2 mb-2">
+                            <AlertTriangle className="h-4 w-4 text-red-500" />
+                            <span className="text-sm font-medium text-red-700 dark:text-red-400">Your Pro plan has expired</span>
+                          </div>
+                          <p className="text-xs text-muted-foreground mb-3">You've been downgraded to the Free plan. Renew to regain unlimited access.</p>
+                          <Button asChild size="sm" className="w-full" variant="destructive">
+                            <Link href={`/${lang}/pricing`}>
+                              <Zap className="h-4 w-4 mr-2" />
+                              Renew Now
+                            </Link>
+                          </Button>
+                        </div>
+                      )}
                       <div className="p-4 rounded-lg bg-muted/50">
                         <div className="flex items-center justify-between mb-2">
                           <span className="text-sm text-muted-foreground">{dict.volunteer?.dashboard?.applicationsThisMonth || "Applications this month"}</span>
@@ -338,7 +358,7 @@ export default async function VolunteerDashboard({ params }: { params: Promise<{
                           {dict.volunteer?.dashboard?.upgradeProDesc || "Apply to as many opportunities as you want with Pro"}
                         </p>
                         <Button asChild size="sm" className="w-full">
-                          <Link href="/checkout?plan=volunteer-pro">
+                          <Link href={`/${lang}/pricing`}>
                             <Zap className="h-4 w-4 mr-2" />
                             {dict.volunteer?.common?.upgradeToPro || "Upgrade to Pro"}
                           </Link>
@@ -346,6 +366,7 @@ export default async function VolunteerDashboard({ params }: { params: Promise<{
                       </div>
                     </>
                   ) : (
+                    <>
                     <div className="p-4 rounded-lg bg-gradient-to-br from-primary/10 to-secondary/10 border border-primary/20">
                       <div className="flex items-center gap-2 mb-2">
                         <Zap className="h-5 w-5 text-primary" />
@@ -360,6 +381,31 @@ export default async function VolunteerDashboard({ params }: { params: Promise<{
                         </p>
                       )}
                     </div>
+                    {subscriptionStatus?.expiryDate && (() => {
+                      const daysLeft = Math.ceil((new Date(subscriptionStatus.expiryDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+                      if (daysLeft > 7) return null
+                      const isExpired = daysLeft <= 0
+                      return (
+                        <div className={`p-3 rounded-lg border ${isExpired ? "bg-red-50 border-red-200 dark:bg-red-950/20 dark:border-red-800" : "bg-yellow-50 border-yellow-200 dark:bg-yellow-950/20 dark:border-yellow-800"}`}>
+                          <div className="flex items-center gap-2 mb-2">
+                            <AlertTriangle className={`h-4 w-4 ${isExpired ? "text-red-500" : "text-yellow-500"}`} />
+                            <span className={`text-sm font-medium ${isExpired ? "text-red-700 dark:text-red-400" : "text-yellow-700 dark:text-yellow-400"}`}>
+                              {isExpired ? "Your Pro plan has expired" : `Pro plan expires in ${daysLeft} day${daysLeft === 1 ? "" : "s"}`}
+                            </span>
+                          </div>
+                          <p className="text-xs text-muted-foreground mb-3">
+                            {isExpired ? "You've been downgraded to the Free plan. Renew to regain unlimited access." : "Renew now to keep unlimited applications and Pro features."}
+                          </p>
+                          <Button asChild size="sm" className="w-full" variant={isExpired ? "destructive" : "default"}>
+                            <Link href={`/${lang}/pricing`}>
+                              <Zap className="h-4 w-4 mr-2" />
+                              {isExpired ? "Renew Now" : "Renew Early"}
+                            </Link>
+                          </Button>
+                        </div>
+                      )
+                    })()}
+                    </>
                   )}
                 </CardContent>
               </Card>
