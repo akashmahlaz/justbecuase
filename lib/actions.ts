@@ -2469,6 +2469,7 @@ export async function browseVolunteers(filters?: {
   workMode?: string
   volunteerType?: string
   location?: string
+  limit?: number
 }) {
   console.log('[browseVolunteers] Fetching volunteers with filters:', filters)
   
@@ -2523,7 +2524,8 @@ export async function browseVolunteers(filters?: {
   }
 
   // Limit results
-  filteredVolunteers = filteredVolunteers.slice(0, 50)
+  const maxResults = filters?.limit || 50
+  filteredVolunteers = filteredVolunteers.slice(0, maxResults)
   
   // Convert to profile views for proper visibility
   const views = await Promise.all(

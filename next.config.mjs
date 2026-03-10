@@ -32,6 +32,10 @@ const nextConfig = {
         protocol: 'https',
         hostname: '**.stream-io-cdn.com',
       },
+      {
+        protocol: 'https',
+        hostname: 'lh3.googleusercontent.com',
+      },
     ],
   },
 
