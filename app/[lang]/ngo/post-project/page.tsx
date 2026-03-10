@@ -81,7 +81,7 @@ export default function PostProjectPage() {
     workMode: "remote" as "remote" | "onsite" | "hybrid",
     location: "",
     projectType: "short-term" as "short-term" | "long-term" | "consultation" | "ongoing",
-    experienceLevel: "intermediate" as "beginner" | "intermediate" | "expert",
+    experienceLevel: "intermediate" as "beginner" | "intermediate" | "advanced" | "expert",
     causes: [] as string[],
     deliverables: "",
   })

@@ -55,6 +55,8 @@ import type {
   Review,
   Endorsement,
   BlogPost,
+  WorkMode,
+  ExperienceLevel,
 } from "./types"
 
 // ============================================
@@ -282,7 +284,7 @@ export async function saveVolunteerOnboarding(data: {
       hourlyRate: (data.workPreferences.volunteerType === "paid" || data.workPreferences.volunteerType === "both") ? data.workPreferences.hourlyRate : undefined,
       discountedRate: (data.workPreferences.volunteerType === "paid" || data.workPreferences.volunteerType === "both") ? data.workPreferences.discountedRate : undefined,
       currency: (data.workPreferences.volunteerType === "paid" || data.workPreferences.volunteerType === "both") ? (data.workPreferences.currency || "USD") : undefined,
-      workMode: data.workPreferences.workMode as "remote", //| "onsite" | "hybrid",
+      workMode: data.workPreferences.workMode as WorkMode,
       hoursPerWeek: data.workPreferences.hoursPerWeek,
       availability: data.workPreferences.availability as "weekdays" | "weekends" | "evenings" | "flexible",
       completedProjects: 0,
@@ -726,11 +728,11 @@ export async function createProject(data: {
         subskillId: s.subskillId,
         priority: s.priority as "must-have" | "nice-to-have",
       })),
-      experienceLevel: data.experienceLevel as "beginner" | "intermediate" | "expert",
+      experienceLevel: data.experienceLevel as ExperienceLevel,
       timeCommitment: data.timeCommitment,
       duration: data.duration,
       projectType: data.projectType as "short-term" | "long-term" | "consultation" | "ongoing",
-      workMode: data.workMode as "remote", // | "onsite" | "hybrid",
+      workMode: data.workMode as WorkMode,
       location: sanitizedLocation,
       causes: data.causes,
       documents: data.documents,

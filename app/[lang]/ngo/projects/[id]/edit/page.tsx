@@ -53,7 +53,7 @@ export default function EditProjectPage({ params }: Props) {
     workMode: "remote" as "remote" | "onsite" | "hybrid",
     location: "",
     projectType: "short-term" as "short-term" | "long-term" | "consultation" | "ongoing",
-    experienceLevel: "intermediate" as "beginner" | "intermediate" | "expert",
+    experienceLevel: "intermediate" as "beginner" | "intermediate" | "advanced" | "expert",
     causes: [] as string[],
     status: "active" as "draft" | "active" | "open" | "paused" | "completed" | "closed" | "cancelled",
   })
@@ -152,7 +152,7 @@ export default function EditProjectPage({ params }: Props) {
         timeCommitment: formData.timeCommitment,
         duration: formData.duration,
         projectType: formData.projectType,
-        workMode: "remote" as "remote",
+        workMode: formData.workMode as "remote" | "onsite" | "hybrid",
         location: formData.location || undefined,
         causes: formData.causes,
         deadline: formData.deadline ? new Date(formData.deadline) : undefined,
