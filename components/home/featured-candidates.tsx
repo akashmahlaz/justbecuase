@@ -1,9 +1,9 @@
 "use client"
 
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect } from "react"
 import Image from "next/image"
 import LocaleLink from "@/components/locale-link"
-import { ArrowRight, MapPin, Star, CheckCircle } from "lucide-react"
+import { ArrowRight, Clock, CheckCircle } from "lucide-react"
 import { browseVolunteers } from "@/lib/actions"
 import { skillCategories } from "@/lib/skills-data"
 import { useDictionary } from "@/components/dictionary-provider"
@@ -15,8 +15,6 @@ export function FeaturedCandidates() {
   const home = (dict as any).home || {}
   const [candidates, setCandidates] = useState<VolunteerProfileView[]>([])
   const [loading, setLoading] = useState(true)
-  const [activeIndex, setActiveIndex] = useState(0)
-  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   useEffect(() => {
     browseVolunteers({ limit: 15 })
@@ -31,26 +29,6 @@ export function FeaturedCandidates() {
       .finally(() => setLoading(false))
   }, [])
 
-  // Auto-advance with ref to avoid stale closures
-  useEffect(() => {
-    if (candidates.length === 0) return
-    const id = setInterval(() => {
-      setActiveIndex((prev) => (prev + 1) % candidates.length)
-    }, 5000)
-    timerRef.current = id
-    return () => clearInterval(id)
-  }, [candidates.length])
-
-  const pause = () => { if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null } }
-  const resume = () => {
-    if (timerRef.current) clearInterval(timerRef.current)
-    if (candidates.length === 0) return
-    const id = setInterval(() => {
-      setActiveIndex((prev) => (prev + 1) % candidates.length)
-    }, 5000)
-    timerRef.current = id
-  }
-
   function getSkillLabel(volunteer: VolunteerProfileView) {
     if (!volunteer.skills?.length) return null
     const cat = skillCategories.find((c) => c.id === volunteer.skills[0].categoryId)
@@ -61,41 +39,22 @@ export function FeaturedCandidates() {
     <section className="py-24 bg-background overflow-hidden">
       <div className="container mx-auto px-4 md:px-6">
         {/* Header */}
-        <header className="flex flex-col md:flex-row md:items-end justify-between mb-16 border-b border-border pb-8">
-          <div className="max-w-2xl">
-            <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold mb-4 block">
-              {home.candidatesTag || "Selection . 02"}
-            </span>
-            <h2 className="text-4xl md:text-5xl font-medium text-foreground tracking-tighter mb-6">
-              {home.featuredCandidates || "Featured Candidates"}
-            </h2>
-            <p className="text-muted-foreground leading-relaxed">
-              {home.featuredCandidatesDesc || "Skilled professionals ready to contribute their expertise to meaningful causes worldwide."}
-            </p>
-          </div>
-          <div className="mt-8 md:mt-0">
-            <LocaleLink
-              href="/volunteers"
-              className="group flex items-center gap-3 text-xs uppercase tracking-widest font-bold text-foreground transition-all"
-            >
-              {home.browseAllCandidates || "Browse All Candidates"}
-              <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-3" />
-            </LocaleLink>
-          </div>
+        <header className="mb-12">
+          <h2 className="text-3xl md:text-4xl font-semibold text-foreground tracking-tight mb-2">
+            {home.browseFeaturedCandidates || "Browse our Featured Candidates"}
+          </h2>
         </header>
 
-        {/* Carousel */}
+        {/* Card Carousel */}
         {loading ? (
-          <div className="flex items-center justify-between w-full max-w-5xl mx-auto px-2 py-4">
-            {[60, 80, 112, 160, 112, 80, 60].map((s, i) => (
-              <div key={i} className="flex flex-col items-center gap-3">
-                <Skeleton className="rounded-full" style={{ width: s, height: s }} />
-                {i === 3 && (
-                  <>
-                    <Skeleton className="h-4 w-24 mt-2" />
-                    <Skeleton className="h-3 w-16" />
-                  </>
-                )}
+          <div className="flex gap-5 overflow-hidden -mx-4 px-4 md:-mx-6 md:px-6">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="min-w-[220px] max-w-[260px] flex-shrink-0 rounded-xl border border-border bg-card overflow-hidden">
+                <Skeleton className="w-full h-40" />
+                <div className="p-4 space-y-2">
+                  <Skeleton className="h-4 w-3/4" />
+                  <Skeleton className="h-3 w-1/2" />
+                </div>
               </div>
             ))}
           </div>
@@ -106,122 +65,72 @@ export function FeaturedCandidates() {
             </p>
           </div>
         ) : (
-          <div
-            onMouseEnter={pause}
-            onMouseLeave={resume}
-          >
-            {/* Avatar row — 7 visible, fills width */}
-            <div className="flex items-center justify-between w-full max-w-5xl mx-auto px-2">
-              {(() => {
-                const total = candidates.length
-                const slots = [-3, -2, -1, 0, 1, 2, 3]
-                return slots.map((offset) => {
-                  let idx = (activeIndex + offset + total) % total
-                  const candidate = candidates[idx]
-                  const isCenter = offset === 0
-                  const absDist = Math.abs(offset)
+          <div className="relative">
+            <div className="flex gap-5 overflow-x-auto pb-4 snap-x snap-mandatory scrollbar-hide -mx-4 px-4 md:-mx-6 md:px-6">
+              {candidates.map((candidate) => {
+                const skill = getSkillLabel(candidate)
+                return (
+                  <LocaleLink
+                    key={candidate.id}
+                    href={`/volunteers/${candidate.id}`}
+                    className="min-w-[220px] max-w-[260px] flex-shrink-0 snap-start group"
+                  >
+                    <div className="rounded-xl border border-border bg-card overflow-hidden hover:shadow-lg transition-all duration-300">
+                      {/* Image */}
+                      <div className="relative w-full h-40 bg-muted overflow-hidden">
+                        {candidate.avatar ? (
+                          <Image
+                            src={candidate.avatar}
+                            alt={candidate.name || "Candidate"}
+                            fill
+                            className="object-cover group-hover:scale-105 transition-transform duration-500"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-muted to-muted-foreground/10">
+                            <span className="text-4xl font-bold text-muted-foreground/40">
+                              {candidate.name ? candidate.name.charAt(0).toUpperCase() : "?"}
+                            </span>
+                          </div>
+                        )}
 
-                  // Sizes: center 160px, ±1 = 110px, ±2 = 80px, ±3 = 60px
-                  const avatarSize = isCenter
-                    ? "w-28 h-28 sm:w-32 sm:h-32 md:w-40 md:h-40"
-                    : absDist === 1
-                    ? "w-20 h-20 sm:w-24 sm:h-24 md:w-28 md:h-28"
-                    : absDist === 2
-                    ? "w-16 h-16 sm:w-18 sm:h-18 md:w-20 md:h-20"
-                    : "w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16"
-                  const imgSize = isCenter ? 160 : absDist === 1 ? 112 : absDist === 2 ? 80 : 64
-                  const avatarOpacity = isCenter ? "opacity-100" : absDist === 1 ? "opacity-70" : absDist === 2 ? "opacity-45" : "opacity-25"
+                        {/* Category badge */}
+                        {skill && (
+                          <span className="absolute bottom-2 left-2 px-2 py-0.5 rounded text-[10px] font-semibold bg-background/90 text-foreground backdrop-blur-sm border border-border">
+                            {skill}
+                          </span>
+                        )}
 
-                  const avatarContent = (
-                    <div className={`rounded-full overflow-hidden bg-muted border-2 transition-all duration-500 ${avatarSize} ${
-                      isCenter ? "border-primary/40 shadow-lg" : "border-border"
-                    }`}>
-                      {candidate.avatar ? (
-                        <Image
-                          src={candidate.avatar}
-                          alt={candidate.name || "Candidate"}
-                          width={imgSize}
-                          height={imgSize}
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <div className={`w-full h-full flex items-center justify-center font-semibold text-muted-foreground ${isCenter ? "text-xl" : "text-sm"}`}>
-                          {candidate.name ? candidate.name.charAt(0).toUpperCase() : "?"}
-                        </div>
-                      )}
+                        {/* Verified badge */}
+                        {candidate.isVerified && (
+                          <div className="absolute top-2 right-2 w-6 h-6 rounded-full bg-orange-500 flex items-center justify-center">
+                            <CheckCircle className="h-3.5 w-3.5 text-white" />
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Info */}
+                      <div className="p-3">
+                        <h3 className="text-sm font-semibold text-foreground truncate group-hover:text-primary transition-colors">
+                          {candidate.name || "Impact Agent"}
+                        </h3>
+                        {candidate.hoursPerWeek && (
+                          <div className="flex items-center gap-1 mt-1.5 text-xs text-muted-foreground">
+                            <Clock className="h-3 w-3" />
+                            <span>{candidate.hoursPerWeek}</span>
+                          </div>
+                        )}
+                      </div>
                     </div>
-                  )
-
-                  return isCenter ? (
-                    <LocaleLink
-                      key={`${idx}-${offset}`}
-                      href={`/volunteers/${candidate.id}`}
-                      className={`flex-shrink-0 cursor-pointer transition-all duration-500 ${avatarOpacity}`}
-                    >
-                      {avatarContent}
-                    </LocaleLink>
-                  ) : (
-                    <div
-                      key={`${idx}-${offset}`}
-                      className={`flex-shrink-0 cursor-pointer transition-all duration-500 ${avatarOpacity}`}
-                      onClick={() => setActiveIndex(idx)}
-                    >
-                      {avatarContent}
-                    </div>
-                  )
-                })
-              })()}
+                  </LocaleLink>
+                )
+              })}
             </div>
 
-            {/* Center candidate info — below the avatar row */}
-            {(() => {
-              const candidate = candidates[activeIndex]
-              if (!candidate) return null
-              const skill = getSkillLabel(candidate)
-              return (
-                <div className="flex flex-col items-center mt-5">
-                  <div className="flex items-center gap-1.5">
-                    <h3 className="text-base font-semibold text-foreground">
-                      {candidate.name || "Impact Agent"}
-                    </h3>
-                    {candidate.isVerified && (
-                      <CheckCircle className="h-4 w-4 text-primary" />
-                    )}
-                  </div>
-                  {skill && (
-                    <p className="text-sm text-muted-foreground mt-1">{skill}</p>
-                  )}
-                  <div className="flex items-center gap-3 mt-1.5 text-xs text-muted-foreground">
-                    {candidate.location && (
-                      <span className="flex items-center gap-1">
-                        <MapPin className="h-3 w-3" />
-                        {candidate.location.split(",")[0]?.trim()}
-                      </span>
-                    )}
-                    {(candidate.rating ?? 0) > 0 && (
-                      <span className="flex items-center gap-1">
-                        <Star className="h-3 w-3 text-yellow-500 fill-yellow-500" />
-                        {(candidate.rating ?? 0).toFixed(1)}
-                      </span>
-                    )}
-                  </div>
-                </div>
-              )
-            })()}
-
-            {/* Dot indicators */}
-            <div className="flex items-center justify-center gap-1.5 mt-6">
-              {candidates.map((_, i) => (
-                <button
-                  key={i}
-                  onClick={() => setActiveIndex(i)}
-                  className={`rounded-full transition-all duration-300 ${
-                    i === activeIndex
-                      ? "w-6 h-1.5 bg-primary"
-                      : "w-1.5 h-1.5 bg-border hover:bg-muted-foreground/40"
-                  }`}
-                />
-              ))}
+            {/* Scroll indicator */}
+            <div className="flex items-center justify-end mt-3 text-sm text-muted-foreground">
+              <span className="flex items-center gap-1">
+                scroll <ArrowRight className="h-3.5 w-3.5" />
+              </span>
             </div>
           </div>
         )}
