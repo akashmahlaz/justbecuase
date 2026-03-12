@@ -1,9 +1,6 @@
 "use client"
 
-import { Button } from "@/components/ui/button"
-import { ArrowRight, Users, Building2 } from "lucide-react"
 import { useDictionary } from "@/components/dictionary-provider"
-import LocaleLink from "@/components/locale-link"
 import { usePlatformSettingsStore } from "@/lib/store"
 
 export function HeroSection() {
@@ -57,36 +54,7 @@ export function HeroSection() {
             )}
           </p>
 
-          {/* Registration Options */}
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-6 mb-8">
-            {/* NGO Registration */}
-            <div className="flex flex-col items-center gap-2 p-6 rounded-2xl border border-border bg-card hover:border-primary/50 transition-colors w-full sm:w-auto sm:min-w-[200px]">
-              <Building2 className="h-8 w-8 text-primary mb-2" />
-              <span className="font-bold text-lg text-foreground">{hero.ngoTitle || "NGO"}</span>
-              <span className="text-xs text-muted-foreground text-center">
-                {hero.ngoSubtitle || "Register here if you are an NGO looking for talent"}
-              </span>
-              <Button asChild size="sm" className="mt-3">
-                <LocaleLink href="/auth/signup?role=ngo" className="flex items-center gap-2">
-                  {hero.ngoButton || "Register"} <ArrowRight className="h-3 w-3" />
-                </LocaleLink>
-              </Button>
-            </div>
 
-            {/* Volunteer Registration */}
-            <div className="flex flex-col items-center gap-2 p-6 rounded-2xl border border-border bg-card hover:border-primary/50 transition-colors w-full sm:w-auto sm:min-w-[200px]">
-              <Users className="h-8 w-8 text-primary mb-2" />
-              <span className="font-bold text-lg text-foreground">{hero.impactAgentTitle || "Impact Agent"}</span>
-              <span className="text-xs text-muted-foreground text-center">
-                {hero.impactAgentSubtitle || "Register here if you are an individual looking to offer your skill"}
-              </span>
-              <Button asChild size="sm" className="mt-3">
-                <LocaleLink href="/auth/signup?role=volunteer" className="flex items-center gap-2">
-                  {hero.impactAgentButton || "Register"} <ArrowRight className="h-3 w-3" />
-                </LocaleLink>
-              </Button>
-            </div>
-          </div>
         </div>
       </div>
     </section>
