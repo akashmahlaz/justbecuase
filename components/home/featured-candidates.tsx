@@ -167,12 +167,7 @@ export function FeaturedCandidates() {
               })}
             </div>
 
-            {/* Scroll indicator */}
-            <div className="flex items-center justify-end mt-3 text-sm text-muted-foreground">
-              <span className="flex items-center gap-1">
-                scroll <ArrowRight className="h-3.5 w-3.5" />
-              </span>
-            </div>
+
           </div>
         )}
       </div>
