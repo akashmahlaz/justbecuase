@@ -65,7 +65,7 @@ export function HowItWorks() {
   };
 
   return (
-    <section className="relative py-24 overflow-hidden bg-background">
+    <section className="relative pt-12 pb-24 overflow-hidden bg-background">
       {/* Background Ambient Glows */}
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full pointer-events-none">
         <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-primary/5 rounded-full blur-[120px]" />
