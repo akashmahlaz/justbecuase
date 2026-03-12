@@ -1,6 +1,6 @@
 "use client";
 
-import { UserPlus, Search, Rocket, FileText, Users, CheckCircle, Gift, DollarSign, Sparkles } from "lucide-react";
+import { UserPlus, Search, Rocket, FileText, Users, CheckCircle } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
 import LocaleLink from "@/components/locale-link";
@@ -73,26 +73,7 @@ export function HowItWorks() {
       </div>
 
       <div className="container relative z-10 mx-auto px-4 md:px-6">
-        {/* Header Section */}
-        <div className="text-center max-w-3xl mx-auto mb-16">
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-          >
-            <span className="inline-block px-4 py-1.5 mb-4 text-xs font-bold tracking-widest uppercase rounded-full bg-primary/10 text-primary">
-              {home.theEcosystem || "The Ecosystem"}
-            </span>
-            <h2 className="text-4xl md:text-5xl font-extrabold tracking-tight text-foreground mb-6 text-balance">
-              {home.ecosystemTitle || "The Global Purpose-Driven Exchange"}
-            </h2>
-            <p className="text-xl text-muted-foreground leading-relaxed">
-              {home.ecosystemDesc || 'Where "Time" is the premium currency. Bridging the gap between world-class talent and social impact.'}
-            </p>
-          </motion.div>
-        </div>
-
-        <Tabs defaultValue="volunteers" className="max-w-5xl mx-auto">
+        <Tabs defaultValue="ngos" className="max-w-5xl mx-auto">
           <div className="flex justify-center mb-16">
             <TabsList className="inline-flex h-14 items-center justify-center rounded-full bg-muted p-1.5 shadow-inner border border-border/50">
               <TabsTrigger 
@@ -120,7 +101,6 @@ export function HowItWorks() {
             >
               {volunteerSteps.map((step, index) => (
                 <motion.div key={step.title} variants={itemVariants} className="group relative">
-                  {/* Elegant Connector Line */}
                   {index < volunteerSteps.length - 1 && (
                     <div className="hidden md:block absolute top-12 left-1/2 w-full h-[2px] bg-gradient-to-r from-primary/30 via-primary/5 to-transparent z-0" />
                   )}
@@ -167,7 +147,6 @@ export function HowItWorks() {
             >
               {ngoSteps.map((step, index) => (
                 <motion.div key={step.title} variants={itemVariants} className="group relative">
-                  {/* Elegant Connector Line */}
                   {index < ngoSteps.length - 1 && (
                     <div className="hidden md:block absolute top-12 left-1/2 w-full h-[2px] bg-gradient-to-r from-secondary/30 via-secondary/5 to-transparent z-0" />
                   )}

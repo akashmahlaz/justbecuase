@@ -18,10 +18,10 @@ export default async function HomePage() {
       <Navbar />
       <main className="flex-1">
         <HeroSection />
-        <GlobalSearchSection />
         <HowItWorks />
         <FeaturedProjects />
         <FeaturedCandidates />
+        <GlobalSearchSection />
         <Testimonials />
         <CTASection />
       </main>
