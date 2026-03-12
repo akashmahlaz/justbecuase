@@ -66,7 +66,7 @@ export default async function NGOFindTalentPage({ params }: { params: Promise<{ 
           <BrowseGridSkeleton columns={3} count={6} />
         </div>
       }>
-        <VolunteersPage embed />
+        <VolunteersPage embed subscriptionPlan={ngoSubscription?.plan || "free"} />
       </React.Suspense>
     </main>
   )
