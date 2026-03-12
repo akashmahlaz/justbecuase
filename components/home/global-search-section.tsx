@@ -500,7 +500,7 @@ export function GlobalSearchSection() {
           {/* Header */}
           <div className="text-center mb-8">
             <h2 className="text-2xl md:text-3xl font-bold text-foreground mb-2">
-              {s.findTitle || "Or Save time &  just use our Intelligent Search Engine"} <span className="font-extrabold">{s.jbcertaName || "JBCerta"}</span>
+              {s.findTitle || "Save time - just use our Intelligent Search Engine"} <span className="font-extrabold">{s.jbcertaName || "JBCerta"}</span>
             </h2>
             {/* JBCerta AI Branding */}
             <div className="flex items-center justify-center gap-2 mb-3">
