@@ -3,11 +3,12 @@
 import { useState, useEffect } from "react"
 import Image from "next/image"
 import LocaleLink from "@/components/locale-link"
-import { ArrowRight, Clock, CheckCircle } from "lucide-react"
+import { ArrowRight, Clock, CheckCircle, MapPin, Star } from "lucide-react"
 import { browseVolunteers } from "@/lib/actions"
-import { skillCategories } from "@/lib/skills-data"
+import { skillCategories, resolveSkillName } from "@/lib/skills-data"
 import { useDictionary } from "@/components/dictionary-provider"
 import { Skeleton } from "@/components/ui/skeleton"
+import { Badge } from "@/components/ui/badge"
 import type { VolunteerProfileView } from "@/lib/types"
 
 export function FeaturedCandidates() {
@@ -49,11 +50,15 @@ export function FeaturedCandidates() {
         {loading ? (
           <div className="flex gap-5 overflow-hidden -mx-4 px-4 md:-mx-6 md:px-6">
             {Array.from({ length: 4 }).map((_, i) => (
-              <div key={i} className="min-w-[220px] max-w-[260px] flex-shrink-0 rounded-xl border border-border bg-card overflow-hidden">
-                <Skeleton className="w-full h-40" />
-                <div className="p-4 space-y-2">
+              <div key={i} className="min-w-[280px] max-w-[320px] flex-shrink-0 rounded-xl border border-border bg-card overflow-hidden">
+                <Skeleton className="w-full h-48" />
+                <div className="p-4 space-y-3">
                   <Skeleton className="h-4 w-3/4" />
                   <Skeleton className="h-3 w-1/2" />
+                  <div className="flex gap-2">
+                    <Skeleton className="h-5 w-16 rounded-full" />
+                    <Skeleton className="h-5 w-16 rounded-full" />
+                  </div>
                 </div>
               </div>
             ))}
@@ -67,27 +72,31 @@ export function FeaturedCandidates() {
         ) : (
           <div className="relative">
             <div className="flex gap-5 overflow-x-auto pb-4 snap-x snap-mandatory scrollbar-hide -mx-4 px-4 md:-mx-6 md:px-6">
-              {candidates.map((candidate) => {
+              {candidates.map((candidate, index) => {
                 const skill = getSkillLabel(candidate)
+                const subskills = candidate.skills?.slice(0, 3).map(s => resolveSkillName(s.subskillId)) || []
                 return (
                   <LocaleLink
                     key={candidate.id}
                     href={`/volunteers/${candidate.id}`}
-                    className="min-w-[220px] max-w-[260px] flex-shrink-0 snap-start group"
+                    className="min-w-[280px] max-w-[320px] flex-shrink-0 snap-start group"
                   >
-                    <div className="rounded-xl border border-border bg-card overflow-hidden hover:shadow-lg transition-all duration-300">
+                    <div className="rounded-xl border border-border bg-card overflow-hidden hover:shadow-lg transition-all duration-300 h-full">
                       {/* Image */}
-                      <div className="relative w-full h-40 bg-muted overflow-hidden">
+                      <div className="relative w-full h-48 bg-muted overflow-hidden">
                         {candidate.avatar ? (
                           <Image
                             src={candidate.avatar}
                             alt={candidate.name || "Candidate"}
                             fill
+                            sizes="320px"
+                            priority={index < 4}
+                            loading={index < 4 ? "eager" : "lazy"}
                             className="object-cover group-hover:scale-105 transition-transform duration-500"
                           />
                         ) : (
                           <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-muted to-muted-foreground/10">
-                            <span className="text-4xl font-bold text-muted-foreground/40">
+                            <span className="text-5xl font-bold text-muted-foreground/30">
                               {candidate.name ? candidate.name.charAt(0).toUpperCase() : "?"}
                             </span>
                           </div>
@@ -95,28 +104,60 @@ export function FeaturedCandidates() {
 
                         {/* Category badge */}
                         {skill && (
-                          <span className="absolute bottom-2 left-2 px-2 py-0.5 rounded text-[10px] font-semibold bg-background/90 text-foreground backdrop-blur-sm border border-border">
+                          <span className="absolute bottom-2 left-2 px-2.5 py-1 rounded-md text-[11px] font-semibold bg-background/90 text-foreground backdrop-blur-sm border border-border">
                             {skill}
                           </span>
                         )}
 
                         {/* Verified badge */}
                         {candidate.isVerified && (
-                          <div className="absolute top-2 right-2 w-6 h-6 rounded-full bg-orange-500 flex items-center justify-center">
-                            <CheckCircle className="h-3.5 w-3.5 text-white" />
+                          <div className="absolute top-2.5 right-2.5 w-7 h-7 rounded-full bg-orange-500 flex items-center justify-center shadow-sm">
+                            <CheckCircle className="h-4 w-4 text-white" />
                           </div>
                         )}
                       </div>
 
                       {/* Info */}
-                      <div className="p-3">
-                        <h3 className="text-sm font-semibold text-foreground truncate group-hover:text-primary transition-colors">
+                      <div className="p-4">
+                        <h3 className="text-base font-semibold text-foreground truncate group-hover:text-primary transition-colors">
                           {candidate.name || "Impact Agent"}
                         </h3>
-                        {candidate.hoursPerWeek && (
-                          <div className="flex items-center gap-1 mt-1.5 text-xs text-muted-foreground">
-                            <Clock className="h-3 w-3" />
-                            <span>{candidate.hoursPerWeek}</span>
+
+                        {/* Location & Rating */}
+                        <div className="flex items-center gap-3 mt-1.5 text-xs text-muted-foreground">
+                          {candidate.location && (
+                            <span className="flex items-center gap-1 truncate">
+                              <MapPin className="h-3 w-3 flex-shrink-0" />
+                              {candidate.location.split(",")[0]?.trim()}
+                            </span>
+                          )}
+                          {(candidate.rating ?? 0) > 0 && (
+                            <span className="flex items-center gap-1 flex-shrink-0">
+                              <Star className="h-3 w-3 text-yellow-500 fill-yellow-500" />
+                              {(candidate.rating ?? 0).toFixed(1)}
+                            </span>
+                          )}
+                          {candidate.hoursPerWeek && (
+                            <span className="flex items-center gap-1 flex-shrink-0">
+                              <Clock className="h-3 w-3" />
+                              {candidate.hoursPerWeek}
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Skills */}
+                        {subskills.length > 0 && (
+                          <div className="flex flex-wrap gap-1.5 mt-3">
+                            {subskills.map((s) => (
+                              <Badge key={s} variant="outline" className="text-[10px] px-2 py-0.5 font-normal bg-muted/50">
+                                {s}
+                              </Badge>
+                            ))}
+                            {(candidate.skills?.length || 0) > 3 && (
+                              <Badge variant="outline" className="text-[10px] px-2 py-0.5 font-normal text-muted-foreground">
+                                +{candidate.skills.length - 3}
+                              </Badge>
+                            )}
                           </div>
                         )}
                       </div>
