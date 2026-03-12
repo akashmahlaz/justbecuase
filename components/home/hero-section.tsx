@@ -10,7 +10,7 @@ export function HeroSection() {
   const platformName = platformSettings?.platformName || "JustBeCause Network"
 
   return (
-    <section className="relative overflow-hidden bg-background pt-16 pb-10 md:pt-24 md:pb-14 lg:pt-32 lg:pb-16">
+    <section className="relative overflow-hidden bg-background pt-16 pb-6 md:pt-24 md:pb-8 lg:pt-28 lg:pb-10">
       {/* Minimal background */}
       <div className="absolute inset-0 overflow-hidden">
         <div className="absolute top-0 right-0 h-96 w-96 rounded-full bg-primary/3 blur-3xl" />
