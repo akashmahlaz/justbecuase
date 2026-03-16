@@ -1,10 +1,10 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import LocaleLink from "@/components/locale-link"
 import { ProjectCard } from "@/components/project-card"
 import { browseProjects } from "@/lib/actions"
-import { ArrowRight } from "lucide-react"
+import { ArrowRight, ChevronLeft, ChevronRight } from "lucide-react"
 import { resolveSkillName } from "@/lib/skills-data"
 import { useDictionary } from "@/components/dictionary-provider"
 import { useLocale } from "@/hooks/use-locale"
@@ -16,6 +16,7 @@ export function FeaturedProjects() {
   const home = dict.home || {}
   const [featuredProjects, setFeaturedProjects] = useState<Awaited<ReturnType<typeof browseProjects>>>([]);
   const [loading, setLoading] = useState(true);
+  const scrollRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     browseProjects()
@@ -23,24 +24,27 @@ export function FeaturedProjects() {
       .finally(() => setLoading(false));
   }, []);
 
+  const scroll = (direction: "left" | "right") => {
+    const el = scrollRef.current
+    if (!el) return
+    el.scrollBy({ left: direction === "left" ? -360 : 360, behavior: "smooth" })
+  }
+
   return (
     <section className="relative py-24 bg-background overflow-hidden">
       {/* Editorial Dot Grid Pattern */}
-      <div 
-        className="absolute inset-0 z-0 pointer-events-none" 
-        style={{ 
-          backgroundImage: `radial-gradient(#f1f5f9 1px, transparent 1px)`, 
-          backgroundSize: '32px 32px' 
-        }} 
+      <div
+        className="absolute inset-0 z-0 pointer-events-none"
+        style={{
+          backgroundImage: `radial-gradient(#f1f5f9 1px, transparent 1px)`,
+          backgroundSize: '32px 32px'
+        }}
       />
 
       <div className="container relative z-10 mx-auto px-4 md:px-6">
-        {/* Header Section */}
+        {/* Header Section — removed "Selection .01" label (fix #2) */}
         <header className="flex flex-col md:flex-row md:items-end justify-between mb-20 border-b border-border pb-8">
           <div className="max-w-2xl">
-            <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold mb-4 block">
-              {home.featuredSelection || "Selection . 01"}
-            </span>
             <h2 className="text-4xl md:text-5xl font-medium text-foreground tracking-tighter mb-6">
               {home.featuredProjects || "Featured Opportunities"}
             </h2>
@@ -49,9 +53,26 @@ export function FeaturedProjects() {
             </p>
           </div>
 
-          <div className="mt-8 md:mt-0">
-            <LocaleLink 
-              href="/projects" 
+          <div className="mt-8 md:mt-0 flex items-center gap-4">
+            {/* Scroll buttons (fix #3) */}
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => scroll("left")}
+                className="p-2 rounded-full border border-border bg-background hover:bg-muted transition-colors"
+                aria-label="Scroll left"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </button>
+              <button
+                onClick={() => scroll("right")}
+                className="p-2 rounded-full border border-border bg-background hover:bg-muted transition-colors"
+                aria-label="Scroll right"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </button>
+            </div>
+            <LocaleLink
+              href="/projects"
               className="group flex items-center gap-3 text-xs uppercase tracking-widest font-bold text-foreground transition-all"
             >
               {home.browseAllOpportunities || "Browse All Opportunities"}
@@ -89,7 +110,10 @@ export function FeaturedProjects() {
             <p className="text-muted-foreground uppercase tracking-widest text-xs">{home.noEntries || "No entries found"}</p>
           </div>
         ) : (
-          <div className="flex gap-6 overflow-x-auto pb-6 snap-x snap-mandatory scrollbar-hide -mx-4 px-4 md:-mx-6 md:px-6">
+          <div
+            ref={scrollRef}
+            className="flex gap-6 overflow-x-auto pb-6 snap-x snap-mandatory scrollbar-hide -mx-4 px-4 md:-mx-6 md:px-6"
+          >
             {featuredProjects.map((project) => (
               <div key={project._id?.toString()} className="min-w-[320px] max-w-[380px] flex-shrink-0 snap-start">
                 <ProjectCard project={{
