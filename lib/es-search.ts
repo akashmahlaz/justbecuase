@@ -136,7 +136,7 @@ export async function elasticSearch(params: ESSearchParams): Promise<{
       sort: sortConfig,
       _source: true,
       track_total_hits: true,
-      min_score: 2.0, // Filter out very low relevance / tangential matches
+      min_score: 5.0, // Filter out very low relevance / tangential matches
     })
 
     const total = typeof response.hits.total === "number"
@@ -160,7 +160,7 @@ export async function elasticSearch(params: ESSearchParams): Promise<{
     // This removes tail matches where the MUST clause barely passed
     // (e.g. fuzzy single-token match with low TF-IDF).
     const topScore = results.length > 0 ? results[0].score : 0
-    const scoreThreshold = topScore * 0.15
+    const scoreThreshold = topScore * 0.30
     const qualityResults = topScore > 0
       ? results.filter(r => r.score >= scoreThreshold)
       : results
@@ -1730,10 +1730,9 @@ export function buildSearchQuery(query: string, filters?: ESSearchParams["filter
             operator: "and",
           },
         }] : []),
-        // 4. When we actually recognized a specific skill, require the result
-        //    to have that skill present. This stops generic projects from
-        //    sneaking in.
-        ...(matchedSkillIds.length > 0 ? [{ terms: { skillIds: matchedSkillIds } }] : []),
+        // 4. Skill ID match as an additional SHOULD option (bonus scoring).
+        //    The hard filter is applied separately below.
+        ...(matchedSkillIds.length > 0 ? [{ terms: { skillIds: matchedSkillIds, boost: 20 } }] : []),
         // 5. When synonym expansion found matching role→skills, allow documents
         //    that have ANY of those skill names in skillNames to pass the gate.
         //    This handles "web designer" matching "Web Design" in skillNames even
@@ -1754,6 +1753,16 @@ export function buildSearchQuery(query: string, filters?: ESSearchParams["filter
       minimum_should_match: 1,
     },
   })
+
+  // ============================================
+  // FILTER: When a skill query is detected, require documents to actually
+  // have the matched skill. This prevents results that merely mention
+  // the skill term in bio/description from appearing.
+  // ============================================
+  if (matchedSkillIds.length > 0) {
+    filterClauses.push({ terms: { skillIds: matchedSkillIds } })
+    console.log(`[ES Search] Adding skill FILTER for ids: ${matchedSkillIds}`)
+  }
 
   // ============================================
   // bool_prefix for search-as-you-type (moved to SHOULD — bonus only,

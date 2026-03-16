@@ -366,7 +366,13 @@ export default function VolunteerOnboardingPage() {
       
       if (!onboardResult.success) {
         console.error("Failed to complete onboarding:", onboardResult.error)
-        // Still redirect - profile is saved
+        // Profile is saved but onboarding flag failed — retry once
+        const retry = await completeOnboarding()
+        if (!retry.success) {
+          setError("Your profile was saved but we couldn't finalize setup. Please try again.")
+          setIsLoading(false)
+          return
+        }
       }
 
       // Get the volunteer's name from session
@@ -392,9 +398,9 @@ export default function VolunteerOnboardingPage() {
       </div>
 
       <div className="grid gap-4">
-        {/* Profile Photo (Mandatory) */}
+        {/* Profile Photo (Optional) */}
         <div className="space-y-3">
-          <Label>{dict.volunteer?.onboarding?.profilePhoto || "Profile Photo"} <span className="text-destructive">*</span></Label>
+          <Label>{dict.volunteer?.onboarding?.profilePhoto || "Profile Photo"} <span className="text-xs text-muted-foreground">({dict.volunteer?.common?.optional || "optional"})</span></Label>
           <div className="flex items-center gap-4">
             <div
               onClick={() => avatarInputRef.current?.click()}
@@ -1208,10 +1214,6 @@ export default function VolunteerOnboardingPage() {
               onClick={() => {
                 // Validate step 1: phone must be verified
                 if (step === 1) {
-                  if (!avatarUrl) {
-                    setError(dict.volunteer?.onboarding?.photoRequiredError || "Please upload a profile photo to continue")
-                    return
-                  }
                   if (phoneVerificationStep !== "verified") {
                     setError(dict.volunteer?.onboarding?.verifyPhoneError || "Please verify your phone number to continue")
                     return

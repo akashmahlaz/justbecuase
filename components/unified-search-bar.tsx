@@ -244,7 +244,7 @@ export function UnifiedSearchBar({
   // ============================================
 
   const fetchSuggestions = useCallback(async (query: string) => {
-    if (!query || query.trim().length < 1) {
+    if (!query || query.trim().length < 2) {
       setSuggestions([])
       return
     }
@@ -285,11 +285,11 @@ export function UnifiedSearchBar({
   // EFFECTS
   // ============================================
 
-  // Suggestions debounce
+  // Suggestions debounce — require 2+ chars to reduce noise
   useEffect(() => {
     if (disableSuggestions) return
     const timer = setTimeout(() => {
-      if (searchQuery.trim().length >= 1) {
+      if (searchQuery.trim().length >= 2) {
         fetchSuggestions(searchQuery)
         setShowDropdown(true)
       } else {
@@ -328,7 +328,7 @@ export function UnifiedSearchBar({
       subtitle?: string
     }> = []
 
-    if (searchQuery.trim().length >= 1 && suggestions.length > 0) {
+    if (searchQuery.trim().length >= 2 && suggestions.length > 0) {
       suggestions.forEach(s => items.push({
         type: "suggestion",
         text: s.text,
@@ -336,7 +336,7 @@ export function UnifiedSearchBar({
         id: s.id,
         subtitle: s.subtitle,
       }))
-    } else if (searchQuery.trim().length < 1) {
+    } else if (searchQuery.trim().length < 2) {
       recentSearches.forEach(s => items.push({ type: "recent", text: s }))
     }
 
@@ -381,12 +381,23 @@ export function UnifiedSearchBar({
         }
         setShowDropdown(false)
         break
+      case "Tab":
+        // Tab accepts the first suggestion as autocomplete
+        if (suggestions.length > 0) {
+          e.preventDefault()
+          const target = selectedIndex >= 0 ? dropdownItems[selectedIndex] : dropdownItems[0]
+          if (target) {
+            setSearchQuery(target.text)
+            setShowDropdown(false)
+          }
+        }
+        break
       case "Escape":
         setShowDropdown(false)
         inputRef.current?.blur()
         break
     }
-  }, [showDropdown, dropdownItems, selectedIndex, searchQuery, addRecentSearch, setSearchQuery, onSubmit])
+  }, [showDropdown, dropdownItems, selectedIndex, searchQuery, suggestions, addRecentSearch, setSearchQuery, onSubmit])
 
   useEffect(() => {
     setSelectedIndex(-1)
@@ -429,7 +440,7 @@ export function UnifiedSearchBar({
 
   const handleInputFocus = () => {
     if (disableSuggestions) return
-    if (searchQuery.trim().length >= 1 || recentSearches.length > 0) {
+    if (searchQuery.trim().length >= 2 || recentSearches.length > 0) {
       setShowDropdown(true)
     }
   }
@@ -527,7 +538,7 @@ export function UnifiedSearchBar({
               className="absolute z-[60] w-full mt-1 bg-background border border-border rounded-xl shadow-xl overflow-hidden max-h-[400px] overflow-y-auto"
             >
               {/* Suggestions (when typing) */}
-              {searchQuery.trim().length >= 1 && (
+              {searchQuery.trim().length >= 2 && (
                 <>
                   {isSuggestionsLoading && suggestions.length === 0 && (
                     <div className="p-3 space-y-2">
@@ -609,7 +620,7 @@ export function UnifiedSearchBar({
               )}
 
               {/* Recent Searches */}
-              {searchQuery.trim().length < 1 && recentSearches.length > 0 && (
+              {searchQuery.trim().length < 2 && recentSearches.length > 0 && (
                 <div className="py-1">
                   <div className="px-3 py-1.5 flex items-center justify-between">
                     <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
@@ -649,7 +660,7 @@ export function UnifiedSearchBar({
               )}
 
               {/* Popular searches */}
-              {searchQuery.trim().length < 1 && recentSearches.length === 0 && (
+              {searchQuery.trim().length < 2 && recentSearches.length === 0 && (
                 <div className="py-1">
                   <div className="px-3 py-1.5 text-xs font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
                     <TrendingUp className="h-3 w-3" />

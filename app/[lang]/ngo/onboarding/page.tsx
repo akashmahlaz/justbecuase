@@ -287,6 +287,39 @@ export default function NGOOnboardingPage() {
 
   const progress = (step / totalSteps) * 100
 
+  // Persist onboarding state to sessionStorage so back-navigation doesn't lose data
+  const NGO_STORAGE_KEY = "jb_ngo_onboarding_state"
+
+  // Restore state from sessionStorage on mount
+  useEffect(() => {
+    try {
+      const saved = sessionStorage.getItem(NGO_STORAGE_KEY)
+      if (saved) {
+        const state = JSON.parse(saved)
+        if (state.step) setStep(state.step)
+        if (state.orgDetails) setOrgDetails(state.orgDetails)
+        if (state.selectedCauses) setSelectedCauses(state.selectedCauses)
+        if (state.requiredSkills) setRequiredSkills(state.requiredSkills)
+        if (state.verificationDocuments) setVerificationDocuments(state.verificationDocuments)
+        if (state.phoneVerified) setPhoneVerificationStep("verified")
+      }
+    } catch {}
+  }, [])
+
+  // Save state to sessionStorage on every change
+  useEffect(() => {
+    try {
+      sessionStorage.setItem(NGO_STORAGE_KEY, JSON.stringify({
+        step,
+        orgDetails,
+        selectedCauses,
+        requiredSkills,
+        verificationDocuments,
+        phoneVerified: phoneVerificationStep === "verified",
+      }))
+    } catch {}
+  }, [step, orgDetails, selectedCauses, requiredSkills, verificationDocuments, phoneVerificationStep])
+
   const handleCauseToggle = (causeId: string) => {
     if (selectedCauses.includes(causeId)) {
       setSelectedCauses(selectedCauses.filter((c) => c !== causeId))
@@ -359,11 +392,19 @@ export default function NGOOnboardingPage() {
       
       if (!onboardResult.success) {
         console.error("Failed to complete onboarding:", onboardResult.error)
-        // Still redirect - profile is saved
+        // Profile is saved but onboarding flag failed — retry once
+        const retry = await completeOnboarding()
+        if (!retry.success) {
+          setError(dict.ngo?.onboarding?.finalizeFailed || "Your profile was saved but we couldn't finalize setup. Please try again.")
+          setIsLoading(false)
+          return
+        }
       }
 
       // Redirect to dashboard with welcome message
       const orgName = orgDetails.orgName || session?.user?.name || "there"
+      // Clear saved onboarding state
+      try { sessionStorage.removeItem(NGO_STORAGE_KEY) } catch {}
       router.push(localePath(`/ngo/dashboard?welcome=${encodeURIComponent(orgName)}`, locale))
     } catch (error) {
       console.error("Onboarding error:", error)
