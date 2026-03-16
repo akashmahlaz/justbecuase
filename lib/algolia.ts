@@ -11,19 +11,23 @@ const SEARCH_KEY = process.env.NEXT_PUBLIC_ALGOLIA_SEARCH_KEY || ""
 const WRITE_KEY = process.env.ALGOLIA_WRITE_KEY || ""
 
 // Server-side client (has write access — NEVER expose to client)
+let _adminClient: ReturnType<typeof algoliasearch> | null = null
 export function getAlgoliaAdminClient() {
   if (!APP_ID || !WRITE_KEY) {
     throw new Error("Algolia admin credentials not configured")
   }
-  return algoliasearch(APP_ID, WRITE_KEY)
+  if (!_adminClient) _adminClient = algoliasearch(APP_ID, WRITE_KEY)
+  return _adminClient
 }
 
 // Search-only client (safe for client-side)
+let _searchClient: ReturnType<typeof algoliasearch> | null = null
 export function getAlgoliaSearchClient() {
   if (!APP_ID || !SEARCH_KEY) {
     throw new Error("Algolia search credentials not configured")
   }
-  return algoliasearch(APP_ID, SEARCH_KEY)
+  if (!_searchClient) _searchClient = algoliasearch(APP_ID, SEARCH_KEY)
+  return _searchClient
 }
 
 // ============================================
@@ -55,10 +59,19 @@ for (const c of causesList) {
   CAUSE_NAME_MAP.set(c.id, c.name)
 }
 
-export function resolveSkillNames(skills: any[]): string[] {
-  if (!Array.isArray(skills)) return []
-  return skills
-    .map((s) => {
+// MongoDB stores skills/causes as JSON strings — safely parse them
+function safeParseArray(val: any): any[] {
+  if (Array.isArray(val)) return val
+  if (typeof val === "string") {
+    try { return JSON.parse(val) } catch { return [] }
+  }
+  return []
+}
+
+export function resolveSkillNames(skills: any): string[] {
+  const arr = safeParseArray(skills)
+  return arr
+    .map((s: any) => {
       if (typeof s === "string") return SKILL_NAME_MAP.get(s)?.name || s.replace(/-/g, " ")
       const id = s?.subskillId || s?.id
       return id ? SKILL_NAME_MAP.get(id)?.name || id.replace(/-/g, " ") : null
@@ -66,10 +79,10 @@ export function resolveSkillNames(skills: any[]): string[] {
     .filter(Boolean) as string[]
 }
 
-export function resolveSkillCategories(skills: any[]): string[] {
-  if (!Array.isArray(skills)) return []
+export function resolveSkillCategories(skills: any): string[] {
+  const arr = safeParseArray(skills)
   const cats = new Set<string>()
-  for (const s of skills) {
+  for (const s of arr) {
     const catId = typeof s === "string" ? null : s?.categoryId
     if (catId) {
       const catObj = skillCategories.find((c) => c.id === catId)
@@ -85,10 +98,10 @@ export function resolveSkillCategories(skills: any[]): string[] {
   return Array.from(cats)
 }
 
-export function resolveCauseNames(causeIds: any[]): string[] {
-  if (!Array.isArray(causeIds)) return []
-  return causeIds
-    .map((c) => {
+export function resolveCauseNames(causeIds: any): string[] {
+  const arr = safeParseArray(causeIds)
+  return arr
+    .map((c: any) => {
       const id = typeof c === "string" ? c : c?.id
       return id ? CAUSE_NAME_MAP.get(id) || id.replace(/-/g, " ") : null
     })
@@ -100,9 +113,11 @@ export function resolveCauseNames(causeIds: any[]): string[] {
 // ============================================
 
 export function transformVolunteerRecord(user: any): Record<string, any> {
-  const skillNames = resolveSkillNames(user.skills)
-  const skillCategories = resolveSkillCategories(user.skills)
-  const causeNames = resolveCauseNames(user.causes)
+  const parsedSkills = safeParseArray(user.skills)
+  const parsedCauses = safeParseArray(user.causes)
+  const skillNames = resolveSkillNames(parsedSkills)
+  const skillCats = resolveSkillCategories(parsedSkills)
+  const causeNames = resolveCauseNames(parsedCauses)
 
   return {
     objectID: user._id?.toString(),
@@ -117,13 +132,12 @@ export function transformVolunteerRecord(user: any): Record<string, any> {
     country: user.country || "",
     // Skills (denormalized for search)
     skillNames,
-    skillCategories,
-    skillIds: Array.isArray(user.skills)
-      ? user.skills.map((s: any) => (typeof s === "string" ? s : s?.subskillId || s?.id)).filter(Boolean)
-      : [],
+    skillCategories: skillCats,
+    skillIds: parsedSkills
+      .map((s: any) => (typeof s === "string" ? s : s?.subskillId || s?.id)).filter(Boolean),
     // Causes (denormalized)
     causeNames,
-    causeIds: Array.isArray(user.causes) ? user.causes.filter(Boolean) : [],
+    causeIds: parsedCauses.filter(Boolean),
     // Filters (facets)
     volunteerType: user.volunteerType || "free",
     workMode: user.workMode || "remote",
@@ -149,9 +163,11 @@ export function transformVolunteerRecord(user: any): Record<string, any> {
 }
 
 export function transformNGORecord(user: any): Record<string, any> {
-  const skillNames = resolveSkillNames(user.typicalSkillsNeeded || user.skills)
-  const skillCats = resolveSkillCategories(user.typicalSkillsNeeded || user.skills)
-  const causeNames = resolveCauseNames(user.causes)
+  const ngoSkills = safeParseArray(user.typicalSkillsNeeded || user.skills)
+  const ngoCauses = safeParseArray(user.causes)
+  const skillNames = resolveSkillNames(ngoSkills)
+  const skillCats = resolveSkillCategories(ngoSkills)
+  const causeNames = resolveCauseNames(ngoCauses)
 
   return {
     objectID: user._id?.toString(),
@@ -170,12 +186,11 @@ export function transformNGORecord(user: any): Record<string, any> {
     // Skills needed
     skillNames,
     skillCategories: skillCats,
-    skillIds: Array.isArray(user.typicalSkillsNeeded)
-      ? user.typicalSkillsNeeded.map((s: any) => s?.subskillId || s?.id).filter(Boolean)
-      : [],
+    skillIds: ngoSkills
+      .map((s: any) => s?.subskillId || s?.id).filter(Boolean),
     // Causes
     causeNames,
-    causeIds: Array.isArray(user.causes) ? user.causes.filter(Boolean) : [],
+    causeIds: ngoCauses.filter(Boolean),
     // Filters
     acceptRemoteVolunteers: user.acceptRemoteVolunteers || false,
     acceptOnsiteVolunteers: user.acceptOnsiteVolunteers || false,
@@ -195,9 +210,11 @@ export function transformNGORecord(user: any): Record<string, any> {
 }
 
 export function transformOpportunityRecord(project: any, ngoName?: string): Record<string, any> {
-  const skillNames = resolveSkillNames(project.skillsRequired || project.skills)
-  const skillCats = resolveSkillCategories(project.skillsRequired || project.skills)
-  const causeNames = resolveCauseNames(project.causes)
+  const projSkills = safeParseArray(project.skillsRequired || project.skills)
+  const projCauses = safeParseArray(project.causes)
+  const skillNames = resolveSkillNames(projSkills)
+  const skillCats = resolveSkillCategories(projSkills)
+  const causeNames = resolveCauseNames(projCauses)
 
   return {
     objectID: project._id?.toString(),
@@ -209,12 +226,11 @@ export function transformOpportunityRecord(project: any, ngoName?: string): Reco
     // Skills
     skillNames,
     skillCategories: skillCats,
-    skillIds: Array.isArray(project.skillsRequired)
-      ? project.skillsRequired.map((s: any) => s?.subskillId || s?.id).filter(Boolean)
-      : [],
+    skillIds: projSkills
+      .map((s: any) => s?.subskillId || s?.id).filter(Boolean),
     // Causes
     causeNames,
-    causeIds: Array.isArray(project.causes) ? project.causes.filter(Boolean) : [],
+    causeIds: projCauses.filter(Boolean),
     // Filters
     experienceLevel: project.experienceLevel || "",
     timeCommitment: project.timeCommitment || "",

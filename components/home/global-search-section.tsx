@@ -56,16 +56,16 @@ interface SearchSuggestion {
 
 const RECENT_SEARCHES_KEY = "jb_recent_searches"
 const MAX_RECENT_SEARCHES = 5
-const DEBOUNCE_SUGGESTIONS_MS = 150 // Fast for autocomplete
+const DEBOUNCE_SUGGESTIONS_MS = 400 // Reduced noise
 const DEBOUNCE_RESULTS_MS = 300 // Slightly slower for full results
 
 const POPULAR_SEARCHES = [
-  { label: "Web Development", query: "web development", icon: "💻" },
-  { label: "Graphic Design", query: "graphic design", icon: "🎨" },
-  { label: "Marketing", query: "marketing", icon: "📈" },
-  { label: "Content Writing", query: "content writing", icon: "✍️" },
-  { label: "Data Analysis", query: "data analysis", icon: "📊" },
-  { label: "Education", query: "education", icon: "📚" },
+  { label: "Web Development", query: "web development", icon: "" },
+  { label: "Graphic Design", query: "graphic design", icon: "" },
+  { label: "Marketing", query: "marketing", icon: "" },
+  { label: "Content Writing", query: "content writing", icon: "" },
+  { label: "Data Analysis", query: "data analysis", icon: "" },
+  { label: "Education", query: "education", icon: "" },
 ]
 
 const TYPE_CONFIG = {
@@ -207,7 +207,7 @@ export function GlobalSearchSection() {
   // ============================================
 
   const fetchSuggestions = useCallback(async (query: string, type: string) => {
-    if (!query || query.trim().length < 1) {
+    if (!query || query.trim().length < 3) {
       setSuggestions([])
       return
     }
@@ -295,10 +295,10 @@ export function GlobalSearchSection() {
   // DEBOUNCED EFFECTS
   // ============================================
 
-  // Suggestions (fast debounce - 150ms)
+  // Suggestions (debounced - 400ms, 3+ chars)
   useEffect(() => {
     const timer = setTimeout(() => {
-      if (searchQuery.trim().length >= 1) {
+      if (searchQuery.trim().length >= 3) {
         fetchSuggestions(searchQuery, searchType)
         setShowDropdown(true)
       } else {
