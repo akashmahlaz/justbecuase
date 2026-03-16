@@ -66,7 +66,7 @@ export default function VolunteersPage({ embed, subscriptionPlan }: VolunteersPa
   // Debounced unified search
   useEffect(() => {
     const trimmed = searchQuery.trim()
-    if (trimmed.length < 1) {
+    if (trimmed.length < 3) {
       setUnifiedMatchedIds(null)
       setUnifiedRelevanceOrder(new Map())
       return

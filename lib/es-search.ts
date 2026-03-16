@@ -131,6 +131,24 @@ export async function elasticSearch(params: ESSearchParams): Promise<{
         pre_tags: ["<mark>"],
         post_tags: ["</mark>"],
       },
+      // Rescore top results with phrase matching for precision.
+      // The initial query casts a wide net; rescoring promotes results
+      // where the query appears as an exact phrase in key fields.
+      rescore: {
+        window_size: 50,
+        query: {
+          rescore_query: {
+            multi_match: {
+              query: trimmedQuery,
+              type: "phrase",
+              fields: ["name^5", "title^5", "skillNames^8", "headline^4", "orgName^5"],
+              slop: 1,
+            },
+          },
+          query_weight: 0.7,
+          rescore_query_weight: 1.2,
+        },
+      },
       from: offset,
       size: limit,
       sort: sortConfig,
@@ -171,6 +189,66 @@ export async function elasticSearch(params: ESSearchParams): Promise<{
 
     if (qualityResults.length > 0) {
       console.log(`[ES Search] Top result: type=${qualityResults[0].type} title="${qualityResults[0].title}" score=${qualityResults[0].score}`)
+    }
+
+    // When zero quality results, attempt a relaxed fuzzy-only search.
+    // This gives us a "did you mean?" hint for typos like "grphic desginer".
+    if (qualityResults.length === 0 && trimmedQuery.length >= 3) {
+      console.log(`[ES Search] Zero quality results — trying fuzzy fallback for "${trimmedQuery}"`)
+      try {
+        const fuzzyResponse = await esClient.search({
+          index: indexes,
+          query: {
+            multi_match: {
+              query: trimmedQuery,
+              type: "most_fields",
+              fields: ["name^8", "title^8", "skillNames^10", "orgName^8", "headline^5", "causeNames^5"],
+              fuzziness: "AUTO",
+              prefix_length: 1,
+              operator: "or",
+              minimum_should_match: "50%",
+            },
+          },
+          size: limit,
+          _source: true,
+          min_score: 2.0,
+          highlight: {
+            fields: {
+              name: { number_of_fragments: 1, fragment_size: 150 },
+              title: { number_of_fragments: 1, fragment_size: 150 },
+              skillNames: { number_of_fragments: 3, fragment_size: 100 },
+            },
+            pre_tags: ["<mark>"],
+            post_tags: ["</mark>"],
+          },
+        })
+        if (fuzzyResponse.hits.hits.length > 0) {
+          const fuzzyResults: ESSearchResult[] = fuzzyResponse.hits.hits.map(hit => {
+            const source = hit._source as Record<string, any>
+            const indexType = INDEX_TO_TYPE[hit._index] || "page"
+            const highlights = Object.values(hit.highlight || {}).flat()
+            return {
+              ...transformHitToResult(source, indexType, hit._id || ""),
+              score: hit._score || 0,
+              highlights,
+            }
+          })
+          // Extract the best-matching term from highlights as "did you mean"
+          const topHighlight = fuzzyResults[0]?.highlights?.[0]
+          const didYouMean = topHighlight
+            ? topHighlight.replace(/<\/?mark>/g, "").trim()
+            : fuzzyResults[0]?.title || undefined
+          console.log(`[ES Search] Fuzzy fallback found ${fuzzyResults.length} results, didYouMean="${didYouMean}"`)
+          return {
+            results: fuzzyResults,
+            total: fuzzyResults.length,
+            took: response.took || 0,
+            didYouMean,
+          }
+        }
+      } catch (fuzzyErr: any) {
+        console.error("[ES Search] Fuzzy fallback error:", fuzzyErr?.message)
+      }
     }
 
     return {
@@ -315,6 +393,23 @@ export async function elasticSuggest(params: {
 // they immediately see "Web Development", "Website Redesign", etc.
 // ============================================
 
+// Simple edit distance for short strings (typo tolerance in suggestions)
+function editDistance(a: string, b: string): number {
+  if (a.length === 0) return b.length
+  if (b.length === 0) return a.length
+  const matrix: number[][] = []
+  for (let i = 0; i <= b.length; i++) matrix[i] = [i]
+  for (let j = 0; j <= a.length; j++) matrix[0][j] = j
+  for (let i = 1; i <= b.length; i++) {
+    for (let j = 1; j <= a.length; j++) {
+      matrix[i][j] = b[i - 1] === a[j - 1]
+        ? matrix[i - 1][j - 1]
+        : Math.min(matrix[i - 1][j - 1] + 1, matrix[i][j - 1] + 1, matrix[i - 1][j] + 1)
+    }
+  }
+  return matrix[b.length][a.length]
+}
+
 // Pre-build flat skill list for fast lookup
 import { skillCategories as _skillCategoriesData, causes as _causesData } from "./skills-data"
 
@@ -391,6 +486,7 @@ function getInMemorySkillSuggestions(query: string, limit: number): ESSuggestion
   // Match against skills
   for (const entry of SKILL_SUGGESTION_ENTRIES) {
     const textLower = entry.text.toLowerCase()
+    const textWords = textLower.split(/[\s/()]+/)
     let matchScore = 0
 
     // Exact prefix match (highest)
@@ -398,7 +494,7 @@ function getInMemorySkillSuggestions(query: string, limit: number): ESSuggestion
       matchScore = 100
     }
     // Word starts with query
-    else if (textLower.split(/[\s/()]+/).some(word => searchTerms.some(t => word.startsWith(t)))) {
+    else if (textWords.some(word => searchTerms.some(t => word.startsWith(t)))) {
       matchScore = 70
     }
     // Contains query
@@ -408,6 +504,14 @@ function getInMemorySkillSuggestions(query: string, limit: number): ESSuggestion
     // Category name match
     else if (entry.categoryName && searchTerms.some(t => entry.categoryName!.toLowerCase().includes(t))) {
       matchScore = 20
+    }
+    // Fuzzy match: allow 1-2 typos (edit distance) for terms >= 4 chars
+    else if (searchTerms.some(t => {
+      if (t.length < 4) return false
+      const maxDist = t.length <= 5 ? 1 : 2
+      return textWords.some(word => word.length >= 3 && editDistance(t, word) <= maxDist)
+    })) {
+      matchScore = 25
     }
 
     if (matchScore > 0) {
@@ -425,11 +529,18 @@ function getInMemorySkillSuggestions(query: string, limit: number): ESSuggestion
   // Match against role suggestions
   for (const role of ROLE_SUGGESTIONS) {
     const textLower = role.text.toLowerCase()
+    const textWords = textLower.split(/\s+/)
     let matchScore = 0
 
     if (textLower.startsWith(cleanedQ)) matchScore = 95
-    else if (textLower.split(/\s+/).some(word => searchTerms.some(t => word.startsWith(t)))) matchScore = 65
+    else if (textWords.some(word => searchTerms.some(t => word.startsWith(t)))) matchScore = 65
     else if (searchTerms.some(t => textLower.includes(t))) matchScore = 35
+    // Fuzzy match for typos (e.g. "grphic desiger" → "Graphic Designer")
+    else if (searchTerms.some(t => {
+      if (t.length < 4) return false
+      const maxDist = t.length <= 5 ? 1 : 2
+      return textWords.some(word => word.length >= 3 && editDistance(t, word) <= maxDist)
+    })) matchScore = 20
 
     if (matchScore > 0) {
       results.push({
@@ -1253,11 +1364,14 @@ function expandQueryWithSynonyms(query: string): QueryExpansion {
   // --- Step 2b: Fuzzy word-overlap fallback ---
   // If no exact role match, find the best role by scoring word overlap.
   // e.g. "video creator for youtube" → words ["video","creator","youtube"]
-  //       "video editor" shares "video" → score 1
-  //       "content creator" shares "creator" → score 1
+  //       "video editor" shares "video" → score 2
+  //       "content creator" shares "creator" → score 2
   // Pick the highest-scoring role(s).
+  // GUARD: require query words >= 3 chars and score >= 2.0 (at least one exact word match)
+  // to prevent "we" matching "web developer" or single-word generic terms exploding.
   if (!roleMatched && words.length >= 1) {
-    const queryWords = expandedQuery.split(/\s+/).filter(w => w.length > 2)
+    const queryWords = expandedQuery.split(/\s+/).filter(w => w.length >= 3)
+    if (queryWords.length > 0) {
     let bestScore = 0
     let bestRole = ""
     let bestSkills: string[] = []
@@ -1287,8 +1401,8 @@ function expandQueryWithSynonyms(query: string): QueryExpansion {
       }
     }
 
-    // Only use fuzzy match if we got meaningful overlap (at least one full word match or strong stem match)
-    if (bestScore >= 1.5 && bestSkills.length > 0) {
+    // Require at least one exact word match (score >= 2.0) to fire fuzzy role expansion
+    if (bestScore >= 2.0 && bestSkills.length > 0) {
       for (const skillName of bestSkills) {
         synonymBoosts.push({
           multi_match: {
@@ -1301,6 +1415,7 @@ function expandQueryWithSynonyms(query: string): QueryExpansion {
       }
       expansions.push(`fuzzy-role:${bestRole}→[${bestSkills.slice(0, 4).join(", ")}${bestSkills.length > 4 ? "..." : ""}]`)
       roleMatched = true
+    }
     }
   }
 
@@ -1325,11 +1440,14 @@ function expandQueryWithSynonyms(query: string): QueryExpansion {
   }
 
   // --- Step 4: For single-word queries, check if it's a partial skill match ---
+  // Require at least 4 chars to avoid "we" matching "web developer" etc.
   if (words.length === 1 && !roleMatched && synonymBoosts.length === 0) {
     const word = words[0]
-    // Check if it partially matches any role
+    if (word.length >= 4) {
+    // Check if it's a prefix of any role's first word
     for (const role of sortedRoles) {
-      if (role.includes(word) || word.includes(role.split(" ")[0])) {
+      const roleFirstWord = role.split(" ")[0]
+      if (roleFirstWord.startsWith(word) || word.startsWith(roleFirstWord)) {
         const skillNames = ROLE_TO_SKILLS[role]
         for (const skillName of skillNames.slice(0, 3)) {
           synonymBoosts.push({
@@ -1344,6 +1462,7 @@ function expandQueryWithSynonyms(query: string): QueryExpansion {
         expansions.push(`partial:${word}~${role}→[${skillNames.slice(0, 3).join(", ")}]`)
         break
       }
+    }
     }
   }
 
@@ -1803,6 +1922,21 @@ export function buildSearchQuery(query: string, filters?: ESSearchParams["filter
     },
   })
 
+  // Phrase-prefix for partial phrase matching ("web dev" → "web development")
+  should.push({
+    multi_match: {
+      query: searchText,
+      type: "phrase_prefix",
+      fields: [
+        "skillNames^12",
+        "title^10",
+        "name^8",
+        "headline^6",
+      ],
+      boost: 2.0,
+    },
+  })
+
   // Skill categories — bonus scoring only (not gating)
   should.push({
     multi_match: {
@@ -1874,13 +2008,14 @@ export function buildSearchQuery(query: string, filters?: ESSearchParams["filter
     })
   }
 
-  // Semantic search via semantic_text (if available) — uses ORIGINAL query for NL understanding
-  // This will be ignored gracefully on indexes without semantic_text
+  // Semantic search via semantic_text (if available) — uses ORIGINAL query for NL understanding.
+  // Boost 2.5 ensures ELSER meaningfully re-ranks results that are semantically
+  // relevant (e.g. "someone who can build websites" matches React devs).
   should.push({
     semantic: {
       field: "semantic_content",
       query,
-      boost: 1.2,
+      boost: 2.5,
     },
   })
 
@@ -1973,16 +2108,44 @@ export function buildSearchQuery(query: string, filters?: ESSearchParams["filter
         },
       },
       functions: [
-        // Boost verified users — small uplift, not enough to distort relevance
-        { filter: { term: { isVerified: true } }, weight: 1.1 },
-        // Boost profiles with ratings
-        { filter: { range: { rating: { gte: 3 } } }, weight: 1.05 },
-        // Boost profiles with completed projects (experienced)
-        { filter: { range: { completedProjects: { gte: 1 } } }, weight: 1.05 },
+        // Boost verified users — trust signal
+        { filter: { term: { isVerified: true } }, weight: 1.15 },
+        // Continuous rating boost — 4.8★ ranks higher than 3.1★
+        // Uses log1p to dampen: log1p(4.8) ≈ 1.76, log1p(0) = 0 → factor stays ≤ ~1.76
+        {
+          field_value_factor: {
+            field: "rating",
+            factor: 0.3,
+            modifier: "log1p",
+            missing: 0,
+          },
+        },
+        // Engagement boost — more completed projects = more reliable
+        {
+          field_value_factor: {
+            field: "completedProjects",
+            factor: 0.1,
+            modifier: "log1p",
+            missing: 0,
+          },
+        },
+        // Recency decay — newer/recently-updated content gets a gentle uplift.
+        // Scale 90d = half-life; a 6-month-old doc decays to ~0.5 of the boost.
+        {
+          gauss: {
+            updatedAt: {
+              origin: "now",
+              scale: "90d",
+              offset: "7d",
+              decay: 0.5,
+            },
+          },
+          weight: 1.1,
+        },
       ],
       score_mode: "multiply",
       boost_mode: "multiply",
-      max_boost: 1.5,
+      max_boost: 2.5,
     },
   }
 }

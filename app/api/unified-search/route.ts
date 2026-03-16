@@ -3,11 +3,14 @@ import { elasticSearch, elasticSuggest } from "@/lib/es-search"
 // MongoDB fallback (kept for graceful degradation)
 import { unifiedSearch, getSearchSuggestions } from "@/lib/search-indexes"
 import { trackEvent } from "@/lib/analytics"
+import { isESAvailable, markESFailed } from "@/lib/elasticsearch"
+import { getAlgoliaSearchClient, ALGOLIA_INDEXES } from "@/lib/algolia"
 
 // ============================================
-// Unified Search API — Elasticsearch-powered
+// Unified Search API — Algolia-first, ES + MongoDB fallback
 // ============================================
 
+const ALGOLIA_ENABLED = !!(process.env.NEXT_PUBLIC_ALGOLIA_APP_ID && process.env.NEXT_PUBLIC_ALGOLIA_SEARCH_KEY)
 const ELASTICSEARCH_ENABLED = !!(process.env.ELASTICSEARCH_URL && process.env.ELASTICSEARCH_API_KEY)
 
 function mapTypes(types: string[] | undefined): ("volunteer" | "ngo" | "project" | "blog" | "page")[] | undefined {
@@ -29,9 +32,12 @@ export async function GET(request: NextRequest) {
     const mode = searchParams.get("mode") || "full"
     const sort = (searchParams.get("sort") || "relevance") as "relevance" | "newest" | "rating"
     const filtersParam = searchParams.get("filters")
-    const engine = searchParams.get("engine") || (ELASTICSEARCH_ENABLED ? "es" : "mongo")
+    const engine = searchParams.get("engine") || (ALGOLIA_ENABLED ? "algolia" : ELASTICSEARCH_ENABLED && isESAvailable() ? "es" : "mongo")
 
-    console.log(`[Search API] query="${query}" mode=${mode} types=${typesParam} engine=${engine}`)
+    console.log(`\n🔍 [Search API] ========== ${mode.toUpperCase()} REQUEST ==========`)
+    console.log(`🔍 [Search API] Query: "${query}"`)
+    console.log(`🔍 [Search API] Mode: ${mode} | Engine: ${engine} | Types: ${typesParam || "all"} | Limit: ${limitParam || "default"} | Sort: ${sort}`)
+    console.log(`🔍 [Search API] ALGOLIA_ENABLED: ${ALGOLIA_ENABLED} | ES_ENABLED: ${ELASTICSEARCH_ENABLED} | ES_AVAILABLE: ${ELASTICSEARCH_ENABLED ? isESAvailable() : "N/A"}`)
 
     if (!query || query.trim().length < 1) {
       return NextResponse.json({
@@ -54,6 +60,204 @@ export async function GET(request: NextRequest) {
         filters = JSON.parse(filtersParam)
       } catch {
         // ignore invalid filters
+      }
+    }
+    if (filters) console.log(`🔍 [Search API] Filters:`, JSON.stringify(filters))
+
+    // ---- ALGOLIA ENGINE (PRIMARY) ----
+    if (engine === "algolia" && ALGOLIA_ENABLED) {
+      try {
+        const algoliaClient = getAlgoliaSearchClient()
+        console.log(`🟢 [Search API] Using ALGOLIA engine`)
+
+        // Determine which indexes to search
+        const indexNames: string[] = []
+        if (!rawTypes || rawTypes.includes("volunteer")) indexNames.push(ALGOLIA_INDEXES.VOLUNTEERS)
+        if (!rawTypes || rawTypes.includes("ngo")) indexNames.push(ALGOLIA_INDEXES.NGOS)
+        if (!rawTypes || rawTypes.includes("opportunity")) indexNames.push(ALGOLIA_INDEXES.OPPORTUNITIES)
+        console.log(`🟢 [Search API] Searching indexes: [${indexNames.join(", ")}]`)
+
+        if (mode === "suggestions") {
+          // Multi-index search for autocomplete suggestions
+          const requests = indexNames.map(indexName => ({
+            indexName,
+            query: query.trim(),
+            hitsPerPage: Math.min(limit, 4),
+            attributesToRetrieve: ["objectID", "type", "name", "orgName", "title", "headline", "description", "skillNames", "causeNames", "city", "avatar", "logo", "workMode"],
+            attributesToHighlight: ["name", "orgName", "title", "headline", "skillNames"],
+            highlightPreTag: "<mark>",
+            highlightPostTag: "</mark>",
+          }))
+
+          console.log(`🟢 [Search API] SUGGESTIONS mode — sending ${requests.length} multi-index requests`)
+          const algoliaT0 = Date.now()
+          const { results } = await algoliaClient.search({ requests })
+          const algoliaMs = Date.now() - algoliaT0
+          console.log(`🟢 [Search API] Algolia responded in ${algoliaMs}ms — ${results.length} index results`)
+          const suggestions: any[] = []
+
+          for (const indexResult of results) {
+            if (!("hits" in indexResult)) continue
+            const ir = indexResult as any
+            console.log(`🟢 [Search API] Index "${ir.index}": ${ir.nbHits} total hits, ${ir.hits.length} returned, processingTimeMS=${ir.processingTimeMS}ms`)
+            for (const hit of indexResult.hits as any[]) {
+              const type = hit.type || (ir.index?.includes("volunteer") ? "volunteer" : ir.index?.includes("ngo") ? "ngo" : "opportunity")
+              let text = hit.name || hit.orgName || hit.title || ""
+              let subtitle = hit.headline || hit.description?.slice(0, 60) || ""
+              if (type === "opportunity") {
+                text = hit.title || ""
+                subtitle = [hit.workMode === "remote" ? "Remote" : hit.location, hit.skillNames?.slice(0, 2).join(", ")].filter(Boolean).join(" · ")
+              } else if (type === "ngo") {
+                text = hit.name || hit.orgName || ""
+                subtitle = hit.description?.slice(0, 60) || "Organization"
+              } else {
+                subtitle = hit.headline || hit.skillNames?.slice(0, 3).join(", ") || ""
+              }
+              console.log(`   📌 [${type}] "${text}" — ${subtitle || "(no subtitle)"} [id: ${hit.objectID}]`)
+              suggestions.push({
+                text,
+                type: type === "project" ? "opportunity" : type,
+                id: hit.objectID,
+                subtitle,
+              })
+            }
+          }
+
+          const took = Date.now() - startTime
+          console.log(`🟢 [Search API] ✅ SUGGESTIONS DONE — ${suggestions.length} total suggestions in ${took}ms (Algolia: ${algoliaMs}ms)`)
+          console.log(`🔍 [Search API] ==========================================\n`)
+          trackEvent("search", "suggest", { metadata: { query, engine: "algolia", count: suggestions.length } })
+          return NextResponse.json({
+            success: true,
+            suggestions: suggestions.slice(0, limit),
+            query,
+            count: suggestions.length,
+            engine: "algolia",
+            took,
+          })
+        }
+
+        // Full search — multi-index
+        console.log(`🟢 [Search API] FULL SEARCH mode`)
+        const facetFilters: string[] = []
+        if (filters) {
+          if (filters.workMode) facetFilters.push(`workMode:${filters.workMode}`)
+          if (filters.volunteerType) facetFilters.push(`volunteerType:${filters.volunteerType}`)
+          if (filters.experienceLevel) facetFilters.push(`experienceLevel:${filters.experienceLevel}`)
+          if (filters.isVerified) facetFilters.push(`isVerified:true`)
+          if (filters.causes) {
+            const causeList = Array.isArray(filters.causes) ? filters.causes : [filters.causes]
+            for (const c of causeList) facetFilters.push(`causeNames:${c}`)
+          }
+          if (filters.skills) {
+            const skillList = Array.isArray(filters.skills) ? filters.skills : [filters.skills]
+            for (const s of skillList) facetFilters.push(`skillNames:${s}`)
+          }
+        }
+
+        // Determine sort parameter
+        const sortMap: Record<string, string | undefined> = {
+          newest: "updatedAt",
+          rating: "rating",
+          relevance: undefined,
+        }
+
+        if (facetFilters.length > 0) console.log(`🟢 [Search API] Facet filters: [${facetFilters.join(", ")}]`)
+
+        const requests = indexNames.map(indexName => ({
+          indexName,
+          query: query.trim(),
+          hitsPerPage: Math.min(limit, 50),
+          facetFilters: facetFilters.length > 0 ? facetFilters : undefined,
+          highlightPreTag: "<mark>",
+          highlightPostTag: "</mark>",
+        }))
+
+        console.log(`🟢 [Search API] Sending ${requests.length} multi-index full search requests`)
+        const algoliaT0 = Date.now()
+        const { results } = await algoliaClient.search({ requests })
+        const algoliaMs = Date.now() - algoliaT0
+        console.log(`🟢 [Search API] Algolia responded in ${algoliaMs}ms — ${results.length} index results`)
+        const mappedResults: any[] = []
+
+        for (const indexResult of results) {
+          if (!("hits" in indexResult)) continue
+          const ir = indexResult as any
+          console.log(`🟢 [Search API] Index "${ir.index}": ${ir.nbHits} total hits, ${ir.hits.length} returned, processingTimeMS=${ir.processingTimeMS}ms`)
+          for (const hit of indexResult.hits as any[]) {
+            const type = hit.type || (indexResult.index?.includes("volunteer") ? "volunteer" : indexResult.index?.includes("ngo") ? "ngo" : "opportunity")
+            const mappedType = type === "project" ? "opportunity" : type
+
+            // Sort skills so query-matching ones appear first
+            let skills = hit.skillNames || undefined
+            if (skills && query) {
+              const queryTerms = query.toLowerCase().split(/\s+/).filter((t: string) => t.length >= 2)
+              skills = [...skills].sort((a: string, b: string) => {
+                const aMatch = queryTerms.some((t: string) => a.toLowerCase().includes(t))
+                const bMatch = queryTerms.some((t: string) => b.toLowerCase().includes(t))
+                if (aMatch && !bMatch) return -1
+                if (!aMatch && bMatch) return 1
+                return 0
+              })
+            }
+
+            // Build highlight snippets from Algolia _highlightResult
+            const highlights: string[] = []
+            if (hit._highlightResult) {
+              for (const [key, val] of Object.entries(hit._highlightResult as Record<string, any>)) {
+                if (val?.matchLevel === "full" || val?.matchLevel === "partial") {
+                  highlights.push(val.value)
+                }
+              }
+            }
+
+            mappedResults.push({
+              id: hit.objectID,
+              mongoId: hit.objectID,
+              userId: hit.objectID,
+              type: mappedType,
+              title: mappedType === "opportunity" ? hit.title : (hit.name || hit.orgName || ""),
+              subtitle: hit.headline || hit.description?.slice(0, 80) || "",
+              description: hit.description || hit.bio || hit.mission || "",
+              url: mappedType === "volunteer" ? `/volunteers/${hit.objectID}` : mappedType === "ngo" ? `/ngos/${hit.objectID}` : `/opportunities/${hit.objectID}`,
+              score: (hit as any)._rankingInfo?.firstMatchedWord ?? 1,
+              highlights,
+              avatar: hit.avatar || hit.logo || undefined,
+              location: [hit.city, hit.country].filter(Boolean).join(", ") || hit.location || undefined,
+              skills,
+              verified: hit.isVerified || false,
+              volunteerType: hit.volunteerType || undefined,
+              workMode: hit.workMode || undefined,
+              experienceLevel: hit.experienceLevel || undefined,
+              rating: hit.rating || undefined,
+              causes: hit.causeNames || undefined,
+              ngoName: hit.ngoName || undefined,
+              status: hit.status || undefined,
+            })
+          }
+        }
+
+        const took = Date.now() - startTime
+        console.log(`🟢 [Search API] ✅ FULL SEARCH DONE — ${mappedResults.length} results in ${took}ms (Algolia: ${algoliaMs}ms)`)
+        for (const r of mappedResults.slice(0, 10)) {
+          console.log(`   📌 [${r.type}] "${r.title}" — skills: [${(r.skills || []).slice(0, 3).join(", ")}] — ${r.location || "no location"} [id: ${r.id}]`)
+        }
+        if (mappedResults.length > 10) console.log(`   ... and ${mappedResults.length - 10} more`)
+        console.log(`🔍 [Search API] ==========================================\n`)
+        trackEvent("search", "query", { metadata: { query, engine: "algolia", count: mappedResults.length, took } })
+
+        return NextResponse.json({
+          success: true,
+          results: mappedResults.slice(0, limit),
+          query,
+          count: mappedResults.length,
+          took,
+          engine: "algolia",
+        })
+      } catch (algoliaError: any) {
+        console.error(`❌ [Search API] Algolia FAILED: ${algoliaError?.message}`, algoliaError)
+        console.log(`🟡 [Search API] Falling through to ES/MongoDB...`)
+        // Fall through to ES or MongoDB
       }
     }
 
@@ -184,6 +388,7 @@ export async function GET(request: NextRequest) {
         query,
         count: finalResults.length,
         took: result.took,
+        didYouMean: (result as any).didYouMean || undefined,
         engine: "elasticsearch",
       })
     }
@@ -223,6 +428,9 @@ export async function GET(request: NextRequest) {
     })
   } catch (error: any) {
     console.error(`[Search API] ERROR after ${Date.now() - startTime}ms:`, error?.message || error)
+
+    // Mark ES circuit open so subsequent requests skip ES immediately
+    markESFailed()
 
     // If ES fails, try MongoDB fallback
     if (ELASTICSEARCH_ENABLED) {

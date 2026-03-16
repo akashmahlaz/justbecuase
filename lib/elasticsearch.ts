@@ -26,8 +26,8 @@ function createClient(): Client {
       apiKey: ELASTICSEARCH_API_KEY,
     },
     // Serverless Elastic Cloud doesn't need TLS config — it's handled by the endpoint
-    requestTimeout: 30000,
-    maxRetries: 3,
+    requestTimeout: 5000,  // 5s — fail fast so MongoDB fallback kicks in quickly
+    maxRetries: 1,         // 1 retry max to avoid 30s+ waits on DNS failures
   })
 }
 
@@ -43,6 +43,26 @@ if (process.env.NODE_ENV === "development") {
 }
 
 export default esClient
+
+// ============================================
+// ES Circuit Breaker — skip ES for 60s after a connection failure
+// ============================================
+let _esCircuitOpen = false
+let _esCircuitOpenedAt = 0
+const ES_CIRCUIT_COOLDOWN_MS = 60_000
+
+export function isESAvailable(): boolean {
+  if (!ELASTICSEARCH_URL || !ELASTICSEARCH_API_KEY) return false
+  if (_esCircuitOpen && Date.now() - _esCircuitOpenedAt < ES_CIRCUIT_COOLDOWN_MS) return false
+  if (_esCircuitOpen) { _esCircuitOpen = false } // reset after cooldown
+  return true
+}
+
+export function markESFailed(): void {
+  _esCircuitOpen = true
+  _esCircuitOpenedAt = Date.now()
+  console.warn(`[ES Circuit Breaker] Opened — skipping ES for ${ES_CIRCUIT_COOLDOWN_MS / 1000}s`)
+}
 
 // ============================================
 // INDEX NAMES
