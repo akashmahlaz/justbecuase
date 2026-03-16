@@ -30,9 +30,11 @@ import {
   Lightbulb,
   Phone,
   ShieldCheck,
+  Camera,
 } from "lucide-react"
 import { skillCategories, experienceLevels, causes, workModes } from "@/lib/skills-data"
 import { saveVolunteerOnboarding, completeOnboarding } from "@/lib/actions"
+import { uploadToCloudinary, validateImageFile } from "@/lib/upload"
 import { authClient } from "@/lib/auth-client"
 import { OnboardingPageSkeleton } from "@/components/ui/page-skeletons"
 import { useDictionary } from "@/components/dictionary-provider"
@@ -89,6 +91,35 @@ export default function VolunteerOnboardingPage() {
     portfolioUrl: "",
   })
 
+  // Profile photo state
+  const [avatarUrl, setAvatarUrl] = useState("")
+  const [uploadingAvatar, setUploadingAvatar] = useState(false)
+  const avatarInputRef = useRef<HTMLInputElement>(null)
+
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const validation = validateImageFile(file)
+    if (!validation.valid) {
+      setError(validation.error || "Invalid image")
+      return
+    }
+    setUploadingAvatar(true)
+    setError("")
+    try {
+      const result = await uploadToCloudinary(file, "volunteer_avatars")
+      if (result.success && result.url) {
+        setAvatarUrl(result.url)
+      } else {
+        setError(result.error || "Upload failed")
+      }
+    } catch {
+      setError("Failed to upload photo")
+    } finally {
+      setUploadingAvatar(false)
+    }
+  }
+
   // Phone verification state
   const [phoneVerificationStep, setPhoneVerificationStep] = useState<"input" | "otp" | "verified">("input")
   const [phoneOtp, setPhoneOtp] = useState(["", "", "", "", "", ""])
@@ -127,6 +158,41 @@ export default function VolunteerOnboardingPage() {
   })
 
   const progress = (step / totalSteps) * 100
+
+  // Persist onboarding state to sessionStorage so back-navigation doesn't lose data
+  const STORAGE_KEY = "jb_onboarding_state"
+
+  // Restore state from sessionStorage on mount
+  useEffect(() => {
+    try {
+      const saved = sessionStorage.getItem(STORAGE_KEY)
+      if (saved) {
+        const state = JSON.parse(saved)
+        if (state.step) setStep(state.step)
+        if (state.profile) setProfile(state.profile)
+        if (state.avatarUrl) setAvatarUrl(state.avatarUrl)
+        if (state.selectedSkills) setSelectedSkills(state.selectedSkills)
+        if (state.selectedCauses) setSelectedCauses(state.selectedCauses)
+        if (state.workPreferences) setWorkPreferences(state.workPreferences)
+        if (state.phoneVerified) setPhoneVerificationStep("verified")
+      }
+    } catch {}
+  }, [])
+
+  // Save state to sessionStorage on every change
+  useEffect(() => {
+    try {
+      sessionStorage.setItem(STORAGE_KEY, JSON.stringify({
+        step,
+        profile,
+        avatarUrl,
+        selectedSkills,
+        selectedCauses,
+        workPreferences,
+        phoneVerified: phoneVerificationStep === "verified",
+      }))
+    } catch {}
+  }, [step, profile, avatarUrl, selectedSkills, selectedCauses, workPreferences, phoneVerificationStep])
 
   // Phone verification functions
   const sendPhoneOtp = async () => {
@@ -279,6 +345,7 @@ export default function VolunteerOnboardingPage() {
       const onboardingData = {
         profile: {
           ...profile,
+          avatar: avatarUrl,
         },
         skills: selectedSkills,
         causes: selectedCauses,
@@ -305,6 +372,8 @@ export default function VolunteerOnboardingPage() {
       // Get the volunteer's name from session
       const volunteerName = session?.user?.name || "there"
       
+      // Clear saved onboarding state
+      try { sessionStorage.removeItem(STORAGE_KEY) } catch {}
       // Redirect to dashboard with welcome message
       router.push(localePath(`/volunteer/dashboard?welcome=${encodeURIComponent(volunteerName)}`, locale))
     } catch (error) {
@@ -323,6 +392,32 @@ export default function VolunteerOnboardingPage() {
       </div>
 
       <div className="grid gap-4">
+        {/* Profile Photo (Mandatory) */}
+        <div className="space-y-3">
+          <Label>{dict.volunteer?.onboarding?.profilePhoto || "Profile Photo"} <span className="text-destructive">*</span></Label>
+          <div className="flex items-center gap-4">
+            <div
+              onClick={() => avatarInputRef.current?.click()}
+              className="w-20 h-20 rounded-full border-2 border-dashed border-border bg-muted flex items-center justify-center cursor-pointer hover:border-primary transition-colors overflow-hidden"
+            >
+              {uploadingAvatar ? (
+                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+              ) : avatarUrl ? (
+                <img src={avatarUrl} alt="Profile" className="w-full h-full object-cover rounded-full" />
+              ) : (
+                <Camera className="h-6 w-6 text-muted-foreground" />
+              )}
+            </div>
+            <div>
+              <Button type="button" variant="outline" size="sm" onClick={() => avatarInputRef.current?.click()} disabled={uploadingAvatar}>
+                {avatarUrl ? (dict.volunteer?.onboarding?.changePhoto || "Change Photo") : (dict.volunteer?.onboarding?.uploadPhoto || "Upload Photo")}
+              </Button>
+              <p className="text-xs text-muted-foreground mt-1">{dict.volunteer?.onboarding?.photoRequired || "A profile photo is required for verification"}</p>
+            </div>
+            <input ref={avatarInputRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarUpload} />
+          </div>
+        </div>
+
         {/* Phone Number with Verification */}
         <div className="space-y-3">
           <Label htmlFor="phone">{dict.volunteer?.common?.phoneNumber || "Phone Number"} <span className="text-destructive">*</span></Label>
@@ -873,7 +968,7 @@ export default function VolunteerOnboardingPage() {
             }
             className="grid sm:grid-cols-3 gap-3"
           >
-            {workModes.map((mode) => (
+            {workModes.filter((mode) => mode.id === "remote").map((mode) => (
               <Label
                 key={mode.id}
                 htmlFor={mode.id}
@@ -1113,6 +1208,10 @@ export default function VolunteerOnboardingPage() {
               onClick={() => {
                 // Validate step 1: phone must be verified
                 if (step === 1) {
+                  if (!avatarUrl) {
+                    setError(dict.volunteer?.onboarding?.photoRequiredError || "Please upload a profile photo to continue")
+                    return
+                  }
                   if (phoneVerificationStep !== "verified") {
                     setError(dict.volunteer?.onboarding?.verifyPhoneError || "Please verify your phone number to continue")
                     return

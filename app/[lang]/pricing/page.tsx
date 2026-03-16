@@ -345,7 +345,7 @@ export default function PricingPage() {
               <div className="p-6 bg-background rounded-lg border">
                 <h3 className="font-semibold text-foreground mb-2">{p.faqProfileUnlock || "What is a profile unlock? (NGOs)"}</h3>
                 <p className="text-muted-foreground">
-                  {p.faqProfileUnlockAnswer || "When you find a FREE impact agent you'd like to connect with, you need to unlock their profile to view their contact information. NGO Pro subscribers can unlock unlimited free impact agent profiles. Free plan NGOs must upgrade to Pro to unlock any profiles."}
+                  {p.faqProfileUnlockAnswer || "All NGOs can browse and view impact agent profiles for free. NGO Pro subscribers get additional features like priority matching and advanced filters."}
                 </p>
               </div>
               

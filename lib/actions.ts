@@ -111,40 +111,40 @@ export async function requireRole(roles: string[]) {
 export async function selectRole(role: "volunteer" | "ngo"): Promise<ApiResponse<boolean>> {
   try {
     const user = await getCurrentUser()
-    
+
     // If no user session, return error (don't redirect - let client handle it)
     if (!user) {
       return { success: false, error: "Not authenticated" }
     }
-    
+
     // Security: Only allow volunteer or ngo roles, never admin
     if (role !== "volunteer" && role !== "ngo") {
       return { success: false, error: "Invalid role" }
     }
-    
+
     // Don't allow role change if user already has a valid role (volunteer/ngo) AND is onboarded
     // Allow role change if user has "user" (default from admin plugin) or no role
     const currentRole = user.role as string | undefined
     const hasValidRole = currentRole === "volunteer" || currentRole === "ngo" || currentRole === "admin"
-    
+
     if (hasValidRole && user.isOnboarded) {
       return { success: false, error: "Cannot change role after onboarding" }
     }
-    
+
     // Prevent changing away from admin role
     if (currentRole === "admin") {
       return { success: false, error: "Admin users cannot change their role" }
     }
-    
+
     // Update role in the database (Better Auth stores _id as ObjectId)
     const db = await getDb()
     const usersCollection = db.collection("user")
-    
+
     let result = await usersCollection.updateOne(
       userIdQuery(user.id),
       { $set: { role: role, updatedAt: new Date() } }
     )
-    
+
     // If not found, try by email as fallback
     if (result.matchedCount === 0 && user.email) {
       result = await usersCollection.updateOne(
@@ -152,13 +152,13 @@ export async function selectRole(role: "volunteer" | "ngo"): Promise<ApiResponse
         { $set: { role: role, updatedAt: new Date() } }
       )
     }
-    
+
     // Check if document was found (matchedCount) - modifiedCount may be 0 if same role
     if (result.matchedCount === 0) {
       console.error("User not found in database:", { userId: user.id, email: user.email })
       return { success: false, error: "User not found" }
     }
-    
+
     revalidatePath("/")
     return { success: true, data: true }
   } catch (error) {
@@ -171,16 +171,16 @@ export async function selectRole(role: "volunteer" | "ngo"): Promise<ApiResponse
 export async function completeOnboarding(): Promise<ApiResponse<boolean>> {
   try {
     const user = await requireAuth()
-    
+
     const db = await getDb()
     const usersCollection = db.collection("user")
-    
+
     // Update using userIdQuery (Better Auth stores _id as ObjectId)
     let result = await usersCollection.updateOne(
       userIdQuery(user.id),
       { $set: { isOnboarded: true, updatedAt: new Date() } }
     )
-    
+
     // If not found, try by email as fallback
     if (result.matchedCount === 0 && user.email) {
       result = await usersCollection.updateOne(
@@ -188,7 +188,7 @@ export async function completeOnboarding(): Promise<ApiResponse<boolean>> {
         { $set: { isOnboarded: true, updatedAt: new Date() } }
       )
     }
-    
+
     if (result.matchedCount === 0) {
       console.error("User not found in database:", { userId: user.id, email: user.email })
       return { success: false, error: "User not found" }
@@ -215,7 +215,7 @@ export async function completeOnboarding(): Promise<ApiResponse<boolean>> {
     } catch (refErr) {
       console.error("Failed to complete referral:", refErr)
     }
-    
+
     revalidatePath("/")
     trackEvent("user", "onboarding_complete", { userId: user.id })
     return { success: true, data: true }
@@ -234,6 +234,7 @@ export async function saveVolunteerOnboarding(data: {
     phone: string
     location: string
     bio: string
+    avatar?: string
     linkedinUrl?: string
     portfolioUrl?: string
     coordinates?: { lat: number; lng: number } | null
@@ -256,11 +257,11 @@ export async function saveVolunteerOnboarding(data: {
 
     // Check if profile already exists
     const existing = await volunteerProfilesDb.findByUserId(user.id)
-    
+
     const profileData: Omit<VolunteerProfile, "_id"> = {
-      // Copy display name and avatar from auth user for easier display elsewhere
+      // Copy display name and avatar from auth user (or uploaded avatar) for easier display elsewhere
       name: (user as any).name || "",
-      avatar: (user as any).image || undefined,
+      avatar: data.profile.avatar || (user as any).image || undefined,
       userId: user.id,
       phone: data.profile.phone,
       location: data.profile.location,
@@ -338,7 +339,7 @@ export async function getVolunteerSubscriptionStatus(): Promise<{
 } | null> {
   const user = await getCurrentUser()
   if (!user || user.role !== "volunteer") return null
-  
+
   const profile = await volunteerProfilesDb.findByUserId(user.id)
   if (!profile) return null
 
@@ -349,10 +350,10 @@ export async function getVolunteerSubscriptionStatus(): Promise<{
   const applicationsUsed = profile.monthlyApplicationsUsed || 0
   const FREE_LIMIT = 3
   const applicationsLimit = plan === "pro" ? 999999 : FREE_LIMIT
-  
+
   // Check if reset needed
   const resetDate = profile.subscriptionResetDate ? new Date(profile.subscriptionResetDate) : null
-  
+
   let currentUsed = applicationsUsed
   if (resetDate && now >= resetDate) {
     currentUsed = 0
@@ -377,7 +378,7 @@ export async function getNGOSubscriptionStatus(): Promise<{
 } | null> {
   const user = await getCurrentUser()
   if (!user || user.role !== "ngo") return null
-  
+
   const profile = await ngoProfilesDb.findByUserId(user.id)
   if (!profile) return null
 
@@ -406,7 +407,7 @@ export async function updateVolunteerProfile(
 ): Promise<ApiResponse<boolean>> {
   try {
     const user = await requireAuth()
-    
+
     // Filter to only allowed fields - prevent modification of userId, isVerified, rating, etc.
     const filteredUpdates: Partial<VolunteerProfile> = {}
     for (const key of ALLOWED_VOLUNTEER_UPDATE_FIELDS) {
@@ -414,7 +415,7 @@ export async function updateVolunteerProfile(
         (filteredUpdates as Record<string, unknown>)[key] = (updates as Record<string, unknown>)[key]
       }
     }
-    
+
     // Sanitize fields based on volunteerType
     if (filteredUpdates.volunteerType === "free") {
       filteredUpdates.hourlyRate = undefined
@@ -438,24 +439,24 @@ export async function updateVolunteerProfile(
         return { success: false, error: pricingValidation.errors.join(". ") }
       }
     }
-    
+
     if (Object.keys(filteredUpdates).length === 0) {
       return { success: false, error: "No valid fields to update" }
     }
-    
+
     // Auto-sync name/avatar to auth table (single source of truth)
     const syncData: { name?: string; image?: string } = {}
     if (filteredUpdates.name) syncData.name = filteredUpdates.name
     if (filteredUpdates.avatar) syncData.image = filteredUpdates.avatar
-    
+
     if (Object.keys(syncData).length > 0) {
       const { syncUserDataToProfile } = await import("./user-utils")
       await syncUserDataToProfile(user.id, syncData)
     }
-    
+
     const result = await volunteerProfilesDb.update(user.id, filteredUpdates)
     revalidatePath("/volunteer/profile")
-    // Real-time ES sync — never block the profile save
+    // Real-time ES sync - never block the profile save
     try {
       const { syncSingleDocument } = await import("@/lib/es-sync")
       await syncSingleDocument("volunteer", user.id)
@@ -556,7 +557,7 @@ export async function saveNGOOnboarding(data: {
     revalidatePath("/ngo/dashboard")
     trackEvent("user", "ngo_signup", { userId: user.id, metadata: { orgName: data.orgDetails.orgName } })
     trackEvent("user", "profile_complete", { userId: user.id, metadata: { role: "ngo" } })
-    // Real-time ES sync — never block onboarding
+    // Real-time ES sync - never block onboarding
     try {
       const { syncSingleDocument } = await import("@/lib/es-sync")
       await syncSingleDocument("ngo", user.id)
@@ -591,7 +592,7 @@ export async function updateNGOProfile(
 ): Promise<ApiResponse<boolean>> {
   try {
     const user = await requireAuth()
-    
+
     // Filter to only allowed fields - prevent modification of userId, isVerified, subscriptionTier, etc.
     const filteredUpdates: Partial<NGOProfile> = {}
     for (const key of ALLOWED_NGO_UPDATE_FIELDS) {
@@ -599,25 +600,25 @@ export async function updateNGOProfile(
         (filteredUpdates as Record<string, unknown>)[key] = (updates as Record<string, unknown>)[key]
       }
     }
-    
+
     console.log(`[NGO Save] userId=${user.id}, fields=${Object.keys(filteredUpdates).join(",")}`)
-    
+
     if (Object.keys(filteredUpdates).length === 0) {
       console.log(`[NGO Save] No valid fields after filtering. Incoming keys: ${Object.keys(updates).join(",")}`)
       return { success: false, error: "No valid fields to update" }
     }
-    
+
     // Auto-sync logo to auth table (single source of truth for images)
     if (filteredUpdates.logo) {
       const { syncUserDataToProfile } = await import("./user-utils")
       await syncUserDataToProfile(user.id, { image: filteredUpdates.logo })
     }
-    
+
     const result = await ngoProfilesDb.update(user.id, filteredUpdates)
     console.log(`[NGO Save] DB update result: modified=${result}`)
     revalidatePath("/ngo/profile")
     revalidatePath("/ngo/settings")
-    // Real-time ES sync — never block the profile save
+    // Real-time ES sync - never block the profile save
     try {
       const { syncSingleDocument } = await import("@/lib/es-sync")
       await syncSingleDocument("ngo", user.id)
@@ -671,11 +672,11 @@ export async function createProject(data: {
     // Check project posting limits for free plan NGOs
     const subscriptionPlan = ngoProfile.subscriptionPlan || "free"
     const monthlyProjectsPosted = ngoProfile.monthlyProjectsPosted || 0
-    
+
     // Check if we need to reset monthly counter
     const now = new Date()
     const resetDate = ngoProfile.subscriptionResetDate ? new Date(ngoProfile.subscriptionResetDate) : null
-    
+
     let shouldResetCounter = false
     if (resetDate && now >= resetDate) {
       // Reset the counter - it's a new month
@@ -687,8 +688,8 @@ export async function createProject(data: {
       shouldResetCounter = true
     } else if (subscriptionPlan === "free" && !shouldResetCounter && monthlyProjectsPosted >= FREE_PLAN_PROJECT_LIMIT) {
       // Free plan limit reached
-      return { 
-        success: false, 
+      return {
+        success: false,
         error: `You've reached your monthly limit of ${FREE_PLAN_PROJECT_LIMIT} projects. Upgrade to Pro for unlimited projects!`,
       }
     }
@@ -766,26 +767,26 @@ export async function createProject(data: {
       const { sendEmail, getNewOpportunityEmailHtml } = await import("@/lib/email")
       // Fetch only active volunteers with email notifications enabled
       const allVolunteers = await volunteerProfilesDb.findMany(
-        { 
+        {
           isActive: { $ne: false },
           "privacy.emailNotifications": { $ne: false },
-        } as any, 
+        } as any,
         { limit: 500 } as any
       )
-      
+
       // Build a Set of "categoryId::subskillId" for fast lookup
       const projectSkillKeys = new Set(
         data.skillsRequired.map(s => `${s.categoryId}::${s.subskillId}`)
       )
-      
+
       const matchingVolunteers = allVolunteers.filter(v => {
         // Skip explicitly deactivated volunteers
         if (v.isActive === false) return false
-        
-        // Parse skills — handles both object array and string array formats
+
+        // Parse skills - handles both object array and string array formats
         const vSkills: Array<{categoryId?: string; subskillId?: string}> = Array.isArray(v.skills) ? v.skills : []
         if (vSkills.length === 0) return false
-        
+
         // Require at least one EXACT categoryId + subskillId match
         return vSkills.some((s: any) => {
           if (!s || typeof s === 'string') return false
@@ -800,7 +801,7 @@ export async function createProject(data: {
       for (const vol of matchingVolunteers.slice(0, 20)) {
         try {
           const volUser = await database.collection("user").findOne(userIdQuery(vol.userId))
-          
+
           // Create in-app notification for each matching volunteer
           try {
             await notificationsDb.create({
@@ -847,15 +848,15 @@ export async function createProject(data: {
       const db = await import("@/lib/database").then(m => m.getDb())
       const database = await db
       const { sendEmail } = await import("@/lib/email")
-      
+
       // Build skill keys set for matching (reuse same format as above)
       const projectSkillKeysForFollowers = new Set(
         data.skillsRequired.map(s => `${s.categoryId}::${s.subskillId}`)
       )
-      
+
       for (const follow of followers.slice(0, 50)) {
         try {
-          // In-app notification (always — they chose to follow this NGO)
+          // In-app notification (always - they chose to follow this NGO)
           await notificationsDb.create({
             userId: follow.followerId,
             type: "followed_ngo_project",
@@ -871,10 +872,10 @@ export async function createProject(data: {
           // Email ONLY if follower's skills match AND preferences allow
           const followerUser = await database.collection("user").findOne(userIdQuery(follow.followerId))
           if (!followerUser?.email) continue
-          
+
           const followerPrefs = followerUser.privacy
           if (followerPrefs?.emailNotifications === false || followerPrefs?.opportunityDigest === false) continue
-          
+
           // Check if the follower (if a volunteer) has matching skills
           const rawSkills = followerUser.skills
           const followerSkills = !rawSkills ? [] : typeof rawSkills === 'string' ? (() => { try { return JSON.parse(rawSkills) } catch { return [] } })() : rawSkills
@@ -883,7 +884,7 @@ export async function createProject(data: {
               if (!s || typeof s === 'string') return false
               return projectSkillKeysForFollowers.has(`${s.categoryId}::${s.subskillId}`)
             })
-          
+
           // Only send email if skills match the opportunity
           if (hasMatchingSkills) {
             await sendEmail({
@@ -921,7 +922,7 @@ export async function createProject(data: {
     revalidatePath("/projects")
     trackEvent("project", "created", { userId: user.id, metadata: { projectId, title: data.title, skillCount: data.skillsRequired?.length || 0 } })
 
-    // Real-time ES sync — fire-and-forget so it never blocks project creation
+    // Real-time ES sync - fire-and-forget so it never blocks project creation
     try {
       const { syncSingleDocument } = await import("@/lib/es-sync")
       await syncSingleDocument("projects", projectId)
@@ -991,7 +992,7 @@ export async function updateProject(
       try {
         const applications = await applicationsDb.findByProjectId(id)
         const statusLabel = updates.status === "completed" ? "completed" : updates.status === "closed" ? "closed" : "paused"
-        
+
         for (const app of applications.slice(0, 50)) {
           try {
             // In-app notification
@@ -1063,7 +1064,7 @@ export async function updateProject(
     revalidatePath(`/projects/${id}`)
     revalidatePath("/ngo/projects")
 
-    // Real-time ES sync — fire-and-forget so it never blocks the update
+    // Real-time ES sync - fire-and-forget so it never blocks the update
     try {
       const { syncSingleDocument } = await import("@/lib/es-sync")
       await syncSingleDocument("projects", id)
@@ -1125,11 +1126,11 @@ export async function applyToProject(
     // Check application limits for free plan volunteers
     const subscriptionPlan = volunteerProfile.subscriptionPlan || "free"
     const monthlyApplicationsUsed = volunteerProfile.monthlyApplicationsUsed || 0
-    
+
     // Check if we need to reset monthly counter
     const now = new Date()
     const resetDate = volunteerProfile.subscriptionResetDate ? new Date(volunteerProfile.subscriptionResetDate) : null
-    
+
     if (resetDate && now >= resetDate) {
       // Reset the counter - it's a new month
       const nextResetDate = new Date(now.getFullYear(), now.getMonth() + 1, 1)
@@ -1139,8 +1140,8 @@ export async function applyToProject(
       })
     } else if (subscriptionPlan === "free" && monthlyApplicationsUsed >= FREE_PLAN_LIMIT) {
       // Free plan limit reached
-      return { 
-        success: false, 
+      return {
+        success: false,
         error: `You've reached your monthly limit of ${FREE_PLAN_LIMIT} applications. Upgrade to Pro for unlimited applications!`,
         data: "LIMIT_REACHED" as any
       }
@@ -1179,18 +1180,18 @@ export async function applyToProject(
 
     // Use atomic create-if-not-exists to prevent race condition duplicates
     const result = await applicationsDb.createIfNotExists(applicationData)
-    
+
     if (!result.created) {
       return { success: false, error: "You have already applied to this project" }
     }
 
     const applicationId = result.id!
-    
+
     // Increment application counter for free plan users
     if (subscriptionPlan === "free") {
       try {
         await volunteerProfilesDb.incrementApplicationCount(user.id)
-        
+
         // Warn when approaching limit (used N-1 of N)
         const newCount = monthlyApplicationsUsed + 1
         if (newCount === FREE_PLAN_LIMIT - 1) {
@@ -1222,7 +1223,7 @@ export async function applyToProject(
         console.error("Failed to increment application count:", e)
       }
     }
-    
+
     // Best effort: increment applicants count and create notification
     // These are non-critical and won't fail the application
     try {
@@ -1333,24 +1334,24 @@ export async function toggleSaveProject(projectId: string): Promise<ApiResponse<
 export async function isProjectSaved(projectId: string): Promise<boolean> {
   const user = await getCurrentUser()
   if (!user) return false
-  
+
   const profile = await volunteerProfilesDb.findByUserId(user.id)
   if (!profile) return false
-  
+
   return (profile.savedProjects || []).includes(projectId)
 }
 
 export async function getSavedProjects(): Promise<Project[]> {
   const user = await getCurrentUser()
   if (!user) return []
-  
+
   const profile = await volunteerProfilesDb.findByUserId(user.id)
   if (!profile || !profile.savedProjects?.length) return []
-  
+
   const projects = await Promise.all(
     profile.savedProjects.map((id) => projectsDb.findById(id))
   )
-  
+
   return serializeDocuments(projects.filter(Boolean) as Project[])
 }
 
@@ -1388,21 +1389,21 @@ export async function getNGOApplications(): Promise<Application[]> {
 export async function getNGOApplicationsEnriched() {
   const user = await getCurrentUser()
   if (!user) return []
-  
+
   const applications = await applicationsDb.findByNgoId(user.id)
-  
+
   if (applications.length === 0) return []
-  
+
   // Collect unique IDs
   const projectIds = [...new Set(applications.map((a) => a.projectId))]
   const volunteerIds = [...new Set(applications.map((a) => a.volunteerId))]
-  
+
   // Batch fetch projects and volunteer profiles
   const [projects, volunteerProfiles] = await Promise.all([
     Promise.all(projectIds.map((id) => projectsDb.findById(id))),
     Promise.all(volunteerIds.map((id) => volunteerProfilesDb.findByUserId(id))),
   ])
-  
+
   // Create lookup maps
   const projectMap = new Map(
     projects.filter(Boolean).map((p) => [p!._id?.toString(), p])
@@ -1410,7 +1411,7 @@ export async function getNGOApplicationsEnriched() {
   const volunteerMap = new Map(
     volunteerProfiles.filter(Boolean).map((v) => [v!.userId, v])
   )
-  
+
   // Enrich applications
   const enrichedApplications = applications.map((app) => ({
     ...app,
@@ -1418,7 +1419,7 @@ export async function getNGOApplicationsEnriched() {
     project: projectMap.get(app.projectId) || null,
     volunteerProfile: volunteerMap.get(app.volunteerId) || null,
   }))
-  
+
   return serializeDocuments(enrichedApplications)
 }
 
@@ -1507,7 +1508,7 @@ export async function getVolunteerProfileView(
   const volunteerProfile = await volunteerProfilesDb.findByUserId(volunteerId)
 
   if (!volunteerProfile) return null
-  
+
   // Also get user info for name fallback
   const db = await import("@/lib/database").then(m => m.getDb())
   const volunteerUser = await (await db).collection("user").findOne(userIdQuery(volunteerId))
@@ -1527,12 +1528,11 @@ export async function getVolunteerProfileView(
   else if (currentUser?.role === "admin") {
     isUnlocked = true
   }
-  // NGO with Pro subscription â†’ can see free/both profiles
+  // NGO â†' can see free/both profiles (unlocked for all NGOs)
   else if (currentUser && currentUser.role === "ngo") {
-    const ngoProfile = await ngoProfilesDb.findByUserId(currentUser.id)
-    isUnlocked = ngoProfile?.subscriptionPlan === "pro"
+    isUnlocked = true
   }
-  // Everyone else (non-logged-in, volunteers, free NGOs) â†’ locked for free/both
+  // Everyone else (non-logged-in, volunteers) â†' locked for free/both
 
   // Get the best name available
   const displayName = volunteerProfile.name || volunteerUser?.name || "Impact Agent"
@@ -1577,9 +1577,9 @@ export async function unlockVolunteerProfile(
   volunteerId: string,
   paymentId?: string
 ): Promise<ApiResponse<boolean>> {
-  return { 
-    success: false, 
-    error: "Profile unlocking has been replaced with subscription-based access. Upgrade to Pro to view all volunteer profiles." 
+  return {
+    success: false,
+    error: "Profile unlocking has been replaced with subscription-based access. Upgrade to Pro to view all volunteer profiles."
   }
 }
 
@@ -1600,7 +1600,7 @@ export async function getMatchedVolunteersForProject(
   const volunteers = await volunteerProfilesDb.findMany(
     { isActive: { $ne: false } } as any
   )
-  
+
   // Subscription-based visibility: non-Pro NGOs can only see paid volunteers
   let visibleVolunteers = volunteers
   if (user.role === "ngo") {
@@ -1609,7 +1609,7 @@ export async function getMatchedVolunteersForProject(
       visibleVolunteers = volunteers.filter(v => v.volunteerType === "paid")
     }
   }
-  
+
   const matches = matchVolunteersToProject(project, visibleVolunteers)
 
   // Convert to profile views
@@ -1644,7 +1644,7 @@ export async function getMatchedOpportunitiesForVolunteer(): Promise<
 
   const projects = await projectsDb.findActive()
   console.log('[Matching] Found', projects.length, 'active projects')
-  
+
   if (projects.length === 0) {
     console.log('[Matching] No active projects available')
     return []
@@ -1670,7 +1670,7 @@ export async function getRecommendedVolunteersForNGO(): Promise<
   // Get NGO's active projects to determine what skills they need
   const projects = await projectsDb.findByNgoId(user.id)
   const activeProjects = projects.filter(p => p.status === "open" || p.status === "active")
-  
+
   if (activeProjects.length === 0) return []
 
   // Collect all required skills from active projects
@@ -1687,24 +1687,24 @@ export async function getRecommendedVolunteersForNGO(): Promise<
   const volunteers = await volunteerProfilesDb.findMany(
     { isActive: { $ne: false } } as any
   )
-  
+
   // Subscription-based visibility: non-Pro NGOs can only see paid volunteers
   const ngoProfile = await ngoProfilesDb.findByUserId(user.id)
   const isPro = ngoProfile?.subscriptionPlan === "pro"
   const visibleVolunteers = isPro
     ? volunteers
     : volunteers.filter(v => v.volunteerType === "paid")
-  
+
   // Score volunteers based on skill match
   const scoredVolunteers = visibleVolunteers
     .map(v => {
       const volunteerSkillIds = v.skills?.map((s: any) => s.subskillId) || []
       const matchingSkills = volunteerSkillIds.filter((id: string) => requiredSkillIds.has(id))
       const skillMatchScore = (matchingSkills.length / requiredSkillIds.size) * 100
-      
+
       // Bonus for free hours availability (only for 'both' type volunteers)
       const freeHoursBonus = (v.volunteerType === "both" && v.freeHoursPerMonth && v.freeHoursPerMonth > 0) ? 10 : 0
-      
+
       return {
         volunteerId: v.userId,
         score: Math.round(skillMatchScore + freeHoursBonus),
@@ -1765,20 +1765,20 @@ export async function getUnreadNotificationCount(): Promise<number> {
 export async function getAdminSettings(): Promise<AdminSettings | null> {
   const user = await requireRole(["admin"])
   let settings = await adminSettingsDb.get()
-  
+
   // Auto-initialize settings if they don't exist
   if (!settings) {
     await adminSettingsDb.initialize(user.id)
     settings = await adminSettingsDb.get()
   }
-  
+
   return settings
 }
 
 // Public settings getter - no auth required
 export async function getPublicSettings(): Promise<Partial<AdminSettings> | null> {
   let settings = await adminSettingsDb.get()
-  
+
   if (!settings) {
     return {
       platformName: "JustBeCause Network",
@@ -1794,7 +1794,7 @@ export async function getPublicSettings(): Promise<Partial<AdminSettings> | null
       enableMessaging: true,
     }
   }
-  
+
   // Return only public settings
   return {
     platformName: settings.platformName,
@@ -1824,7 +1824,7 @@ export async function updateAdminSettings(
 ): Promise<ApiResponse<boolean>> {
   try {
     const user = await requireRole(["admin"])
-    
+
     // Remove _id field if present to avoid MongoDB errors
     const { _id, ...settingsWithoutId } = settings as any
 
@@ -1840,7 +1840,7 @@ export async function updateAdminSettings(
         settingsWithoutId[field] = Number(settingsWithoutId[field]) || 0
       }
     }
-    
+
     const result = await adminSettingsDb.update(settingsWithoutId, user.id)
     revalidatePath("/admin/settings")
     revalidatePath("/pricing")
@@ -1882,13 +1882,13 @@ export async function getAdminStats(): Promise<{
 // Enhanced analytics for admin dashboard
 export async function getAdminAnalytics() {
   await requireRole(["admin"])
-  
+
   const db = await getDb()
   const userCollection = db.collection("user")
   const now = new Date()
   const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000)
   const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
-  
+
   // Get counts - use user collection with role filter
   const [
     totalVolunteers,
@@ -1913,7 +1913,7 @@ export async function getAdminAnalytics() {
     userCollection.countDocuments({ role: "ngo", isVerified: true }),
     userCollection.countDocuments({ role: "volunteer", isVerified: true }),
   ])
-  
+
   // Get recent signups (last 30 days) - use user collection
   const recentVolunteers = await userCollection.countDocuments({
     role: "volunteer",
@@ -1923,31 +1923,31 @@ export async function getAdminAnalytics() {
     role: "ngo",
     createdAt: { $gte: thirtyDaysAgo }
   })
-  
+
   // Get recent projects
   const recentProjects = await db.collection("projects").countDocuments({
     createdAt: { $gte: thirtyDaysAgo }
   })
-  
+
   // Get recent applications
   const recentApplications = await db.collection("applications").countDocuments({
     createdAt: { $gte: sevenDaysAgo }
   })
-  
+
   // Revenue stats
   const totalRevenue = await transactionsDb.sumAmount({ paymentStatus: "completed" })
   const monthlyRevenue = await db.collection("transactions").aggregate([
     { $match: { paymentStatus: "completed", createdAt: { $gte: thirtyDaysAgo } } },
     { $group: { _id: null, total: { $sum: "$amount" } } }
   ]).toArray()
-  
+
   // Get pending verification counts - use user collection
   const pendingNGOVerifications = await userCollection.countDocuments({
     role: "ngo",
     isVerified: { $ne: true },
     isOnboarded: true
   })
-  
+
   // Recent activity from user collection and other collections
   const recentActivity = await Promise.all([
     userCollection
@@ -1956,10 +1956,10 @@ export async function getAdminAnalytics() {
       .limit(5)
       .project({ name: 1, createdAt: 1 })
       .toArray()
-      .then(docs => docs.map(d => ({ 
-        type: "volunteer_signup" as const, 
+      .then(docs => docs.map(d => ({
+        type: "volunteer_signup" as const,
         text: `New volunteer: ${d.name || "Anonymous"}`,
-        createdAt: d.createdAt 
+        createdAt: d.createdAt
       }))),
     userCollection
       .find({ role: "ngo" })
@@ -1967,10 +1967,10 @@ export async function getAdminAnalytics() {
       .limit(5)
       .project({ organizationName: 1, orgName: 1, name: 1, createdAt: 1 })
       .toArray()
-      .then(docs => docs.map(d => ({ 
+      .then(docs => docs.map(d => ({
         type: "ngo_signup" as const,
         text: `New NGO: ${d.organizationName || d.orgName || d.name || "Organization"}`,
-        createdAt: d.createdAt 
+        createdAt: d.createdAt
       }))),
     db.collection("projects")
       .find({})
@@ -1978,10 +1978,10 @@ export async function getAdminAnalytics() {
       .limit(5)
       .project({ title: 1, createdAt: 1 })
       .toArray()
-      .then(docs => docs.map(d => ({ 
+      .then(docs => docs.map(d => ({
         type: "project_created" as const,
         text: `New project: ${d.title}`,
-        createdAt: d.createdAt 
+        createdAt: d.createdAt
       }))),
     db.collection("applications")
       .find({})
@@ -1989,10 +1989,10 @@ export async function getAdminAnalytics() {
       .limit(5)
       .project({ createdAt: 1 })
       .toArray()
-      .then(docs => docs.map(d => ({ 
+      .then(docs => docs.map(d => ({
         type: "application" as const,
         text: "New application submitted",
-        createdAt: d.createdAt 
+        createdAt: d.createdAt
       }))),
     db.collection("transactions")
       .find({ paymentStatus: "completed" })
@@ -2000,13 +2000,13 @@ export async function getAdminAnalytics() {
       .limit(5)
       .project({ amount: 1, createdAt: 1 })
       .toArray()
-      .then(docs => docs.map(d => ({ 
+      .then(docs => docs.map(d => ({
         type: "payment" as const,
-        text: `Payment received: â‚¹${d.amount}`,
-        createdAt: d.createdAt 
+        text: `Payment received: â'¹${d.amount}`,
+        createdAt: d.createdAt
       }))),
   ])
-  
+
   // Merge and sort recent activity
   const allActivity = recentActivity
     .flat()
@@ -2016,7 +2016,7 @@ export async function getAdminAnalytics() {
       ...a,
       timeAgo: getTimeAgo(a.createdAt)
     }))
-  
+
   // Top skills in demand (from projects)
   const skillsInDemand = await db.collection("projects").aggregate([
     { $match: { status: "active" } },
@@ -2025,7 +2025,7 @@ export async function getAdminAnalytics() {
     { $sort: { count: -1 } },
     { $limit: 5 }
   ]).toArray()
-  
+
   // Top causes
   const topCauses = await db.collection("projects").aggregate([
     { $match: { status: "active" } },
@@ -2034,7 +2034,7 @@ export async function getAdminAnalytics() {
     { $sort: { count: -1 } },
     { $limit: 5 }
   ]).toArray()
-  
+
   return {
     // Overview stats
     totalVolunteers,
@@ -2043,34 +2043,34 @@ export async function getAdminAnalytics() {
     totalApplications,
     totalRevenue,
     monthlyRevenue: monthlyRevenue[0]?.total || 0,
-    
+
     // Project stats
     activeProjects,
     completedProjects,
     recentProjects,
-    
+
     // Application stats
     pendingApplications,
     acceptedApplications,
     recentApplications,
     applicationRate: totalProjects > 0 ? Math.round((totalApplications / totalProjects) * 100) / 100 : 0,
-    
+
     // User stats
     verifiedNGOs,
     verifiedVolunteers,
     recentVolunteers,
     recentNGOs,
-    
+
     // Action items
     pendingNGOVerifications,
-    
+
     // Activity feed
     recentActivity: allActivity,
-    
+
     // Insights
     skillsInDemand: skillsInDemand.map(s => ({ skill: s._id, count: s.count })),
     topCauses: topCauses.map(c => ({ cause: c._id, count: c.count })),
-    
+
     // Conversion metrics
     ngoVerificationRate: totalNGOs > 0 ? Math.round((verifiedNGOs / totalNGOs) * 100) : 0,
     projectSuccessRate: totalProjects > 0 ? Math.round((completedProjects / totalProjects) * 100) : 0,
@@ -2086,7 +2086,7 @@ function getTimeAgo(date: Date | string): string {
   const diffMins = Math.floor(diffMs / 60000)
   const diffHours = Math.floor(diffMs / 3600000)
   const diffDays = Math.floor(diffMs / 86400000)
-  
+
   if (diffMins < 1) return "Just now"
   if (diffMins < 60) return `${diffMins} minute${diffMins > 1 ? "s" : ""} ago`
   if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? "s" : ""} ago`
@@ -2101,19 +2101,19 @@ export async function adminChangeUserRole(
 ): Promise<ApiResponse<boolean>> {
   try {
     await requireRole(["admin"])
-    
+
     const db = await getDb()
-    
+
     // Update user role in auth system (Better Auth stores _id as ObjectId)
     const result = await db.collection("user").updateOne(
       userIdQuery(userId),
       { $set: { role: newRole, updatedAt: new Date() } }
     )
-    
+
     if (result.modifiedCount === 0) {
       return { success: false, error: "User not found" }
     }
-    
+
     revalidatePath("/admin/users")
     return { success: true, data: true }
   } catch (error) {
@@ -2188,7 +2188,7 @@ export async function suspendUser(
 ): Promise<ApiResponse<boolean>> {
   try {
     await requireRole(["admin"])
-    
+
     if (userType === "volunteer") {
       await volunteerProfilesDb.update(userId, { isActive: false })
       revalidatePath("/admin/volunteers")
@@ -2196,7 +2196,7 @@ export async function suspendUser(
       await ngoProfilesDb.update(userId, { isActive: false } as any)
       revalidatePath("/admin/ngos")
     }
-    
+
     revalidatePath("/admin/users")
     return { success: true, data: true }
   } catch (error) {
@@ -2211,7 +2211,7 @@ export async function reactivateUser(
 ): Promise<ApiResponse<boolean>> {
   try {
     await requireRole(["admin"])
-    
+
     if (userType === "volunteer") {
       await volunteerProfilesDb.update(userId, { isActive: true })
       revalidatePath("/admin/volunteers")
@@ -2219,7 +2219,7 @@ export async function reactivateUser(
       await ngoProfilesDb.update(userId, { isActive: true } as any)
       revalidatePath("/admin/ngos")
     }
-    
+
     revalidatePath("/admin/users")
     return { success: true, data: true }
   } catch (error) {
@@ -2234,9 +2234,9 @@ export async function adminDeleteUser(
 ): Promise<ApiResponse<boolean>> {
   try {
     await requireRole(["admin"])
-    
+
     const db = await getDb()
-    
+
     // Delete user data based on type - data is stored in user collection directly now
     // But we still need to clean up applications and projects
     if (userType === "volunteer") {
@@ -2247,30 +2247,30 @@ export async function adminDeleteUser(
         db.collection("applications").deleteMany({ ngoId: userId }),
       ])
     }
-    
+
     // Delete common data
     await Promise.all([
       db.collection("conversations").deleteMany({ participants: userId }),
-      db.collection("messages").deleteMany({ 
-        $or: [{ senderId: userId }, { receiverId: userId }] 
+      db.collection("messages").deleteMany({
+        $or: [{ senderId: userId }, { receiverId: userId }]
       }),
       db.collection("notifications").deleteMany({ userId }),
-      db.collection("profileUnlocks").deleteMany({ 
-        $or: [{ ngoId: userId }, { volunteerId: userId }] 
+      db.collection("profileUnlocks").deleteMany({
+        $or: [{ ngoId: userId }, { volunteerId: userId }]
       }),
       db.collection("transactions").deleteMany({ userId }),
       // Delete from session and account tables
       db.collection("session").deleteMany({ userId }),
       db.collection("account").deleteMany({ userId }),
     ])
-    
+
     // Delete user account - use ObjectId query (Better Auth stores _id as ObjectId)
     await db.collection("user").deleteOne(userIdQuery(userId))
-    
+
     revalidatePath("/admin/users")
     revalidatePath("/admin/volunteers")
     revalidatePath("/admin/ngos")
-    
+
     return { success: true, data: true }
   } catch (error) {
     console.error("Admin delete user error:", error)
@@ -2301,14 +2301,14 @@ export async function banUser(
 ): Promise<ApiResponse<boolean>> {
   try {
     const adminUser = await requireRole(["admin"])
-    
+
     // Suspend the user first
     if (userType === "volunteer") {
       await volunteerProfilesDb.update(userId, { isActive: false, isBanned: true })
     } else {
       await ngoProfilesDb.update(userId, { isActive: false, isBanned: true } as any)
     }
-    
+
     // Create ban record
     await banRecordsDb.create({
       userId,
@@ -2318,11 +2318,11 @@ export async function banUser(
       bannedAt: new Date(),
       isActive: true,
     })
-    
+
     revalidatePath("/admin/users")
     revalidatePath("/admin/volunteers")
     revalidatePath("/admin/ngos")
-    
+
     return { success: true, data: true }
   } catch (error) {
     console.error("Ban user error:", error)
@@ -2336,21 +2336,21 @@ export async function unbanUser(
 ): Promise<ApiResponse<boolean>> {
   try {
     const adminUser = await requireRole(["admin"])
-    
+
     // Reactivate the user
     if (userType === "volunteer") {
       await volunteerProfilesDb.update(userId, { isActive: true, isBanned: false })
     } else {
       await ngoProfilesDb.update(userId, { isActive: true, isBanned: false } as any)
     }
-    
+
     // Deactivate ban record
     await banRecordsDb.deactivate(userId, adminUser.id)
-    
+
     revalidatePath("/admin/users")
     revalidatePath("/admin/volunteers")
     revalidatePath("/admin/ngos")
-    
+
     return { success: true, data: true }
   } catch (error) {
     console.error("Unban user error:", error)
@@ -2474,48 +2474,48 @@ export async function browseVolunteers(filters?: {
   limit?: number
 }) {
   console.log('[browseVolunteers] Fetching volunteers with filters:', filters)
-  
+
   // Get all volunteers (arrays are now parsed by database helpers)
   const volunteers = await volunteerProfilesDb.findMany({}, { limit: 100 } as any)
   console.log(`[browseVolunteers] Found ${volunteers.length} total volunteers`)
-  
+
   // Filter in JavaScript since arrays are stored as JSON strings
   let filteredVolunteers = volunteers.filter(v => {
     // Skip if explicitly inactive
     if (v.isActive === false) return false
-    
+
     // Apply filters
     if (filters?.skills?.length) {
       const volunteerSkills = Array.isArray(v.skills) ? v.skills : []
-      const hasSkill = volunteerSkills.some((skill: any) => 
+      const hasSkill = volunteerSkills.some((skill: any) =>
         filters.skills!.includes(skill?.subskillId || skill)
       )
       if (!hasSkill) return false
     }
-    
+
     if (filters?.causes?.length) {
       const volunteerCauses = Array.isArray(v.causes) ? v.causes : []
-      const hasCause = volunteerCauses.some((cause: string) => 
+      const hasCause = volunteerCauses.some((cause: string) =>
         filters.causes!.includes(cause)
       )
       if (!hasCause) return false
     }
-    
+
     if (filters?.workMode && filters.workMode !== "all" && v.workMode !== filters.workMode) {
       return false
     }
-    
+
     if (filters?.volunteerType && filters.volunteerType !== "all" && v.volunteerType !== filters.volunteerType) {
       return false
     }
-    
+
     if (filters?.location && v.location && !v.location.toLowerCase().includes(filters.location.toLowerCase())) {
       return false
     }
-    
+
     return true
   })
-  
+
   // Subscription-based visibility: non-Pro NGOs can only see paid volunteers
   const currentUser = await getCurrentUser()
   if (currentUser?.role === "ngo") {
@@ -2528,12 +2528,12 @@ export async function browseVolunteers(filters?: {
   // Limit results
   const maxResults = filters?.limit || 50
   filteredVolunteers = filteredVolunteers.slice(0, maxResults)
-  
+
   // Convert to profile views for proper visibility
   const views = await Promise.all(
     filteredVolunteers.map((v) => getVolunteerProfileView(v.userId))
   )
-  
+
   return views.filter((v) => v !== null)
 }
 
@@ -2544,10 +2544,10 @@ export async function browseProjects(filters?: {
   projectType?: string
 }) {
   // Get active projects from database
-  // Fetch all active projects (no cap — the listing page needs a full set
+  // Fetch all active projects (no cap - the listing page needs a full set
   // so that Elasticsearch search-result IDs can always be matched locally)
   const allProjects = await projectsDb.findActive({}, { sort: { createdAt: -1 } as any })
-  
+
   // Filter in JavaScript since some filtering might be needed
   let filteredProjects = allProjects.filter(p => {
     if (filters?.skills?.length) {
@@ -2555,27 +2555,27 @@ export async function browseProjects(filters?: {
       const hasSkill = projectSkills.some((skill: string) => filters.skills!.includes(skill))
       if (!hasSkill) return false
     }
-    
+
     if (filters?.causes?.length) {
       const hasCause = p.causes?.some((cause: string) => filters.causes!.includes(cause))
       if (!hasCause) return false
     }
-    
+
     if (filters?.workMode && p.workMode !== filters.workMode) {
       return false
     }
-    
+
     if (filters?.projectType && p.projectType !== filters.projectType) {
       return false
     }
-    
+
     return true
   })
-  
+
   // Fetch NGO info for each project
   const ngoIds = [...new Set(filteredProjects.map(p => p.ngoId).filter(Boolean))]
   const ngoMap: Record<string, { name: string; logo?: string; verified: boolean }> = {}
-  
+
   for (const ngoId of ngoIds) {
     const ngoProfile = await ngoProfilesDb.findByUserId(ngoId)
     if (ngoProfile) {
@@ -2586,20 +2586,20 @@ export async function browseProjects(filters?: {
       }
     }
   }
-  
+
   // Attach NGO info to projects
   const projectsWithNgo = filteredProjects.map(p => ({
     ...p,
     ngo: ngoMap[p.ngoId] || { name: "Organization", verified: false },
   }))
-  
+
   return serializeDocuments(projectsWithNgo)
 }
 
 // Get skill category project counts for home page
 export async function getSkillCategoryCounts() {
   const db = await getDb()
-  
+
   // Define skill categories with their IDs and icons
   const categories = [
     { id: "digital-marketing", name: "Digital Marketing", icon: "Megaphone" },
@@ -2610,25 +2610,25 @@ export async function getSkillCategoryCounts() {
     { id: "communication", name: "Communication", icon: "Target" },
     { id: "planning-support", name: "Planning & Support", icon: "Users" },
   ]
-  
+
   // Get all active projects
   const activeProjects = await db.collection("projects").find({
     status: { $in: ["active", "open", "published"] }
   }).toArray()
-  
+
   // Count projects per category
   const categoryCounts = categories.map(category => {
     const count = activeProjects.filter(project => {
       const skills = project.skillsRequired || []
       return skills.some((skill: any) => skill.categoryId === category.id)
     }).length
-    
+
     return {
       ...category,
       count
     }
   })
-  
+
   return categoryCounts
 }
 
@@ -2657,24 +2657,24 @@ export async function browseNGOs(filters?: {
 export async function getMyConversations() {
   const user = await getCurrentUser()
   if (!user) return []
-  
+
   const conversations = await conversationsDb.findByUserId(user.id)
-  
+
   // Get all other participant IDs
   const otherParticipantIds = conversations
     .map(conv => conv.participants.find((p: string) => p !== user.id))
     .filter(Boolean) as string[]
-  
+
   // Batch fetch all user info using centralized utility
   const usersInfoMap = await getUsersInfo(otherParticipantIds)
-  
+
   // Enrich conversations with participant details
   const enrichedConversations = conversations.map((conv) => {
     const otherParticipantId = conv.participants.find((p: string) => p !== user.id)
     if (!otherParticipantId) return conv
-    
+
     const otherUser = usersInfoMap.get(otherParticipantId)
-    
+
     if (otherUser?.type === "ngo") {
       return {
         ...conv,
@@ -2684,7 +2684,7 @@ export async function getMyConversations() {
         otherParticipantId,
       }
     }
-    
+
     return {
       ...conv,
       volunteerName: otherUser?.name || "Volunteer",
@@ -2693,11 +2693,11 @@ export async function getMyConversations() {
       otherParticipantId,
     }
   })
-  
+
   // Count unread messages for each conversation
   const db = await getDb()
   const messagesCollection = db.collection("messages")
-  
+
   const conversationsWithUnread = await Promise.all(
     enrichedConversations.map(async (conv) => {
       const unreadCount = await messagesCollection.countDocuments({
@@ -2708,14 +2708,14 @@ export async function getMyConversations() {
       return { ...conv, unreadCount }
     })
   )
-  
+
   return serializeDocuments(conversationsWithUnread)
 }
 
 export async function getConversation(conversationId: string) {
   const user = await getCurrentUser()
   if (!user) return null
-  
+
   const conversations = await conversationsDb.findByUserId(user.id)
   const conversation = conversations.find(c => c._id?.toString() === conversationId) || null
   return serializeDocument(conversation)
@@ -2727,27 +2727,27 @@ export async function getConversationMessages(conversationId: string, limit = 50
     console.log(`[getConversationMessages] No user found`)
     return []
   }
-  
+
   console.log(`[getConversationMessages] User: ${user.id}, ConversationId: ${conversationId}`)
-  
+
   // Verify user is part of conversation
   const conversations = await conversationsDb.findByUserId(user.id)
   console.log(`[getConversationMessages] Found ${conversations.length} conversations for user`)
-  
+
   const conversation = conversations.find(c => c._id?.toString() === conversationId)
   if (!conversation) {
     console.log(`[getConversationMessages] Conversation not found or user not a participant`)
     return []
   }
-  
+
   console.log(`[getConversationMessages] Conversation found with participants: ${conversation.participants.join(', ')}`)
-  
+
   // Mark messages as read
   await messagesDb.markAsRead(conversationId, user.id)
-  
+
   const messages = await messagesDb.findByConversationId(conversationId, limit)
   console.log(`[getConversationMessages] Found ${messages.length} messages`)
-  
+
   return serializeDocuments(messages)
 }
 
@@ -2758,17 +2758,17 @@ export async function sendMessage(
 ): Promise<ApiResponse<string>> {
   try {
     const user = await requireAuth()
-    
+
     if (!content.trim()) {
       return { success: false, error: "Message cannot be empty" }
     }
-    
+
     console.log(`[sendMessage] From: ${user.id}, To: ${receiverId}, Content: ${content.substring(0, 30)}...`)
-    
+
     // Find or create conversation
     const conversation = await conversationsDb.findOrCreate([user.id, receiverId], projectId)
     console.log(`[sendMessage] Conversation ID: ${conversation._id?.toString()}, Participants: ${conversation.participants.join(', ')}`)
-    
+
     // Create message
     const messageId = await messagesDb.create({
       conversationId: conversation._id!.toString(),
@@ -2779,26 +2779,26 @@ export async function sendMessage(
       createdAt: new Date(),
     })
     console.log(`[sendMessage] Message created: ${messageId}`)
-    
+
     // Update conversation last message
     await conversationsDb.updateLastMessage(
       conversation._id!.toString(),
       content.length > 50 ? content.substring(0, 50) + "..." : content
     )
     console.log(`[sendMessage] Conversation updated with last message`)
-    
+
     // Get sender and receiver info using centralized utility
     const [senderInfo, receiverInfo] = await Promise.all([
       getUserInfo(user.id),
       getUserInfo(receiverId),
     ])
-    
+
     const senderName = senderInfo?.name || "Someone"
     const conversationIdStr = conversation._id!.toString()
     const messageLink = receiverInfo?.type === "ngo"
       ? `/ngo/messages/${conversationIdStr}`
       : `/volunteer/messages/${conversationIdStr}`
-    
+
     // Create notification for receiver with link
     try {
       await notificationsDb.create({
@@ -2842,14 +2842,14 @@ export async function sendMessage(
     } catch (emailErr) {
       console.error("[sendMessage] Failed to send email notification:", emailErr)
     }
-    
+
     // Revalidate message pages for both sender and receiver
     revalidatePath("/volunteer/messages")
     revalidatePath("/ngo/messages")
     revalidatePath(`/volunteer/messages/${conversationIdStr}`)
     revalidatePath(`/ngo/messages/${conversationIdStr}`)
     console.log(`[sendMessage] Revalidated paths for conversation ${conversationIdStr}`)
-    
+
     return { success: true, data: messageId }
   } catch (error: any) {
     // Re-throw redirect errors (NEXT_REDIRECT) - they should not be caught
@@ -2868,23 +2868,23 @@ export async function startConversation(
 ): Promise<ApiResponse<string>> {
   try {
     const user = await requireAuth()
-    
+
     console.log(`[startConversation] User ${user.id} starting conversation with ${receiverId}`)
-    
+
     if (!receiverId) {
       return { success: false, error: "Recipient ID is required" }
     }
-    
+
     // Find or create conversation
     const conversation = await conversationsDb.findOrCreate([user.id, receiverId], projectId)
-    
+
     if (!conversation || !conversation._id) {
       console.error("[startConversation] Failed to create conversation")
       return { success: false, error: "Failed to create conversation" }
     }
-    
+
     console.log(`[startConversation] Conversation created/found: ${conversation._id}`)
-    
+
     // If initial message provided, send it (sendMessage handles email + notification)
     if (initialMessage?.trim()) {
       const msgResult = await sendMessage(receiverId, initialMessage, projectId)
@@ -2922,7 +2922,7 @@ export async function startConversation(
         console.error("[startConversation] Failed to send connection email:", emailError)
       }
     }
-    
+
     return { success: true, data: conversation._id!.toString() }
   } catch (error: any) {
     // Re-throw redirect errors (NEXT_REDIRECT) - they should not be caught
@@ -2945,9 +2945,9 @@ export async function startStreamConversation(
 ): Promise<ApiResponse<string>> {
   try {
     const user = await requireAuth()
-    
+
     console.log(`[startStreamConversation] User ${user.id} starting conversation with ${receiverId}`)
-    
+
     if (!receiverId) {
       return { success: false, error: "Recipient ID is required" }
     }
@@ -3037,7 +3037,7 @@ export async function getUnreadMessageCount(): Promise<number> {
 export async function getMyNotifications() {
   const user = await getCurrentUser()
   if (!user) return []
-  
+
   const notifications = await notificationsDb.findByUserId(user.id)
   return serializeDocuments(notifications)
 }
@@ -3054,7 +3054,7 @@ export async function getUnlockedProfiles() {
 export async function getMyTransactions() {
   const user = await getCurrentUser()
   if (!user) return []
-  
+
   const transactions = await transactionsDb.findByUserId(user.id)
   return serializeDocuments(transactions)
 }
@@ -3065,7 +3065,7 @@ export async function getAllTransactions(page = 1, limit = 20) {
     transactionsDb.findMany({}, { skip, limit, sort: { createdAt: -1 } }),
     transactionsDb.count({}),
   ])
-  
+
   return {
     data: transactions,
     total,
@@ -3081,7 +3081,7 @@ export async function getPaymentStats() {
     transactionsDb.count({}),
     transactionsDb.count({ paymentStatus: "completed" }),
   ])
-  
+
   return {
     totalRevenue,
     profileUnlockRevenue,
@@ -3125,9 +3125,9 @@ export async function changePassword(
         return { success: false, error: "Current password is incorrect" }
       }
       if (authError.message?.includes("OAuth")) {
-        return { 
-          success: false, 
-          error: "Password change is only available for email/password accounts. OAuth users should manage passwords through their provider." 
+        return {
+          success: false,
+          error: "Password change is only available for email/password accounts. OAuth users should manage passwords through their provider."
         }
       }
       throw authError
@@ -3160,14 +3160,14 @@ export async function deleteAccount(): Promise<ApiResponse<boolean>> {
       // Delete user's conversations
       db.collection("conversations").deleteMany({ participants: user.id }),
       // Delete user's messages
-      db.collection("messages").deleteMany({ 
-        $or: [{ senderId: user.id }, { receiverId: user.id }] 
+      db.collection("messages").deleteMany({
+        $or: [{ senderId: user.id }, { receiverId: user.id }]
       }),
       // Delete user's notifications
       db.collection("notifications").deleteMany({ userId: user.id }),
       // Delete profile unlocks related to user
-      db.collection("profileUnlocks").deleteMany({ 
-        $or: [{ ngoId: user.id }, { volunteerId: user.id }] 
+      db.collection("profileUnlocks").deleteMany({
+        $or: [{ ngoId: user.id }, { volunteerId: user.id }]
       }),
       // Delete user's transactions
       db.collection("transactions").deleteMany({ userId: user.id }),
@@ -3233,7 +3233,7 @@ export async function getImpactMetrics() {
 export async function initializePlatform(): Promise<void> {
   // Initialize subscription plans
   await subscriptionPlansDb.initializeDefaults()
-  
+
   // Initialize admin settings with a system user
   await adminSettingsDb.initialize("system")
 }
@@ -3368,7 +3368,7 @@ export async function getFollowStats(targetId: string): Promise<ApiResponse<{ fo
     const session = await auth.api.getSession({ headers: await headers() })
     const viewerId = session?.user?.id
     const stats = await followsDb.getStats(targetId, viewerId)
-    
+
     return {
       success: true,
       data: {
@@ -3394,7 +3394,7 @@ export async function getFollowersList(userId: string, page: number = 1, limit: 
 }>> {
   try {
     const { followers, total, totalPages } = await followsDb.getFollowers(userId, page, limit)
-    
+
     if (followers.length === 0) {
       return { success: true, data: { users: [], total: 0, page, totalPages: 0 } }
     }
@@ -3442,7 +3442,7 @@ export async function getFollowingList(userId: string, page: number = 1, limit: 
 }>> {
   try {
     const { following, total, totalPages } = await followsDb.getFollowing(userId, page, limit)
-    
+
     if (following.length === 0) {
       return { success: true, data: { users: [], total: 0, page, totalPages: 0 } }
     }
@@ -3479,7 +3479,7 @@ export async function getFollowingList(userId: string, page: number = 1, limit: 
   }
 }
 
-// Legacy wrappers — keep backward compatibility
+// Legacy wrappers - keep backward compatibility
 export async function followNgo(ngoId: string): Promise<ApiResponse<void>> {
   const result = await followUser(ngoId)
   return { success: result.success, error: result.error, data: undefined }
@@ -4022,7 +4022,7 @@ export async function updateBlogPost(id: string, data: Partial<BlogPost>): Promi
     }
 
     await blogPostsDb.update(id, data)
-    // Sync to ES — if published, index it; if draft, this removes it (transformBlogPost returns null for non-published)
+    // Sync to ES - if published, index it; if draft, this removes it (transformBlogPost returns null for non-published)
     try {
       const { syncSingleDocument } = await import("@/lib/es-sync")
       await syncSingleDocument("blogPosts", id)
@@ -4160,7 +4160,7 @@ export async function getPlatformAnalytics(): Promise<ApiResponse<any>> {
 }
 
 // ============================================
-// PROJECT LIFECYCLE — MILESTONES & TIME LOGGING
+// PROJECT LIFECYCLE - MILESTONES & TIME LOGGING
 // ============================================
 
 export async function addProjectMilestone(

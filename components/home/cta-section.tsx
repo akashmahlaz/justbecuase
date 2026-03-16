@@ -11,7 +11,7 @@ export function CTASection() {
 
   const stats = [
     { value: home.ctaStat1Value || "1 min", label: home.ctaStat1Label || "To sign up" },
-    { value: home.ctaStat2Value || "100%", label: home.ctaStat2Label || "Free for impact agents" },
+    { value: home.ctaStat2Value || "0%", label: home.ctaStat2Label || "Registration Fees" },
     { value: home.ctaStat3Value || "24/7", label: home.ctaStat3Label || "Support available" },
     { value: home.ctaStat4Value || "120+", label: home.ctaStat4Label || "Partner NGOs" },
   ]
