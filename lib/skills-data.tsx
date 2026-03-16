@@ -210,9 +210,7 @@ export const causes = [
 
 export const workModes = [
   { id: "remote", name: "Remote", icon: <Laptop className="h-6 w-6" /> },
-  { id: "onsite", name: "On-site", icon: <Building2 className="h-6 w-6" /> },
-  { id: "hybrid", name: "Hybrid", icon: <Globe className="h-6 w-6" /> },
-] as const;
+] as const; // fix #12: removed onsite and hybrid options
 
 export const volunteerTypes = [
   { id: "free", name: "Pro-Bono", description: "Contribute for free" },
