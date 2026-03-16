@@ -1527,12 +1527,16 @@ export async function getVolunteerProfileView(
   else if (currentUser?.role === "admin") {
     isUnlocked = true
   }
-  // NGO with Pro subscription â†’ can see free/both profiles
+  // Fix #8: All NGOs can view free profiles; pro NGOs can view paid profiles too
   else if (currentUser && currentUser.role === "ngo") {
-    const ngoProfile = await ngoProfilesDb.findByUserId(currentUser.id)
-    isUnlocked = ngoProfile?.subscriptionPlan === "pro"
+    if (volunteerProfile.volunteerType === "free" || !volunteerProfile.volunteerType) {
+      isUnlocked = true
+    } else {
+      const ngoProfile = await ngoProfilesDb.findByUserId(currentUser.id)
+      isUnlocked = ngoProfile?.subscriptionPlan === "pro"
+    }
   }
-  // Everyone else (non-logged-in, volunteers, free NGOs) â†’ locked for free/both
+  // Everyone else (non-logged-in, volunteers) → locked
 
   // Get the best name available
   const displayName = volunteerProfile.name || volunteerUser?.name || "Impact Agent"
