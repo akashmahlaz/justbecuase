@@ -155,32 +155,38 @@ for (const group of SYNONYM_GROUPS) {
 /**
  * Expand search terms with synonyms/related concepts.
  * "ad campaign" → ["ad", "campaign", "ads", "advertising", "ppc", "google ads", "meta ads", ...]
- * Only expands terms that have known synonyms. Does NOT expand random words.
+ *
+ * IMPORTANT: Multi-word queries only do EXACT full-phrase synonym matching.
+ * This prevents "wordpress development" from expanding "development" → poverty group.
+ * Single-word queries use exact + prefix matching.
  */
 function expandWithSynonyms(searchTerms: string[]): string[] {
   const expanded = new Set<string>(searchTerms)
   const fullQuery = searchTerms.join(" ").toLowerCase()
 
-  // First try matching the full query as a phrase (e.g., "ad campaign")
-  for (const [key, synonyms] of SYNONYM_MAP) {
-    if (fullQuery.includes(key) || key.includes(fullQuery)) {
+  // Multi-word query: ONLY expand if the FULL PHRASE is an exact synonym key
+  // e.g., "women empowerment" → expands, but "wordpress development" → does NOT expand
+  if (searchTerms.length > 1) {
+    const synonyms = SYNONYM_MAP.get(fullQuery)
+    if (synonyms) {
       for (const syn of synonyms) expanded.add(syn)
     }
+    return Array.from(expanded)
   }
 
-  // Then match each individual term
+  // Single-word query: expand with exact key match + prefix matching
   for (const term of searchTerms) {
     const termLower = term.toLowerCase()
     const synonyms = SYNONYM_MAP.get(termLower)
     if (synonyms) {
       for (const syn of synonyms) expanded.add(syn)
     }
-    // Also check if term is a substring of any synonym key (e.g., "fund" → matches "fundraising")
-    if (termLower.length >= 3) {
-      for (const [key, synonyms] of SYNONYM_MAP) {
-        if (key.startsWith(termLower) || (termLower.length >= 4 && key.includes(termLower))) {
+    // Prefix match: only if term is >= 4 chars and the key starts with it
+    if (termLower.length >= 4) {
+      for (const [key, syns] of SYNONYM_MAP) {
+        if (key.startsWith(termLower)) {
           expanded.add(key)
-          for (const syn of synonyms) expanded.add(syn)
+          for (const syn of syns) expanded.add(syn)
         }
       }
     }
@@ -208,22 +214,56 @@ for (const cat of SKILL_CATEGORIES) {
 
 /**
  * Given search terms like ["email"], find all matching skill subskillIds.
- * Uses synonym expansion: "ad campaign" → finds PPC, Google Ads, Meta Ads, etc.
+ * Uses synonym expansion for single-term queries.
+ * Multi-word queries use AND logic: a skill must match ALL terms.
  */
 export function findMatchingSkillIds(searchTerms: string[]): string[] {
   const matchedIds = new Set<string>()
-  // Expand with synonym/related terms
+
+  // Multi-word query: AND logic — skill must match ALL terms
+  if (searchTerms.length > 1) {
+    for (const entry of ALL_SKILL_ENTRIES) {
+      const words = entry.searchableText.split(/\s+/)
+      let allMatch = true
+      for (const term of searchTerms) {
+        const t = term.toLowerCase()
+        if (t.length < 2) continue
+        const matches =
+          entry.subskillName.toLowerCase().includes(t) ||
+          entry.categoryName.toLowerCase().includes(t) ||
+          words.some(w => w === t) ||
+          (t.length >= 4 && words.some(w => w.startsWith(t)))
+        if (!matches) { allMatch = false; break }
+      }
+      if (allMatch) matchedIds.add(entry.subskillId)
+    }
+    console.log(`[SkillMatch] AND query=${searchTerms.join("+")} → ${matchedIds.size} skills: ${Array.from(matchedIds).join(",")}`)
+    return Array.from(matchedIds)
+  }
+
+  // Single-term query: OR logic with synonym expansion
   const expandedTerms = expandWithSynonyms(searchTerms)
   for (const term of expandedTerms) {
     const termLower = term.toLowerCase()
+    if (termLower.length < 3) continue
     for (const entry of ALL_SKILL_ENTRIES) {
-      if (entry.searchableText.includes(termLower)) {
+      const words = entry.searchableText.split(/\s+/)
+      if (entry.subskillName.toLowerCase() === termLower || entry.categoryName.toLowerCase() === termLower) {
         matchedIds.add(entry.subskillId)
+        continue
       }
-      if (termLower.length >= 4) {
-        const words = entry.searchableText.split(/\s+/)
+      if (words.some(w => w === termLower)) {
+        matchedIds.add(entry.subskillId)
+        continue
+      }
+      if (termLower.length >= 4 && words.some(w => w.startsWith(termLower))) {
+        matchedIds.add(entry.subskillId)
+        continue
+      }
+      if (termLower.length >= 5) {
+        const maxDist = termLower.length <= 6 ? 1 : 2
         for (const word of words) {
-          if (word.length >= 3 && levenshteinDistance(termLower, word) <= Math.floor(termLower.length / 4)) {
+          if (word.length >= 4 && levenshteinDistance(termLower, word) <= maxDist) {
             matchedIds.add(entry.subskillId)
             break
           }
@@ -231,15 +271,27 @@ export function findMatchingSkillIds(searchTerms: string[]): string[] {
       }
     }
   }
+  console.log(`[SkillMatch] OR query=${searchTerms[0]} expanded=${expandedTerms.length} → ${matchedIds.size} skills: ${Array.from(matchedIds).slice(0, 10).join(",")}`)
   return Array.from(matchedIds)
 }
 
 /**
  * Given search terms, find all matching cause IDs.
- * Uses synonym expansion: "children" → finds child-welfare, education, etc.
+ * Multi-word: AND logic. Single-word: synonym expansion.
  */
 function findMatchingCauseIds(searchTerms: string[]): string[] {
   const matchedIds = new Set<string>()
+
+  if (searchTerms.length > 1) {
+    // AND logic: cause must match ALL terms
+    for (const cause of CAUSE_LIST) {
+      const searchable = `${cause.name} ${cause.id.replace(/-/g, " ")}`.toLowerCase()
+      const allMatch = searchTerms.every(t => t.length < 2 || searchable.includes(t.toLowerCase()))
+      if (allMatch) matchedIds.add(cause.id)
+    }
+    return Array.from(matchedIds)
+  }
+
   const expandedTerms = expandWithSynonyms(searchTerms)
   for (const term of expandedTerms) {
     const termLower = term.toLowerCase()
@@ -1536,6 +1588,7 @@ export async function unifiedSearch(params: UnifiedSearchParams): Promise<Search
   // Expand with synonyms for the $text search query
   const expandedTerms = expandWithSynonyms(searchTerms)
   const expandedQuery = expandedTerms.slice(0, 30).join(" ") // Cap at 30 terms for $text
+  console.log(`[Mongo Search] query="${trimmed}" terms=${searchTerms.length} expanded=${expandedTerms.length} skillIds=${matchedSkillIds.length}`)
   const resultMap = new Map<string, SearchResult>()
 
   const addResults = (results: SearchResult[]) => {
@@ -1610,8 +1663,8 @@ export async function getSearchSuggestions(params: SearchSuggestionsParams): Pro
   const privacyFilter = buildPrivacyFilter()
   const suggestions: SearchSuggestion[] = []
 
-  const matchedSkillIds = findMatchingSkillIds([trimmed.toLowerCase()])
-  const matchedCauseIds = findMatchingCauseIds([trimmed.toLowerCase()])
+  const matchedSkillIds = findMatchingSkillIds(trimmed.toLowerCase().split(/\s+/).filter(Boolean))
+  const matchedCauseIds = findMatchingCauseIds(trimmed.toLowerCase().split(/\s+/).filter(Boolean))
 
   // Build comprehensive user search conditions
   const userOrConditions: any[] = [

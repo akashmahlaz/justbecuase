@@ -23,6 +23,7 @@ import {
   BookOpen,
 } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
+import { searchClient, ALGOLIA_ENABLED } from "@/components/algolia-provider"
 
 // ============================================
 // TYPES
@@ -68,7 +69,7 @@ export interface UnifiedSearchBarProps {
 
 const RECENT_SEARCHES_KEY = "jbc_recent_searches"
 const MAX_RECENT_SEARCHES = 5
-const DEBOUNCE_MS = 150
+const DEBOUNCE_MS = 400 // Longer debounce — user must pause before suggestions fire
 
 const POPULAR_SEARCHES_KEYS = [
   { labelKey: "webDevelopment" as const, query: "web development", icon: "💻" },
@@ -190,7 +191,7 @@ export function UnifiedSearchBar({
   className = "",
   showPopularTags = false,
   onSubmit,
-  disableSuggestions = false,
+  disableSuggestions = true,
 }: UnifiedSearchBarProps) {
   const router = useRouter()
   const locale = useLocale()
@@ -244,7 +245,7 @@ export function UnifiedSearchBar({
   // ============================================
 
   const fetchSuggestions = useCallback(async (query: string) => {
-    if (!query || query.trim().length < 2) {
+    if (!query || query.trim().length < 3) {
       setSuggestions([])
       return
     }
@@ -254,25 +255,109 @@ export function UnifiedSearchBar({
     suggestionsAbortRef.current = controller
 
     setIsSuggestionsLoading(true)
+    const t0 = performance.now()
+    console.log(`\n🔍 [SearchBar] ========== SUGGESTION REQUEST ==========`)
+    console.log(`🔍 [SearchBar] Query: "${query}"`)
+    console.log(`🔍 [SearchBar] ALGOLIA_ENABLED: ${ALGOLIA_ENABLED}, searchClient: ${!!searchClient}`)
+    console.log(`🔍 [SearchBar] defaultType: ${defaultType}, allowedTypes: ${JSON.stringify(allowedTypes)}`)
     try {
-      // allowedTypes takes priority over defaultType
+      // ---- ALGOLIA DIRECT CLIENT-SIDE SEARCH (~20-50ms) ----
+      if (ALGOLIA_ENABLED && searchClient) {
+        console.log(`🟢 [SearchBar] Using ALGOLIA client-side search`)
+        // Determine which indexes to search
+        const indexNames: string[] = []
+        const effectiveTypes = allowedTypes && allowedTypes.length > 0
+          ? allowedTypes
+          : defaultType !== "all" ? [defaultType] : ["volunteer", "ngo", "opportunity"]
+
+        if (effectiveTypes.includes("volunteer")) indexNames.push("jbc_volunteers")
+        if (effectiveTypes.includes("ngo")) indexNames.push("jbc_ngos")
+        if (effectiveTypes.includes("opportunity")) indexNames.push("jbc_opportunities")
+
+        console.log(`🟢 [SearchBar] Searching indexes: [${indexNames.join(", ")}]`)
+        console.log(`🟢 [SearchBar] Effective types: [${effectiveTypes.join(", ")}]`)
+
+        const requests = indexNames.map(indexName => ({
+          indexName,
+          query: query.trim(),
+          hitsPerPage: 3,
+          attributesToRetrieve: ["objectID", "type", "name", "orgName", "title", "headline", "skillNames", "causeNames", "city", "workMode", "location", "description"],
+          attributesToHighlight: [],
+        }))
+
+        console.log(`🟢 [SearchBar] Sending ${requests.length} multi-index requests to Algolia...`)
+        const algoliaT0 = performance.now()
+        const { results } = await searchClient.search({ requests })
+        const algoliaMs = (performance.now() - algoliaT0).toFixed(1)
+        console.log(`🟢 [SearchBar] Algolia responded in ${algoliaMs}ms — ${results.length} index results`)
+
+        if (controller.signal.aborted) {
+          console.log(`⚠️ [SearchBar] Request was aborted, discarding results`)
+          return
+        }
+
+        const algSuggestions: SearchSuggestion[] = []
+        for (const indexResult of results) {
+          if (!("hits" in indexResult)) {
+            console.log(`⚠️ [SearchBar] Index result has no hits:`, indexResult)
+            continue
+          }
+          const ir = indexResult as any
+          console.log(`🟢 [SearchBar] Index "${ir.index}": ${ir.nbHits} total hits, ${ir.hits.length} returned, query="${ir.query}", processingTimeMS=${ir.processingTimeMS}ms`)
+
+          for (const hit of indexResult.hits as any[]) {
+            const type = hit.type || (ir.index?.includes("volunteer") ? "volunteer" : ir.index?.includes("ngo") ? "ngo" : "opportunity")
+            let text = hit.name || hit.orgName || hit.title || ""
+            let subtitle = ""
+            if (type === "opportunity") {
+              text = hit.title || ""
+              subtitle = [hit.workMode === "remote" ? "Remote" : hit.location, hit.skillNames?.slice(0, 2).join(", ")].filter(Boolean).join(" · ")
+            } else if (type === "ngo") {
+              text = hit.name || hit.orgName || ""
+              subtitle = hit.description?.slice(0, 60) || "Organization"
+            } else {
+              subtitle = hit.headline || hit.skillNames?.slice(0, 3).join(", ") || ""
+            }
+            console.log(`   📌 [${type}] "${text}" — ${subtitle || "(no subtitle)"} [id: ${hit.objectID}]`)
+            algSuggestions.push({ text, type, id: hit.objectID, subtitle })
+          }
+        }
+        const finalSuggestions = algSuggestions.slice(0, 8)
+        const totalMs = (performance.now() - t0).toFixed(1)
+        console.log(`🟢 [SearchBar] ✅ DONE — ${finalSuggestions.length} suggestions in ${totalMs}ms (Algolia: ${algoliaMs}ms)`)
+        console.log(`🔍 [SearchBar] ==========================================\n`)
+        setSuggestions(finalSuggestions)
+        setIsSuggestionsLoading(false)
+        return
+      }
+
+      // ---- FALLBACK: API route (ES/MongoDB) ----
+      console.log(`🟡 [SearchBar] Using FALLBACK API route (Algolia not available)`)
       let typeParam = ""
       if (allowedTypes && allowedTypes.length > 0) {
         typeParam = `&types=${allowedTypes.join(",")}`
       } else if (defaultType !== "all") {
         typeParam = `&types=${defaultType}`
       }
-      const res = await fetch(
-        `/api/unified-search?q=${encodeURIComponent(query)}&mode=suggestions&limit=6${typeParam}`,
-        { signal: controller.signal }
-      )
+      const url = `/api/unified-search?q=${encodeURIComponent(query)}&mode=suggestions&limit=6${typeParam}`
+      console.log(`🟡 [SearchBar] Fetching: ${url}`)
+      const res = await fetch(url, { signal: controller.signal })
       const data = await res.json()
+      const totalMs = (performance.now() - t0).toFixed(1)
+      console.log(`🟡 [SearchBar] API responded: success=${data.success}, ${data.suggestions?.length || 0} suggestions, engine=${data.engine}, took=${totalMs}ms`)
+      if (data.suggestions) {
+        for (const s of data.suggestions) {
+          console.log(`   📌 [${s.type}] "${s.text}" — ${s.subtitle || "(no subtitle)"}`)
+        }
+      }
+      console.log(`🔍 [SearchBar] ==========================================\n`)
       if (data.success && !controller.signal.aborted) {
         setSuggestions(data.suggestions || [])
       }
     } catch (error: any) {
       if (error.name !== "AbortError") {
-        console.error("Suggestions fetch failed:", error)
+        const totalMs = (performance.now() - t0).toFixed(1)
+        console.error(`❌ [SearchBar] Suggestions fetch FAILED after ${totalMs}ms:`, error)
       }
     } finally {
       if (!controller.signal.aborted) {
@@ -285,11 +370,13 @@ export function UnifiedSearchBar({
   // EFFECTS
   // ============================================
 
-  // Suggestions debounce — require 2+ chars to reduce noise
+  // Suggestions debounce — require 3+ chars and a typing pause to reduce noise.
+  // When onSearchChange is provided, the parent page runs its own full search,
+  // so suggestions should only fire when the user explicitly pauses.
   useEffect(() => {
     if (disableSuggestions) return
     const timer = setTimeout(() => {
-      if (searchQuery.trim().length >= 2) {
+      if (searchQuery.trim().length >= 3) {
         fetchSuggestions(searchQuery)
         setShowDropdown(true)
       } else {
@@ -328,7 +415,7 @@ export function UnifiedSearchBar({
       subtitle?: string
     }> = []
 
-    if (searchQuery.trim().length >= 2 && suggestions.length > 0) {
+    if (searchQuery.trim().length >= 3 && suggestions.length > 0) {
       suggestions.forEach(s => items.push({
         type: "suggestion",
         text: s.text,
@@ -336,7 +423,7 @@ export function UnifiedSearchBar({
         id: s.id,
         subtitle: s.subtitle,
       }))
-    } else if (searchQuery.trim().length < 2) {
+    } else if (searchQuery.trim().length < 3) {
       recentSearches.forEach(s => items.push({ type: "recent", text: s }))
     }
 
@@ -440,7 +527,7 @@ export function UnifiedSearchBar({
 
   const handleInputFocus = () => {
     if (disableSuggestions) return
-    if (searchQuery.trim().length >= 2 || recentSearches.length > 0) {
+    if (searchQuery.trim().length >= 3 || recentSearches.length > 0) {
       setShowDropdown(true)
     }
   }
@@ -538,7 +625,7 @@ export function UnifiedSearchBar({
               className="absolute z-[60] w-full mt-1 bg-background border border-border rounded-xl shadow-xl overflow-hidden max-h-[400px] overflow-y-auto"
             >
               {/* Suggestions (when typing) */}
-              {searchQuery.trim().length >= 2 && (
+              {searchQuery.trim().length >= 3 && (
                 <>
                   {isSuggestionsLoading && suggestions.length === 0 && (
                     <div className="p-3 space-y-2">
@@ -611,7 +698,7 @@ export function UnifiedSearchBar({
                     </div>
                   )}
 
-                  {!isSuggestionsLoading && suggestions.length === 0 && searchQuery.trim().length >= 2 && (
+                  {!isSuggestionsLoading && suggestions.length === 0 && searchQuery.trim().length >= 3 && (
                     <div className="px-3 py-4 text-center text-sm text-muted-foreground">
                       {s.noSuggestions || "No suggestions found. Press Enter to search."}
                     </div>
@@ -620,7 +707,7 @@ export function UnifiedSearchBar({
               )}
 
               {/* Recent Searches */}
-              {searchQuery.trim().length < 2 && recentSearches.length > 0 && (
+              {searchQuery.trim().length < 3 && recentSearches.length > 0 && (
                 <div className="py-1">
                   <div className="px-3 py-1.5 flex items-center justify-between">
                     <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
@@ -660,7 +747,7 @@ export function UnifiedSearchBar({
               )}
 
               {/* Popular searches */}
-              {searchQuery.trim().length < 2 && recentSearches.length === 0 && (
+              {searchQuery.trim().length < 3 && recentSearches.length === 0 && (
                 <div className="py-1">
                   <div className="px-3 py-1.5 text-xs font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
                     <TrendingUp className="h-3 w-3" />
