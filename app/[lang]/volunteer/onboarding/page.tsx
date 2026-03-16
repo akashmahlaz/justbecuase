@@ -97,6 +97,16 @@ export default function VolunteerOnboardingPage() {
   const [devOtp, setDevOtp] = useState<string | null>(null) // For development mode only
   const phoneOtpRefs = useRef<(HTMLInputElement | null)[]>([])
 
+  // Persist profile to sessionStorage whenever it changes (fix #13)
+  useEffect(() => {
+    try { sessionStorage.setItem("jbc_onboarding_profile", JSON.stringify(profile)) } catch {}
+  }, [profile])
+
+  // Persist phone verification status to sessionStorage (fix #13)
+  useEffect(() => {
+    try { sessionStorage.setItem("jbc_phone_verified", phoneVerificationStep === "verified" ? "true" : "false") } catch {}
+  }, [phoneVerificationStep])
+
   // Phone resend cooldown timer
   useEffect(() => {
     if (phoneResendCooldown > 0) {
