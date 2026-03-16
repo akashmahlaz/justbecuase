@@ -1,10 +1,10 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import LocaleLink from "@/components/locale-link"
 import { ProjectCard } from "@/components/project-card"
 import { browseProjects } from "@/lib/actions"
-import { ArrowRight } from "lucide-react"
+import { ArrowRight, ChevronLeft, ChevronRight } from "lucide-react"
 import { resolveSkillName } from "@/lib/skills-data"
 import { useDictionary } from "@/components/dictionary-provider"
 import { useLocale } from "@/hooks/use-locale"
@@ -16,6 +16,14 @@ export function FeaturedProjects() {
   const home = dict.home || {}
   const [featuredProjects, setFeaturedProjects] = useState<Awaited<ReturnType<typeof browseProjects>>>([]);
   const [loading, setLoading] = useState(true);
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  const scroll = (direction: "left" | "right") => {
+    if (scrollRef.current) {
+      const scrollAmount = 340;
+      scrollRef.current.scrollBy({ left: direction === "left" ? -scrollAmount : scrollAmount, behavior: "smooth" });
+    }
+  };
 
   useEffect(() => {
     browseProjects()
@@ -38,9 +46,6 @@ export function FeaturedProjects() {
         {/* Header Section */}
         <header className="flex flex-col md:flex-row md:items-end justify-between mb-20 border-b border-border pb-8">
           <div className="max-w-2xl">
-            <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold mb-4 block">
-              {home.featuredSelection || "Selection . 01"}
-            </span>
             <h2 className="text-4xl md:text-5xl font-medium text-foreground tracking-tighter mb-6">
               {home.featuredProjects || "Featured Opportunities"}
             </h2>
@@ -89,7 +94,22 @@ export function FeaturedProjects() {
             <p className="text-muted-foreground uppercase tracking-widest text-xs">{home.noEntries || "No entries found"}</p>
           </div>
         ) : (
-          <div className="flex gap-6 overflow-x-auto pb-6 snap-x snap-mandatory scrollbar-hide -mx-4 px-4 md:-mx-6 md:px-6">
+          <div className="relative group/scroll">
+            <button
+              onClick={() => scroll("left")}
+              className="absolute left-0 top-1/2 -translate-y-1/2 z-20 bg-background/90 border border-border rounded-full p-2 shadow-md hover:bg-muted transition-colors hidden md:flex items-center justify-center -ml-4"
+              aria-label="Scroll left"
+            >
+              <ChevronLeft className="h-5 w-5" />
+            </button>
+            <button
+              onClick={() => scroll("right")}
+              className="absolute right-0 top-1/2 -translate-y-1/2 z-20 bg-background/90 border border-border rounded-full p-2 shadow-md hover:bg-muted transition-colors hidden md:flex items-center justify-center -mr-4"
+              aria-label="Scroll right"
+            >
+              <ChevronRight className="h-5 w-5" />
+            </button>
+          <div ref={scrollRef} className="flex gap-6 overflow-x-auto pb-6 snap-x snap-mandatory scrollbar-hide -mx-4 px-4 md:-mx-6 md:px-6">
             {featuredProjects.map((project) => (
               <div key={project._id?.toString()} className="min-w-[320px] max-w-[380px] flex-shrink-0 snap-start">
                 <ProjectCard project={{
@@ -106,6 +126,7 @@ export function FeaturedProjects() {
                 }} />
               </div>
             ))}
+          </div>
           </div>
         )}
       </div>

@@ -89,8 +89,8 @@ export function MissionSection() {
           >
             <div className="grid grid-cols-3 gap-8 max-w-lg mx-auto">
               <div className="text-center">
-                <div className="text-2xl md:text-3xl font-bold text-primary">{h.stat100pct || "100%"}</div>
-                <div className="text-sm text-muted-foreground">{h.statFreeForAgents || "Free for Impact Agents"}</div>
+                <div className="text-2xl md:text-3xl font-bold text-primary">{h.stat100pct || "0%"}</div>
+                <div className="text-sm text-muted-foreground">{h.statFreeForAgents || "Registration Fees"}</div>
               </div>
               <div className="text-center">
                 <div className="text-2xl md:text-3xl font-bold text-primary">{h.stat247 || "24/7"}</div>

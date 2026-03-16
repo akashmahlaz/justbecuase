@@ -531,25 +531,6 @@ export default function VolunteersPage({ embed, subscriptionPlan }: VolunteersPa
               {loading ? (
                 <BrowseGridSkeleton columns={2} count={6} />
               ) : filteredVolunteers.length === 0 ? (
-                embed && subscriptionPlan !== "pro" && (selectedVolunteerType === "free" || selectedVolunteerType === "both") ? (
-                  <div className="text-center py-16">
-                    <div className="mx-auto w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center mb-4">
-                      <Lock className="h-7 w-7 text-primary" />
-                    </div>
-                    <h3 className="text-lg font-semibold text-foreground mb-2">
-                      {dict.ngo?.findTalent?.proBonoLocked || "Pro Bono Impact Agents are a Pro Feature"}
-                    </h3>
-                    <p className="text-sm text-muted-foreground max-w-md mx-auto mb-6">
-                      {dict.ngo?.findTalent?.upgradeToSeeFree || "Upgrade to Pro to browse and connect with impact agents offering their skills for free."}
-                    </p>
-                    <Button asChild>
-                      <Link href={`/${lang}/pricing`}>
-                        <Zap className="h-4 w-4 mr-2" />
-                        {dict.ngo?.common?.upgradeToPro || "Upgrade to Pro"}
-                      </Link>
-                    </Button>
-                  </div>
-                ) : (
                 <div className="text-center py-12">
                   <p className="text-muted-foreground">{dict.volunteersListing?.noAgentsFound || "No impact agents found"}</p>
                   <p className="text-sm text-muted-foreground mt-1">
@@ -563,7 +544,6 @@ export default function VolunteersPage({ embed, subscriptionPlan }: VolunteersPa
                     </Button>
                   )}
                 </div>
-                )
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {filteredVolunteers.map((volunteer) => (

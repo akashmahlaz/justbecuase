@@ -1,9 +1,9 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import Image from "next/image"
 import LocaleLink from "@/components/locale-link"
-import { ArrowRight, Clock, CheckCircle, MapPin, Star } from "lucide-react"
+import { ArrowRight, Clock, CheckCircle, MapPin, Star, ChevronLeft, ChevronRight } from "lucide-react"
 import { browseVolunteers } from "@/lib/actions"
 import { skillCategories, resolveSkillName } from "@/lib/skills-data"
 import { useDictionary } from "@/components/dictionary-provider"
@@ -16,6 +16,14 @@ export function FeaturedCandidates() {
   const home = (dict as any).home || {}
   const [candidates, setCandidates] = useState<VolunteerProfileView[]>([])
   const [loading, setLoading] = useState(true)
+  const scrollRef = useRef<HTMLDivElement>(null)
+
+  const scroll = (direction: "left" | "right") => {
+    if (scrollRef.current) {
+      const scrollAmount = 300;
+      scrollRef.current.scrollBy({ left: direction === "left" ? -scrollAmount : scrollAmount, behavior: "smooth" });
+    }
+  };
 
   useEffect(() => {
     browseVolunteers({ limit: 15 })
@@ -71,7 +79,21 @@ export function FeaturedCandidates() {
           </div>
         ) : (
           <div className="relative">
-            <div className="flex gap-5 overflow-x-auto pb-4 snap-x snap-mandatory scrollbar-hide -mx-4 px-4 md:-mx-6 md:px-6">
+            <button
+              onClick={() => scroll("left")}
+              className="absolute left-0 top-1/2 -translate-y-1/2 z-20 bg-background/90 border border-border rounded-full p-2 shadow-md hover:bg-muted transition-colors hidden md:flex items-center justify-center -ml-4"
+              aria-label="Scroll left"
+            >
+              <ChevronLeft className="h-5 w-5" />
+            </button>
+            <button
+              onClick={() => scroll("right")}
+              className="absolute right-0 top-1/2 -translate-y-1/2 z-20 bg-background/90 border border-border rounded-full p-2 shadow-md hover:bg-muted transition-colors hidden md:flex items-center justify-center -mr-4"
+              aria-label="Scroll right"
+            >
+              <ChevronRight className="h-5 w-5" />
+            </button>
+            <div ref={scrollRef} className="flex gap-5 overflow-x-auto pb-4 snap-x snap-mandatory scrollbar-hide -mx-4 px-4 md:-mx-6 md:px-6">
               {candidates.map((candidate, index) => {
                 const skill = getSkillLabel(candidate)
                 const subskills = candidate.skills?.slice(0, 3).map(s => resolveSkillName(s.subskillId)) || []
