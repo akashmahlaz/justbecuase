@@ -427,9 +427,13 @@ export async function GET(request: NextRequest) {
         const maxWeeklyBudget = typeof filters?.maxWeeklyBudget === "number" && Number.isFinite(filters.maxWeeklyBudget)
           ? filters.maxWeeklyBudget
           : null
-        const finalResults = mappedResults.filter((result) => {
-          if (!hasStrongLexicalMatch(result, query)) return false
+        const hasNumericFilters = maxHoursPerWeek !== null || maxWeeklyBudget !== null
 
+        // Lexical relevance filter (always applied)
+        const lexicalResults = mappedResults.filter((result) => hasStrongLexicalMatch(result, query))
+
+        // Apply numeric budget/hours filters on top
+        const strictResults = !hasNumericFilters ? lexicalResults : lexicalResults.filter((result) => {
           if (result.type !== "volunteer") return true
 
           if (maxHoursPerWeek !== null) {
@@ -448,8 +452,13 @@ export async function GET(request: NextRequest) {
           return true
         })
 
+        // Soft filter: if budget/hours filters removed ALL results, fall back to
+        // lexical-only results so the user still sees relevant matches.
+        const finalResults = strictResults.length > 0 ? strictResults : lexicalResults
+
+        const budgetRelaxed = hasNumericFilters && strictResults.length === 0 && lexicalResults.length > 0
         const took = Date.now() - startTime
-        console.log(`🟢 [Search API] ✅ FULL SEARCH DONE — ${finalResults.length} results in ${took}ms (Algolia: ${algoliaMs}ms)`)
+        console.log(`🟢 [Search API] ✅ FULL SEARCH DONE — ${finalResults.length} results in ${took}ms (Algolia: ${algoliaMs}ms)${budgetRelaxed ? " [budget filter relaxed — no exact matches]" : ""}`)
         for (const r of finalResults.slice(0, 10)) {
           console.log(`   📌 [${r.type}] "${r.title}" — skills: [${(r.skills || []).slice(0, 3).join(", ")}] — ${r.location || "no location"} [id: ${r.id}]`)
         }
