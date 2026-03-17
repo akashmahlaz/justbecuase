@@ -43,20 +43,12 @@ interface SearchResult {
   status?: string
 }
 
-interface SearchSuggestion {
-  text: string
-  type: "volunteer" | "ngo" | "opportunity"
-  id: string
-  subtitle?: string
-}
-
 // ============================================
 // CONSTANTS
 // ============================================
 
 const RECENT_SEARCHES_KEY = "jb_recent_searches"
 const MAX_RECENT_SEARCHES = 5
-const DEBOUNCE_SUGGESTIONS_MS = 400 // Reduced noise
 const DEBOUNCE_RESULTS_MS = 300 // Slightly slower for full results
 
 const POPULAR_SEARCHES = [
@@ -183,9 +175,7 @@ export function GlobalSearchSection() {
   const [searchQuery, setSearchQuery] = useState("")
   const [searchType, setSearchType] = useState<"all" | "opportunity" | "volunteer" | "ngo">("all")
   const [results, setResults] = useState<SearchResult[]>([])
-  const [suggestions, setSuggestions] = useState<SearchSuggestion[]>([])
   const [isSearching, setIsSearching] = useState(false)
-  const [isSuggestionsLoading, setIsSuggestionsLoading] = useState(false)
   const [hasSearched, setHasSearched] = useState(false)
   const [showDropdown, setShowDropdown] = useState(false)
 
@@ -197,7 +187,6 @@ export function GlobalSearchSection() {
   const dropdownRef = useRef<HTMLDivElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const abortControllerRef = useRef<AbortController | null>(null)
-  const suggestionsAbortRef = useRef<AbortController | null>(null)
 
   // Recent searches
   const { recentSearches, addRecentSearch, clearRecentSearches } = useRecentSearches()
@@ -205,41 +194,6 @@ export function GlobalSearchSection() {
   // ============================================
   // SEARCH FUNCTIONS
   // ============================================
-
-  const fetchSuggestions = useCallback(async (query: string, type: string) => {
-    if (!query || query.trim().length < 3) {
-      setSuggestions([])
-      return
-    }
-
-    // Cancel previous suggestion request
-    suggestionsAbortRef.current?.abort()
-    const controller = new AbortController()
-    suggestionsAbortRef.current = controller
-
-    setIsSuggestionsLoading(true)
-    try {
-      // Respect the selected search type — only fetch suggestions for that type
-      const types = type === "all" ? ALLOWED_TYPES : type
-      const res = await fetch(
-        `/api/unified-search?q=${encodeURIComponent(query)}&mode=suggestions&limit=6&types=${types}`,
-        { signal: controller.signal }
-      )
-      const data = await res.json()
-      if (data.success && !controller.signal.aborted) {
-        // Allow all suggestion types: volunteer, ngo, opportunity, skill, cause
-        setSuggestions(data.suggestions || [])
-      }
-    } catch (error: any) {
-      if (error.name !== "AbortError") {
-        console.error("Suggestions fetch failed:", error)
-      }
-    } finally {
-      if (!controller.signal.aborted) {
-        setIsSuggestionsLoading(false)
-      }
-    }
-  }, [])
 
   const performSearch = useCallback(async (query: string, type: string) => {
     if (!query || query.trim().length < 1) {
@@ -295,19 +249,6 @@ export function GlobalSearchSection() {
   // DEBOUNCED EFFECTS
   // ============================================
 
-  // Suggestions (debounced - 400ms, 3+ chars)
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      if (searchQuery.trim().length >= 3) {
-        fetchSuggestions(searchQuery, searchType)
-        setShowDropdown(true)
-      } else {
-        setSuggestions([])
-      }
-    }, DEBOUNCE_SUGGESTIONS_MS)
-    return () => clearTimeout(timer)
-  }, [searchQuery, searchType, fetchSuggestions])
-
   // Full results (slower debounce - 300ms)
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -331,7 +272,6 @@ export function GlobalSearchSection() {
   useEffect(() => {
     return () => {
       abortControllerRef.current?.abort()
-      suggestionsAbortRef.current?.abort()
     }
   }, [])
 
@@ -348,26 +288,21 @@ export function GlobalSearchSection() {
       subtitle?: string
     }> = []
 
-    if (searchQuery.trim().length >= 1 && suggestions.length > 0) {
-      suggestions.forEach(s => items.push({
-        type: "suggestion",
-        text: s.text,
-        resultType: s.type,
-        id: s.id,
-        subtitle: s.subtitle,
-      }))
-    } else if (searchQuery.trim().length < 1) {
+    if (searchQuery.trim().length < 1) {
       recentSearches.forEach(s => items.push({ type: "recent", text: s }))
     }
 
     return items
-  }, [searchQuery, suggestions, recentSearches])
+  }, [searchQuery, recentSearches])
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
     if (!showDropdown || dropdownItems.length === 0) {
       if (e.key === "Escape") {
         setShowDropdown(false)
         inputRef.current?.blur()
+      } else if (e.key === "Enter" && searchQuery.trim()) {
+        addRecentSearch(searchQuery)
+        setShowDropdown(false)
       }
       return
     }
@@ -416,7 +351,6 @@ export function GlobalSearchSection() {
   const clearSearch = () => {
     setSearchQuery("")
     setResults([])
-    setSuggestions([])
     setHasSearched(false)
     setShowDropdown(false)
     inputRef.current?.focus()
@@ -445,7 +379,7 @@ export function GlobalSearchSection() {
   }
 
   const handleInputFocus = () => {
-    if (searchQuery.trim().length >= 1 || recentSearches.length > 0) {
+    if (searchQuery.trim().length < 1) {
       setShowDropdown(true)
     }
   }
@@ -554,7 +488,11 @@ export function GlobalSearchSection() {
                     : (s.placeholderAll || "Search opportunities, skills, people, causes...")
                 }
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                onChange={(e) => {
+                  const nextValue = e.target.value
+                  setSearchQuery(nextValue)
+                  setShowDropdown(nextValue.trim().length < 1)
+                }}
                 onFocus={handleInputFocus}
                 onKeyDown={handleKeyDown}
                 autoComplete="off"
@@ -603,90 +541,8 @@ export function GlobalSearchSection() {
                   exit={{ opacity: 0, y: -4, scale: 0.98 }}
                   transition={{ duration: 0.15 }}
                   role="listbox"
-                  className="absolute z-50 w-full mt-1 bg-background border border-border rounded-xl shadow-xl overflow-hidden max-h-[400px] overflow-y-auto"
+                  className="absolute z-50 mt-1 max-h-100 w-full overflow-y-auto overflow-hidden rounded-xl border border-border bg-background shadow-xl"
                 >
-                  {/* Suggestions (when typing) */}
-                  {searchQuery.trim().length >= 1 && (
-                    <>
-                      {isSuggestionsLoading && suggestions.length === 0 && (
-                        <div className="p-3 space-y-2">
-                          {[1, 2, 3].map(i => (
-                            <div key={i} className="flex items-center gap-3">
-                              <Skeleton className="h-4 w-4 rounded" />
-                              <Skeleton className="h-4 flex-1 rounded" />
-                            </div>
-                          ))}
-                        </div>
-                      )}
-
-                      {suggestions.length > 0 && (
-                        <div className="py-1">
-                          <div className="px-3 py-1.5 text-xs font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
-                            <Sparkles className="h-3 w-3" />
-                            {s.suggestions || "Suggestions"}
-                          </div>
-                          {suggestions.map((suggestion, index) => {
-                            const config = TYPE_CONFIG[suggestion.type as keyof typeof TYPE_CONFIG] || TYPE_CONFIG.opportunity
-                            const Icon = config.icon
-                            const isSelected = selectedIndex === index
-                            return (
-                              <button
-                                key={`${suggestion.type}-${suggestion.id}`}
-                                role="option"
-                                aria-selected={isSelected}
-                                onClick={() => handleSuggestionClick({
-                                  text: suggestion.text,
-                                  resultType: suggestion.type,
-                                  id: suggestion.id,
-                                })}
-                                onMouseEnter={() => setSelectedIndex(index)}
-                                className={`w-full px-3 py-2.5 flex items-center gap-3 text-left transition-colors ${
-                                  isSelected ? "bg-primary/10 text-foreground" : "hover:bg-muted text-foreground"
-                                }`}
-                              >
-                                <div className={`p-1 rounded ${config.badgeClass}`}>
-                                  <Icon className="h-3.5 w-3.5" />
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                  <p className="text-sm font-medium truncate">
-                                    <HighlightedText text={suggestion.text} query={searchQuery} />
-                                  </p>
-                                  {suggestion.subtitle && (
-                                    <p className="text-xs text-muted-foreground truncate">{suggestion.subtitle}</p>
-                                  )}
-                                </div>
-                                <Badge variant="secondary" className={`text-[10px] shrink-0 ${config.badgeClass}`}>
-                                  {config.label}
-                                </Badge>
-                                <ArrowUpRight className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                              </button>
-                            )
-                          })}
-
-                          {/* Search for full query option */}
-                          <button
-                            onClick={() => {
-                              addRecentSearch(searchQuery)
-                              setShowDropdown(false)
-                            }}
-                            className="w-full px-3 py-2.5 flex items-center gap-3 text-left hover:bg-muted border-t border-border"
-                          >
-                            <Search className="h-4 w-4 text-primary" />
-                            <span className="text-sm">
-                              {s.searchFor || "Search for"} &quot;<span className="font-semibold text-primary">{searchQuery}</span>&quot;
-                            </span>
-                          </button>
-                        </div>
-                      )}
-
-                      {!isSuggestionsLoading && suggestions.length === 0 && searchQuery.trim().length >= 2 && (
-                        <div className="px-3 py-4 text-center text-sm text-muted-foreground">
-                          {s.noSuggestions || "No suggestions found. Press Enter to search."}
-                        </div>
-                      )}
-                    </>
-                  )}
-
                   {/* Recent Searches (when input is empty and focused) */}
                   {searchQuery.trim().length < 1 && recentSearches.length > 0 && (
                     <div className="py-1">
@@ -923,7 +779,7 @@ export function GlobalSearchSection() {
                               <div className="p-4">
                                 <div className="flex items-start gap-3">
                                   {/* Avatar/Icon */}
-                                  <div className="flex-shrink-0">
+                                  <div className="shrink-0">
                                     {result.avatar ? (
                                       <img
                                         src={result.avatar}
@@ -952,7 +808,7 @@ export function GlobalSearchSection() {
                                         <HighlightedText text={result.title} query={searchQuery} />
                                       </h3>
                                       {result.verified && (
-                                        <CheckCircle className="h-3.5 w-3.5 text-primary flex-shrink-0" fill="currentColor" strokeWidth={0} />
+                                        <CheckCircle className="h-3.5 w-3.5 shrink-0 text-primary" fill="currentColor" strokeWidth={0} />
                                       )}
                                     </div>
 
@@ -967,7 +823,7 @@ export function GlobalSearchSection() {
                                     <div className="flex items-center gap-2.5 flex-wrap">
                                       {result.location && (
                                         <span className="text-[11px] text-muted-foreground flex items-center gap-0.5">
-                                          <MapPin className="h-2.5 w-2.5 flex-shrink-0" />
+                                          <MapPin className="h-2.5 w-2.5 shrink-0" />
                                           <HighlightedText text={result.location} query={searchQuery} />
                                         </span>
                                       )}
