@@ -49,7 +49,6 @@ interface SearchResult {
 
 const RECENT_SEARCHES_KEY = "jb_recent_searches"
 const MAX_RECENT_SEARCHES = 5
-const DEBOUNCE_RESULTS_MS = 300 // Slightly slower for full results
 
 const POPULAR_SEARCHES = [
   { label: "Web Development", query: "web development", icon: "" },
@@ -249,13 +248,18 @@ export function GlobalSearchSection() {
   // DEBOUNCED EFFECTS
   // ============================================
 
-  // Full results (slower debounce - 300ms)
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      performSearch(searchQuery, searchType)
-    }, DEBOUNCE_RESULTS_MS)
-    return () => clearTimeout(timer)
+  // Full results — only triggered explicitly (Enter or button click)
+  // No auto-debounce. The user must submit the search intentionally.
+  const triggerSearch = useCallback(() => {
+    performSearch(searchQuery, searchType)
   }, [searchQuery, searchType, performSearch])
+
+  // Re-run search when search type tab changes (only if already searched)
+  useEffect(() => {
+    if (hasSearched && searchQuery.trim()) {
+      performSearch(searchQuery, searchType)
+    }
+  }, [searchType]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -303,6 +307,7 @@ export function GlobalSearchSection() {
       } else if (e.key === "Enter" && searchQuery.trim()) {
         addRecentSearch(searchQuery)
         setShowDropdown(false)
+        triggerSearch()
       }
       return
     }
@@ -326,9 +331,12 @@ export function GlobalSearchSection() {
           } else {
             setSearchQuery(item.text)
             addRecentSearch(item.text)
+            // Trigger search with the selected item text
+            performSearch(item.text, searchType)
           }
         } else if (searchQuery.trim()) {
           addRecentSearch(searchQuery)
+          triggerSearch()
         }
         setShowDropdown(false)
         break
@@ -337,7 +345,7 @@ export function GlobalSearchSection() {
         inputRef.current?.blur()
         break
     }
-  }, [showDropdown, dropdownItems, selectedIndex, searchQuery, addRecentSearch])
+  }, [showDropdown, dropdownItems, selectedIndex, searchQuery, addRecentSearch, triggerSearch, performSearch, searchType])
 
   // Reset selected index when dropdown items change
   useEffect(() => {
@@ -521,6 +529,7 @@ export function GlobalSearchSection() {
                     if (searchQuery.trim()) {
                       addRecentSearch(searchQuery)
                       setShowDropdown(false)
+                      triggerSearch()
                     }
                   }}
                   className="p-1.5 rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
@@ -568,6 +577,7 @@ export function GlobalSearchSection() {
                             onClick={() => {
                               setSearchQuery(search)
                               setShowDropdown(false)
+                              performSearch(search, searchType)
                             }}
                             onMouseEnter={() => setSelectedIndex(index)}
                             className={`w-full px-3 py-2.5 flex items-center gap-3 text-left transition-colors ${
@@ -600,6 +610,7 @@ export function GlobalSearchSection() {
                             onClick={() => {
                               setSearchQuery(item.query)
                               setShowDropdown(false)
+                              performSearch(item.query, searchType)
                             }}
                             onMouseEnter={() => setSelectedIndex(index)}
                             className={`w-full px-3 py-2.5 flex items-center gap-3 text-left transition-colors ${
@@ -630,6 +641,7 @@ export function GlobalSearchSection() {
                     setSearchQuery(item.query)
                     setShowDropdown(false)
                     addRecentSearch(item.query)
+                    performSearch(item.query, searchType)
                   }}
                   className="px-3 py-1 text-sm rounded-full bg-background border border-border hover:border-primary hover:text-primary transition-all duration-200 hover:shadow-sm"
                 >

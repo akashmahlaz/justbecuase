@@ -220,6 +220,7 @@ export function UnifiedSearchBar({
   const [isSuggestionsLoading, setIsSuggestionsLoading] = useState(false)
   const [showDropdown, setShowDropdown] = useState(false)
   const [selectedIndex, setSelectedIndex] = useState(-1)
+  const [hasSubmitted, setHasSubmitted] = useState(false)
 
   // Refs
   const inputRef = useRef<HTMLInputElement>(null)
@@ -373,8 +374,10 @@ export function UnifiedSearchBar({
   // Suggestions debounce — require 3+ chars and a typing pause to reduce noise.
   // When onSearchChange is provided, the parent page runs its own full search,
   // so suggestions should only fire when the user explicitly pauses.
+  // After the user has submitted (Enter), suggestions are suppressed until
+  // the query changes (i.e. the user starts typing something new).
   useEffect(() => {
-    if (disableSuggestions) return
+    if (disableSuggestions || hasSubmitted) return
     const timer = setTimeout(() => {
       if (searchQuery.trim().length >= 3) {
         fetchSuggestions(searchQuery)
@@ -384,7 +387,7 @@ export function UnifiedSearchBar({
       }
     }, DEBOUNCE_MS)
     return () => clearTimeout(timer)
-  }, [searchQuery, fetchSuggestions, disableSuggestions])
+  }, [searchQuery, fetchSuggestions, disableSuggestions, hasSubmitted])
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -437,6 +440,9 @@ export function UnifiedSearchBar({
         inputRef.current?.blur()
       } else if (e.key === "Enter" && searchQuery.trim()) {
         e.preventDefault()
+        setHasSubmitted(true)
+        setShowDropdown(false)
+        setSuggestions([])
         addRecentSearch(searchQuery)
         onSubmit?.(searchQuery.trim())
       }
@@ -454,6 +460,9 @@ export function UnifiedSearchBar({
         break
       case "Enter":
         e.preventDefault()
+        setHasSubmitted(true)
+        setShowDropdown(false)
+        setSuggestions([])
         if (selectedIndex >= 0 && selectedIndex < dropdownItems.length) {
           const item = dropdownItems[selectedIndex]
           if (item.type === "suggestion" && item.id) {
@@ -466,7 +475,6 @@ export function UnifiedSearchBar({
           addRecentSearch(searchQuery)
           onSubmit?.(searchQuery.trim())
         }
-        setShowDropdown(false)
         break
       case "Tab":
         // Tab accepts the first suggestion as autocomplete
@@ -498,6 +506,7 @@ export function UnifiedSearchBar({
     setSearchQuery("")
     setSuggestions([])
     setShowDropdown(false)
+    setHasSubmitted(false)
     inputRef.current?.focus()
   }
 
@@ -526,7 +535,7 @@ export function UnifiedSearchBar({
   }
 
   const handleInputFocus = () => {
-    if (disableSuggestions) return
+    if (disableSuggestions || hasSubmitted) return
     if (searchQuery.trim().length >= 3 || recentSearches.length > 0) {
       setShowDropdown(true)
     }
@@ -570,7 +579,11 @@ export function UnifiedSearchBar({
             type="text"
             placeholder={placeholder || defaultPlaceholder}
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            onChange={(e) => {
+              setSearchQuery(e.target.value)
+              // User is actively typing — re-enable suggestions
+              setHasSubmitted(false)
+            }}
             onFocus={handleInputFocus}
             onKeyDown={handleKeyDown}
             autoComplete="off"
@@ -599,8 +612,11 @@ export function UnifiedSearchBar({
               <button
                 onClick={() => {
                   if (searchQuery.trim()) {
+                    setHasSubmitted(true)
+                    setSuggestions([])
                     addRecentSearch(searchQuery)
                     setShowDropdown(false)
+                    onSubmit?.(searchQuery.trim())
                   }
                 }}
                 className="p-1.5 rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
