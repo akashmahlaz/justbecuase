@@ -26,15 +26,15 @@ export default async function VolunteerDashboard({ params }: { params: Promise<{
   })
 
   if (!session?.user) {
-    redirect("/auth/signin")
+    redirect(`/${lang}/auth/signin`)
   }
 
   // Role verification: Ensure user is a volunteer
   if (session.user.role !== "volunteer") {
     if (session.user.role === "ngo") {
-      redirect("/ngo/dashboard")
+      redirect(`/${lang}/ngo/dashboard`)
     } else if (session.user.role === "admin") {
-      redirect("/admin")
+      redirect(`/${lang}/admin`)
     } else {
       redirect("/auth/role-select")
     }
@@ -42,7 +42,7 @@ export default async function VolunteerDashboard({ params }: { params: Promise<{
 
   // Redirect to onboarding if not completed
   if (!session.user.isOnboarded) {
-    redirect("/volunteer/onboarding")
+    redirect(`/${lang}/volunteer/onboarding`)
   }
 
   const profile = await getVolunteerProfile()

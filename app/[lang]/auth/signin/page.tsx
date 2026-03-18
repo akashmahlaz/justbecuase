@@ -15,6 +15,7 @@ import { Separator } from "@/components/ui/separator"
 import { Heart, Mail, Lock, Loader2 } from "lucide-react"
 import { signIn, getSession } from "@/lib/auth-client"
 import { useDictionary } from "@/components/dictionary-provider"
+import { useLocale, localePath } from "@/hooks/use-locale"
 
 export default function SignInPage() {
   return (
@@ -28,6 +29,7 @@ function SignInPageInner() {
   const dict = useDictionary()
   const a = (dict as any).auth || {}
   const router = useRouter()
+  const locale = useLocale()
   const searchParams = useSearchParams()
   const [isLoading, setIsLoading] = useState(false)
   const [socialLoading, setSocialLoading] = useState<"google" | "linkedin" | null>(null)
@@ -58,9 +60,9 @@ function SignInPageInner() {
       if (!user.isOnboarded) {
         // Check if user has selected a role yet
         if (user.role === "volunteer") {
-          router.push("/volunteer/onboarding")
+          router.push(localePath("/volunteer/onboarding", locale))
         } else if (user.role === "ngo") {
-          router.push("/ngo/onboarding")
+          router.push(localePath("/ngo/onboarding", locale))
         } else {
           // User hasn't selected a role yet (role is "user" or undefined)
           router.push("/auth/role-select")
@@ -68,13 +70,13 @@ function SignInPageInner() {
       } else {
         // User is onboarded, go to dashboard
         if (user.role === "volunteer") {
-          router.push("/volunteer/dashboard")
+          router.push(localePath("/volunteer/dashboard", locale))
         } else if (user.role === "ngo") {
-          router.push("/ngo/dashboard")
+          router.push(localePath("/ngo/dashboard", locale))
         } else if (user.role === "admin") {
-          router.push("/admin/dashboard")
+          router.push(localePath("/admin/dashboard", locale))
         } else {
-          router.push("/")
+          router.push(localePath("/", locale))
         }
       }
     } else {
