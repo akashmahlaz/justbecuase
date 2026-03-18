@@ -11,6 +11,8 @@ import { useDictionary } from "@/components/dictionary-provider"
 import { Marquee } from "@/components/ui/marquee"
 import { Highlighter } from "@/components/ui/highlighter"
 import { BlurFade } from "@/components/ui/blur-fade"
+import { AnimatedGradientText } from "@/components/ui/animated-gradient-text"
+import { MagicCard } from "@/components/ui/magic-card"
 
 /* ── Helper: render quote with highlighted fragment ── */
 
@@ -94,7 +96,7 @@ function Avatar({
 
 function TestimonialCard({ quote, highlight, author, role, organization, avatar, tag, type }: Testimonial) {
   return (
-    <div className="w-90 rounded-2xl border border-border bg-card p-7 shadow-sm hover:shadow-md hover:border-border/80 transition-all duration-500">
+    <MagicCard className="w-90 rounded-2xl border border-border bg-card p-7 shadow-sm hover:shadow-md hover:border-border/80 transition-all duration-500" gradientSize={150} gradientOpacity={0.15}>
       {/* Top row: avatar + info + tag */}
       <div className="flex items-start gap-3.5 mb-5">
         <Avatar name={author} image={avatar} />
@@ -119,7 +121,7 @@ function TestimonialCard({ quote, highlight, author, role, organization, avatar,
           {role} · {type}
         </p>
       </div>
-    </div>
+    </MagicCard>
   )
 }
 
@@ -143,7 +145,9 @@ export function Testimonials() {
                 <>
                   Trusted by the architects of{" "}
                   <br />
-                  <span className="text-muted-foreground">social change.</span>
+                  <AnimatedGradientText speed={1.5} colorFrom="#14b8a6" colorTo="#f97316" className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight">
+                    social change.
+                  </AnimatedGradientText>
                 </>
               )}
             </h2>

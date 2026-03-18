@@ -8,6 +8,7 @@ import { DashboardContentHeader } from "@/components/dashboard/dashboard-content
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar"
 import { StreamProvider } from "@/components/stream/stream-provider"
 import { IncomingCallHandler } from "@/components/stream/incoming-call-handler"
+import { DashboardDock } from "@/components/dashboard/dashboard-dock"
 
 export default function VolunteerDashboardLayout({
   children,
@@ -29,6 +30,7 @@ export default function VolunteerDashboardLayout({
           {user?.id && <NotificationListener userId={user.id} userType="volunteer" />}
           <IncomingCallHandler />
           {children}
+          <DashboardDock userType="volunteer" />
         </SidebarInset>
       </SidebarProvider>
     </StreamProvider>

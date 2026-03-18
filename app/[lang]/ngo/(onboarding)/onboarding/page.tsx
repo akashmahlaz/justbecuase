@@ -39,6 +39,8 @@ import { toast } from "sonner"
 import { OnboardingPageSkeleton } from "@/components/ui/page-skeletons"
 import confetti from "canvas-confetti"
 import { OnboardingBioHelper } from "@/components/ai/onboarding-bio-helper"
+import { SparklesText } from "@/components/ui/sparkles-text"
+import { PulsatingButton } from "@/components/ui/pulsating-button"
 
 type RequiredSkill = {
   categoryId: string
@@ -463,17 +465,23 @@ export default function NGOOnboardingPage() {
       try { sessionStorage.removeItem(NGO_STORAGE_KEY) } catch {}
       try { await deleteOnboardingDraft() } catch {}
 
-      // Fire confetti celebration
-      const end = Date.now() + 1500
+      // Fire confetti celebration — big initial burst
+      const colors = ["#14b8a6", "#f97316", "#fbbf24", "#a855f7", "#3b82f6", "#ec4899"]
+      confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 }, colors })
+      confetti({ particleCount: 80, spread: 100, origin: { y: 0.6, x: 0.3 }, colors })
+      confetti({ particleCount: 80, spread: 100, origin: { y: 0.6, x: 0.7 }, colors })
+
+      // Continuous side cannons
+      const end = Date.now() + 2500
       const frame = () => {
-        confetti({ particleCount: 3, angle: 60, spread: 55, origin: { x: 0 } })
-        confetti({ particleCount: 3, angle: 120, spread: 55, origin: { x: 1 } })
+        confetti({ particleCount: 4, angle: 60, spread: 55, origin: { x: 0, y: 0.6 }, colors })
+        confetti({ particleCount: 4, angle: 120, spread: 55, origin: { x: 1, y: 0.6 }, colors })
         if (Date.now() < end) requestAnimationFrame(frame)
       }
       frame()
 
       // Brief delay so user sees confetti, then redirect
-      await new Promise((r) => setTimeout(r, 1500))
+      await new Promise((r) => setTimeout(r, 2500))
       // Use full page navigation to ensure fresh session data is loaded
       window.location.href = localePath(`/ngo/dashboard?welcome=${encodeURIComponent(orgName)}`, locale)
     } catch (error) {
@@ -986,7 +994,7 @@ export default function NGOOnboardingPage() {
         <div className="w-16 h-16 rounded-full bg-secondary/10 flex items-center justify-center mx-auto mb-4">
           <CheckCircle className="h-8 w-8 text-secondary" />
         </div>
-        <h2 className="text-xl font-semibold text-foreground mb-2">{(dict.ngo?.onboarding?.welcomeTitle || "Welcome to JustBeCause, {name}!").replace("{name}", orgDetails.orgName || "there")}</h2>
+        <h2 className="text-xl font-semibold text-foreground mb-2"><SparklesText sparklesCount={5} className="text-xl font-semibold">{(dict.ngo?.onboarding?.welcomeTitle || "Welcome to JustBeCause, {name}!").replace("{name}", orgDetails.orgName || "there")}</SparklesText></h2>
         <p className="text-muted-foreground">
           {dict.ngo?.onboarding?.profileReady || "Your organization profile is ready. Review and complete setup."}
         </p>
@@ -1223,7 +1231,7 @@ export default function NGOOnboardingPage() {
               <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
           ) : (
-            <Button variant="secondary" onClick={handleSubmit} disabled={isLoading}>
+            <PulsatingButton onClick={handleSubmit} disabled={isLoading} pulseColor="hsl(var(--secondary))" className="bg-secondary text-secondary-foreground hover:bg-secondary/90">
               {isLoading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -1235,7 +1243,7 @@ export default function NGOOnboardingPage() {
                   {dict.ngo?.onboarding?.completeSetup || "Complete Setup"}
                 </>
               )}
-            </Button>
+            </PulsatingButton>
           )}
         </div>
       </div>

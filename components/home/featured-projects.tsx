@@ -9,6 +9,8 @@ import { resolveSkillName } from "@/lib/skills-data"
 import { useDictionary } from "@/components/dictionary-provider"
 import { useLocale } from "@/hooks/use-locale"
 import { Skeleton } from "@/components/ui/skeleton"
+import { DotPattern } from "@/components/ui/dot-pattern"
+import { TextAnimate } from "@/components/ui/text-animate"
 
 export function FeaturedProjects() {
   const dict = useDictionary()
@@ -49,21 +51,20 @@ export function FeaturedProjects() {
   return (
     <section className="relative py-24 bg-background overflow-hidden">
       {/* Editorial Dot Grid Pattern */}
-      <div 
-        className="absolute inset-0 z-0 pointer-events-none" 
-        style={{ 
-          backgroundImage: `radial-gradient(#f1f5f9 1px, transparent 1px)`, 
-          backgroundSize: '32px 32px' 
-        }} 
+      <DotPattern
+        width={32}
+        height={32}
+        cr={1}
+        className="absolute inset-0 z-0 fill-muted-foreground/20 [mask-image:radial-gradient(ellipse_at_center,white_30%,transparent_80%)]"
       />
 
       <div className="container relative z-10 mx-auto px-4 md:px-6">
         {/* Header Section */}
         <header className="flex flex-col md:flex-row md:items-end justify-between mb-20 border-b border-border pb-8">
           <div className="max-w-2xl">
-            <h2 className="text-4xl md:text-5xl font-medium text-foreground tracking-tighter mb-6">
+            <TextAnimate as="h2" by="word" animation="slideUp" className="text-4xl md:text-5xl font-medium text-foreground tracking-tighter mb-6">
               {home.featuredProjects || "Featured Opportunities"}
-            </h2>
+            </TextAnimate>
             <p className="text-muted-foreground leading-relaxed">
               {home.featuredProjectsDesc || "A curated directory of high-impact opportunities from verified NGOs worldwide. Designed for architects of social change."}
             </p>
@@ -110,6 +111,9 @@ export function FeaturedProjects() {
           </div>
         ) : (
           <div className="relative group/scroll">
+            {/* Fade edges — stretch to match scroll container's negative margins */}
+            <div className="hidden md:block absolute -left-6 top-0 bottom-0 w-24 bg-linear-to-r from-background via-background/80 to-transparent z-10 pointer-events-none" />
+            <div className="hidden md:block absolute -right-6 top-0 bottom-0 w-24 bg-linear-to-l from-background via-background/80 to-transparent z-10 pointer-events-none" />
             <button
               onClick={() => scroll("left")}
               className="absolute left-0 top-1/2 -translate-y-1/2 z-20 bg-background/90 border border-border rounded-full p-2 shadow-md hover:bg-muted transition-colors hidden md:flex items-center justify-center -ml-4"
