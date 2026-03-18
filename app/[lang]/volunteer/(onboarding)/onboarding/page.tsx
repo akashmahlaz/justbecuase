@@ -31,9 +31,10 @@ import {
   Phone,
   ShieldCheck,
   Camera,
+  Search,
 } from "lucide-react"
 import { skillCategories, experienceLevels, causes, workModes } from "@/lib/skills-data"
-import { saveVolunteerOnboarding, completeOnboarding } from "@/lib/actions"
+import { saveVolunteerOnboarding, completeOnboarding, saveOnboardingDraft, getOnboardingDraft, deleteOnboardingDraft } from "@/lib/actions"
 import { uploadToCloudinary, validateImageFile } from "@/lib/upload"
 import { authClient } from "@/lib/auth-client"
 import { OnboardingPageSkeleton } from "@/components/ui/page-skeletons"
@@ -141,6 +142,7 @@ export default function VolunteerOnboardingPage() {
   // Step 2: Skills
   const [selectedSkills, setSelectedSkills] = useState<SelectedSkill[]>([])
   const [activeCategory, setActiveCategory] = useState<string | null>(null)
+  const [skillSearch, setSkillSearch] = useState("")
 
   // Step 3: Causes & Interests
   const [selectedCauses, setSelectedCauses] = useState<string[]>([])
@@ -161,37 +163,71 @@ export default function VolunteerOnboardingPage() {
 
   // Persist onboarding state to sessionStorage so back-navigation doesn't lose data
   const STORAGE_KEY = "jb_onboarding_state"
+  const draftLoaded = useRef(false)
 
-  // Restore state from sessionStorage on mount
+  // Restore state from server draft (then sessionStorage as fallback) on mount
   useEffect(() => {
-    try {
-      const saved = sessionStorage.getItem(STORAGE_KEY)
-      if (saved) {
-        const state = JSON.parse(saved)
-        if (state.step) setStep(state.step)
-        if (state.profile) setProfile(state.profile)
-        if (state.avatarUrl) setAvatarUrl(state.avatarUrl)
-        if (state.selectedSkills) setSelectedSkills(state.selectedSkills)
-        if (state.selectedCauses) setSelectedCauses(state.selectedCauses)
-        if (state.workPreferences) setWorkPreferences(state.workPreferences)
-        if (state.phoneVerified) setPhoneVerificationStep("verified")
-      }
-    } catch {}
+    if (draftLoaded.current) return
+    draftLoaded.current = true
+    ;(async () => {
+      try {
+        // Try server draft first
+        const res = await getOnboardingDraft("volunteer")
+        if (res.success && res.data) {
+          const state = res.data as Record<string, any>
+          if (state.step) setStep(state.step)
+          if (state.profile) setProfile(state.profile)
+          if (state.avatarUrl) setAvatarUrl(state.avatarUrl)
+          if (state.selectedSkills) setSelectedSkills(state.selectedSkills)
+          if (state.selectedCauses) setSelectedCauses(state.selectedCauses)
+          if (state.workPreferences) setWorkPreferences(state.workPreferences)
+          if (state.phoneVerified) setPhoneVerificationStep("verified")
+          return
+        }
+      } catch {}
+      // Fallback to sessionStorage
+      try {
+        const saved = sessionStorage.getItem(STORAGE_KEY)
+        if (saved) {
+          const state = JSON.parse(saved)
+          if (state.step) setStep(state.step)
+          if (state.profile) setProfile(state.profile)
+          if (state.avatarUrl) setAvatarUrl(state.avatarUrl)
+          if (state.selectedSkills) setSelectedSkills(state.selectedSkills)
+          if (state.selectedCauses) setSelectedCauses(state.selectedCauses)
+          if (state.workPreferences) setWorkPreferences(state.workPreferences)
+          if (state.phoneVerified) setPhoneVerificationStep("verified")
+        }
+      } catch {}
+    })()
   }, [])
 
-  // Save state to sessionStorage on every change
+  // Save state to sessionStorage on every change + debounced server save
+  const saveDraftTimeout = useRef<ReturnType<typeof setTimeout> | null>(null)
+
   useEffect(() => {
+    const draftData = {
+      step,
+      profile,
+      avatarUrl,
+      selectedSkills,
+      selectedCauses,
+      workPreferences,
+      phoneVerified: phoneVerificationStep === "verified",
+    }
     try {
-      sessionStorage.setItem(STORAGE_KEY, JSON.stringify({
-        step,
-        profile,
-        avatarUrl,
-        selectedSkills,
-        selectedCauses,
-        workPreferences,
-        phoneVerified: phoneVerificationStep === "verified",
-      }))
+      sessionStorage.setItem(STORAGE_KEY, JSON.stringify(draftData))
     } catch {}
+
+    // Debounce server save (2 seconds after last change)
+    if (saveDraftTimeout.current) clearTimeout(saveDraftTimeout.current)
+    saveDraftTimeout.current = setTimeout(() => {
+      saveOnboardingDraft("volunteer", draftData).catch(() => {})
+    }, 2000)
+
+    return () => {
+      if (saveDraftTimeout.current) clearTimeout(saveDraftTimeout.current)
+    }
   }, [step, profile, avatarUrl, selectedSkills, selectedCauses, workPreferences, phoneVerificationStep])
 
   // Phone verification functions
@@ -299,6 +335,8 @@ export default function VolunteerOnboardingPage() {
     }
   }
 
+  const MAX_SKILLS = 10
+
   const handleSkillToggle = (categoryId: string, subskillId: string) => {
     const existing = selectedSkills.find(
       (s) => s.categoryId === categoryId && s.subskillId === subskillId
@@ -306,7 +344,11 @@ export default function VolunteerOnboardingPage() {
 
     if (existing) {
       setSelectedSkills(selectedSkills.filter((s) => !(s.categoryId === categoryId && s.subskillId === subskillId)))
+    } else if (selectedSkills.length >= MAX_SKILLS) {
+      setError(dict.volunteer?.onboarding?.maxSkillsReached || `You can select up to ${MAX_SKILLS} skills`)
+      return
     } else {
+      setError("")
       setSelectedSkills([
         ...selectedSkills,
         { categoryId, subskillId, level: "intermediate" },
@@ -380,6 +422,7 @@ export default function VolunteerOnboardingPage() {
       
       // Clear saved onboarding state
       try { sessionStorage.removeItem(STORAGE_KEY) } catch {}
+      deleteOnboardingDraft().catch(() => {})
       // Redirect to dashboard with welcome message
       router.push(localePath(`/volunteer/dashboard?welcome=${encodeURIComponent(volunteerName)}`, locale))
     } catch (error) {
@@ -614,7 +657,17 @@ export default function VolunteerOnboardingPage() {
     </div>
   )
 
-  const renderStep2 = () => (
+  const renderStep2 = () => {
+    const searchLower = skillSearch.toLowerCase()
+    // Filter categories to only those with matching subskills (when searching)
+    const filteredCategories = skillSearch
+      ? skillCategories.filter((cat) =>
+          cat.name.toLowerCase().includes(searchLower) ||
+          cat.subskills.some((s) => s.name.toLowerCase().includes(searchLower))
+        )
+      : skillCategories
+
+    return (
     <div className="space-y-6">
       <div>
         <h2 className="text-xl font-semibold text-foreground mb-2">{dict.volunteer?.onboarding?.step2Title || "What are your skills?"}</h2>
@@ -623,8 +676,19 @@ export default function VolunteerOnboardingPage() {
         </p>
       </div>
 
+      {/* Search input */}
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <Input
+          placeholder={dict.volunteer?.onboarding?.searchSkills || "Search skills..."}
+          value={skillSearch}
+          onChange={(e) => setSkillSearch(e.target.value)}
+          className="pl-10"
+        />
+      </div>
+
       <div className="flex flex-wrap gap-2 mb-4">
-        {skillCategories.map((category) => (
+        {filteredCategories.map((category) => (
           <Button
             key={category.id}
             variant={activeCategory === category.id ? "default" : "outline"}
@@ -656,7 +720,9 @@ export default function VolunteerOnboardingPage() {
             <div className="grid sm:grid-cols-2 gap-2">
               {skillCategories
                 .find((c) => c.id === activeCategory)
-                ?.subskills.map((subskill) => {
+                ?.subskills
+                .filter((subskill) => !skillSearch || subskill.name.toLowerCase().includes(searchLower))
+                .map((subskill) => {
                   const selected = isSkillSelected(activeCategory, subskill.id)
                   return (
                     <div
@@ -722,7 +788,7 @@ export default function VolunteerOnboardingPage() {
         </div>
       )}
     </div>
-  )
+  )}
 
   const renderStep3 = () => (
     <div className="space-y-6">

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, Suspense } from "react"
 import { useSearchParams } from "next/navigation"
 import { Navbar } from "@/components/navbar"
 import { Footer } from "@/components/footer"
@@ -13,6 +13,14 @@ import { useDictionary } from "@/components/dictionary-provider"
 import { toast } from "sonner"
 
 export default function ContactPage() {
+  return (
+    <Suspense>
+      <ContactPageContent />
+    </Suspense>
+  )
+}
+
+function ContactPageContent() {
   const dict = useDictionary()
   const c = (dict as any).contact || {}
   const searchParams = useSearchParams()

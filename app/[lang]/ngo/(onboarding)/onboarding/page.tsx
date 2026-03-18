@@ -31,7 +31,7 @@ import {
   X,
 } from "lucide-react"
 import { skillCategories, causes } from "@/lib/skills-data"
-import { saveNGOOnboarding, completeOnboarding } from "@/lib/actions"
+import { saveNGOOnboarding, completeOnboarding, saveOnboardingDraft, getOnboardingDraft, deleteOnboardingDraft } from "@/lib/actions"
 import { authClient } from "@/lib/auth-client"
 import { uploadDocumentToCloudinary, validateDocumentFile } from "@/lib/upload"
 import { toast } from "sonner"
@@ -289,35 +289,65 @@ export default function NGOOnboardingPage() {
 
   // Persist onboarding state to sessionStorage so back-navigation doesn't lose data
   const NGO_STORAGE_KEY = "jb_ngo_onboarding_state"
+  const draftLoaded = useRef(false)
 
-  // Restore state from sessionStorage on mount
+  // Restore state from server draft (then sessionStorage as fallback) on mount
   useEffect(() => {
-    try {
-      const saved = sessionStorage.getItem(NGO_STORAGE_KEY)
-      if (saved) {
-        const state = JSON.parse(saved)
-        if (state.step) setStep(state.step)
-        if (state.orgDetails) setOrgDetails(state.orgDetails)
-        if (state.selectedCauses) setSelectedCauses(state.selectedCauses)
-        if (state.requiredSkills) setRequiredSkills(state.requiredSkills)
-        if (state.verificationDocuments) setVerificationDocuments(state.verificationDocuments)
-        if (state.phoneVerified) setPhoneVerificationStep("verified")
-      }
-    } catch {}
+    if (draftLoaded.current) return
+    draftLoaded.current = true
+    ;(async () => {
+      try {
+        const res = await getOnboardingDraft("ngo")
+        if (res.success && res.data) {
+          const state = res.data as Record<string, any>
+          if (state.step) setStep(state.step)
+          if (state.orgDetails) setOrgDetails(state.orgDetails)
+          if (state.selectedCauses) setSelectedCauses(state.selectedCauses)
+          if (state.requiredSkills) setRequiredSkills(state.requiredSkills)
+          if (state.verificationDocuments) setVerificationDocuments(state.verificationDocuments)
+          if (state.phoneVerified) setPhoneVerificationStep("verified")
+          return
+        }
+      } catch {}
+      try {
+        const saved = sessionStorage.getItem(NGO_STORAGE_KEY)
+        if (saved) {
+          const state = JSON.parse(saved)
+          if (state.step) setStep(state.step)
+          if (state.orgDetails) setOrgDetails(state.orgDetails)
+          if (state.selectedCauses) setSelectedCauses(state.selectedCauses)
+          if (state.requiredSkills) setRequiredSkills(state.requiredSkills)
+          if (state.verificationDocuments) setVerificationDocuments(state.verificationDocuments)
+          if (state.phoneVerified) setPhoneVerificationStep("verified")
+        }
+      } catch {}
+    })()
   }, [])
 
-  // Save state to sessionStorage on every change
+  // Save state to sessionStorage on every change + debounced server save
+  const saveDraftTimeout = useRef<ReturnType<typeof setTimeout> | null>(null)
+
   useEffect(() => {
+    const draftData = {
+      step,
+      orgDetails,
+      selectedCauses,
+      requiredSkills,
+      verificationDocuments,
+      phoneVerified: phoneVerificationStep === "verified",
+    }
     try {
-      sessionStorage.setItem(NGO_STORAGE_KEY, JSON.stringify({
-        step,
-        orgDetails,
-        selectedCauses,
-        requiredSkills,
-        verificationDocuments,
-        phoneVerified: phoneVerificationStep === "verified",
-      }))
+      sessionStorage.setItem(NGO_STORAGE_KEY, JSON.stringify(draftData))
     } catch {}
+
+    if (saveDraftTimeout.current) clearTimeout(saveDraftTimeout.current)
+    saveDraftTimeout.current = setTimeout(() => {
+      saveOnboardingDraft("ngo", draftData).catch(() => {})
+    }, 2000)
+
+    return () => {
+      if (saveDraftTimeout.current) clearTimeout(saveDraftTimeout.current)
+    }
   }, [step, orgDetails, selectedCauses, requiredSkills, verificationDocuments, phoneVerificationStep])
 
   const handleCauseToggle = (causeId: string) => {
@@ -328,6 +358,8 @@ export default function NGOOnboardingPage() {
     }
   }
 
+  const MAX_SKILLS = 15
+
   const handleSkillToggle = (categoryId: string, subskillId: string) => {
     const existing = requiredSkills.find(
       (s) => s.categoryId === categoryId && s.subskillId === subskillId
@@ -337,7 +369,11 @@ export default function NGOOnboardingPage() {
       setRequiredSkills(
         requiredSkills.filter((s) => !(s.categoryId === categoryId && s.subskillId === subskillId))
       )
+    } else if (requiredSkills.length >= MAX_SKILLS) {
+      setError(dict.ngo?.onboarding?.maxSkillsReached || `You can select up to ${MAX_SKILLS} skills`)
+      return
     } else {
+      setError("")
       setRequiredSkills([
         ...requiredSkills,
         { categoryId, subskillId, priority: "nice-to-have" },
@@ -405,6 +441,7 @@ export default function NGOOnboardingPage() {
       const orgName = orgDetails.orgName || session?.user?.name || "there"
       // Clear saved onboarding state
       try { sessionStorage.removeItem(NGO_STORAGE_KEY) } catch {}
+      deleteOnboardingDraft().catch(() => {})
       router.push(localePath(`/ngo/dashboard?welcome=${encodeURIComponent(orgName)}`, locale))
     } catch (error) {
       console.error("Onboarding error:", error)
