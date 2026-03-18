@@ -166,6 +166,12 @@ export default function AdminTeamPage() {
       return
     }
 
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!formData.email.trim() || !emailRegex.test(formData.email.trim())) {
+      toast.error(dict.admin?.team?.toasts?.emailRequired || "A valid email address is required for notifications")
+      return
+    }
+
     setSaving(true)
 
     // Upload avatar if a new file is selected
@@ -192,7 +198,7 @@ export default function AdminTeamPage() {
     if (editingMember && editingMember._id) {
       const result = await updateTeamMember(editingMember._id.toString(), {
         name: formData.name,
-        email: formData.email.trim() || undefined,
+        email: formData.email.trim(),
         role: formData.role,
         bio: formData.bio,
         avatar: avatarUrl || undefined,
@@ -211,7 +217,7 @@ export default function AdminTeamPage() {
     } else {
       const result = await createTeamMember({
         name: formData.name,
-        email: formData.email.trim() || undefined,
+        email: formData.email.trim(),
         role: formData.role,
         bio: formData.bio,
         avatar: avatarUrl || undefined,
@@ -465,7 +471,7 @@ export default function AdminTeamPage() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="email">{dict.admin?.team?.emailLabel || "Email"}</Label>
+              <Label htmlFor="email">{dict.admin?.team?.emailLabel || "Email *"}</Label>
               <Input
                 id="email"
                 type="email"
@@ -474,9 +480,10 @@ export default function AdminTeamPage() {
                   setFormData({ ...formData, email: e.target.value })
                 }
                 placeholder="john@example.com"
+                required
               />
               <p className="text-xs text-muted-foreground">
-                {dict.admin?.team?.emailHint || "Used for contact inquiry notifications"}
+                {dict.admin?.team?.emailHint || "Required — used to notify this member when someone submits a contact or sales inquiry"}
               </p>
             </div>
             <div className="space-y-2">
