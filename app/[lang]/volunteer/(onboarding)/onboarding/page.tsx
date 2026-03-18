@@ -442,9 +442,9 @@ export default function VolunteerOnboardingPage() {
       
       // Clear saved onboarding state
       try { sessionStorage.removeItem(STORAGE_KEY) } catch {}
-      deleteOnboardingDraft().catch(() => {})
-      // Redirect to dashboard with welcome message
-      router.push(localePath(`/volunteer/dashboard?welcome=${encodeURIComponent(volunteerName)}`, locale))
+      try { await deleteOnboardingDraft() } catch {}
+      // Use full page navigation to ensure fresh session data is loaded
+      window.location.href = localePath(`/volunteer/dashboard?welcome=${encodeURIComponent(volunteerName)}`, locale)
     } catch (error) {
       console.error("Onboarding error:", error)
       setError("Something went wrong. Please try again.")
