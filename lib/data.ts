@@ -182,7 +182,7 @@ export const testimonialRow1: Testimonial[] = [
   {
     id: 2,
     quote: "I wanted to use my product skills for something meaningful. Within days I was embedded with an education nonprofit, leading their mobile app launch.",
-    highlight: "Within days I was embedded",
+    highlight: "leading their mobile app launch",
     author: "Carlos Méndez",
     role: "Senior Product Designer",
     organization: "Pro-bono Volunteer",
@@ -193,7 +193,7 @@ export const testimonialRow1: Testimonial[] = [
   {
     id: 3,
     quote: "The matching algorithm found us a data engineer who automated our impact reporting. What took two weeks now takes two hours.",
-    highlight: "now takes two hours",
+    highlight: "two weeks now takes two hours",
     author: "Fatima Al-Rashid",
     role: "Programs Director",
     organization: "GreenLeaf Initiative",
@@ -204,7 +204,7 @@ export const testimonialRow1: Testimonial[] = [
   {
     id: 4,
     quote: "As a retired CFO, I thought my best years were behind me. JustBecause proved me wrong — I've helped three nonprofits restructure their finances.",
-    highlight: "helped three nonprofits",
+    highlight: "JustBecause proved me wrong",
     author: "David Chen",
     role: "Financial Advisor",
     organization: "Pro-bono Volunteer",
@@ -240,7 +240,7 @@ export const testimonialRow2: Testimonial[] = [
   {
     id: 7,
     quote: "After retiring from corporate law, I was looking for purpose. JustBecause connected me with an anti-trafficking NGO that needed exactly my expertise.",
-    highlight: "exactly my expertise",
+    highlight: "an anti-trafficking NGO that needed exactly my expertise",
     author: "Margaret Okonkwo",
     role: "Legal Consultant",
     organization: "Pro-bono Volunteer",
@@ -262,7 +262,7 @@ export const testimonialRow2: Testimonial[] = [
   {
     id: 9,
     quote: "I'm a data scientist by day, and JustBecause lets me apply those skills where they matter most. I built a predictive model that helps allocate disaster relief resources.",
-    highlight: "allocate disaster relief resources",
+    highlight: "I built a predictive model",
     author: "Anika Patel",
     role: "Data Scientist",
     organization: "Pro-bono Volunteer",
