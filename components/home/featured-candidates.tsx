@@ -9,6 +9,7 @@ import { skillCategories, resolveSkillName } from "@/lib/skills-data"
 import { useDictionary } from "@/components/dictionary-provider"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Badge } from "@/components/ui/badge"
+import { TextAnimate } from "@/components/ui/text-animate"
 import type { VolunteerProfileView } from "@/lib/types"
 
 export function FeaturedCandidates() {
@@ -64,9 +65,9 @@ export function FeaturedCandidates() {
       <div className="container mx-auto px-4 md:px-6">
         {/* Header */}
         <header className="mb-12">
-          <h2 className="text-3xl md:text-4xl font-semibold text-foreground tracking-tight mb-2">
+          <TextAnimate as="h2" by="word" animation="slideUp" className="text-3xl md:text-4xl font-semibold text-foreground tracking-tight mb-2">
             {home.browseFeaturedCandidates || "Browse our Featured Candidates"}
-          </h2>
+          </TextAnimate>
         </header>
 
         {/* Card Carousel */}
@@ -94,6 +95,9 @@ export function FeaturedCandidates() {
           </div>
         ) : (
           <div className="relative">
+            {/* Fade edges — stretch to match scroll container's negative margins */}
+            <div className="hidden md:block absolute -left-6 top-0 bottom-0 w-24 bg-linear-to-r from-background via-background/80 to-transparent z-10 pointer-events-none" />
+            <div className="hidden md:block absolute -right-6 top-0 bottom-0 w-24 bg-linear-to-l from-background via-background/80 to-transparent z-10 pointer-events-none" />
             <button
               onClick={() => scroll("left")}
               className="absolute left-0 top-1/2 -translate-y-1/2 z-20 bg-background/90 border border-border rounded-full p-2 shadow-md hover:bg-muted transition-colors hidden md:flex items-center justify-center -ml-4"

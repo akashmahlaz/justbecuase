@@ -8,6 +8,7 @@ import { toast } from "sonner"
 import { cn } from "@/lib/utils"
 import { followUser, unfollowUser } from "@/lib/actions"
 import { useDictionary } from "@/components/dictionary-provider"
+import { CoolMode } from "@/components/ui/cool-mode"
 
 interface FollowButtonProps {
   /** The user ID to follow/unfollow */
@@ -93,6 +94,7 @@ export function FollowButton({
 
   return (
     <div className={cn("flex items-center gap-2", className)}>
+      <CoolMode options={{ particleCount: 20, size: 8 }}>
       <Button
         variant={isFollowing ? (isHovering ? "destructive" : "outline") : "default"}
         size={size}
@@ -127,6 +129,7 @@ export function FollowButton({
           </>
         )}
       </Button>
+      </CoolMode>
 
       {showCount && (
         <span className="text-sm text-muted-foreground tabular-nums">

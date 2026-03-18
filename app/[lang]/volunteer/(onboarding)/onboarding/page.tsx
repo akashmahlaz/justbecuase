@@ -41,6 +41,8 @@ import { OnboardingPageSkeleton } from "@/components/ui/page-skeletons"
 import confetti from "canvas-confetti"
 import { useDictionary } from "@/components/dictionary-provider"
 import { OnboardingBioHelper } from "@/components/ai/onboarding-bio-helper"
+import { SparklesText } from "@/components/ui/sparkles-text"
+import { PulsatingButton } from "@/components/ui/pulsating-button"
 
 type SelectedSkill = {
   categoryId: string
@@ -445,17 +447,23 @@ export default function VolunteerOnboardingPage() {
       try { sessionStorage.removeItem(STORAGE_KEY) } catch {}
       try { await deleteOnboardingDraft() } catch {}
 
-      // Fire confetti celebration
-      const end = Date.now() + 1500
+      // Fire confetti celebration — big initial burst
+      const colors = ["#14b8a6", "#f97316", "#fbbf24", "#a855f7", "#3b82f6", "#ec4899"]
+      confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 }, colors })
+      confetti({ particleCount: 80, spread: 100, origin: { y: 0.6, x: 0.3 }, colors })
+      confetti({ particleCount: 80, spread: 100, origin: { y: 0.6, x: 0.7 }, colors })
+
+      // Continuous side cannons
+      const end = Date.now() + 2500
       const frame = () => {
-        confetti({ particleCount: 3, angle: 60, spread: 55, origin: { x: 0 } })
-        confetti({ particleCount: 3, angle: 120, spread: 55, origin: { x: 1 } })
+        confetti({ particleCount: 4, angle: 60, spread: 55, origin: { x: 0, y: 0.6 }, colors })
+        confetti({ particleCount: 4, angle: 120, spread: 55, origin: { x: 1, y: 0.6 }, colors })
         if (Date.now() < end) requestAnimationFrame(frame)
       }
       frame()
 
       // Brief delay so user sees confetti, then redirect
-      await new Promise((r) => setTimeout(r, 1500))
+      await new Promise((r) => setTimeout(r, 2500))
       // Use full page navigation to ensure fresh session data is loaded
       window.location.href = localePath(`/volunteer/dashboard?welcome=${encodeURIComponent(volunteerName)}`, locale)
     } catch (error) {
@@ -1227,7 +1235,7 @@ export default function VolunteerOnboardingPage() {
         <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
           <CheckCircle className="h-8 w-8 text-primary" />
         </div>
-        <h2 className="text-xl font-semibold text-foreground mb-2">{(dict.volunteer?.onboarding?.step5Title || "You're all set, {name}!").replace("{name}", session?.user?.name || "there")}</h2>
+        <h2 className="text-xl font-semibold text-foreground mb-2"><SparklesText sparklesCount={5} className="text-xl font-semibold">{(dict.volunteer?.onboarding?.step5Title || "You're all set, {name}!").replace("{name}", session?.user?.name || "there")}</SparklesText></h2>
         <p className="text-muted-foreground">{dict.volunteer?.onboarding?.step5Subtitle || "Your profile is ready. Review your details and start exploring opportunities."}</p>
       </div>
 
@@ -1397,7 +1405,7 @@ export default function VolunteerOnboardingPage() {
               <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
           ) : (
-            <Button onClick={handleSubmit} disabled={isLoading}>
+            <PulsatingButton onClick={handleSubmit} disabled={isLoading} pulseColor="hsl(var(--primary))" className="bg-primary text-primary-foreground hover:bg-primary/90">
               {isLoading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -1409,7 +1417,7 @@ export default function VolunteerOnboardingPage() {
                   {dict.volunteer?.onboarding?.completeSetup || "Complete Setup"}
                 </>
               )}
-            </Button>
+            </PulsatingButton>
           )}
         </div>
       </div>

@@ -7,6 +7,7 @@ import { FeaturedProjects } from "@/components/home/featured-projects"
 import { FeaturedCandidates } from "@/components/home/featured-candidates"
 import { Testimonials } from "@/components/home/testimonials"
 import { CTASection } from "@/components/home/cta-section"
+import { ScrollProgress } from "@/components/ui/scroll-progress"
 
 // Render at request time (needs MongoDB connection)
 export const dynamic = "force-dynamic"
@@ -15,6 +16,7 @@ export const dynamic = "force-dynamic"
 export default async function HomePage() {
   return (
     <div className="min-h-screen flex flex-col">
+      <ScrollProgress />
       <Navbar />
       <main className="flex-1">
         <HeroSection />

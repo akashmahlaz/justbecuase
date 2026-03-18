@@ -7,6 +7,7 @@ import LocaleLink from "@/components/locale-link";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
 import { useDictionary } from "@/components/dictionary-provider";
+import { TextAnimate } from "@/components/ui/text-animate";
 
 export function HowItWorks() {
   const dict = useDictionary();
@@ -116,7 +117,7 @@ export function HowItWorks() {
                       </div>
                     </div>
 
-                    <h3 className="text-2xl font-bold text-foreground mb-4 tracking-tight">{step.title}</h3>
+                    <TextAnimate as="h3" by="word" animation="blurInUp" className="text-2xl font-bold text-foreground mb-4 tracking-tight">{step.title}</TextAnimate>
                     <p className="text-muted-foreground leading-relaxed text-center px-4">
                       {step.description}
                     </p>
@@ -162,7 +163,7 @@ export function HowItWorks() {
                       </div>
                     </div>
 
-                    <h3 className="text-2xl font-bold text-foreground mb-4 tracking-tight">{step.title}</h3>
+                    <TextAnimate as="h3" by="word" animation="blurInUp" className="text-2xl font-bold text-foreground mb-4 tracking-tight">{step.title}</TextAnimate>
                     <p className="text-muted-foreground leading-relaxed text-center px-4">
                       {step.description}
                     </p>
