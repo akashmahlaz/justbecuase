@@ -38,6 +38,7 @@ import { saveVolunteerOnboarding, completeOnboarding, saveOnboardingDraft, getOn
 import { uploadToCloudinary, validateImageFile } from "@/lib/upload"
 import { authClient } from "@/lib/auth-client"
 import { OnboardingPageSkeleton } from "@/components/ui/page-skeletons"
+import confetti from "canvas-confetti"
 import { useDictionary } from "@/components/dictionary-provider"
 import { OnboardingBioHelper } from "@/components/ai/onboarding-bio-helper"
 
@@ -443,6 +444,18 @@ export default function VolunteerOnboardingPage() {
       // Clear saved onboarding state
       try { sessionStorage.removeItem(STORAGE_KEY) } catch {}
       try { await deleteOnboardingDraft() } catch {}
+
+      // Fire confetti celebration
+      const end = Date.now() + 1500
+      const frame = () => {
+        confetti({ particleCount: 3, angle: 60, spread: 55, origin: { x: 0 } })
+        confetti({ particleCount: 3, angle: 120, spread: 55, origin: { x: 1 } })
+        if (Date.now() < end) requestAnimationFrame(frame)
+      }
+      frame()
+
+      // Brief delay so user sees confetti, then redirect
+      await new Promise((r) => setTimeout(r, 1500))
       // Use full page navigation to ensure fresh session data is loaded
       window.location.href = localePath(`/volunteer/dashboard?welcome=${encodeURIComponent(volunteerName)}`, locale)
     } catch (error) {

@@ -37,6 +37,7 @@ import { authClient } from "@/lib/auth-client"
 import { uploadDocumentToCloudinary, validateDocumentFile } from "@/lib/upload"
 import { toast } from "sonner"
 import { OnboardingPageSkeleton } from "@/components/ui/page-skeletons"
+import confetti from "canvas-confetti"
 import { OnboardingBioHelper } from "@/components/ai/onboarding-bio-helper"
 
 type RequiredSkill = {
@@ -461,6 +462,18 @@ export default function NGOOnboardingPage() {
       // Clear saved onboarding state
       try { sessionStorage.removeItem(NGO_STORAGE_KEY) } catch {}
       try { await deleteOnboardingDraft() } catch {}
+
+      // Fire confetti celebration
+      const end = Date.now() + 1500
+      const frame = () => {
+        confetti({ particleCount: 3, angle: 60, spread: 55, origin: { x: 0 } })
+        confetti({ particleCount: 3, angle: 120, spread: 55, origin: { x: 1 } })
+        if (Date.now() < end) requestAnimationFrame(frame)
+      }
+      frame()
+
+      // Brief delay so user sees confetti, then redirect
+      await new Promise((r) => setTimeout(r, 1500))
       // Use full page navigation to ensure fresh session data is loaded
       window.location.href = localePath(`/ngo/dashboard?welcome=${encodeURIComponent(orgName)}`, locale)
     } catch (error) {
