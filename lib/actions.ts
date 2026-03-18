@@ -1959,6 +1959,8 @@ export async function getAdminAnalytics() {
     acceptedApplications,
     verifiedNGOs,
     verifiedVolunteers,
+    newContactInquiries,
+    totalContactInquiries,
   ] = await Promise.all([
     userCollection.countDocuments({ role: "volunteer" }),
     userCollection.countDocuments({ role: "ngo" }),
@@ -1970,6 +1972,8 @@ export async function getAdminAnalytics() {
     applicationsDb.count({ status: "accepted" }),
     userCollection.countDocuments({ role: "ngo", isVerified: true }),
     userCollection.countDocuments({ role: "volunteer", isVerified: true }),
+    db.collection("contactInquiries").countDocuments({ status: "new" }),
+    db.collection("contactInquiries").countDocuments(),
   ])
 
   // Get recent signups (last 30 days) - use user collection
@@ -2060,7 +2064,18 @@ export async function getAdminAnalytics() {
       .toArray()
       .then(docs => docs.map(d => ({
         type: "payment" as const,
-        text: `Payment received: â'¹${d.amount}`,
+        text: `Payment received: ₹${d.amount}`,
+        createdAt: d.createdAt
+      }))),
+    db.collection("contactInquiries")
+      .find({})
+      .sort({ createdAt: -1 })
+      .limit(5)
+      .project({ firstName: 1, lastName: 1, source: 1, createdAt: 1 })
+      .toArray()
+      .then(docs => docs.map(d => ({
+        type: "contact_inquiry" as const,
+        text: `${d.source === "pricing_contact_sales" ? "Sales inquiry" : "Contact message"} from ${d.firstName} ${d.lastName}`,
         createdAt: d.createdAt
       }))),
   ])
@@ -2121,6 +2136,8 @@ export async function getAdminAnalytics() {
 
     // Action items
     pendingNGOVerifications,
+    newContactInquiries,
+    totalContactInquiries,
 
     // Activity feed
     recentActivity: allActivity,
