@@ -163,6 +163,7 @@ export async function selectRole(role: "volunteer" | "ngo"): Promise<ApiResponse
     revalidatePath("/")
     return { success: true, data: true }
   } catch (error) {
+    if (isRedirectError(error)) throw error
     console.error("Error selecting role:", error)
     return { success: false, error: "An error occurred" }
   }

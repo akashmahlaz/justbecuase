@@ -17,5 +17,13 @@
     "lib": "@/lib",
     "hooks": "@/hooks"
   },
-  "iconLibrary": "lucide"
+  "iconLibrary": "lucide",
+  "registries": {
+    "@magicui": {
+      "url": "https://magicui.design/r/{name}"
+    },
+    "@aceternity": {
+      "url": "https://pro.aceternity.com/r/{name}"
+    }
+  }
 }
