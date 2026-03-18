@@ -24,9 +24,10 @@ import {
   changePassword, 
   deleteAccount 
 } from "@/lib/actions"
-import { skillCategories, causes as causesList } from "@/lib/skills-data"
+import { skillCategories, causes as causesList, resolveSkillName } from "@/lib/skills-data"
 import type { RequiredSkill, SkillPriority } from "@/lib/types"
 import { SettingsPageSkeleton } from "@/components/ui/page-skeletons"
+import { SkillSelector, type SelectedSkill } from "@/components/skill-selector"
 import {
   Building2,
   Bell,
@@ -79,7 +80,7 @@ export default function NGOSettingsPage() {
   const [address, setAddress] = useState("")
 
   // Skills and causes
-  const [skills, setSkills] = useState<RequiredSkill[]>([])
+  const [selectedSkills, setSelectedSkills] = useState<SelectedSkill[]>([])
   const [causes, setCauses] = useState<string[]>([])
 
   // Privacy settings state
@@ -126,7 +127,12 @@ export default function NGOSettingsPage() {
           setContactEmail(profileData.contactEmail || session.user.email || "")
           setContactPhone(profileData.contactPhone || "")
           setAddress(profileData.address || "")
-          setSkills(profileData.typicalSkillsNeeded || [])
+          setSelectedSkills((profileData.typicalSkillsNeeded || []).map((s: RequiredSkill) => ({
+            categoryId: s.categoryId,
+            subskillId: s.subskillId,
+            name: resolveSkillName(s.subskillId),
+            priority: s.priority || "must-have",
+          })))
           setCauses(profileData.causes || [])
         }
         
@@ -155,16 +161,7 @@ export default function NGOSettingsPage() {
     }
   }, [session, isPending, router])
 
-  const toggleSkill = (categoryId: string, subskillId: string) => {
-    setSkills((prev) => {
-      const exists = prev.some((s) => s.categoryId === categoryId && s.subskillId === subskillId)
-      if (exists) {
-        return prev.filter((s) => !(s.categoryId === categoryId && s.subskillId === subskillId))
-      } else {
-        return [...prev, { categoryId, subskillId, priority: "must-have" as SkillPriority }]
-      }
-    })
-  }
+
 
   const toggleCause = (causeId: string) => {
     setCauses((prev) =>
@@ -172,9 +169,6 @@ export default function NGOSettingsPage() {
     )
   }
 
-  const isSkillSelected = (categoryId: string, subskillId: string) => {
-    return skills.some((s) => s.categoryId === categoryId && s.subskillId === subskillId)
-  }
 
   const saveOrganizationInfo = async () => {
     setIsSaving(true)
@@ -212,7 +206,7 @@ export default function NGOSettingsPage() {
 
     try {
       const result = await updateNGOProfile({
-        typicalSkillsNeeded: skills,
+        typicalSkillsNeeded: selectedSkills.map((s) => ({ categoryId: s.categoryId, subskillId: s.subskillId, priority: s.priority as SkillPriority })),
         causes,
       })
 
@@ -489,30 +483,24 @@ export default function NGOSettingsPage() {
                       {dict.ngo?.settings?.selectSkillsDesc || "Select skills your organization typically needs from impact agents"}
                     </CardDescription>
                   </CardHeader>
-                  <CardContent className="space-y-6">
-                    {skillCategories.map((category) => (
-                      <div key={category.id}>
-                        <h4 className="text-sm font-medium text-muted-foreground mb-3">
-                          {category.name}
-                        </h4>
-                        <div className="flex flex-wrap gap-2">
-                          {category.subskills.map((subskill) => (
-                            <Badge
-                              key={subskill.id}
-                              variant={isSkillSelected(category.id, subskill.id) ? "default" : "outline"}
-                              className={`cursor-pointer transition-colors ${
-                                isSkillSelected(category.id, subskill.id)
-                                  ? "bg-primary text-primary-foreground"
-                                  : "hover:bg-primary/10"
-                              }`}
-                              onClick={() => toggleSkill(category.id, subskill.id)}
-                            >
-                              {subskill.name}
-                            </Badge>
-                          ))}
-                        </div>
-                      </div>
-                    ))}
+                  <CardContent>
+                    <SkillSelector
+                      selectedSkills={selectedSkills}
+                      onChange={setSelectedSkills}
+                      maxSkills={20}
+                      labels={{
+                        searchPlaceholder: dict.ngo?.postProject?.searchSkills || "Search skills...",
+                        noResults: dict.ngo?.postProject?.noSkillsFound || "No skills found.",
+                        addCustom: dict.ngo?.postProject?.addCustomSkill || "Add custom skill",
+                        selectedSkills: dict.ngo?.common?.skillsRequired || "Selected Skills",
+                        mustHave: dict.ngo?.postProject?.mustHave || "Must Have",
+                        niceToHave: dict.ngo?.postProject?.niceToHave || "Nice to Have",
+                        removeSkill: dict.ngo?.common?.remove || "Remove",
+                        selectSkills: dict.ngo?.postProject?.searchAndAddSkills || "Search & add skills...",
+                        skillsSelected: dict.ngo?.postProject?.skillsSelected || "skills selected",
+                        customSkill: dict.ngo?.postProject?.customSkillLabel || "custom",
+                      }}
+                    />
                   </CardContent>
                 </Card>
 

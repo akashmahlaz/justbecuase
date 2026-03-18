@@ -413,45 +413,136 @@ export function getOpportunityIndexSettings() {
 
 export function getSynonymGroups() {
   return [
-    // Volunteer-related
+    // ======== Two-way synonyms (terms treated as equivalent) ========
+
+    // Volunteer / platform terms
     { objectID: "syn-volunteer", type: "synonym" as const, synonyms: ["volunteer", "volunteering", "impact agent", "talent"] },
-    // Education
+
+    // Causes
     { objectID: "syn-education", type: "synonym" as const, synonyms: ["education", "teaching", "tutoring", "mentoring", "training"] },
-    // Healthcare
     { objectID: "syn-healthcare", type: "synonym" as const, synonyms: ["healthcare", "health", "medical", "wellness"] },
-    // Environment
     { objectID: "syn-environment", type: "synonym" as const, synonyms: ["environment", "climate", "sustainability", "ecology", "conservation"] },
-    // Web Development
-    { objectID: "syn-webdev", type: "synonym" as const, synonyms: ["web development", "website", "frontend", "backend", "fullstack"] },
+    { objectID: "syn-poverty", type: "synonym" as const, synonyms: ["poverty", "poverty alleviation", "underprivileged", "welfare"] },
+    { objectID: "syn-women", type: "synonym" as const, synonyms: ["women empowerment", "gender equality", "women rights", "feminism"] },
+    { objectID: "syn-children", type: "synonym" as const, synonyms: ["child welfare", "children", "child rights", "kids"] },
+    { objectID: "syn-animals", type: "synonym" as const, synonyms: ["animal welfare", "animals", "animal rights", "pets", "stray"] },
+    { objectID: "syn-disaster", type: "synonym" as const, synonyms: ["disaster relief", "relief", "emergency", "humanitarian"] },
+    { objectID: "syn-humanrights", type: "synonym" as const, synonyms: ["human rights", "civil rights", "justice", "equality"] },
+    { objectID: "syn-arts", type: "synonym" as const, synonyms: ["arts", "culture", "music", "theater", "dance"] },
+    { objectID: "syn-seniors", type: "synonym" as const, synonyms: ["senior citizens", "elderly", "old age", "geriatric"] },
+    { objectID: "syn-disability", type: "synonym" as const, synonyms: ["disability support", "disability", "handicapped", "accessibility", "inclusion"] },
+
+    // Content creation
+    { objectID: "syn-content-creator", type: "synonym" as const, synonyms: ["content creator", "content creation", "social media content", "reels creator", "shorts creator"] },
+    { objectID: "syn-video", type: "synonym" as const, synonyms: ["video editor", "video editing", "video maker", "video creator", "videographer"] },
+    { objectID: "syn-photo-video", type: "synonym" as const, synonyms: ["photography", "photo", "videography", "video", "camera"] },
+    { objectID: "syn-blogging", type: "synonym" as const, synonyms: ["blogger", "blog writing", "blog writer", "article writing", "content writer"] },
+    { objectID: "syn-instagram", type: "synonym" as const, synonyms: ["instagram", "reels", "stories", "social media content"] },
+    { objectID: "syn-youtube", type: "synonym" as const, synonyms: ["youtube", "video editing", "video creator", "youtube editor"] },
+    { objectID: "syn-tiktok", type: "synonym" as const, synonyms: ["tiktok", "short video", "reels", "shorts"] },
+    { objectID: "syn-podcast-group", type: "synonym" as const, synonyms: ["podcast", "podcaster", "podcast production", "audio"] },
+    { objectID: "syn-animator", type: "synonym" as const, synonyms: ["animator", "animation", "motion graphics", "motion designer", "after effects"] },
+    { objectID: "syn-illustration", type: "synonym" as const, synonyms: ["illustration", "illustrator", "infographic", "infographics", "drawing"] },
+
     // Design
     { objectID: "syn-design", type: "synonym" as const, synonyms: ["graphic design", "design", "branding", "visual identity"] },
+    { objectID: "syn-canva", type: "synonym" as const, synonyms: ["canva", "graphic design", "social media design", "poster design"] },
+    { objectID: "syn-figma", type: "synonym" as const, synonyms: ["figma", "ui design", "ux design", "prototype"] },
+    { objectID: "syn-presentation", type: "synonym" as const, synonyms: ["presentation", "powerpoint", "google slides", "ppt", "slide deck"] },
+
     // Marketing
     { objectID: "syn-marketing", type: "synonym" as const, synonyms: ["marketing", "digital marketing", "social media", "advertising"] },
-    // Content
-    { objectID: "syn-content", type: "synonym" as const, synonyms: ["content writing", "copywriting", "blog writing", "article writing"] },
-    // Data
-    { objectID: "syn-data", type: "synonym" as const, synonyms: ["data analysis", "data visualization", "analytics", "reporting"] },
-    // Fundraising
-    { objectID: "syn-fundraising", type: "synonym" as const, synonyms: ["fundraising", "grant writing", "crowdfunding", "sponsorship"] },
-    // NGO / Organization
-    { objectID: "syn-ngo", type: "synonym" as const, synonyms: ["ngo", "nonprofit", "non-profit", "organization", "charity"] },
-    // WordPress
+    { objectID: "syn-seo", type: "synonym" as const, synonyms: ["seo", "search engine optimization", "organic search", "search optimization"] },
+    { objectID: "syn-ads", type: "synonym" as const, synonyms: ["ads", "advertising", "ppc", "facebook ads", "google ads", "meta ads"] },
+    { objectID: "syn-email-mktg", type: "synonym" as const, synonyms: ["email marketing", "newsletter", "email campaign", "mailchimp"] },
+    { objectID: "syn-crm", type: "synonym" as const, synonyms: ["crm", "hubspot", "zoho", "customer relationship"] },
+
+    // Web development
+    { objectID: "syn-webdev", type: "synonym" as const, synonyms: ["web development", "website", "frontend", "backend", "fullstack"] },
     { objectID: "syn-wordpress", type: "synonym" as const, synonyms: ["wordpress", "wp", "cms"] },
-    // SEO
-    { objectID: "syn-seo", type: "synonym" as const, synonyms: ["seo", "search engine optimization", "organic search"] },
+    { objectID: "syn-react", type: "synonym" as const, synonyms: ["react", "nextjs", "react.js", "next.js"] },
+    { objectID: "syn-mobile-app", type: "synonym" as const, synonyms: ["mobile app", "app development", "react native", "flutter", "ios", "android"] },
+    { objectID: "syn-nocode", type: "synonym" as const, synonyms: ["no code", "nocode", "webflow", "bubble", "low code"] },
+    { objectID: "syn-database", type: "synonym" as const, synonyms: ["database", "mongodb", "postgresql", "mysql", "sql"] },
+
+    // Writing & communication
+    { objectID: "syn-content", type: "synonym" as const, synonyms: ["content writing", "copywriting", "blog writing", "article writing"] },
+    { objectID: "syn-grant", type: "synonym" as const, synonyms: ["grant writing", "grant research", "grant proposal", "proposal writing"] },
+    { objectID: "syn-translation", type: "synonym" as const, synonyms: ["translation", "localization", "translator", "interpreter"] },
+
     // Finance
     { objectID: "syn-finance", type: "synonym" as const, synonyms: ["finance", "accounting", "bookkeeping", "budgeting"] },
+    { objectID: "syn-tax", type: "synonym" as const, synonyms: ["tax", "taxation", "tax compliance", "80g", "12a"] },
+    { objectID: "syn-audit", type: "synonym" as const, synonyms: ["audit", "auditing", "audit support", "financial audit"] },
+    { objectID: "syn-accounting-sw", type: "synonym" as const, synonyms: ["tally", "quickbooks", "accounting software", "zoho books"] },
+
+    // Fundraising
+    { objectID: "syn-fundraising", type: "synonym" as const, synonyms: ["fundraising", "grant writing", "crowdfunding", "sponsorship", "donation"] },
+    { objectID: "syn-crowdfunding", type: "synonym" as const, synonyms: ["crowdfunding", "gofundme", "ketto", "milaap", "online fundraising"] },
+    { objectID: "syn-csr", type: "synonym" as const, synonyms: ["csr", "corporate social responsibility", "corporate sponsorship"] },
+
     // Legal
-    { objectID: "syn-legal", type: "synonym" as const, synonyms: ["legal", "compliance", "law", "regulatory"] },
-    // Photography/Video
-    { objectID: "syn-photo", type: "synonym" as const, synonyms: ["photography", "photo", "videography", "video"] },
-    // Remote work
+    { objectID: "syn-legal", type: "synonym" as const, synonyms: ["legal", "compliance", "law", "regulatory", "legal advisory"] },
+    { objectID: "syn-ngo-reg", type: "synonym" as const, synonyms: ["ngo registration", "trust registration", "society registration", "section 8"] },
+    { objectID: "syn-fcra", type: "synonym" as const, synonyms: ["fcra", "fcra compliance", "foreign contribution"] },
+
+    // Operations
+    { objectID: "syn-event", type: "synonym" as const, synonyms: ["event planning", "event management", "event coordination", "event organizer"] },
+    { objectID: "syn-project-mgmt", type: "synonym" as const, synonyms: ["project management", "project manager", "notion", "trello", "asana"] },
+    { objectID: "syn-hr", type: "synonym" as const, synonyms: ["hr", "human resources", "recruitment", "hiring", "staffing"] },
+    { objectID: "syn-me", type: "synonym" as const, synonyms: ["monitoring evaluation", "m&e", "impact assessment", "impact measurement"] },
+
+    // Data & technology
+    { objectID: "syn-data", type: "synonym" as const, synonyms: ["data analysis", "data visualization", "analytics", "reporting"] },
+    { objectID: "syn-ai", type: "synonym" as const, synonyms: ["ai", "artificial intelligence", "machine learning", "ml", "deep learning"] },
+    { objectID: "syn-automation", type: "synonym" as const, synonyms: ["automation", "zapier", "make", "n8n", "workflow automation"] },
+    { objectID: "syn-it", type: "synonym" as const, synonyms: ["it support", "tech support", "it setup", "technical support"] },
+
+    // NGO terms
+    { objectID: "syn-ngo", type: "synonym" as const, synonyms: ["ngo", "nonprofit", "non-profit", "organization", "charity"] },
     { objectID: "syn-remote", type: "synonym" as const, synonyms: ["remote", "work from home", "wfh", "virtual", "online"] },
-    // One-way: common abbreviations
+    { objectID: "syn-impact-agent", type: "synonym" as const, synonyms: ["impact agent", "volunteer", "talent", "volunteering"] },
+
+    // ======== One-way synonyms (input → expands to alternatives) ========
+
+    // Abbreviations
     { objectID: "ow-ui-ux", type: "oneWaySynonym" as const, input: "ui ux", synonyms: ["ux ui design", "user experience", "user interface"] },
     { objectID: "ow-ml", type: "oneWaySynonym" as const, input: "ml", synonyms: ["machine learning", "ai", "artificial intelligence"] },
     { objectID: "ow-ppc", type: "oneWaySynonym" as const, input: "ppc", synonyms: ["pay per click", "google ads", "paid advertising"] },
     { objectID: "ow-hr", type: "oneWaySynonym" as const, input: "hr", synonyms: ["human resources", "recruitment", "hiring"] },
+    { objectID: "ow-ca", type: "oneWaySynonym" as const, input: "ca", synonyms: ["chartered accountant", "accounting", "tax", "audit"] },
+    { objectID: "ow-seo", type: "oneWaySynonym" as const, input: "seo", synonyms: ["search engine optimization", "organic search", "content marketing"] },
+    { objectID: "ow-crm", type: "oneWaySynonym" as const, input: "crm", synonyms: ["customer relationship management", "hubspot", "zoho", "mailchimp"] },
+    { objectID: "ow-devops", type: "oneWaySynonym" as const, input: "devops", synonyms: ["deployment", "hosting", "aws", "vercel", "cloud"] },
+    { objectID: "ow-rti", type: "oneWaySynonym" as const, input: "rti", synonyms: ["right to information", "legal advocacy", "transparency"] },
+
+    // Role terms → skill terms
+    { objectID: "ow-freelance", type: "oneWaySynonym" as const, input: "freelance", synonyms: ["volunteer", "paid", "talent"] },
+    { objectID: "ow-designer", type: "oneWaySynonym" as const, input: "designer", synonyms: ["graphic design", "ux ui design", "branding", "web design", "logo design"] },
+    { objectID: "ow-developer", type: "oneWaySynonym" as const, input: "developer", synonyms: ["web development", "react", "nextjs", "wordpress", "node", "mobile app"] },
+    { objectID: "ow-writer", type: "oneWaySynonym" as const, input: "writer", synonyms: ["blog writing", "content writing", "copywriting", "article writing", "grant writing"] },
+    { objectID: "ow-editor", type: "oneWaySynonym" as const, input: "editor", synonyms: ["video editing", "photo editing", "blog writing", "content editing"] },
+    { objectID: "ow-marketer", type: "oneWaySynonym" as const, input: "marketer", synonyms: ["digital marketing", "social media strategy", "email marketing", "content marketing"] },
+    { objectID: "ow-analyst", type: "oneWaySynonym" as const, input: "analyst", synonyms: ["data analysis", "financial analysis", "analytics", "reporting", "impact analysis"] },
+    { objectID: "ow-manager", type: "oneWaySynonym" as const, input: "manager", synonyms: ["project management", "social media manager", "event manager", "operations"] },
+    { objectID: "ow-consultant", type: "oneWaySynonym" as const, input: "consultant", synonyms: ["advisory", "strategy", "consulting", "expert"] },
+    { objectID: "ow-accountant", type: "oneWaySynonym" as const, input: "accountant", synonyms: ["bookkeeping", "accounting", "tax compliance", "financial reporting"] },
+    { objectID: "ow-lawyer", type: "oneWaySynonym" as const, input: "lawyer", synonyms: ["legal advisory", "contract drafting", "compliance", "advocate"] },
+    { objectID: "ow-trainer", type: "oneWaySynonym" as const, input: "trainer", synonyms: ["training", "workshop", "facilitation", "teaching", "coaching"] },
+    { objectID: "ow-researcher", type: "oneWaySynonym" as const, input: "researcher", synonyms: ["research", "surveys", "data collection", "grant research"] },
+    { objectID: "ow-photographer", type: "oneWaySynonym" as const, input: "photographer", synonyms: ["photography", "photo editing", "camera", "event photography"] },
+    { objectID: "ow-fundraiser", type: "oneWaySynonym" as const, input: "fundraiser", synonyms: ["fundraising", "grant writing", "crowdfunding", "donor management"] },
+
+    // Tool/platform names → skill domains
+    { objectID: "ow-canva", type: "oneWaySynonym" as const, input: "canva", synonyms: ["graphic design", "social media content", "poster design"] },
+    { objectID: "ow-figma", type: "oneWaySynonym" as const, input: "figma", synonyms: ["ux ui design", "prototype", "wireframe"] },
+    { objectID: "ow-photoshop", type: "oneWaySynonym" as const, input: "photoshop", synonyms: ["photo editing", "graphic design", "retouching"] },
+    { objectID: "ow-premiere", type: "oneWaySynonym" as const, input: "premiere pro", synonyms: ["video editing", "video production"] },
+    { objectID: "ow-aftereffects", type: "oneWaySynonym" as const, input: "after effects", synonyms: ["motion graphics", "animation", "visual effects"] },
+    { objectID: "ow-davinci", type: "oneWaySynonym" as const, input: "davinci resolve", synonyms: ["video editing", "color grading"] },
+    { objectID: "ow-excel", type: "oneWaySynonym" as const, input: "excel", synonyms: ["data analysis", "spreadsheet", "data entry", "reporting"] },
+    { objectID: "ow-powerbi", type: "oneWaySynonym" as const, input: "power bi", synonyms: ["data visualization", "analytics", "dashboard", "reporting"] },
+    { objectID: "ow-tableau", type: "oneWaySynonym" as const, input: "tableau", synonyms: ["data visualization", "analytics", "dashboard"] },
   ]
 }
 

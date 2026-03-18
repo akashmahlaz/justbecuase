@@ -73,6 +73,7 @@ export const COLLECTIONS = {
   BLOG_POSTS: "blogPosts",
   COUPONS: "coupons",
   COUPON_USAGES: "couponUsages",
+  SEARCH_ANALYTICS: "searchAnalytics",
 } as const
 
 // Helper: safely parse JSON with fallback
@@ -1777,5 +1778,208 @@ export const couponUsagesDb = {
   async findByCouponId(couponId: string): Promise<CouponUsage[]> {
     const collection = await getCollection<CouponUsage>(COLLECTIONS.COUPON_USAGES)
     return collection.find({ couponId }).sort({ usedAt: -1 }).toArray()
+  },
+}
+
+// ============================================
+// SEARCH ANALYTICS
+// ============================================
+export interface SearchAnalyticsEvent {
+  _id?: ObjectId
+  query: string
+  normalizedQuery: string
+  resultCount: number
+  engine: string
+  took: number // ms
+  userId?: string
+  userRole?: string
+  filters?: Record<string, any>
+  inferredFilters?: Record<string, any>
+  resultTypes?: { volunteers: number; ngos: number; opportunities: number }
+  clickedResultId?: string
+  clickedResultType?: string
+  clickPosition?: number
+  sessionId?: string
+  isZeroResult: boolean
+  isSuggestion: boolean
+  roleExpansionUsed: boolean
+  filtersRelaxed: boolean
+  timestamp: Date
+}
+
+export const searchAnalyticsDb = {
+  async track(event: Omit<SearchAnalyticsEvent, "timestamp">): Promise<string> {
+    const collection = await getCollection<SearchAnalyticsEvent>(COLLECTIONS.SEARCH_ANALYTICS)
+    const result = await collection.insertOne({
+      ...event,
+      timestamp: new Date(),
+    } as SearchAnalyticsEvent)
+    return result.insertedId.toString()
+  },
+
+  async trackClick(searchEventId: string, resultId: string, resultType: string, position: number): Promise<boolean> {
+    const collection = await getCollection<SearchAnalyticsEvent>(COLLECTIONS.SEARCH_ANALYTICS)
+    const result = await collection.updateOne(
+      { _id: new ObjectId(searchEventId) },
+      { $set: { clickedResultId: resultId, clickedResultType: resultType, clickPosition: position } }
+    )
+    return result.modifiedCount > 0
+  },
+
+  async getTopQueries(days = 30, limit = 50): Promise<{ query: string; count: number; avgResults: number; zeroResultRate: number }[]> {
+    const collection = await getCollection<SearchAnalyticsEvent>(COLLECTIONS.SEARCH_ANALYTICS)
+    const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000)
+    return collection.aggregate([
+      { $match: { timestamp: { $gte: since }, isSuggestion: false } },
+      { $group: {
+        _id: "$normalizedQuery",
+        count: { $sum: 1 },
+        avgResults: { $avg: "$resultCount" },
+        zeroCount: { $sum: { $cond: ["$isZeroResult", 1, 0] } },
+      }},
+      { $project: {
+        _id: 0,
+        query: "$_id",
+        count: 1,
+        avgResults: { $round: ["$avgResults", 1] },
+        zeroResultRate: { $round: [{ $multiply: [{ $divide: ["$zeroCount", "$count"] }, 100] }, 1] },
+      }},
+      { $sort: { count: -1 } },
+      { $limit: limit },
+    ]).toArray() as any
+  },
+
+  async getZeroResultQueries(days = 30, limit = 50): Promise<{ query: string; count: number; lastSearched: Date }[]> {
+    const collection = await getCollection<SearchAnalyticsEvent>(COLLECTIONS.SEARCH_ANALYTICS)
+    const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000)
+    return collection.aggregate([
+      { $match: { timestamp: { $gte: since }, isZeroResult: true, isSuggestion: false } },
+      { $group: {
+        _id: "$normalizedQuery",
+        count: { $sum: 1 },
+        lastSearched: { $max: "$timestamp" },
+      }},
+      { $project: { _id: 0, query: "$_id", count: 1, lastSearched: 1 } },
+      { $sort: { count: -1 } },
+      { $limit: limit },
+    ]).toArray() as any
+  },
+
+  async getTrendingQueries(hours = 24, limit = 20): Promise<{ query: string; count: number; avgResults: number }[]> {
+    const collection = await getCollection<SearchAnalyticsEvent>(COLLECTIONS.SEARCH_ANALYTICS)
+    const since = new Date(Date.now() - hours * 60 * 60 * 1000)
+    return collection.aggregate([
+      { $match: { timestamp: { $gte: since }, isSuggestion: false } },
+      { $group: {
+        _id: "$normalizedQuery",
+        count: { $sum: 1 },
+        avgResults: { $avg: "$resultCount" },
+      }},
+      { $project: { _id: 0, query: "$_id", count: 1, avgResults: { $round: ["$avgResults", 1] } } },
+      { $sort: { count: -1 } },
+      { $limit: limit },
+    ]).toArray() as any
+  },
+
+  async getOverviewStats(days = 30): Promise<{
+    totalSearches: number
+    uniqueQueries: number
+    avgResultCount: number
+    zeroResultRate: number
+    avgResponseTime: number
+    clickThroughRate: number
+    searchesWithFilters: number
+    roleExpansionRate: number
+  }> {
+    const collection = await getCollection<SearchAnalyticsEvent>(COLLECTIONS.SEARCH_ANALYTICS)
+    const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000)
+    const stats = await collection.aggregate([
+      { $match: { timestamp: { $gte: since }, isSuggestion: false } },
+      { $group: {
+        _id: null,
+        totalSearches: { $sum: 1 },
+        uniqueQueries: { $addToSet: "$normalizedQuery" },
+        avgResultCount: { $avg: "$resultCount" },
+        zeroResultCount: { $sum: { $cond: ["$isZeroResult", 1, 0] } },
+        avgResponseTime: { $avg: "$took" },
+        clickCount: { $sum: { $cond: [{ $ifNull: ["$clickedResultId", false] }, 1, 0] } },
+        filterCount: { $sum: { $cond: [{ $gt: [{ $size: { $objectToArray: { $ifNull: ["$inferredFilters", {}] } } }, 0] }, 1, 0] } },
+        roleExpansionCount: { $sum: { $cond: ["$roleExpansionUsed", 1, 0] } },
+      }},
+    ]).toArray()
+
+    if (!stats.length) {
+      return { totalSearches: 0, uniqueQueries: 0, avgResultCount: 0, zeroResultRate: 0, avgResponseTime: 0, clickThroughRate: 0, searchesWithFilters: 0, roleExpansionRate: 0 }
+    }
+
+    const s = stats[0]
+    const total = s.totalSearches || 1
+    return {
+      totalSearches: s.totalSearches,
+      uniqueQueries: s.uniqueQueries?.length || 0,
+      avgResultCount: Math.round((s.avgResultCount || 0) * 10) / 10,
+      zeroResultRate: Math.round(((s.zeroResultCount || 0) / total) * 1000) / 10,
+      avgResponseTime: Math.round(s.avgResponseTime || 0),
+      clickThroughRate: Math.round(((s.clickCount || 0) / total) * 1000) / 10,
+      searchesWithFilters: s.filterCount || 0,
+      roleExpansionRate: Math.round(((s.roleExpansionCount || 0) / total) * 1000) / 10,
+    }
+  },
+
+  async getDailyVolume(days = 30): Promise<{ date: string; searches: number; zeroResults: number }[]> {
+    const collection = await getCollection<SearchAnalyticsEvent>(COLLECTIONS.SEARCH_ANALYTICS)
+    const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000)
+    return collection.aggregate([
+      { $match: { timestamp: { $gte: since }, isSuggestion: false } },
+      { $group: {
+        _id: { $dateToString: { format: "%Y-%m-%d", date: "$timestamp" } },
+        searches: { $sum: 1 },
+        zeroResults: { $sum: { $cond: ["$isZeroResult", 1, 0] } },
+      }},
+      { $project: { _id: 0, date: "$_id", searches: 1, zeroResults: 1 } },
+      { $sort: { date: 1 } },
+    ]).toArray() as any
+  },
+
+  async getEngineBreakdown(days = 30): Promise<{ engine: string; count: number; avgTime: number }[]> {
+    const collection = await getCollection<SearchAnalyticsEvent>(COLLECTIONS.SEARCH_ANALYTICS)
+    const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000)
+    return collection.aggregate([
+      { $match: { timestamp: { $gte: since }, isSuggestion: false } },
+      { $group: {
+        _id: "$engine",
+        count: { $sum: 1 },
+        avgTime: { $avg: "$took" },
+      }},
+      { $project: { _id: 0, engine: "$_id", count: 1, avgTime: { $round: ["$avgTime", 0] } } },
+      { $sort: { count: -1 } },
+    ]).toArray() as any
+  },
+
+  async getRecentSearches(limit = 100): Promise<SearchAnalyticsEvent[]> {
+    const collection = await getCollection<SearchAnalyticsEvent>(COLLECTIONS.SEARCH_ANALYTICS)
+    return collection.find({ isSuggestion: false }).sort({ timestamp: -1 }).limit(limit).toArray()
+  },
+
+  async getSearchesByUser(userId: string, limit = 50): Promise<SearchAnalyticsEvent[]> {
+    const collection = await getCollection<SearchAnalyticsEvent>(COLLECTIONS.SEARCH_ANALYTICS)
+    return collection.find({ userId, isSuggestion: false }).sort({ timestamp: -1 }).limit(limit).toArray()
+  },
+
+  async getContentGaps(days = 30, limit = 30): Promise<{ query: string; searches: number; avgResults: number }[]> {
+    const collection = await getCollection<SearchAnalyticsEvent>(COLLECTIONS.SEARCH_ANALYTICS)
+    const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000)
+    return collection.aggregate([
+      { $match: { timestamp: { $gte: since }, isSuggestion: false, resultCount: { $lt: 3 } } },
+      { $group: {
+        _id: "$normalizedQuery",
+        searches: { $sum: 1 },
+        avgResults: { $avg: "$resultCount" },
+      }},
+      { $match: { searches: { $gte: 2 } } },
+      { $project: { _id: 0, query: "$_id", searches: 1, avgResults: { $round: ["$avgResults", 1] } } },
+      { $sort: { searches: -1 } },
+      { $limit: limit },
+    ]).toArray() as any
   },
 }

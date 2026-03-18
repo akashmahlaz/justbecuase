@@ -1,0 +1,5 @@
+accept rate , decline rate , job posted, current jobs , like the info upwork shows
+about search--> we will track what user have searched, how many user have searched this , what our search have shown to them, 
+job completion rate by candidate, working behave and these type of factors, 
+no contact sharing in chats
+TRACKING WHAT SKILLS ARE IN MORE DEMAND , WHAT CAUSES ARE MORE CARED, WHAT ARE THINGS , 

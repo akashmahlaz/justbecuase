@@ -16,9 +16,9 @@ import { Progress } from "@/components/ui/progress"
 import { useAuth } from "@/lib/auth-context"
 import { useDictionary } from "@/components/dictionary-provider"
 import { getNGOProfile, createProject } from "@/lib/actions"
-import { skillCategories } from "@/lib/skills-data"
 import type { NGOProfile } from "@/lib/types"
 import { AIProjectDescriptionHelper } from "@/components/ai/project-description-helper"
+import { SkillSelector, type SelectedSkill } from "@/components/skill-selector"
 import {
   ArrowLeft,
   ArrowRight,
@@ -54,9 +54,7 @@ const projectTemplates = [
   { id: "presentation", name: "Pitch Deck Creation", icon: Presentation, time: "10-15 hours" },
 ]
 
-const skillOptions = skillCategories.flatMap(cat => 
-  cat.subskills.map(sub => ({ name: sub.name, categoryId: cat.id, subskillId: sub.id }))
-)
+
 
 export default function PostProjectPage() {
   const router = useRouter()
@@ -70,11 +68,10 @@ export default function PostProjectPage() {
   const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null)
   const [uploadingDoc, setUploadingDoc] = useState(false)
   const [documents, setDocuments] = useState<Array<{ name: string; url: string; type: string }>>([])
+  const [selectedSkills, setSelectedSkills] = useState<SelectedSkill[]>([])
   const [formData, setFormData] = useState({
     title: "",
     description: "",
-    skills: [] as { categoryId: string; subskillId: string; priority: string }[],
-    selectedSkillNames: [] as string[],
     timeCommitment: "",
     duration: "2-4 weeks",
     deadline: "",
@@ -176,24 +173,7 @@ export default function PostProjectPage() {
     loadProfile()
   }, [user])
 
-  const toggleSkill = (skillName: string, categoryId: string, subskillId: string) => {
-    setFormData((prev) => {
-      const exists = prev.selectedSkillNames.includes(skillName)
-      if (exists) {
-        return {
-          ...prev,
-          selectedSkillNames: prev.selectedSkillNames.filter((s) => s !== skillName),
-          skills: prev.skills.filter((s) => !(s.categoryId === categoryId && s.subskillId === subskillId)),
-        }
-      } else {
-        return {
-          ...prev,
-          selectedSkillNames: [...prev.selectedSkillNames, skillName],
-          skills: [...prev.skills, { categoryId, subskillId, priority: "must-have" }],
-        }
-      }
-    })
-  }
+
 
   const handleTemplateSelect = (templateId: string) => {
     setSelectedTemplate(templateId)
@@ -218,7 +198,7 @@ export default function PostProjectPage() {
       const result = await createProject({
         title: formData.title,
         description: formData.description + (formData.deliverables ? `\n\nDeliverables:\n${formData.deliverables}` : ""),
-        skillsRequired: formData.skills,
+        skillsRequired: selectedSkills.map((s) => ({ categoryId: s.categoryId, subskillId: s.subskillId, priority: s.priority })),
         experienceLevel: formData.experienceLevel,
         timeCommitment: formData.timeCommitment,
         duration: formData.duration,
@@ -363,29 +343,23 @@ export default function PostProjectPage() {
 
                 <div className="space-y-2">
                   <Label>{dict.ngo?.common?.skillsRequired || "Skills Required"}</Label>
-                  <div className="space-y-4">
-                    {skillCategories.map((category) => (
-                      <div key={category.id}>
-                        <p className="text-sm font-medium text-muted-foreground mb-2">{category.name}</p>
-                        <div className="flex flex-wrap gap-2">
-                          {category.subskills.map((subskill) => (
-                            <Badge
-                              key={subskill.id}
-                              variant={formData.selectedSkillNames.includes(subskill.name) ? "default" : "outline"}
-                              className={`cursor-pointer transition-colors ${
-                                formData.selectedSkillNames.includes(subskill.name)
-                                  ? "bg-primary text-primary-foreground"
-                                  : "hover:bg-primary/10 hover:border-primary"
-                              }`}
-                              onClick={() => toggleSkill(subskill.name, category.id, subskill.id)}
-                            >
-                              {subskill.name}
-                            </Badge>
-                          ))}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+                  <SkillSelector
+                    selectedSkills={selectedSkills}
+                    onChange={setSelectedSkills}
+                    maxSkills={15}
+                    labels={{
+                      searchPlaceholder: dict.ngo?.postProject?.searchSkills || "Search skills (e.g. React, Grant Writing, SEO)...",
+                      noResults: dict.ngo?.postProject?.noSkillsFound || "No skills found.",
+                      addCustom: dict.ngo?.postProject?.addCustomSkill || "Add custom skill",
+                      selectedSkills: dict.ngo?.common?.skillsRequired || "Selected Skills",
+                      mustHave: dict.ngo?.postProject?.mustHave || "Must Have",
+                      niceToHave: dict.ngo?.postProject?.niceToHave || "Nice to Have",
+                      removeSkill: dict.ngo?.common?.remove || "Remove",
+                      selectSkills: dict.ngo?.postProject?.searchAndAddSkills || "Search & add skills...",
+                      skillsSelected: dict.ngo?.postProject?.skillsSelected || "skills selected",
+                      customSkill: dict.ngo?.postProject?.customSkillLabel || "custom",
+                    }}
+                  />
                 </div>
 
                 <div className="grid sm:grid-cols-2 gap-4">
@@ -553,10 +527,14 @@ export default function PostProjectPage() {
                     <div>
                       <p className="text-sm font-medium text-muted-foreground mb-2">{dict.ngo?.common?.skillsRequired || "Skills Required"}</p>
                       <div className="flex flex-wrap gap-2">
-                        {formData.selectedSkillNames.length > 0 ? (
-                          formData.selectedSkillNames.map((skill) => (
-                            <Badge key={skill} className="bg-accent text-accent-foreground">
-                              {skill}
+                        {selectedSkills.length > 0 ? (
+                          selectedSkills.map((skill) => (
+                            <Badge
+                              key={skill.subskillId}
+                              className={skill.priority === "must-have" ? "bg-primary text-primary-foreground" : "bg-accent text-accent-foreground"}
+                            >
+                              {skill.name}
+                              {skill.priority === "must-have" ? " ★" : " ☆"}
                             </Badge>
                           ))
                         ) : (

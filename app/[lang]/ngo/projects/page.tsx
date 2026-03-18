@@ -21,7 +21,10 @@ import {
   MoreVertical,
   Calendar,
   CheckCircle,
+  AlertTriangle,
+  Copy,
 } from "lucide-react"
+import { ProjectStatusSelect } from "./project-status-select"
 
 export default async function NGOProjectsPage({ params }: { params: Promise<{ lang: string }> }) {
   const { lang } = await params
@@ -161,35 +164,63 @@ function ProjectsList({ projects, dict }: { projects: any[]; dict: any }) {
 function ProjectCard({ project, dict }: { project: any; dict: any }) {
   const statusColors: Record<string, string> = {
     open: "bg-green-100 text-green-700",
+    active: "bg-green-100 text-green-700",
     closed: "bg-gray-100 text-gray-700",
     completed: "bg-blue-100 text-blue-700",
     draft: "bg-yellow-100 text-yellow-700",
+    paused: "bg-yellow-100 text-yellow-700",
   }
+
+  // Deadline urgency indicator
+  const daysUntilDeadline = project.deadline
+    ? Math.ceil((new Date(project.deadline).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+    : null
+  const isDeadlineSoon = daysUntilDeadline !== null && daysUntilDeadline >= 0 && daysUntilDeadline <= 3
+  const isOverdue = daysUntilDeadline !== null && daysUntilDeadline < 0
 
   return (
     <Card className="hover:shadow-md transition-shadow">
       <CardContent className="p-6">
         <div className="flex items-start justify-between mb-4">
           <div className="flex-1">
-            <div className="flex items-center gap-2 mb-2">
+            <div className="flex items-center gap-2 mb-2 flex-wrap">
               <h3 className="font-semibold text-lg text-foreground">
                 {project.title}
               </h3>
               <Badge className={statusColors[project.status] || "bg-gray-100"}>
                 {project.status}
               </Badge>
+              {isDeadlineSoon && (
+                <Badge variant="outline" className="text-yellow-600 border-yellow-300 bg-yellow-50">
+                  <AlertTriangle className="h-3 w-3 mr-1" />
+                  {daysUntilDeadline === 0
+                    ? (dict.ngo?.projects?.deadlineToday || "Deadline today")
+                    : `${daysUntilDeadline}d left`}
+                </Badge>
+              )}
+              {isOverdue && (
+                <Badge variant="outline" className="text-red-600 border-red-300 bg-red-50">
+                  <AlertTriangle className="h-3 w-3 mr-1" />
+                  {dict.ngo?.projects?.overdue || "Overdue"}
+                </Badge>
+              )}
             </div>
             <p className="text-muted-foreground line-clamp-2">
               {project.description}
             </p>
           </div>
-          <div className="flex gap-2">
-            <Button variant="ghost" size="icon" asChild>
+          <div className="flex items-center gap-2 ml-4">
+            <ProjectStatusSelect
+              projectId={project._id?.toString()}
+              currentStatus={project.status}
+              projectTitle={project.title}
+            />
+            <Button variant="ghost" size="icon" asChild title={dict.ngo?.common?.viewPublic || "View public page"}>
               <Link href={`/projects/${project._id?.toString()}`}>
                 <Eye className="h-4 w-4" />
               </Link>
             </Button>
-            <Button variant="ghost" size="icon" asChild>
+            <Button variant="ghost" size="icon" asChild title={dict.ngo?.projects?.edit?.title || "Edit"}>
               <Link href={`/ngo/projects/${project._id?.toString()}/edit`}>
                 <Edit className="h-4 w-4" />
               </Link>
