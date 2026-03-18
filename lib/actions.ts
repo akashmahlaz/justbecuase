@@ -221,6 +221,7 @@ export async function completeOnboarding(): Promise<ApiResponse<boolean>> {
     trackEvent("user", "onboarding_complete", { userId: user.id })
     return { success: true, data: true }
   } catch (error) {
+    if (isRedirectError(error)) throw error
     console.error("Error completing onboarding:", error)
     return { success: false, error: "An error occurred" }
   }
@@ -384,6 +385,7 @@ export async function saveVolunteerOnboarding(data: {
     trackEvent("user", "profile_complete", { userId: user.id, metadata: { role: "volunteer" } })
     return { success: true, data: "Profile saved successfully" }
   } catch (error) {
+    if (isRedirectError(error)) throw error
     console.error("Error saving volunteer onboarding:", error)
     return { success: false, error: "Failed to save profile" }
   }
@@ -634,6 +636,7 @@ export async function saveNGOOnboarding(data: {
     }
     return { success: true, data: "NGO profile saved successfully" }
   } catch (error) {
+    if (isRedirectError(error)) throw error
     console.error("Error saving NGO onboarding:", error)
     return { success: false, error: "Failed to save profile" }
   }

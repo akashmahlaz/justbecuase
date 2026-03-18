@@ -460,8 +460,9 @@ export default function NGOOnboardingPage() {
       const orgName = orgDetails.orgName || session?.user?.name || "there"
       // Clear saved onboarding state
       try { sessionStorage.removeItem(NGO_STORAGE_KEY) } catch {}
-      deleteOnboardingDraft().catch(() => {})
-      router.push(localePath(`/ngo/dashboard?welcome=${encodeURIComponent(orgName)}`, locale))
+      try { await deleteOnboardingDraft() } catch {}
+      // Use full page navigation to ensure fresh session data is loaded
+      window.location.href = localePath(`/ngo/dashboard?welcome=${encodeURIComponent(orgName)}`, locale)
     } catch (error) {
       console.error("Onboarding error:", error)
       setError(dict.ngo?.common?.somethingWentWrong || "Something went wrong. Please try again.")
