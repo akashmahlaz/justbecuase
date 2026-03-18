@@ -3,7 +3,7 @@ import { Footer } from "@/components/footer"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import LocaleLink from "@/components/locale-link"
-import { Calendar, User, ArrowRight } from "lucide-react"
+import { Calendar, User, ArrowRight, BookOpen } from "lucide-react"
 import { getPublishedBlogPosts } from "@/lib/actions"
 import { getDictionary } from "@/app/[lang]/dictionaries"
 import type { Locale } from "@/lib/i18n-config"
@@ -67,25 +67,32 @@ export default async function BlogPage({ params }: { params: Promise<{ lang: str
     : fallbackPosts
 
   return (
-    <>
+    <div className="min-h-screen flex flex-col bg-background">
       <Navbar />
-      <div className="min-h-screen bg-background pt-20">
-        <div className="container mx-auto px-4 md:px-6 py-12">
-          {/* Header */}
-          <div className="max-w-3xl mx-auto text-center mb-12">
+      <main className="flex-1">
+        {/* Hero */}
+        <section className="py-20 bg-linear-to-b from-primary/5 to-background">
+          <div className="container mx-auto px-4 md:px-6 text-center">
+            <div className="inline-flex items-center gap-2 bg-primary/10 px-4 py-2 rounded-full mb-6">
+              <BookOpen className="h-4 w-4 text-primary" />
+              <span className="text-sm font-medium text-primary">{b.badge || "Stories & Insights"}</span>
+            </div>
             <h1 className="text-4xl md:text-5xl font-bold text-foreground mb-4">
               {b.title || "Blog"}
             </h1>
-            <p className="text-xl text-muted-foreground">
+            <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
               {b.subtitle || "Stories, insights, and updates from the JustBeCause Network community"}
             </p>
           </div>
+        </section>
 
-          {/* Blog Posts Grid */}
-          <div className="max-w-5xl mx-auto grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {/* Blog Posts Grid */}
+        <section className="py-16">
+          <div className="container mx-auto px-4 md:px-6">
+            <div className="max-w-5xl mx-auto grid md:grid-cols-2 lg:grid-cols-3 gap-6">
             {posts.map((post: any) => (
               <LocaleLink key={post.slug} href={`/blog/${post.slug}`}>
-                <Card className="h-full hover:shadow-lg transition-shadow cursor-pointer">
+                <Card className="h-full hover:shadow-lg transition-all duration-300 hover:-translate-y-1 cursor-pointer">
                   <CardHeader>
                     <div className="flex items-center gap-2 mb-3">
                       {post.tags?.slice(0, 2).map((tag: string) => (
@@ -115,12 +122,16 @@ export default async function BlogPage({ params }: { params: Promise<{ lang: str
                 </Card>
               </LocaleLink>
             ))}
+            </div>
           </div>
+        </section>
 
-          {/* Coming Soon */}
-          <div className="max-w-3xl mx-auto mt-16 text-center">
-            <Card className="bg-muted/30">
-              <CardContent className="py-12">
+        {/* Coming Soon */}
+        <section className="py-16 bg-muted/30">
+          <div className="container mx-auto px-4 md:px-6">
+            <div className="max-w-3xl mx-auto text-center">
+              <Card className="border-2 border-primary/20">
+                <CardContent className="py-12">
                 <h2 className="text-2xl font-bold text-foreground mb-3">
                   {b.comingSoon || "More Content Coming Soon"}
                 </h2>
@@ -137,9 +148,10 @@ export default async function BlogPage({ params }: { params: Promise<{ lang: str
               </CardContent>
             </Card>
           </div>
-        </div>
-      </div>
+          </div>
+        </section>
+      </main>
       <Footer />
-    </>
+    </div>
   )
 }

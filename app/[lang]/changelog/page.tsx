@@ -1,7 +1,8 @@
 import { Navbar } from "@/components/navbar"
+import { Footer } from "@/components/footer"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { CheckCircle, AlertTriangle, Wrench, Sparkles } from "lucide-react"
+import { CheckCircle, AlertTriangle, Wrench, Sparkles, Clock } from "lucide-react"
 
 const changelogEntries = [
   {
@@ -102,22 +103,29 @@ const getTypeBadge = (type: string) => {
 
 export default function ChangelogPage() {
   return (
-    <>
+    <div className="min-h-screen flex flex-col bg-background">
       <Navbar />
-      <div className="min-h-screen bg-background pt-20">
-        <div className="container mx-auto px-4 md:px-6 py-12">
-          {/* Header */}
-          <div className="max-w-3xl mx-auto text-center mb-12">
+      <main className="flex-1">
+        {/* Hero */}
+        <section className="py-20 bg-linear-to-b from-primary/5 to-background">
+          <div className="container mx-auto px-4 md:px-6 text-center">
+            <div className="inline-flex items-center gap-2 bg-primary/10 px-4 py-2 rounded-full mb-6">
+              <Clock className="h-4 w-4 text-primary" />
+              <span className="text-sm font-medium text-primary">What&apos;s New</span>
+            </div>
             <h1 className="text-4xl md:text-5xl font-bold text-foreground mb-4">
               Changelog
             </h1>
-            <p className="text-xl text-muted-foreground">
+            <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
               Track new features, improvements, and fixes to JustBeCause Network
             </p>
           </div>
+        </section>
 
-          {/* Changelog Entries */}
-          <div className="max-w-4xl mx-auto space-y-8">
+        {/* Changelog Entries */}
+        <section className="py-16">
+          <div className="container mx-auto px-4 md:px-6">
+            <div className="max-w-4xl mx-auto space-y-8">
             {changelogEntries.map((entry) => (
               <Card key={entry.version} className="overflow-hidden">
                 <CardHeader className="bg-muted/30">
@@ -172,8 +180,10 @@ export default function ChangelogPage() {
               </CardContent>
             </Card>
           </div>
-        </div>
-      </div>
-    </>
+          </div>
+        </section>
+      </main>
+      <Footer />
+    </div>
   )
 }
