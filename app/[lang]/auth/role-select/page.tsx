@@ -55,8 +55,17 @@ function RoleSelectContent() {
   }
 
   useEffect(() => {
+    console.log("[role-select] session check:", {
+      isPending,
+      hasUser: !!session?.user,
+      role: (session?.user as any)?.role,
+      isOnboarded: (session?.user as any)?.isOnboarded,
+      email: session?.user?.email,
+    })
+
     // Redirect to signin if not authenticated
     if (!isPending && !session?.user) {
+      console.log("[role-select] no session, redirecting to signin")
       router.push(localePath("/auth/signin", locale))
       return
     }
@@ -68,10 +77,13 @@ function RoleSelectContent() {
       // If user is already onboarded, redirect to dashboard
       if (isOnboarded) {
         if (role === "volunteer") {
+          console.log("[role-select] onboarded volunteer, redirect to dashboard")
           router.push(localePath("/volunteer/dashboard", locale))
         } else if (role === "ngo") {
+          console.log("[role-select] onboarded ngo, redirect to dashboard")
           router.push(localePath("/ngo/dashboard", locale))
         } else if (role === "admin") {
+          console.log("[role-select] admin, redirect to admin")
           router.push(localePath("/admin", locale))
         }
         return
@@ -79,12 +91,15 @@ function RoleSelectContent() {
       
       // If user has a valid role but not onboarded, redirect to onboarding
       if (role === "volunteer") {
+        console.log("[role-select] volunteer not onboarded, redirect to onboarding")
         router.push(localePath("/volunteer/onboarding", locale))
         return
       } else if (role === "ngo") {
+        console.log("[role-select] ngo not onboarded, redirect to onboarding")
         router.push(localePath("/ngo/onboarding", locale))
         return
       }
+      console.log("[role-select] user needs to select role, staying on page. role =", role)
       // Otherwise, user needs to select a role (stay on this page)
     }
   }, [session, isPending, router])

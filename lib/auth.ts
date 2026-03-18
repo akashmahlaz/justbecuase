@@ -10,20 +10,27 @@ const getAuthBaseURL = () => {
   // On Vercel, never use localhost — use production domain or Vercel URL
   if (process.env.VERCEL) {
     if (process.env.BETTER_AUTH_URL && !process.env.BETTER_AUTH_URL.includes("localhost")) {
+      console.log("[auth] baseURL: using BETTER_AUTH_URL =", process.env.BETTER_AUTH_URL);
       return process.env.BETTER_AUTH_URL;
     }
     // Use Vercel's production URL (custom domain if configured)
     if (process.env.VERCEL_PROJECT_PRODUCTION_URL) {
-      return `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`;
+      const url = `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`;
+      console.log("[auth] baseURL: using VERCEL_PROJECT_PRODUCTION_URL =", url);
+      return url;
     }
     if (process.env.VERCEL_URL) {
-      return `https://${process.env.VERCEL_URL}`;
+      const url = `https://${process.env.VERCEL_URL}`;
+      console.log("[auth] baseURL: using VERCEL_URL =", url);
+      return url;
     }
   }
   // Local / explicit override
   if (process.env.BETTER_AUTH_URL) {
+    console.log("[auth] baseURL: using BETTER_AUTH_URL (local) =", process.env.BETTER_AUTH_URL);
     return process.env.BETTER_AUTH_URL;
   }
+  console.log("[auth] baseURL: falling back to localhost:3000");
   return "http://localhost:3000";
 };
 

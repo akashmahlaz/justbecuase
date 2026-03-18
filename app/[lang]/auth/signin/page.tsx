@@ -52,35 +52,51 @@ function SignInPageInner() {
 
   // Handle redirect after successful login
   const handlePostLoginRedirect = async () => {
+    console.log("[signin] handlePostLoginRedirect: fetching session...")
     const session = await getSession()
     const user = session?.data?.user as any
+    console.log("[signin] handlePostLoginRedirect: session result =", {
+      hasUser: !!user,
+      role: user?.role,
+      isOnboarded: user?.isOnboarded,
+      id: user?.id,
+      email: user?.email,
+    })
 
     if (user) {
       // Redirect based on role and onboarding status
       if (!user.isOnboarded) {
         // Check if user has selected a role yet
         if (user.role === "volunteer") {
+          console.log("[signin] redirecting to volunteer onboarding")
           router.push(localePath("/volunteer/onboarding", locale))
         } else if (user.role === "ngo") {
+          console.log("[signin] redirecting to ngo onboarding")
           router.push(localePath("/ngo/onboarding", locale))
         } else {
           // User hasn't selected a role yet (role is "user" or undefined)
-          router.push("/auth/role-select")
+          console.log("[signin] redirecting to role-select (role=", user.role, ")")
+          router.push(localePath("/auth/role-select", locale))
         }
       } else {
         // User is onboarded, go to dashboard
         if (user.role === "volunteer") {
+          console.log("[signin] redirecting to volunteer dashboard")
           router.push(localePath("/volunteer/dashboard", locale))
         } else if (user.role === "ngo") {
+          console.log("[signin] redirecting to ngo dashboard")
           router.push(localePath("/ngo/dashboard", locale))
         } else if (user.role === "admin") {
+          console.log("[signin] redirecting to admin dashboard")
           router.push(localePath("/admin/dashboard", locale))
         } else {
+          console.log("[signin] redirecting to home (unknown role:", user.role, ")")
           router.push(localePath("/", locale))
         }
       }
     } else {
-      router.push("/")
+      console.log("[signin] no user in session, redirecting to home")
+      router.push(localePath("/", locale))
     }
   }
 
@@ -90,19 +106,23 @@ function SignInPageInner() {
     setError("")
 
     try {
+      console.log("[signin] signIn.email starting...")
       const { error: signInError } = await signIn.email({
         email,
         password,
       })
 
       if (signInError) {
+        console.log("[signin] signIn.email FAILED:", signInError.message)
         setError(signInError.message || "Invalid email or password")
         setIsLoading(false)
         return
       }
 
+      console.log("[signin] signIn.email SUCCESS, cookies:", document.cookie)
       await handlePostLoginRedirect()
     } catch (err: any) {
+      console.error("[signin] signIn.email EXCEPTION:", err)
       setError(err.message || "Something went wrong")
       setIsLoading(false)
     }
@@ -114,11 +134,12 @@ function SignInPageInner() {
     setError("")
 
     try {
+      console.log(`[signin] starting social sign-in: ${provider}`)
       // For signin, we assume user exists - redirect based on role
       // The role-select page will handle redirection if user already has a role
       await signIn.social({
         provider,
-        callbackURL: "/auth/role-select", // Role-select will redirect to dashboard if already onboarded
+        callbackURL: localePath("/auth/role-select", locale), // Use locale-prefixed callbackURL
       })
       // Note: This won't execute as the page redirects to OAuth provider
     } catch (err: any) {
