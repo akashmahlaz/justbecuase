@@ -1327,8 +1327,32 @@ export async function GET(request: NextRequest) {
         })
 
         // Soft fallback: if post-filters eliminated ALL results, show lexical matches
+        // but sort so budget-matching results come first
         let finalResults = strictResults.length > 0 ? strictResults : lexicalResults
         let filtersRelaxed = hasPostFilters && strictResults.length === 0 && lexicalResults.length > 0
+
+        // When filters relaxed, sort so budget-plausible results come first
+        if (filtersRelaxed && maxWeeklyBudget !== null) {
+          finalResults = [...finalResults].sort((a: any, b: any) => {
+            const aRate = typeof a.hourlyRate === "number" ? a.hourlyRate : null
+            const bRate = typeof b.hourlyRate === "number" ? b.hourlyRate : null
+            // Results with no rate data → middle (unknown, not penalized harshly)
+            // Results within budget → top
+            // Results over budget → bottom
+            const aScore = aRate === null ? 1 : (aRate <= maxWeeklyBudget! ? 0 : 2)
+            const bScore = bRate === null ? 1 : (bRate <= maxWeeklyBudget! ? 0 : 2)
+            return aScore - bScore
+          })
+        }
+        if (filtersRelaxed && maxMonthlyBudget !== null) {
+          finalResults = [...finalResults].sort((a: any, b: any) => {
+            const aRate = typeof a.hourlyRate === "number" ? a.hourlyRate : null
+            const bRate = typeof b.hourlyRate === "number" ? b.hourlyRate : null
+            const aScore = aRate === null ? 1 : (aRate * 4.33 <= maxMonthlyBudget! ? 0 : 2)
+            const bScore = bRate === null ? 1 : (bRate * 4.33 <= maxMonthlyBudget! ? 0 : 2)
+            return aScore - bScore
+          })
+        }
 
         // ── ROLE-EXPANSION FALLBACK ──────────────────────────────────
         // If the primary text search returned very few results AND the query
@@ -1426,7 +1450,7 @@ export async function GET(request: NextRequest) {
                 })
               }
             }
-            // Re-apply post-filters on the expanded set
+            // Re-apply post-filters on the expanded set (including budget filters)
             if (hasPostFilters && finalResults.length > 0) {
               const refiltered = finalResults.filter((result: any) => {
                 if (filterWorkMode !== null && result.workMode && result.workMode !== filterWorkMode) return false
@@ -1438,6 +1462,15 @@ export async function GET(request: NextRequest) {
                   const rating = typeof result.rating === "number" ? result.rating : null
                   if (maxHourlyRate !== null && rate !== null && rate > maxHourlyRate) return false
                   if (minRating !== null && rating !== null && rating < minRating) return false
+                  // Budget filters — also apply in fallback
+                  if (maxWeeklyBudget !== null && rate !== null) {
+                    const minHrs = parseHoursPerWeekLowerBound(result.hoursPerWeek)
+                    if (minHrs !== null && rate * minHrs > maxWeeklyBudget) return false
+                  }
+                  if (maxMonthlyBudget !== null && rate !== null) {
+                    const minHrs = parseHoursPerWeekLowerBound(result.hoursPerWeek)
+                    if (minHrs !== null && rate * minHrs * 4.33 > maxMonthlyBudget) return false
+                  }
                 }
                 if (result.type === "opportunity") {
                   if (filterExperienceLevel !== null && result.experienceLevel && result.experienceLevel !== filterExperienceLevel) return false
@@ -1449,6 +1482,16 @@ export async function GET(request: NextRequest) {
                 finalResults = refiltered
               } else {
                 filtersRelaxed = true
+                // Even when relaxed, sort budget-plausible results first
+                if (maxWeeklyBudget !== null) {
+                  finalResults = [...finalResults].sort((a: any, b: any) => {
+                    const aRate = typeof a.hourlyRate === "number" ? a.hourlyRate : null
+                    const bRate = typeof b.hourlyRate === "number" ? b.hourlyRate : null
+                    const aScore = aRate === null ? 1 : (aRate <= maxWeeklyBudget! ? 0 : 2)
+                    const bScore = bRate === null ? 1 : (bRate <= maxWeeklyBudget! ? 0 : 2)
+                    return aScore - bScore
+                  })
+                }
               }
             }
             console.log(`🟡 [Search API] After fallback: ${finalResults.length} total results`)
