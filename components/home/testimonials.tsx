@@ -14,13 +14,21 @@ import { BlurFade } from "@/components/ui/blur-fade"
 
 /* ── Helper: render quote with highlighted fragment ── */
 
-function HighlightedQuote({ quote, highlight }: { quote: string; highlight: string }) {
+function HighlightedQuote({
+  quote,
+  highlight,
+  color = "#fde68a",
+}: {
+  quote: string
+  highlight: string
+  color?: string
+}) {
   const idx = quote.indexOf(highlight)
   if (idx === -1) return <>&ldquo;{quote}&rdquo;</>
   return (
     <>
       &ldquo;{quote.slice(0, idx)}
-      <Highlighter action="highlight" color="hsl(var(--primary) / 0.25)" animationDuration={800} isView>
+      <Highlighter action="highlight" color={color} animationDuration={800} isView>
         {highlight}
       </Highlighter>
       {quote.slice(idx + highlight.length)}&rdquo;
