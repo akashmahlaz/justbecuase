@@ -154,50 +154,145 @@ export const impactMetrics = {
   valueGenerated: 2450000,
 }
 
-export const testimonials = [
-  {
-    id: 1,
-    quote: "JustBecause connected us with a brilliant UX strategist who redesigned our donor portal in just three weeks. Online donations increased 140% the following quarter.",
-    author: "Amira Osei",
-    role: "Executive Director",
-    organization: "WaterBridge Foundation",
-    avatar: "/placeholder.svg",
-    type: "NGO",
-  },
+export interface Testimonial {
+  id: number
+  quote: string
+  highlight: string
+  author: string
+  role: string
+  organization: string
+  avatar: string
+  type: "NGO" | "Volunteer"
+  tag: string
+}
+
+export const featuredTestimonial: Testimonial = {
+  id: 1,
+  quote: "JustBecause connected us with a brilliant UX strategist who redesigned our donor portal in just three weeks. Online donations increased 140% the following quarter.",
+  highlight: "Online donations increased 140%",
+  author: "Amira Osei",
+  role: "Executive Director",
+  organization: "WaterBridge Foundation",
+  avatar: "https://i.pravatar.cc/150?u=amira",
+  type: "NGO",
+  tag: "Impact",
+}
+
+export const testimonialRow1: Testimonial[] = [
   {
     id: 2,
     quote: "I wanted to use my product skills for something meaningful. Within days I was embedded with an education nonprofit, leading their mobile app launch.",
+    highlight: "Within days I was embedded",
     author: "Carlos Méndez",
     role: "Senior Product Designer",
     organization: "Pro-bono Volunteer",
-    avatar: "/placeholder.svg",
+    avatar: "https://i.pravatar.cc/150?u=carlos",
     type: "Volunteer",
+    tag: "Design",
   },
   {
     id: 3,
     quote: "The matching algorithm found us a data engineer who automated our impact reporting. What took two weeks now takes two hours.",
+    highlight: "now takes two hours",
     author: "Fatima Al-Rashid",
     role: "Programs Director",
     organization: "GreenLeaf Initiative",
-    avatar: "/placeholder.svg",
+    avatar: "https://i.pravatar.cc/150?u=fatima",
     type: "NGO",
+    tag: "Data",
   },
   {
     id: 4,
     quote: "As a retired CFO, I thought my best years were behind me. JustBecause proved me wrong — I've helped three nonprofits restructure their finances.",
+    highlight: "helped three nonprofits",
     author: "David Chen",
     role: "Financial Advisor",
     organization: "Pro-bono Volunteer",
-    avatar: "/placeholder.svg",
+    avatar: "https://i.pravatar.cc/150?u=david",
     type: "Volunteer",
+    tag: "Finance",
   },
   {
     id: 5,
     quote: "We struggled for months to find legal help we could afford. JustBecause matched us with a corporate lawyer who handled our entire compliance audit pro bono.",
+    highlight: "entire compliance audit pro bono",
     author: "Priya Sharma",
     role: "Founder",
     organization: "SafeHaven Trust",
-    avatar: "/placeholder.svg",
+    avatar: "https://i.pravatar.cc/150?u=priya",
     type: "NGO",
+    tag: "Legal",
+  },
+  {
+    id: 6,
+    quote: "The platform made it incredibly easy to find skilled volunteers. We onboarded a full development team in under a week and shipped our new website on time.",
+    highlight: "in under a week",
+    author: "Lena Johansson",
+    role: "COO",
+    organization: "Nordic Aid Alliance",
+    avatar: "https://i.pravatar.cc/150?u=lena",
+    type: "NGO",
+    tag: "Tech",
   },
 ]
+
+export const testimonialRow2: Testimonial[] = [
+  {
+    id: 7,
+    quote: "After retiring from corporate law, I was looking for purpose. JustBecause connected me with an anti-trafficking NGO that needed exactly my expertise.",
+    highlight: "exactly my expertise",
+    author: "Margaret Okonkwo",
+    role: "Legal Consultant",
+    organization: "Pro-bono Volunteer",
+    avatar: "https://i.pravatar.cc/150?u=margaret",
+    type: "Volunteer",
+    tag: "Legal",
+  },
+  {
+    id: 8,
+    quote: "Our fundraising campaign strategy was completely transformed by a volunteer marketing expert. We exceeded our annual goal by 60% in just six months.",
+    highlight: "exceeded our annual goal by 60%",
+    author: "Tomás Rivera",
+    role: "Development Director",
+    organization: "EduForward Foundation",
+    avatar: "https://i.pravatar.cc/150?u=tomas",
+    type: "NGO",
+    tag: "Fundraising",
+  },
+  {
+    id: 9,
+    quote: "I'm a data scientist by day, and JustBecause lets me apply those skills where they matter most. I built a predictive model that helps allocate disaster relief resources.",
+    highlight: "allocate disaster relief resources",
+    author: "Anika Patel",
+    role: "Data Scientist",
+    organization: "Pro-bono Volunteer",
+    avatar: "https://i.pravatar.cc/150?u=anika",
+    type: "Volunteer",
+    tag: "Analytics",
+  },
+  {
+    id: 10,
+    quote: "Finding a pro-bono accountant felt impossible until JustBecause. Our matched volunteer saved us thousands in compliance costs and got our books audit-ready.",
+    highlight: "saved us thousands in compliance costs",
+    author: "James Nkomo",
+    role: "Executive Director",
+    organization: "Youth Forward Africa",
+    avatar: "https://i.pravatar.cc/150?u=james",
+    type: "NGO",
+    tag: "Finance",
+  },
+  {
+    id: 11,
+    quote: "The skill-matching is remarkable. I listed graphic design and within 48 hours three NGOs reached out. Now I design impact reports that actually get read.",
+    highlight: "within 48 hours three NGOs reached out",
+    author: "Sophie Laurent",
+    role: "Graphic Designer",
+    organization: "Pro-bono Volunteer",
+    avatar: "https://i.pravatar.cc/150?u=sophie",
+    type: "Volunteer",
+    tag: "Design",
+  },
+]
+
+// Backward-compatible combined array
+export const testimonials = [featuredTestimonial, ...testimonialRow1, ...testimonialRow2]
