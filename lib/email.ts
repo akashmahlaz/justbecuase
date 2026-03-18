@@ -895,6 +895,325 @@ export function getZeroResultAlertEmailHtml(query: string, engine: string, filte
 }
 
 // ============================================
+// IRRELEVANT RESULT ALERT EMAIL
+// ============================================
+export function getIrrelevantResultAlertEmailHtml(
+  query: string, engine: string, resultCount: number, topResultTitles: string[]
+): string {
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://justbecausenetwork.com"
+  const titlesList = topResultTitles.map(t => `<li>${t}</li>`).join("")
+  return `
+    <!DOCTYPE html>
+    <html>
+    <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
+    <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+      <div style="text-align: center; margin-bottom: 30px;">
+        <h1 style="color: #10b981; margin: 0;">JustBeCause Network</h1>
+        <p style="color: #666; margin-top: 5px;">Search Quality Alert</p>
+      </div>
+      <div style="background: #fffbeb; border: 1px solid #fde68a; border-radius: 8px; padding: 24px; margin-bottom: 20px;">
+        <h2 style="margin-top: 0; color: #d97706;">⚠️ Potentially Irrelevant Results</h2>
+        <p>A search returned results that may not match the user's intent. Filters were relaxed to show these results.</p>
+        <table style="width: 100%; border-collapse: collapse; margin: 16px 0;">
+          <tr><td style="padding: 8px; border-bottom: 1px solid #e5e7eb; font-weight: 600; width: 120px;">Query</td><td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">"${query}"</td></tr>
+          <tr><td style="padding: 8px; border-bottom: 1px solid #e5e7eb; font-weight: 600;">Engine</td><td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${engine}</td></tr>
+          <tr><td style="padding: 8px; border-bottom: 1px solid #e5e7eb; font-weight: 600;">Results</td><td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${resultCount} (with relaxed filters)</td></tr>
+          <tr><td style="padding: 8px; border-bottom: 1px solid #e5e7eb; font-weight: 600;">Time</td><td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${new Date().toISOString()}</td></tr>
+        </table>
+        <p style="margin-bottom: 4px; font-weight: 600;">Top Result Titles:</p>
+        <ol style="margin-top: 4px;">${titlesList}</ol>
+        <h3 style="margin-bottom: 8px;">Why This Matters:</h3>
+        <ul>
+          <li>Users may see results that don't match what they searched for</li>
+          <li>Consider adding synonyms or skill mappings for this query</li>
+          <li>The search term may need new volunteer/NGO/project data</li>
+        </ul>
+        <div style="text-align: center; margin-top: 20px;">
+          <a href="${appUrl}/admin/search-analytics" style="display: inline-block; background: #10b981; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600;">View Search Analytics</a>
+        </div>
+      </div>
+      <div style="background: #f9fafb; padding: 16px; text-align: center; border-top: 1px solid #e5e7eb;">
+        <p style="color: #9ca3af; font-size: 12px; margin: 0;">This is an automated alert from the JustBeCause platform search system.</p>
+      </div>
+    </body>
+    </html>
+  `
+}
+
+// ============================================
+// DAILY SEARCH SUMMARY EMAIL (for team)
+// ============================================
+export function getDailySearchSummaryEmailHtml(data: {
+  date: string
+  totalSearches: number
+  uniqueQueries: number
+  avgResultCount: number
+  zeroResultRate: number
+  avgResponseTime: number
+  uniqueUsers: number
+  anonymousSearches: number
+  topQueries: { query: string; count: number }[]
+  zeroResultQueries: { query: string; count: number }[]
+  searchesByEngine: { engine: string; count: number }[]
+  topUserSearchers: { userId: string; count: number }[]
+}): string {
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://justbecausenetwork.com"
+  const topQueriesHtml = data.topQueries.length > 0
+    ? data.topQueries.map((q, i) => `<tr><td style="padding: 6px 8px; border-bottom: 1px solid #f3f4f6;">${i + 1}.</td><td style="padding: 6px 8px; border-bottom: 1px solid #f3f4f6;">${q.query}</td><td style="padding: 6px 8px; border-bottom: 1px solid #f3f4f6; text-align: center;">${q.count}</td></tr>`).join("")
+    : `<tr><td colspan="3" style="padding: 12px; text-align: center; color: #9ca3af;">No searches recorded</td></tr>`
+  const zeroResultsHtml = data.zeroResultQueries.length > 0
+    ? data.zeroResultQueries.map(q => `<tr><td style="padding: 6px 8px; border-bottom: 1px solid #f3f4f6;">${q.query}</td><td style="padding: 6px 8px; border-bottom: 1px solid #f3f4f6; text-align: center;">${q.count}</td></tr>`).join("")
+    : `<tr><td colspan="2" style="padding: 12px; text-align: center; color: #10b981;">All searches returned results!</td></tr>`
+  const engineHtml = data.searchesByEngine.map(e => `<span style="display: inline-block; background: #e0f2fe; color: #0369a1; padding: 4px 12px; border-radius: 12px; margin: 2px;">${e.engine}: ${e.count}</span>`).join(" ")
+
+  return `
+    <!DOCTYPE html>
+    <html>
+    <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
+    <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; max-width: 650px; margin: 0 auto; padding: 20px;">
+      <div style="text-align: center; margin-bottom: 24px;">
+        <h1 style="color: #10b981; margin: 0;">JustBeCause Network</h1>
+        <p style="color: #666; margin-top: 5px;">Daily Search Summary &mdash; ${data.date}</p>
+      </div>
+
+      <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 20px; margin-bottom: 16px;">
+        <h2 style="margin: 0 0 16px 0; color: #166534; font-size: 18px;">Overview</h2>
+        <table style="width: 100%; border-collapse: collapse;">
+          <tr>
+            <td style="padding: 8px; text-align: center; width: 25%;"><div style="font-size: 24px; font-weight: 700; color: #166534;">${data.totalSearches}</div><div style="font-size: 12px; color: #6b7280;">Total Searches</div></td>
+            <td style="padding: 8px; text-align: center; width: 25%;"><div style="font-size: 24px; font-weight: 700; color: #166534;">${data.uniqueQueries}</div><div style="font-size: 12px; color: #6b7280;">Unique Queries</div></td>
+            <td style="padding: 8px; text-align: center; width: 25%;"><div style="font-size: 24px; font-weight: 700; color: #166534;">${data.uniqueUsers}</div><div style="font-size: 12px; color: #6b7280;">Logged-in Users</div></td>
+            <td style="padding: 8px; text-align: center; width: 25%;"><div style="font-size: 24px; font-weight: 700; color: #166534;">${data.anonymousSearches}</div><div style="font-size: 12px; color: #6b7280;">Anonymous</div></td>
+          </tr>
+        </table>
+        <table style="width: 100%; border-collapse: collapse; margin-top: 12px;">
+          <tr>
+            <td style="padding: 8px; text-align: center; width: 33%;"><div style="font-size: 18px; font-weight: 600; color: ${data.zeroResultRate > 20 ? '#dc2626' : '#166534'};">${data.zeroResultRate}%</div><div style="font-size: 12px; color: #6b7280;">Zero-Result Rate</div></td>
+            <td style="padding: 8px; text-align: center; width: 33%;"><div style="font-size: 18px; font-weight: 600; color: #166534;">${data.avgResultCount}</div><div style="font-size: 12px; color: #6b7280;">Avg Results</div></td>
+            <td style="padding: 8px; text-align: center; width: 33%;"><div style="font-size: 18px; font-weight: 600; color: ${data.avgResponseTime > 500 ? '#dc2626' : '#166534'};">${data.avgResponseTime}ms</div><div style="font-size: 12px; color: #6b7280;">Avg Response</div></td>
+          </tr>
+        </table>
+      </div>
+
+      <div style="margin-bottom: 16px; padding: 12px; background: #f9fafb; border-radius: 8px;">
+        <strong>Search Engines:</strong> ${engineHtml || '<span style="color: #9ca3af;">N/A</span>'}
+      </div>
+
+      <div style="background: white; border: 1px solid #e5e7eb; border-radius: 8px; padding: 16px; margin-bottom: 16px;">
+        <h3 style="margin: 0 0 12px 0; color: #374151;">Top Searches</h3>
+        <table style="width: 100%; border-collapse: collapse;">
+          <tr style="background: #f9fafb;"><th style="padding: 8px; text-align: left; font-size: 12px; color: #6b7280;">#</th><th style="padding: 8px; text-align: left; font-size: 12px; color: #6b7280;">Query</th><th style="padding: 8px; text-align: center; font-size: 12px; color: #6b7280;">Count</th></tr>
+          ${topQueriesHtml}
+        </table>
+      </div>
+
+      <div style="background: white; border: 1px solid #fecaca; border-radius: 8px; padding: 16px; margin-bottom: 16px;">
+        <h3 style="margin: 0 0 12px 0; color: #dc2626;">Zero-Result Searches</h3>
+        <table style="width: 100%; border-collapse: collapse;">
+          <tr style="background: #fef2f2;"><th style="padding: 8px; text-align: left; font-size: 12px; color: #6b7280;">Query</th><th style="padding: 8px; text-align: center; font-size: 12px; color: #6b7280;">Count</th></tr>
+          ${zeroResultsHtml}
+        </table>
+      </div>
+
+      <div style="text-align: center; margin: 20px 0;">
+        <a href="${appUrl}/admin/search-analytics" style="display: inline-block; background: #10b981; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600;">Open Full Dashboard</a>
+      </div>
+      <div style="background: #f9fafb; padding: 16px; text-align: center; border-top: 1px solid #e5e7eb;">
+        <p style="color: #9ca3af; font-size: 12px; margin: 0;">Daily search summary from JustBeCause Network. Sent to all team members.</p>
+      </div>
+    </body>
+    </html>
+  `
+}
+
+// ============================================
+// DAILY WEB ACTIVITY SUMMARY EMAIL (for team)
+// ============================================
+export function getDailyActivitySummaryEmailHtml(data: {
+  date: string
+  newSignups: number
+  ngoSignups: number
+  newProjects: number
+  applications: number
+  matches: number
+  totalSearches: number
+  revenue: number
+  emailsSent: number
+  topEvents: { action: string; count: number }[]
+}): string {
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://justbecausenetwork.com"
+  const eventsHtml = data.topEvents.length > 0
+    ? data.topEvents.map(e => `<tr><td style="padding: 6px 8px; border-bottom: 1px solid #f3f4f6;">${e.action}</td><td style="padding: 6px 8px; border-bottom: 1px solid #f3f4f6; text-align: center;">${e.count}</td></tr>`).join("")
+    : `<tr><td colspan="2" style="padding: 12px; text-align: center; color: #9ca3af;">No events recorded</td></tr>`
+
+  return `
+    <!DOCTYPE html>
+    <html>
+    <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
+    <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; max-width: 650px; margin: 0 auto; padding: 20px;">
+      <div style="text-align: center; margin-bottom: 24px;">
+        <h1 style="color: #10b981; margin: 0;">JustBeCause Network</h1>
+        <p style="color: #666; margin-top: 5px;">Daily Activity Report &mdash; ${data.date}</p>
+      </div>
+
+      <div style="background: linear-gradient(135deg, #f0fdf4, #ecfeff); border: 1px solid #bbf7d0; border-radius: 12px; padding: 24px; margin-bottom: 16px;">
+        <h2 style="margin: 0 0 16px 0; color: #166534; font-size: 18px;">Today's Highlights</h2>
+        <table style="width: 100%; border-collapse: collapse;">
+          <tr>
+            <td style="padding: 10px; text-align: center; width: 25%;"><div style="font-size: 28px; font-weight: 700; color: #2563eb;">${data.newSignups}</div><div style="font-size: 11px; color: #6b7280; text-transform: uppercase;">New Users</div></td>
+            <td style="padding: 10px; text-align: center; width: 25%;"><div style="font-size: 28px; font-weight: 700; color: #7c3aed;">${data.ngoSignups}</div><div style="font-size: 11px; color: #6b7280; text-transform: uppercase;">New NGOs</div></td>
+            <td style="padding: 10px; text-align: center; width: 25%;"><div style="font-size: 28px; font-weight: 700; color: #059669;">${data.newProjects}</div><div style="font-size: 11px; color: #6b7280; text-transform: uppercase;">Projects</div></td>
+            <td style="padding: 10px; text-align: center; width: 25%;"><div style="font-size: 28px; font-weight: 700; color: #ea580c;">${data.applications}</div><div style="font-size: 11px; color: #6b7280; text-transform: uppercase;">Applications</div></td>
+          </tr>
+        </table>
+        <hr style="border: none; border-top: 1px solid #d1fae5; margin: 16px 0;">
+        <table style="width: 100%; border-collapse: collapse;">
+          <tr>
+            <td style="padding: 10px; text-align: center; width: 25%;"><div style="font-size: 22px; font-weight: 600; color: #166534;">${data.matches}</div><div style="font-size: 11px; color: #6b7280;">Matches</div></td>
+            <td style="padding: 10px; text-align: center; width: 25%;"><div style="font-size: 22px; font-weight: 600; color: #166534;">${data.totalSearches}</div><div style="font-size: 11px; color: #6b7280;">Searches</div></td>
+            <td style="padding: 10px; text-align: center; width: 25%;"><div style="font-size: 22px; font-weight: 600; color: #166534;">$${data.revenue}</div><div style="font-size: 11px; color: #6b7280;">Revenue</div></td>
+            <td style="padding: 10px; text-align: center; width: 25%;"><div style="font-size: 22px; font-weight: 600; color: #166534;">${data.emailsSent}</div><div style="font-size: 11px; color: #6b7280;">Emails Sent</div></td>
+          </tr>
+        </table>
+      </div>
+
+      <div style="background: white; border: 1px solid #e5e7eb; border-radius: 8px; padding: 16px; margin-bottom: 16px;">
+        <h3 style="margin: 0 0 12px 0; color: #374151;">Top Events</h3>
+        <table style="width: 100%; border-collapse: collapse;">
+          <tr style="background: #f9fafb;"><th style="padding: 8px; text-align: left; font-size: 12px; color: #6b7280;">Event</th><th style="padding: 8px; text-align: center; font-size: 12px; color: #6b7280;">Count</th></tr>
+          ${eventsHtml}
+        </table>
+      </div>
+
+      <div style="text-align: center; margin: 20px 0;">
+        <a href="${appUrl}/admin" style="display: inline-block; background: #10b981; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600;">Open Admin Dashboard</a>
+      </div>
+      <div style="background: #f9fafb; padding: 16px; text-align: center; border-top: 1px solid #e5e7eb;">
+        <p style="color: #9ca3af; font-size: 12px; margin: 0;">Daily activity report from JustBeCause Network. Sent to all team members.</p>
+      </div>
+    </body>
+    </html>
+  `
+}
+
+// ============================================
+// WEEKLY TEAM DIGEST EMAIL
+// ============================================
+export function getWeeklyTeamDigestEmailHtml(data: {
+  weekRange: string
+  newSignups: number
+  ngoSignups: number
+  newProjects: number
+  applications: number
+  matches: number
+  revenue: number
+  totalSearches: number
+  uniqueQueries: number
+  zeroResultRate: number
+  topQueries: { query: string; count: number }[]
+  zeroResultQueries: { query: string; count: number }[]
+  contentGaps: { query: string; searches: number; avgResults: number }[]
+  searchTrend: { date: string; searches: number }[]
+}): string {
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://justbecausenetwork.com"
+  const topQueriesHtml = data.topQueries.slice(0, 10).map((q, i) =>
+    `<tr><td style="padding: 6px 8px; border-bottom: 1px solid #f3f4f6;">${i + 1}. ${q.query}</td><td style="padding: 6px 8px; border-bottom: 1px solid #f3f4f6; text-align: center;">${q.count}</td></tr>`
+  ).join("")
+  const zeroHtml = data.zeroResultQueries.slice(0, 10).map(q =>
+    `<tr><td style="padding: 6px 8px; border-bottom: 1px solid #f3f4f6;">${q.query}</td><td style="padding: 6px 8px; border-bottom: 1px solid #f3f4f6; text-align: center;">${q.count}</td></tr>`
+  ).join("")
+  const gapsHtml = data.contentGaps.slice(0, 10).map(g =>
+    `<tr><td style="padding: 6px 8px; border-bottom: 1px solid #f3f4f6;">${g.query}</td><td style="padding: 6px 8px; border-bottom: 1px solid #f3f4f6; text-align: center;">${g.searches}</td><td style="padding: 6px 8px; border-bottom: 1px solid #f3f4f6; text-align: center;">${g.avgResults}</td></tr>`
+  ).join("")
+  const maxSearches = Math.max(...data.searchTrend.map(d => d.searches), 1)
+  const trendHtml = data.searchTrend.map(d => {
+    const pct = Math.round((d.searches / maxSearches) * 100)
+    return `<div style="display: flex; align-items: center; margin: 2px 0;"><span style="width: 80px; font-size: 11px; color: #6b7280;">${d.date.slice(5)}</span><div style="background: #10b981; height: 16px; width: ${pct}%; border-radius: 3px; min-width: 2px;"></div><span style="font-size: 11px; color: #374151; margin-left: 6px;">${d.searches}</span></div>`
+  }).join("")
+
+  return `
+    <!DOCTYPE html>
+    <html>
+    <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
+    <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; max-width: 650px; margin: 0 auto; padding: 20px;">
+      <div style="text-align: center; margin-bottom: 24px;">
+        <h1 style="color: #10b981; margin: 0;">JustBeCause Network</h1>
+        <p style="color: #666; margin-top: 5px;">Weekly Team Digest &mdash; ${data.weekRange}</p>
+      </div>
+
+      <div style="background: linear-gradient(135deg, #eff6ff, #f0fdf4); border: 1px solid #bfdbfe; border-radius: 12px; padding: 24px; margin-bottom: 16px;">
+        <h2 style="margin: 0 0 16px 0; color: #1e40af; font-size: 18px;">Platform Activity</h2>
+        <table style="width: 100%; border-collapse: collapse;">
+          <tr>
+            <td style="padding: 10px; text-align: center;"><div style="font-size: 28px; font-weight: 700; color: #2563eb;">${data.newSignups}</div><div style="font-size: 11px; color: #6b7280;">New Users</div></td>
+            <td style="padding: 10px; text-align: center;"><div style="font-size: 28px; font-weight: 700; color: #7c3aed;">${data.ngoSignups}</div><div style="font-size: 11px; color: #6b7280;">New NGOs</div></td>
+            <td style="padding: 10px; text-align: center;"><div style="font-size: 28px; font-weight: 700; color: #059669;">${data.newProjects}</div><div style="font-size: 11px; color: #6b7280;">Projects</div></td>
+          </tr>
+          <tr>
+            <td style="padding: 10px; text-align: center;"><div style="font-size: 22px; font-weight: 600; color: #ea580c;">${data.applications}</div><div style="font-size: 11px; color: #6b7280;">Applications</div></td>
+            <td style="padding: 10px; text-align: center;"><div style="font-size: 22px; font-weight: 600; color: #166534;">${data.matches}</div><div style="font-size: 11px; color: #6b7280;">Matches</div></td>
+            <td style="padding: 10px; text-align: center;"><div style="font-size: 22px; font-weight: 600; color: #166534;">$${data.revenue}</div><div style="font-size: 11px; color: #6b7280;">Revenue</div></td>
+          </tr>
+        </table>
+      </div>
+
+      <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 20px; margin-bottom: 16px;">
+        <h2 style="margin: 0 0 12px 0; color: #166534; font-size: 18px;">Search Overview</h2>
+        <table style="width: 100%; border-collapse: collapse;">
+          <tr>
+            <td style="padding: 8px; text-align: center;"><div style="font-size: 24px; font-weight: 700; color: #166534;">${data.totalSearches}</div><div style="font-size: 12px; color: #6b7280;">Total Searches</div></td>
+            <td style="padding: 8px; text-align: center;"><div style="font-size: 24px; font-weight: 700; color: #166534;">${data.uniqueQueries}</div><div style="font-size: 12px; color: #6b7280;">Unique Queries</div></td>
+            <td style="padding: 8px; text-align: center;"><div style="font-size: 24px; font-weight: 700; color: ${data.zeroResultRate > 20 ? '#dc2626' : '#166534'};">${data.zeroResultRate}%</div><div style="font-size: 12px; color: #6b7280;">Zero-Result Rate</div></td>
+          </tr>
+        </table>
+      </div>
+
+      ${data.searchTrend.length > 0 ? `
+      <div style="background: white; border: 1px solid #e5e7eb; border-radius: 8px; padding: 16px; margin-bottom: 16px;">
+        <h3 style="margin: 0 0 12px 0; color: #374151;">Daily Search Volume</h3>
+        ${trendHtml}
+      </div>` : ''}
+
+      ${data.topQueries.length > 0 ? `
+      <div style="background: white; border: 1px solid #e5e7eb; border-radius: 8px; padding: 16px; margin-bottom: 16px;">
+        <h3 style="margin: 0 0 12px 0; color: #374151;">Top Searches This Week</h3>
+        <table style="width: 100%; border-collapse: collapse;">
+          <tr style="background: #f9fafb;"><th style="padding: 8px; text-align: left; font-size: 12px; color: #6b7280;">Query</th><th style="padding: 8px; text-align: center; font-size: 12px; color: #6b7280;">Count</th></tr>
+          ${topQueriesHtml}
+        </table>
+      </div>` : ''}
+
+      ${data.zeroResultQueries.length > 0 ? `
+      <div style="background: white; border: 1px solid #fecaca; border-radius: 8px; padding: 16px; margin-bottom: 16px;">
+        <h3 style="margin: 0 0 12px 0; color: #dc2626;">Zero-Result Searches</h3>
+        <table style="width: 100%; border-collapse: collapse;">
+          <tr style="background: #fef2f2;"><th style="padding: 8px; text-align: left; font-size: 12px; color: #6b7280;">Query</th><th style="padding: 8px; text-align: center; font-size: 12px; color: #6b7280;">Count</th></tr>
+          ${zeroHtml}
+        </table>
+      </div>` : ''}
+
+      ${data.contentGaps.length > 0 ? `
+      <div style="background: white; border: 1px solid #fde68a; border-radius: 8px; padding: 16px; margin-bottom: 16px;">
+        <h3 style="margin: 0 0 12px 0; color: #d97706;">Content Gaps (Low Results)</h3>
+        <table style="width: 100%; border-collapse: collapse;">
+          <tr style="background: #fffbeb;"><th style="padding: 8px; text-align: left; font-size: 12px; color: #6b7280;">Query</th><th style="padding: 8px; text-align: center; font-size: 12px; color: #6b7280;">Searches</th><th style="padding: 8px; text-align: center; font-size: 12px; color: #6b7280;">Avg Results</th></tr>
+          ${gapsHtml}
+        </table>
+      </div>` : ''}
+
+      <div style="text-align: center; margin: 20px 0;">
+        <a href="${appUrl}/admin/search-analytics" style="display: inline-block; background: #10b981; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600; margin-right: 8px;">Search Analytics</a>
+        <a href="${appUrl}/admin" style="display: inline-block; background: #2563eb; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600;">Admin Dashboard</a>
+      </div>
+      <div style="background: #f9fafb; padding: 16px; text-align: center; border-top: 1px solid #e5e7eb;">
+        <p style="color: #9ca3af; font-size: 12px; margin: 0;">Weekly team digest from JustBeCause Network. Sent every Monday to all team members.</p>
+      </div>
+    </body>
+    </html>
+  `
+}
+
+// ============================================
 // MILESTONE CELEBRATION EMAIL
 // ============================================
 export function getMilestoneCelebrationEmailHtml(
