@@ -13,23 +13,23 @@ export default async function VolunteerOpportunitiesPage({ params }: { params: P
   })
 
   if (!session?.user) {
-    redirect("/auth/signin")
+    redirect(`/${lang}/auth/signin`)
   }
 
   // Role verification: Ensure user is a volunteer
   if (session.user.role !== "volunteer") {
     if (session.user.role === "ngo") {
-      redirect("/ngo/dashboard")
+      redirect(`/${lang}/ngo/dashboard`)
     } else if (session.user.role === "admin") {
-      redirect("/admin")
+      redirect(`/${lang}/admin`)
     } else {
-      redirect("/auth/role-select")
+      redirect(`/${lang}/auth/role-select`)
     }
   }
 
   // Redirect to onboarding if not completed
   if (!session.user.isOnboarded) {
-    redirect("/volunteer/onboarding")
+    redirect(`/${lang}/volunteer/onboarding`)
   }
 
   return (

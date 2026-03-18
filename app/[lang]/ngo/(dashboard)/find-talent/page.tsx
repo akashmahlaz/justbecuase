@@ -18,21 +18,21 @@ export default async function NGOFindTalentPage({ params }: { params: Promise<{ 
   })
 
   if (!session?.user) {
-    redirect("/auth/signin")
+    redirect(`/${lang}/auth/signin`)
   }
 
   if (session.user.role !== "ngo") {
     if (session.user.role === "volunteer") {
-      redirect("/volunteer/dashboard")
+      redirect(`/${lang}/volunteer/dashboard`)
     } else if (session.user.role === "admin") {
-      redirect("/admin")
+      redirect(`/${lang}/admin`)
     } else {
-      redirect("/auth/role-select")
+      redirect(`/${lang}/auth/role-select`)
     }
   }
 
   if (!session.user.isOnboarded) {
-    redirect("/ngo/onboarding")
+    redirect(`/${lang}/ngo/onboarding`)
   }
 
   const ngoProfile = await getNGOProfile()
