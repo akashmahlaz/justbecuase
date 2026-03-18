@@ -37,6 +37,7 @@ import { authClient } from "@/lib/auth-client"
 import { uploadDocumentToCloudinary, validateDocumentFile } from "@/lib/upload"
 import { toast } from "sonner"
 import { OnboardingPageSkeleton } from "@/components/ui/page-skeletons"
+import { OnboardingBioHelper } from "@/components/ai/onboarding-bio-helper"
 
 type RequiredSkill = {
   categoryId: string
@@ -709,6 +710,17 @@ export default function NGOOnboardingPage() {
             onChange={(e) => setOrgDetails({ ...orgDetails, description: e.target.value })}
             rows={4}
             required
+          />
+          <OnboardingBioHelper
+            name={session?.user?.name || ""}
+            location={`${orgDetails.city}, ${orgDetails.country}`}
+            currentBio={orgDetails.description}
+            role="ngo"
+            extraContext={{
+              orgName: orgDetails.orgName,
+              mission: orgDetails.mission,
+            }}
+            onApply={(bio) => setOrgDetails({ ...orgDetails, description: bio })}
           />
         </div>
 

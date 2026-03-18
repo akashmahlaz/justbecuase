@@ -326,7 +326,7 @@ export default function PostProjectPage() {
                   <AIProjectDescriptionHelper
                     basicTitle={formData.title}
                     basicDescription={formData.description}
-                    orgName={ngoProfile?.organizationName || ""}
+                    orgName={ngoProfile?.orgName || ngoProfile?.organizationName || ""}
                     orgMission={ngoProfile?.mission}
                     causes={ngoProfile?.causes || []}
                     onApply={(data) => {
@@ -334,6 +334,7 @@ export default function PostProjectPage() {
                         ...prev,
                         title: data.title || prev.title,
                         description: data.description || prev.description,
+                        deliverables: data.deliverables?.join("\n") || prev.deliverables,
                         duration: data.suggestedDuration || prev.duration,
                         timeCommitment: data.suggestedTimeCommitment || prev.timeCommitment,
                       }))
