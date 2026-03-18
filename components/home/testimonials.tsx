@@ -76,8 +76,11 @@ export function Testimonials() {
                 <div className="relative">
                   <img
                     src={testimonial.avatar || "/placeholder.svg"}
-                    alt={testimonial.author}
+                    alt={`${testimonial.author} - ${testimonial.role}`}
                     className="w-12 h-12 rounded-2xl object-cover ring-4 ring-muted"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src = "/placeholder.svg"
+                    }}
                   />
                   <div className="absolute -bottom-1 -right-1 h-4 w-4 bg-white rounded-full flex items-center justify-center shadow-sm">
                     <div className="h-2 w-2 bg-emerald-500 rounded-full animate-pulse" />

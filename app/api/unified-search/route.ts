@@ -11,6 +11,8 @@ import { sendEmail, getZeroResultAlertEmailHtml, getIrrelevantResultAlertEmailHt
 import { adminSettingsDb } from "@/lib/database"
 import crypto from "crypto"
 
+const DEBUG_SEARCH = process.env.DEBUG_SEARCH === "true"
+
 // ============================================
 // FUTURE-PROOF SEARCH INTELLIGENCE
 // Auto-builds role → skill mappings from platform data so any new
@@ -1004,15 +1006,15 @@ export async function GET(request: NextRequest) {
     const { cleanedQuery, inferredFilters } = parseNaturalLanguageFilters(rawQuery)
     const query = cleanedQuery || rawQuery.trim()
 
-    console.log(`\n🔍 [Search API] ========== ${mode.toUpperCase()} REQUEST ==========`)
-    console.log(`🔍 [Search API] Query: "${rawQuery}"`)
-    console.log(`🔍 [Search API] Mode: ${mode} | Engine: ${engine} | Types: ${typesParam || "all"} | Limit: ${limitParam || "default"} | Sort: ${sort}`)
-    console.log(`🔍 [Search API] ALGOLIA_ENABLED: ${ALGOLIA_ENABLED} | ES_ENABLED: ${ELASTICSEARCH_ENABLED} | ES_AVAILABLE: ${ELASTICSEARCH_ENABLED ? isESAvailable() : "N/A"}`)
+    if (DEBUG_SEARCH) console.log(`\n🔍 [Search API] ========== ${mode.toUpperCase()} REQUEST ==========`)
+    if (DEBUG_SEARCH) console.log(`🔍 [Search API] Query: "${rawQuery}"`)
+    if (DEBUG_SEARCH) console.log(`🔍 [Search API] Mode: ${mode} | Engine: ${engine} | Types: ${typesParam || "all"} | Limit: ${limitParam || "default"} | Sort: ${sort}`)
+    if (DEBUG_SEARCH) console.log(`🔍 [Search API] ALGOLIA_ENABLED: ${ALGOLIA_ENABLED} | ES_ENABLED: ${ELASTICSEARCH_ENABLED} | ES_AVAILABLE: ${ELASTICSEARCH_ENABLED ? isESAvailable() : "N/A"}`)
     if (cleanedQuery !== rawQuery.trim()) {
-      console.log(`🔍 [Search API] Cleaned query: "${query}"`)
+      if (DEBUG_SEARCH) console.log(`🔍 [Search API] Cleaned query: "${query}"`)
     }
     if (Object.keys(inferredFilters).length > 0) {
-      console.log(`🔍 [Search API] Inferred filters:`, JSON.stringify(inferredFilters))
+      if (DEBUG_SEARCH) console.log(`🔍 [Search API] Inferred filters:`, JSON.stringify(inferredFilters))
     }
 
     if (!query && Object.keys(inferredFilters).length === 0) {
@@ -1045,14 +1047,14 @@ export async function GET(request: NextRequest) {
       ...(explicitFilters || {}),
     }
     const hasFilters = Object.keys(allFilters).length > 0
-    if (hasFilters) console.log(`🔍 [Search API] All filters:`, JSON.stringify(allFilters))
-    if (explicitFilters) console.log(`🔍 [Search API] Explicit (hard) filters:`, JSON.stringify(explicitFilters))
+    if (hasFilters) if (DEBUG_SEARCH) console.log(`🔍 [Search API] All filters:`, JSON.stringify(allFilters))
+    if (explicitFilters) if (DEBUG_SEARCH) console.log(`🔍 [Search API] Explicit (hard) filters:`, JSON.stringify(explicitFilters))
 
     // ---- ALGOLIA ENGINE (PRIMARY) ----
     if (engine === "algolia" && ALGOLIA_ENABLED) {
       try {
         const algoliaClient = getAlgoliaSearchClient()
-        console.log(`🟢 [Search API] Using ALGOLIA engine`)
+        if (DEBUG_SEARCH) console.log(`🟢 [Search API] Using ALGOLIA engine`)
 
         // Always search ALL requested indexes — NLP-inferred filters are
         // applied as post-filters, so restricting indexes up-front can
@@ -1063,7 +1065,7 @@ export async function GET(request: NextRequest) {
         if (!rawTypes || rawTypes.includes("ngo")) indexNames.push(ALGOLIA_INDEXES.NGOS)
         if (!rawTypes || rawTypes.includes("opportunity")) indexNames.push(ALGOLIA_INDEXES.OPPORTUNITIES)
         if (!rawTypes || rawTypes.includes("volunteer")) indexNames.push(ALGOLIA_INDEXES.VOLUNTEERS)
-        console.log(`🟢 [Search API] Searching indexes: [${indexNames.join(", ")}]`)
+        if (DEBUG_SEARCH) console.log(`🟢 [Search API] Searching indexes: [${indexNames.join(", ")}]`)
 
         // ---- ROLE → SKILL expansion for Algolia ----
         // If the query matches a known role ("content creator", "web developer"),
@@ -1071,7 +1073,7 @@ export async function GET(request: NextRequest) {
         // that have those skills — even if the text doesn't literally say "content creator".
         const roleSkills = expandRoleToSkills(query)
         if (roleSkills.length > 0) {
-          console.log(`🟢 [Search API] Role expansion: "${query}" → [${roleSkills.slice(0, 5).join(", ")}${roleSkills.length > 5 ? "..." : ""}]`)
+          if (DEBUG_SEARCH) console.log(`🟢 [Search API] Role expansion: "${query}" → [${roleSkills.slice(0, 5).join(", ")}${roleSkills.length > 5 ? "..." : ""}]`)
         }
 
         if (mode === "suggestions") {
@@ -1086,17 +1088,17 @@ export async function GET(request: NextRequest) {
             highlightPostTag: "</mark>",
           }))
 
-          console.log(`🟢 [Search API] SUGGESTIONS mode — sending ${requests.length} multi-index requests`)
+          if (DEBUG_SEARCH) console.log(`🟢 [Search API] SUGGESTIONS mode — sending ${requests.length} multi-index requests`)
           const algoliaT0 = Date.now()
           const { results } = await algoliaClient.search({ requests })
           const algoliaMs = Date.now() - algoliaT0
-          console.log(`🟢 [Search API] Algolia responded in ${algoliaMs}ms — ${results.length} index results`)
+          if (DEBUG_SEARCH) console.log(`🟢 [Search API] Algolia responded in ${algoliaMs}ms — ${results.length} index results`)
           const suggestions: any[] = []
 
           for (const indexResult of results) {
             if (!("hits" in indexResult)) continue
             const ir = indexResult as any
-            console.log(`🟢 [Search API] Index "${ir.index}": ${ir.nbHits} total hits, ${ir.hits.length} returned, processingTimeMS=${ir.processingTimeMS}ms`)
+            if (DEBUG_SEARCH) console.log(`🟢 [Search API] Index "${ir.index}": ${ir.nbHits} total hits, ${ir.hits.length} returned, processingTimeMS=${ir.processingTimeMS}ms`)
             for (const hit of indexResult.hits as any[]) {
               const type = hit.type || (ir.index?.includes("volunteer") ? "volunteer" : ir.index?.includes("ngo") ? "ngo" : "opportunity")
               let text = hit.name || hit.orgName || hit.title || ""
@@ -1110,7 +1112,7 @@ export async function GET(request: NextRequest) {
               } else {
                 subtitle = hit.headline || hit.skillNames?.slice(0, 3).join(", ") || ""
               }
-              console.log(`   📌 [${type}] "${text}" — ${subtitle || "(no subtitle)"} [id: ${hit.objectID}]`)
+              if (DEBUG_SEARCH) console.log(`   📌 [${type}] "${text}" — ${subtitle || "(no subtitle)"} [id: ${hit.objectID}]`)
               suggestions.push({
                 text,
                 type: type === "project" ? "opportunity" : type,
@@ -1121,8 +1123,8 @@ export async function GET(request: NextRequest) {
           }
 
           const took = Date.now() - startTime
-          console.log(`🟢 [Search API] ✅ SUGGESTIONS DONE — ${suggestions.length} total suggestions in ${took}ms (Algolia: ${algoliaMs}ms)`)
-          console.log(`🔍 [Search API] ==========================================\n`)
+          if (DEBUG_SEARCH) console.log(`🟢 [Search API] ✅ SUGGESTIONS DONE — ${suggestions.length} total suggestions in ${took}ms (Algolia: ${algoliaMs}ms)`)
+          if (DEBUG_SEARCH) console.log(`🔍 [Search API] ==========================================\n`)
           trackEvent("search", "suggest", { metadata: { query, engine: "algolia", count: suggestions.length } })
           // Track suggestion analytics (fire-and-forget)
           searchAnalyticsDb.track({
@@ -1143,7 +1145,7 @@ export async function GET(request: NextRequest) {
         }
 
         // Full search — multi-index with per-index filter building
-        console.log(`🟢 [Search API] FULL SEARCH mode`)
+        if (DEBUG_SEARCH) console.log(`🟢 [Search API] FULL SEARCH mode`)
 
         // Only EXPLICIT filters go to Algolia as hard facet filters.
         // NLP-inferred filters are applied as post-filters with soft fallback.
@@ -1166,9 +1168,9 @@ export async function GET(request: NextRequest) {
           if (explicitFilters.experienceLevel) opportunityFacets.push(`experienceLevel:${explicitFilters.experienceLevel}`)
         }
 
-        console.log(`🟢 [Search API] Common facets: [${commonFacets.join(", ")}]`)
-        if (volunteerFacets.length) console.log(`🟢 [Search API] Volunteer facets: [${volunteerFacets.join(", ")}]`)
-        if (opportunityFacets.length) console.log(`🟢 [Search API] Opportunity facets: [${opportunityFacets.join(", ")}]`)
+        if (DEBUG_SEARCH) console.log(`🟢 [Search API] Common facets: [${commonFacets.join(", ")}]`)
+        if (volunteerFacets.length) if (DEBUG_SEARCH) console.log(`🟢 [Search API] Volunteer facets: [${volunteerFacets.join(", ")}]`)
+        if (opportunityFacets.length) if (DEBUG_SEARCH) console.log(`🟢 [Search API] Opportunity facets: [${opportunityFacets.join(", ")}]`)
 
         // Build per-index requests with only the filters that index supports
         // + optionalFilters from role→skill expansion for relevance boost
@@ -1191,17 +1193,17 @@ export async function GET(request: NextRequest) {
           }
         })
 
-        console.log(`🟢 [Search API] Sending ${requests.length} multi-index full search requests`)
+        if (DEBUG_SEARCH) console.log(`🟢 [Search API] Sending ${requests.length} multi-index full search requests`)
         const algoliaT0 = Date.now()
         const { results } = await algoliaClient.search({ requests })
         const algoliaMs = Date.now() - algoliaT0
-        console.log(`🟢 [Search API] Algolia responded in ${algoliaMs}ms — ${results.length} index results`)
+        if (DEBUG_SEARCH) console.log(`🟢 [Search API] Algolia responded in ${algoliaMs}ms — ${results.length} index results`)
         const mappedResults: any[] = []
 
         for (const indexResult of results) {
           if (!("hits" in indexResult)) continue
           const ir = indexResult as any
-          console.log(`🟢 [Search API] Index "${ir.index}": ${ir.nbHits} total hits, ${ir.hits.length} returned, processingTimeMS=${ir.processingTimeMS}ms`)
+          if (DEBUG_SEARCH) console.log(`🟢 [Search API] Index "${ir.index}": ${ir.nbHits} total hits, ${ir.hits.length} returned, processingTimeMS=${ir.processingTimeMS}ms`)
           for (const hit of indexResult.hits as any[]) {
             const type = hit.type || (indexResult.index?.includes("volunteer") ? "volunteer" : indexResult.index?.includes("ngo") ? "ngo" : "opportunity")
             const mappedType = type === "project" ? "opportunity" : type
@@ -1361,7 +1363,7 @@ export async function GET(request: NextRequest) {
         // "blogger" where Algolia's text index has no literal match but
         // volunteers/NGOs with the related skills exist.
         if (finalResults.length < 3 && roleSkills.length > 0) {
-          console.log(`🟡 [Search API] Only ${finalResults.length} results — running role-expansion fallback with skills: [${roleSkills.slice(0, 6).join(", ")}...]`)
+          if (DEBUG_SEARCH) console.log(`🟡 [Search API] Only ${finalResults.length} results — running role-expansion fallback with skills: [${roleSkills.slice(0, 6).join(", ")}...]`)
           // Search for each expanded skill name individually across all indexes.
           // Strip parenthetical details and split compound names for cleaner queries:
           // "Video Editing (Premiere Pro / DaVinci)" → "Video Editing"
@@ -1393,12 +1395,12 @@ export async function GET(request: NextRequest) {
               })
             }
           }
-          console.log(`🟡 [Search API] Fallback: ${fallbackRequests.length} requests for skills: [${uniqueSkillQueries.join(", ")}]`)
+          if (DEBUG_SEARCH) console.log(`🟡 [Search API] Fallback: ${fallbackRequests.length} requests for skills: [${uniqueSkillQueries.join(", ")}]`)
           try {
             const fbT0 = Date.now()
             const { results: fbResults } = await algoliaClient.search({ requests: fallbackRequests })
             const fbMs = Date.now() - fbT0
-            console.log(`🟡 [Search API] Fallback search returned in ${fbMs}ms`)
+            if (DEBUG_SEARCH) console.log(`🟡 [Search API] Fallback search returned in ${fbMs}ms`)
             const existingIds = new Set(finalResults.map((r: any) => r.id))
             for (const indexResult of fbResults) {
               if (!("hits" in indexResult)) continue
@@ -1494,19 +1496,19 @@ export async function GET(request: NextRequest) {
                 }
               }
             }
-            console.log(`🟡 [Search API] After fallback: ${finalResults.length} total results`)
+            if (DEBUG_SEARCH) console.log(`🟡 [Search API] After fallback: ${finalResults.length} total results`)
           } catch (fbErr: any) {
             console.warn(`⚠️ [Search API] Role-expansion fallback failed: ${fbErr?.message}`)
           }
         }
 
         const took = Date.now() - startTime
-        console.log(`🟢 [Search API] ✅ FULL SEARCH DONE — ${finalResults.length} results in ${took}ms (Algolia: ${algoliaMs}ms)${filtersRelaxed ? " [post-filters relaxed — no exact budget matches]" : ""}`)
+        if (DEBUG_SEARCH) console.log(`🟢 [Search API] ✅ FULL SEARCH DONE — ${finalResults.length} results in ${took}ms (Algolia: ${algoliaMs}ms)${filtersRelaxed ? " [post-filters relaxed — no exact budget matches]" : ""}`)
         for (const r of finalResults.slice(0, 10)) {
-          console.log(`   📌 [${r.type}] "${r.title}" — skills: [${(r.skills || []).slice(0, 3).join(", ")}] — ${r.location || "no location"} [id: ${r.id}]`)
+          if (DEBUG_SEARCH) console.log(`   📌 [${r.type}] "${r.title}" — skills: [${(r.skills || []).slice(0, 3).join(", ")}] — ${r.location || "no location"} [id: ${r.id}]`)
         }
-        if (finalResults.length > 10) console.log(`   ... and ${finalResults.length - 10} more`)
-        console.log(`🔍 [Search API] ==========================================\n`)
+        if (finalResults.length > 10) if (DEBUG_SEARCH) console.log(`   ... and ${finalResults.length - 10} more`)
+        if (DEBUG_SEARCH) console.log(`🔍 [Search API] ==========================================\n`)
         trackEvent("search", "query", { metadata: { query: rawQuery, normalizedQuery: query, engine: "algolia", count: finalResults.length, took } })
 
         // Track search analytics (fire-and-forget)
@@ -1555,7 +1557,7 @@ export async function GET(request: NextRequest) {
         })
       } catch (algoliaError: any) {
         console.error(`❌ [Search API] Algolia FAILED: ${algoliaError?.message}`, algoliaError)
-        console.log(`🟡 [Search API] Falling through to ES/MongoDB...`)
+        if (DEBUG_SEARCH) console.log(`🟡 [Search API] Falling through to ES/MongoDB...`)
         // Fall through to ES or MongoDB
       }
     }
@@ -1665,7 +1667,7 @@ export async function GET(request: NextRequest) {
       // Skip fallback for pure work-mode queries (remote/onsite/hybrid).
       const isPureWorkModeQuery = /^(remote|onsite|on-site|on site|in-person|in person|office|wfh|work from home|virtual|online|hybrid)$/i.test(query.trim())
       if (finalResults.length === 0 && mode !== "suggestions" && !isPureWorkModeQuery) {
-        console.log(`[Search API] ES returned 0 results for "${query}" — falling back to MongoDB`)
+        if (DEBUG_SEARCH) console.log(`[Search API] ES returned 0 results for "${query}" — falling back to MongoDB`)
         const mongoFallbackTypes = rawTypes as ("volunteer" | "ngo" | "opportunity")[] | undefined
         try {
           const mongoResults = await unifiedSearch({ query, types: mongoFallbackTypes, limit: Math.min(limit, 50) })

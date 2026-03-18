@@ -16,6 +16,7 @@ export function FeaturedCandidates() {
   const home = (dict as any).home || {}
   const [candidates, setCandidates] = useState<VolunteerProfileView[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(false)
   const scrollRef = useRef<HTMLDivElement>(null)
 
   const scroll = (direction: "left" | "right") => {
@@ -35,6 +36,7 @@ export function FeaturedCandidates() {
         })
         setCandidates(sorted)
       })
+      .catch(() => setError(true))
       .finally(() => setLoading(false))
   }, [])
 
@@ -42,6 +44,19 @@ export function FeaturedCandidates() {
     if (!volunteer.skills?.length) return null
     const cat = skillCategories.find((c) => c.id === volunteer.skills[0].categoryId)
     return cat?.name || null
+  }
+
+  if (error) {
+    return (
+      <section className="py-24 bg-background overflow-hidden">
+        <div className="container mx-auto px-4 md:px-6 text-center py-12">
+          <p className="text-muted-foreground mb-4">{home.failedToLoad || "Failed to load featured candidates."}</p>
+          <button onClick={() => { setError(false); setLoading(true); browseVolunteers({ limit: 15 }).then(v => { const sorted = [...v].sort((a, b) => ((b.rating || 0) * 2 + (b.completedProjects || 0) + (b.avatar ? 5 : 0)) - ((a.rating || 0) * 2 + (a.completedProjects || 0) + (a.avatar ? 5 : 0))); setCandidates(sorted) }).catch(() => setError(true)).finally(() => setLoading(false)) }} className="text-sm text-primary hover:underline">
+            {home.retry || "Retry"}
+          </button>
+        </div>
+      </section>
+    )
   }
 
   return (

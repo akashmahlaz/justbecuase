@@ -16,19 +16,19 @@ const Counter = ({ value, prefix = "", suffix = "" }: { value: number; prefix?: 
 
   useEffect(() => {
     if (isInView) {
-      let start = 0;
       const end = value;
-      const timer = setInterval(() => {
-        const step = Math.max(1, Math.ceil(end / 60));
-        start += step;
-        if (start >= end) {
-          setDisplayValue(end);
-          clearInterval(timer);
-        } else {
-          setDisplayValue(start);
+      const duration = 1200; // ms
+      let startTime: number | null = null;
+      const animate = (timestamp: number) => {
+        if (!startTime) startTime = timestamp;
+        const progress = Math.min((timestamp - startTime) / duration, 1);
+        setDisplayValue(Math.round(progress * end));
+        if (progress < 1) {
+          requestAnimationFrame(animate);
         }
-      }, 20);
-      return () => clearInterval(timer);
+      };
+      const raf = requestAnimationFrame(animate);
+      return () => cancelAnimationFrame(raf);
     }
   }, [isInView, value]);
 

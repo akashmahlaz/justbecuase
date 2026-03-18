@@ -18,7 +18,7 @@ export function NewsletterSubscribe() {
     e.preventDefault()
     setError("")
     
-    if (!email || !email.includes("@")) {
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       setError(nl.invalidEmail || "Please enter a valid email")
       return
     }
@@ -67,6 +67,10 @@ export function NewsletterSubscribe() {
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           disabled={isLoading}
+          required
+          maxLength={254}
+          aria-required="true"
+          aria-label={nl.emailPlaceholder || "Enter your email"}
         />
         <Button type="submit" className="bg-primary hover:bg-primary/90" disabled={isLoading}>
           {isLoading ? (

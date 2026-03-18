@@ -20,6 +20,7 @@ import {
   Tag,
   Database,
   Search,
+  MessageSquare,
 } from "lucide-react"
 import {
   Sidebar,
@@ -61,6 +62,7 @@ const navGroups = [
     label: "Communication",
     items: [
       { title: "Notifications", href: "/admin/notifications", icon: Bell },
+      { title: "Contact Inquiries", href: "/admin/contact-inquiries", icon: MessageSquare },
     ],
   },
   {

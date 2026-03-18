@@ -321,7 +321,7 @@ export default function PricingPage() {
                     {p.contactSalesDesc || "Need a custom solution for your large organization?"}
                   </p>
                   <Button variant="outline" asChild>
-                    <a href="/contact">{p.contactSales || "Contact Sales"}</a>
+                    <a href={localePath("/contact?source=pricing", locale)}>{p.contactSales || "Contact Sales"}</a>
                   </Button>
                 </div>
               </TabsContent>
