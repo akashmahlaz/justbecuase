@@ -7,16 +7,22 @@ import { passwordResetDb } from "./database";
 
 // Determine the base URL for auth
 const getAuthBaseURL = () => {
-  // Explicit URL takes priority
+  // On Vercel, never use localhost — use production domain or Vercel URL
+  if (process.env.VERCEL) {
+    if (process.env.BETTER_AUTH_URL && !process.env.BETTER_AUTH_URL.includes("localhost")) {
+      return process.env.BETTER_AUTH_URL;
+    }
+    // Use Vercel's production URL (custom domain if configured)
+    if (process.env.VERCEL_PROJECT_PRODUCTION_URL) {
+      return `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`;
+    }
+    if (process.env.VERCEL_URL) {
+      return `https://${process.env.VERCEL_URL}`;
+    }
+  }
+  // Local / explicit override
   if (process.env.BETTER_AUTH_URL) {
     return process.env.BETTER_AUTH_URL;
-  }
-  // For Vercel deployments, use the project URL or custom domain
-  if (process.env.VERCEL_PROJECT_PRODUCTION_URL) {
-    return `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`;
-  }
-  if (process.env.VERCEL_URL) {
-    return `https://${process.env.VERCEL_URL}`;
   }
   return "http://localhost:3000";
 };
