@@ -75,6 +75,7 @@ export const COLLECTIONS = {
   COUPON_USAGES: "couponUsages",
   SEARCH_ANALYTICS: "searchAnalytics",
   CONTACT_INQUIRIES: "contactInquiries",
+  ONBOARDING_DRAFTS: "onboardingDrafts",
 } as const
 
 // Helper: safely parse JSON with fallback

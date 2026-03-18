@@ -32,6 +32,7 @@ import {
   getDb,
   userIdQuery,
   userIdBatchQuery,
+  COLLECTIONS,
 } from "./database"
 import { getUserInfo, getUsersInfo } from "./user-utils"
 import { trackEvent } from "./analytics"
@@ -222,6 +223,73 @@ export async function completeOnboarding(): Promise<ApiResponse<boolean>> {
   } catch (error) {
     console.error("Error completing onboarding:", error)
     return { success: false, error: "An error occurred" }
+  }
+}
+
+// ============================================
+// ONBOARDING DRAFT PERSISTENCE
+// ============================================
+
+export async function saveOnboardingDraft(
+  role: "volunteer" | "ngo",
+  draftData: Record<string, unknown>
+): Promise<ApiResponse<boolean>> {
+  try {
+    const user = await requireAuth()
+    const db = await getDb()
+    const col = db.collection(COLLECTIONS.ONBOARDING_DRAFTS)
+
+    await col.updateOne(
+      { userId: user.id },
+      {
+        $set: {
+          userId: user.id,
+          role,
+          data: draftData,
+          updatedAt: new Date(),
+        },
+        $setOnInsert: { createdAt: new Date() },
+      },
+      { upsert: true }
+    )
+
+    return { success: true, data: true }
+  } catch (error) {
+    if (isRedirectError(error)) throw error
+    console.error("Error saving onboarding draft:", error)
+    return { success: false, error: "Failed to save draft" }
+  }
+}
+
+export async function getOnboardingDraft(
+  role: "volunteer" | "ngo"
+): Promise<ApiResponse<Record<string, unknown> | null>> {
+  try {
+    const user = await requireAuth()
+    const db = await getDb()
+    const col = db.collection(COLLECTIONS.ONBOARDING_DRAFTS)
+
+    const doc = await col.findOne({ userId: user.id, role })
+    return { success: true, data: doc?.data ?? null }
+  } catch (error) {
+    if (isRedirectError(error)) throw error
+    console.error("Error getting onboarding draft:", error)
+    return { success: false, error: "Failed to load draft" }
+  }
+}
+
+export async function deleteOnboardingDraft(): Promise<ApiResponse<boolean>> {
+  try {
+    const user = await requireAuth()
+    const db = await getDb()
+    const col = db.collection(COLLECTIONS.ONBOARDING_DRAFTS)
+
+    await col.deleteOne({ userId: user.id })
+    return { success: true, data: true }
+  } catch (error) {
+    if (isRedirectError(error)) throw error
+    console.error("Error deleting onboarding draft:", error)
+    return { success: false, error: "Failed to delete draft" }
   }
 }
 
