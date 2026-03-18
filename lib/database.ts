@@ -1804,6 +1804,13 @@ export interface SearchAnalyticsEvent {
   isSuggestion: boolean
   roleExpansionUsed: boolean
   filtersRelaxed: boolean
+  // Enhanced tracking fields
+  ip?: string
+  userAgent?: string
+  deviceType?: string // "desktop" | "mobile" | "tablet" | "bot"
+  anonymousId?: string // hash of IP+UA for anonymous user grouping
+  topResultTitles?: string[] // first 5 result titles for relevance review
+  referer?: string
   timestamp: Date
 }
 
@@ -1979,6 +1986,209 @@ export const searchAnalyticsDb = {
       { $match: { searches: { $gte: 2 } } },
       { $project: { _id: 0, query: "$_id", searches: 1, avgResults: { $round: ["$avgResults", 1] } } },
       { $sort: { searches: -1 } },
+      { $limit: limit },
+    ]).toArray() as any
+  },
+
+  /** Get daily summary for a specific date range (for cron emails) */
+  async getDailySummary(date?: Date): Promise<{
+    totalSearches: number
+    uniqueQueries: number
+    avgResultCount: number
+    zeroResultRate: number
+    avgResponseTime: number
+    topQueries: { query: string; count: number }[]
+    zeroResultQueries: { query: string; count: number }[]
+    searchesByEngine: { engine: string; count: number }[]
+    uniqueUsers: number
+    anonymousSearches: number
+    topUserSearchers: { userId: string; count: number }[]
+  }> {
+    const collection = await getCollection<SearchAnalyticsEvent>(COLLECTIONS.SEARCH_ANALYTICS)
+    const targetDate = date || new Date()
+    const dayStart = new Date(targetDate)
+    dayStart.setHours(0, 0, 0, 0)
+    const dayEnd = new Date(targetDate)
+    dayEnd.setHours(23, 59, 59, 999)
+    const match = { timestamp: { $gte: dayStart, $lte: dayEnd }, isSuggestion: false }
+
+    const [overview, topQ, zeroQ, engines, users] = await Promise.all([
+      collection.aggregate([
+        { $match: match },
+        { $group: {
+          _id: null,
+          totalSearches: { $sum: 1 },
+          uniqueQueries: { $addToSet: "$normalizedQuery" },
+          avgResultCount: { $avg: "$resultCount" },
+          zeroCount: { $sum: { $cond: ["$isZeroResult", 1, 0] } },
+          avgResponseTime: { $avg: "$took" },
+          uniqueUserIds: { $addToSet: "$userId" },
+          anonCount: { $sum: { $cond: [{ $ifNull: ["$userId", true] }, 1, 0] } },
+        }},
+      ]).toArray(),
+      collection.aggregate([
+        { $match: match },
+        { $group: { _id: "$normalizedQuery", count: { $sum: 1 } } },
+        { $sort: { count: -1 } },
+        { $limit: 15 },
+        { $project: { _id: 0, query: "$_id", count: 1 } },
+      ]).toArray() as any,
+      collection.aggregate([
+        { $match: { ...match, isZeroResult: true } },
+        { $group: { _id: "$normalizedQuery", count: { $sum: 1 } } },
+        { $sort: { count: -1 } },
+        { $limit: 10 },
+        { $project: { _id: 0, query: "$_id", count: 1 } },
+      ]).toArray() as any,
+      collection.aggregate([
+        { $match: match },
+        { $group: { _id: "$engine", count: { $sum: 1 } } },
+        { $project: { _id: 0, engine: "$_id", count: 1 } },
+        { $sort: { count: -1 } },
+      ]).toArray() as any,
+      collection.aggregate([
+        { $match: { ...match, userId: { $ne: null, $exists: true } } },
+        { $group: { _id: "$userId", count: { $sum: 1 } } },
+        { $sort: { count: -1 } },
+        { $limit: 10 },
+        { $project: { _id: 0, userId: "$_id", count: 1 } },
+      ]).toArray() as any,
+    ])
+
+    const o = overview[0] || {}
+    const total = o.totalSearches || 0
+    return {
+      totalSearches: total,
+      uniqueQueries: o.uniqueQueries?.length || 0,
+      avgResultCount: Math.round((o.avgResultCount || 0) * 10) / 10,
+      zeroResultRate: total > 0 ? Math.round(((o.zeroCount || 0) / total) * 1000) / 10 : 0,
+      avgResponseTime: Math.round(o.avgResponseTime || 0),
+      topQueries: topQ,
+      zeroResultQueries: zeroQ,
+      searchesByEngine: engines,
+      uniqueUsers: (o.uniqueUserIds || []).filter(Boolean).length,
+      anonymousSearches: o.anonCount || 0,
+      topUserSearchers: users,
+    }
+  },
+
+  /** Get weekly summary for team emails */
+  async getWeeklySummary(weeksAgo = 0): Promise<{
+    totalSearches: number
+    uniqueQueries: number
+    zeroResultRate: number
+    avgResponseTime: number
+    topQueries: { query: string; count: number }[]
+    zeroResultQueries: { query: string; count: number }[]
+    contentGaps: { query: string; searches: number; avgResults: number }[]
+    searchTrend: { date: string; searches: number }[]
+    uniqueUsers: number
+    anonymousSearches: number
+  }> {
+    const collection = await getCollection<SearchAnalyticsEvent>(COLLECTIONS.SEARCH_ANALYTICS)
+    const now = new Date()
+    const weekEnd = new Date(now.getTime() - weeksAgo * 7 * 24 * 60 * 60 * 1000)
+    const weekStart = new Date(weekEnd.getTime() - 7 * 24 * 60 * 60 * 1000)
+    const match = { timestamp: { $gte: weekStart, $lte: weekEnd }, isSuggestion: false }
+
+    const [overview, topQ, zeroQ, gaps, trend] = await Promise.all([
+      collection.aggregate([
+        { $match: match },
+        { $group: {
+          _id: null,
+          totalSearches: { $sum: 1 },
+          uniqueQueries: { $addToSet: "$normalizedQuery" },
+          zeroCount: { $sum: { $cond: ["$isZeroResult", 1, 0] } },
+          avgResponseTime: { $avg: "$took" },
+          uniqueUserIds: { $addToSet: "$userId" },
+          anonCount: { $sum: { $cond: [{ $ifNull: ["$userId", true] }, 1, 0] } },
+        }},
+      ]).toArray(),
+      collection.aggregate([
+        { $match: match },
+        { $group: { _id: "$normalizedQuery", count: { $sum: 1 } } },
+        { $sort: { count: -1 } },
+        { $limit: 20 },
+        { $project: { _id: 0, query: "$_id", count: 1 } },
+      ]).toArray() as any,
+      collection.aggregate([
+        { $match: { ...match, isZeroResult: true } },
+        { $group: { _id: "$normalizedQuery", count: { $sum: 1 } } },
+        { $sort: { count: -1 } },
+        { $limit: 15 },
+        { $project: { _id: 0, query: "$_id", count: 1 } },
+      ]).toArray() as any,
+      collection.aggregate([
+        { $match: { ...match, resultCount: { $lt: 3 } } },
+        { $group: { _id: "$normalizedQuery", searches: { $sum: 1 }, avgResults: { $avg: "$resultCount" } } },
+        { $match: { searches: { $gte: 2 } } },
+        { $sort: { searches: -1 } },
+        { $limit: 15 },
+        { $project: { _id: 0, query: "$_id", searches: 1, avgResults: { $round: ["$avgResults", 1] } } },
+      ]).toArray() as any,
+      collection.aggregate([
+        { $match: match },
+        { $group: {
+          _id: { $dateToString: { format: "%Y-%m-%d", date: "$timestamp" } },
+          searches: { $sum: 1 },
+        }},
+        { $project: { _id: 0, date: "$_id", searches: 1 } },
+        { $sort: { date: 1 } },
+      ]).toArray() as any,
+    ])
+
+    const o = overview[0] || {}
+    const total = o.totalSearches || 0
+    return {
+      totalSearches: total,
+      uniqueQueries: o.uniqueQueries?.length || 0,
+      zeroResultRate: total > 0 ? Math.round(((o.zeroCount || 0) / total) * 1000) / 10 : 0,
+      avgResponseTime: Math.round(o.avgResponseTime || 0),
+      topQueries: topQ,
+      zeroResultQueries: zeroQ,
+      contentGaps: gaps,
+      searchTrend: trend,
+      uniqueUsers: (o.uniqueUserIds || []).filter(Boolean).length,
+      anonymousSearches: o.anonCount || 0,
+    }
+  },
+
+  /** Get live/recent search feed for admin dashboard */
+  async getLiveFeed(limit = 50): Promise<SearchAnalyticsEvent[]> {
+    const collection = await getCollection<SearchAnalyticsEvent>(COLLECTIONS.SEARCH_ANALYTICS)
+    return collection.find({}).sort({ timestamp: -1 }).limit(limit).toArray()
+  },
+
+  /** Get per-user search aggregation for admin dashboard */
+  async getUserSearchStats(days = 7, limit = 50): Promise<{
+    userId: string | null
+    anonymousId: string | null
+    searchCount: number
+    uniqueQueries: number
+    lastSearch: Date
+    zeroResults: number
+  }[]> {
+    const collection = await getCollection<SearchAnalyticsEvent>(COLLECTIONS.SEARCH_ANALYTICS)
+    const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000)
+    return collection.aggregate([
+      { $match: { timestamp: { $gte: since }, isSuggestion: false } },
+      { $group: {
+        _id: { userId: { $ifNull: ["$userId", null] }, anonymousId: { $ifNull: ["$anonymousId", null] } },
+        searchCount: { $sum: 1 },
+        uniqueQueries: { $addToSet: "$normalizedQuery" },
+        lastSearch: { $max: "$timestamp" },
+        zeroResults: { $sum: { $cond: ["$isZeroResult", 1, 0] } },
+      }},
+      { $project: {
+        _id: 0,
+        userId: "$_id.userId",
+        anonymousId: "$_id.anonymousId",
+        searchCount: 1,
+        uniqueQueries: { $size: "$uniqueQueries" },
+        lastSearch: 1,
+        zeroResults: 1,
+      }},
+      { $sort: { searchCount: -1 } },
       { $limit: limit },
     ]).toArray() as any
   },

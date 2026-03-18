@@ -23,6 +23,13 @@ import {
   FileWarning,
   Gauge,
   Server,
+  Users,
+  UserX,
+  Radio,
+  Monitor,
+  Smartphone,
+  Tablet,
+  Bot,
 } from "lucide-react"
 
 type TimeRange = "7" | "14" | "30" | "90"
@@ -87,7 +94,22 @@ interface RecentSearch {
   filtersRelaxed: boolean
   timestamp: string
   userRole?: string
+  userId?: string
+  ip?: string
+  userAgent?: string
+  deviceType?: string
+  anonymousId?: string
+  topResultTitles?: string[]
   inferredFilters?: Record<string, any>
+}
+
+interface UserSearchStat {
+  userId: string | null
+  anonymousId: string | null
+  searchCount: number
+  uniqueQueries: number
+  lastSearch: string
+  zeroResults: number
 }
 
 export default function SearchAnalyticsPage() {
@@ -101,12 +123,15 @@ export default function SearchAnalyticsPage() {
   const [engineBreakdown, setEngineBreakdown] = useState<EngineBreakdown[]>([])
   const [contentGaps, setContentGaps] = useState<ContentGap[]>([])
   const [recentSearches, setRecentSearches] = useState<RecentSearch[]>([])
+  const [liveFeed, setLiveFeed] = useState<RecentSearch[]>([])
+  const [userSearchStats, setUserSearchStats] = useState<UserSearchStat[]>([])
+  const [liveAutoRefresh, setLiveAutoRefresh] = useState(true)
 
   const fetchData = useCallback(async () => {
     setLoading(true)
     try {
       const days = timeRange
-      const [overviewRes, topRes, zeroRes, trendRes, dailyRes, engineRes, gapRes, recentRes] = await Promise.all([
+      const [overviewRes, topRes, zeroRes, trendRes, dailyRes, engineRes, gapRes, recentRes, liveRes, userStatsRes] = await Promise.all([
         fetch(`/api/admin/search-analytics?section=overview&days=${days}`),
         fetch(`/api/admin/search-analytics?section=top-queries&days=${days}&limit=30`),
         fetch(`/api/admin/search-analytics?section=zero-results&days=${days}&limit=30`),
@@ -115,11 +140,14 @@ export default function SearchAnalyticsPage() {
         fetch(`/api/admin/search-analytics?section=engine-breakdown&days=${days}`),
         fetch(`/api/admin/search-analytics?section=content-gaps&days=${days}&limit=20`),
         fetch(`/api/admin/search-analytics?section=recent&limit=50`),
+        fetch(`/api/admin/search-analytics?section=live-feed&limit=30`),
+        fetch(`/api/admin/search-analytics?section=user-search-stats&days=${days}&limit=30`),
       ])
 
-      const [overviewData, topData, zeroData, trendData, dailyData, engineData, gapData, recentData] = await Promise.all([
+      const [overviewData, topData, zeroData, trendData, dailyData, engineData, gapData, recentData, liveData, userStatsData] = await Promise.all([
         overviewRes.json(), topRes.json(), zeroRes.json(), trendRes.json(),
         dailyRes.json(), engineRes.json(), gapRes.json(), recentRes.json(),
+        liveRes.json(), userStatsRes.json(),
       ])
 
       if (overviewData.success) setOverview(overviewData.data)
@@ -130,6 +158,8 @@ export default function SearchAnalyticsPage() {
       if (engineData.success) setEngineBreakdown(engineData.data)
       if (gapData.success) setContentGaps(gapData.data)
       if (recentData.success) setRecentSearches(recentData.data)
+      if (liveData.success) setLiveFeed(liveData.data)
+      if (userStatsData.success) setUserSearchStats(userStatsData.data)
     } catch (err) {
       console.error("Failed to fetch search analytics:", err)
     } finally {
@@ -137,9 +167,31 @@ export default function SearchAnalyticsPage() {
     }
   }, [timeRange])
 
+  // Auto-refresh live feed every 15 seconds
+  useEffect(() => {
+    if (!liveAutoRefresh) return
+    const interval = setInterval(async () => {
+      try {
+        const res = await fetch(`/api/admin/search-analytics?section=live-feed&limit=30`)
+        const data = await res.json()
+        if (data.success) setLiveFeed(data.data)
+      } catch {}
+    }, 15000)
+    return () => clearInterval(interval)
+  }, [liveAutoRefresh])
+
   useEffect(() => { fetchData() }, [fetchData])
 
   const maxDaily = Math.max(...dailyVolume.map(d => d.searches), 1)
+
+  const deviceIcon = (type?: string) => {
+    switch (type) {
+      case "mobile": return <Smartphone className="h-3 w-3" />
+      case "tablet": return <Tablet className="h-3 w-3" />
+      case "bot": return <Bot className="h-3 w-3" />
+      default: return <Monitor className="h-3 w-3" />
+    }
+  }
 
   return (
     <div className="space-y-6">
@@ -453,14 +505,159 @@ export default function SearchAnalyticsPage() {
             </Card>
           </div>
 
-          {/* Recent Searches */}
+          {/* Live Search Feed */}
+          <Card className="border-green-200/50">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="flex items-center gap-2 text-base">
+                    <Radio className="h-4 w-4 text-green-500 animate-pulse" />
+                    Live Search Feed
+                  </CardTitle>
+                  <CardDescription>Real-time search activity (auto-refreshes every 15s)</CardDescription>
+                </div>
+                <Button
+                  variant={liveAutoRefresh ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setLiveAutoRefresh(!liveAutoRefresh)}
+                >
+                  {liveAutoRefresh ? "Pause" : "Resume"}
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {liveFeed.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-8">No searches yet</p>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b text-left">
+                        <th className="pb-2 pr-3 font-medium text-muted-foreground">Query</th>
+                        <th className="pb-2 pr-3 font-medium text-muted-foreground">Results</th>
+                        <th className="pb-2 pr-3 font-medium text-muted-foreground">Engine</th>
+                        <th className="pb-2 pr-3 font-medium text-muted-foreground">User</th>
+                        <th className="pb-2 pr-3 font-medium text-muted-foreground">Device</th>
+                        <th className="pb-2 pr-3 font-medium text-muted-foreground">Speed</th>
+                        <th className="pb-2 pr-3 font-medium text-muted-foreground">Flags</th>
+                        <th className="pb-2 font-medium text-muted-foreground">Time</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {liveFeed.map(s => (
+                        <tr key={s._id} className={`border-b last:border-0 ${s.isZeroResult ? "bg-destructive/5" : ""}`}>
+                          <td className="py-2 pr-3 max-w-[180px] truncate font-medium">&quot;{s.query}&quot;</td>
+                          <td className="py-2 pr-3">
+                            <Badge variant={s.isZeroResult ? "destructive" : "secondary"} className="text-xs">
+                              {s.resultCount}
+                            </Badge>
+                          </td>
+                          <td className="py-2 pr-3">
+                            <Badge variant="outline" className="text-xs">{s.engine}</Badge>
+                          </td>
+                          <td className="py-2 pr-3">
+                            {s.userId ? (
+                              <Badge className="text-[10px] px-1 bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
+                                <Users className="h-3 w-3 mr-1 inline" />{s.userId.slice(0, 8)}
+                              </Badge>
+                            ) : (
+                              <Badge variant="outline" className="text-[10px] px-1">
+                                <UserX className="h-3 w-3 mr-1 inline" />{s.anonymousId?.slice(0, 8) || "anon"}
+                              </Badge>
+                            )}
+                          </td>
+                          <td className="py-2 pr-3 text-muted-foreground">
+                            {deviceIcon(s.deviceType)}
+                          </td>
+                          <td className="py-2 pr-3 text-muted-foreground">{s.took}ms</td>
+                          <td className="py-2 pr-3">
+                            <div className="flex gap-1">
+                              {s.roleExpansionUsed && <Badge className="text-[10px] px-1 bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">AI</Badge>}
+                              {s.filtersRelaxed && <Badge className="text-[10px] px-1 bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200">relaxed</Badge>}
+                              {s.inferredFilters && Object.keys(s.inferredFilters).length > 0 && (
+                                <Badge className="text-[10px] px-1 bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200">NLP</Badge>
+                              )}
+                            </div>
+                          </td>
+                          <td className="py-2 text-muted-foreground text-xs whitespace-nowrap">
+                            {new Date(s.timestamp).toLocaleTimeString()}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* User Search Tracking */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-base">
+                <Users className="h-4 w-4 text-primary" />
+                Per-User Search Activity
+              </CardTitle>
+              <CardDescription>Search behavior by user (logged-in and anonymous) over the last {timeRange} days</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {userSearchStats.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-8">No user search data yet</p>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b text-left">
+                        <th className="pb-2 pr-4 font-medium text-muted-foreground">User</th>
+                        <th className="pb-2 pr-4 font-medium text-muted-foreground">Searches</th>
+                        <th className="pb-2 pr-4 font-medium text-muted-foreground">Unique Queries</th>
+                        <th className="pb-2 pr-4 font-medium text-muted-foreground">Zero Results</th>
+                        <th className="pb-2 font-medium text-muted-foreground">Last Search</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {userSearchStats.map((u, i) => (
+                        <tr key={i} className="border-b last:border-0">
+                          <td className="py-2 pr-4">
+                            {u.userId ? (
+                              <Badge className="text-xs bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
+                                <Users className="h-3 w-3 mr-1 inline" />{u.userId.slice(0, 12)}...
+                              </Badge>
+                            ) : (
+                              <Badge variant="outline" className="text-xs">
+                                <UserX className="h-3 w-3 mr-1 inline" />{u.anonymousId?.slice(0, 12) || "anonymous"}
+                              </Badge>
+                            )}
+                          </td>
+                          <td className="py-2 pr-4 font-medium">{u.searchCount}</td>
+                          <td className="py-2 pr-4">{u.uniqueQueries}</td>
+                          <td className="py-2 pr-4">
+                            {u.zeroResults > 0 ? (
+                              <Badge variant="destructive" className="text-xs">{u.zeroResults}</Badge>
+                            ) : (
+                              <span className="text-muted-foreground">0</span>
+                            )}
+                          </td>
+                          <td className="py-2 text-muted-foreground text-xs">
+                            {new Date(u.lastSearch).toLocaleString()}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Recent Searches (Detailed) */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-base">
                 <Clock className="h-4 w-4 text-primary" />
-                Recent Search Activity
+                Recent Search Activity (Detailed)
               </CardTitle>
-              <CardDescription>Real-time feed of the latest 50 searches</CardDescription>
+              <CardDescription>Last 50 searches with full tracking data</CardDescription>
             </CardHeader>
             <CardContent>
               {recentSearches.length === 0 ? (
@@ -470,28 +667,40 @@ export default function SearchAnalyticsPage() {
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="border-b text-left">
-                        <th className="pb-2 pr-4 font-medium text-muted-foreground">Query</th>
-                        <th className="pb-2 pr-4 font-medium text-muted-foreground">Results</th>
-                        <th className="pb-2 pr-4 font-medium text-muted-foreground">Engine</th>
-                        <th className="pb-2 pr-4 font-medium text-muted-foreground">Speed</th>
-                        <th className="pb-2 pr-4 font-medium text-muted-foreground">Flags</th>
+                        <th className="pb-2 pr-3 font-medium text-muted-foreground">Query</th>
+                        <th className="pb-2 pr-3 font-medium text-muted-foreground">Results</th>
+                        <th className="pb-2 pr-3 font-medium text-muted-foreground">Engine</th>
+                        <th className="pb-2 pr-3 font-medium text-muted-foreground">User</th>
+                        <th className="pb-2 pr-3 font-medium text-muted-foreground">Device</th>
+                        <th className="pb-2 pr-3 font-medium text-muted-foreground">Speed</th>
+                        <th className="pb-2 pr-3 font-medium text-muted-foreground">Flags</th>
                         <th className="pb-2 font-medium text-muted-foreground">Time</th>
                       </tr>
                     </thead>
                     <tbody>
                       {recentSearches.map(s => (
                         <tr key={s._id} className={`border-b last:border-0 ${s.isZeroResult ? "bg-destructive/5" : ""}`}>
-                          <td className="py-2 pr-4 max-w-[200px] truncate font-medium">&quot;{s.query}&quot;</td>
-                          <td className="py-2 pr-4">
+                          <td className="py-2 pr-3 max-w-[200px] truncate font-medium">&quot;{s.query}&quot;</td>
+                          <td className="py-2 pr-3">
                             <Badge variant={s.isZeroResult ? "destructive" : "secondary"} className="text-xs">
                               {s.resultCount}
                             </Badge>
                           </td>
-                          <td className="py-2 pr-4">
+                          <td className="py-2 pr-3">
                             <Badge variant="outline" className="text-xs">{s.engine}</Badge>
                           </td>
-                          <td className="py-2 pr-4 text-muted-foreground">{s.took}ms</td>
-                          <td className="py-2 pr-4">
+                          <td className="py-2 pr-3">
+                            {s.userId ? (
+                              <span className="text-xs text-blue-600">{s.userId.slice(0, 8)}</span>
+                            ) : (
+                              <span className="text-xs text-muted-foreground">{s.anonymousId?.slice(0, 8) || "anon"}</span>
+                            )}
+                          </td>
+                          <td className="py-2 pr-3 text-muted-foreground">
+                            {deviceIcon(s.deviceType)}
+                          </td>
+                          <td className="py-2 pr-3 text-muted-foreground">{s.took}ms</td>
+                          <td className="py-2 pr-3">
                             <div className="flex gap-1">
                               {s.roleExpansionUsed && <Badge className="text-[10px] px-1 bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">AI</Badge>}
                               {s.filtersRelaxed && <Badge className="text-[10px] px-1 bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200">relaxed</Badge>}

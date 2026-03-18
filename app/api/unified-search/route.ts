@@ -6,9 +6,10 @@ import { trackEvent } from "@/lib/analytics"
 import { isESAvailable, markESFailed } from "@/lib/elasticsearch"
 import { getAlgoliaSearchClient, ALGOLIA_INDEXES } from "@/lib/algolia"
 import { skillCategories, causes as causesList } from "@/lib/skills-data"
-import { searchAnalyticsDb } from "@/lib/database"
-import { sendEmail, getZeroResultAlertEmailHtml } from "@/lib/email"
+import { searchAnalyticsDb, teamMembersDb } from "@/lib/database"
+import { sendEmail, getZeroResultAlertEmailHtml, getIrrelevantResultAlertEmailHtml } from "@/lib/email"
 import { adminSettingsDb } from "@/lib/database"
+import crypto from "crypto"
 
 // ============================================
 // FUTURE-PROOF SEARCH INTELLIGENCE
@@ -873,6 +874,35 @@ function mapResultType(type: string): string {
   return type === "project" ? "opportunity" : type
 }
 
+// ============================================
+// REQUEST METADATA EXTRACTION FOR ENHANCED TRACKING
+// ============================================
+function extractRequestMeta(request: NextRequest) {
+  const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim()
+    || request.headers.get("x-real-ip")
+    || "unknown"
+  const userAgent = request.headers.get("user-agent") || "unknown"
+  const referer = request.headers.get("referer") || undefined
+
+  // Detect device type from user-agent
+  let deviceType = "desktop"
+  const uaLower = userAgent.toLowerCase()
+  if (/bot|crawler|spider|slurp|googlebot|bingbot/i.test(uaLower)) {
+    deviceType = "bot"
+  } else if (/mobile|android|iphone|ipad|ipod|blackberry|opera mini|iemobile/i.test(uaLower)) {
+    deviceType = /ipad|tablet/i.test(uaLower) ? "tablet" : "mobile"
+  }
+
+  // Generate anonymous ID from IP+UA for anonymous user grouping
+  const anonymousId = crypto.createHash("sha256").update(`${ip}:${userAgent}`).digest("hex").slice(0, 16)
+
+  // Extract userId from cookie/session if available (non-blocking)
+  const sessionCookie = request.cookies.get("better-auth.session_token")?.value
+  const userId = sessionCookie ? undefined : undefined // Will be enriched later if session exists
+
+  return { ip, userAgent, deviceType, anonymousId, referer, userId }
+}
+
 // Rate-limit zero-result alerts: max 1 email per query per hour
 const zeroResultAlertCache = new Map<string, number>()
 
@@ -891,18 +921,69 @@ async function sendZeroResultAlert(query: string, engine: string, filters?: Reco
       }
     }
 
-    const settings = await adminSettingsDb.get()
-    const adminEmail = settings?.supportEmail || process.env.ADMIN_EMAIL
-    if (!adminEmail) return
-
-    await sendEmail({
-      to: adminEmail,
-      subject: `[JBC Search Alert] Zero results for "${query}"`,
-      html: getZeroResultAlertEmailHtml(query, engine, filters),
-    })
+    // Send to all team members + admin
+    const teamEmails = await getTeamEmails()
+    const html = getZeroResultAlertEmailHtml(query, engine, filters)
+    await Promise.allSettled(
+      teamEmails.map(email =>
+        sendEmail({
+          to: email,
+          subject: `[JBC Search Alert] Zero results for "${query}"`,
+          html,
+        })
+      )
+    )
   } catch (err) {
     console.error("[Search] Failed to send zero-result alert:", err)
   }
+}
+
+// Rate-limit irrelevant result alerts
+const irrelevantAlertCache = new Map<string, number>()
+
+async function sendIrrelevantResultAlert(query: string, engine: string, resultCount: number, topResultTitles: string[]) {
+  try {
+    const cacheKey = query.toLowerCase().trim()
+    const lastSent = irrelevantAlertCache.get(cacheKey)
+    if (lastSent && Date.now() - lastSent < 3600000) return
+
+    irrelevantAlertCache.set(cacheKey, Date.now())
+    if (irrelevantAlertCache.size > 500) {
+      const cutoff = Date.now() - 3600000
+      for (const [k, v] of irrelevantAlertCache) {
+        if (v < cutoff) irrelevantAlertCache.delete(k)
+      }
+    }
+
+    const teamEmails = await getTeamEmails()
+    const html = getIrrelevantResultAlertEmailHtml(query, engine, resultCount, topResultTitles)
+    await Promise.allSettled(
+      teamEmails.map(email =>
+        sendEmail({
+          to: email,
+          subject: `[JBC Search Alert] Potentially irrelevant results for "${query}"`,
+          html,
+        })
+      )
+    )
+  } catch (err) {
+    console.error("[Search] Failed to send irrelevant result alert:", err)
+  }
+}
+
+/** Get all team member emails for notifications */
+async function getTeamEmails(): Promise<string[]> {
+  const emails = new Set<string>()
+  emails.add("admin@justbecausenetwork.com")
+  try {
+    const teamMembers = await teamMembersDb.findActive()
+    for (const m of teamMembers) {
+      if (m.email) emails.add(m.email)
+    }
+  } catch (err) {
+    console.error("[Search] Failed to fetch team emails:", err)
+  }
+  return Array.from(emails)
 }
 
 export async function GET(request: NextRequest) {
@@ -916,6 +997,9 @@ export async function GET(request: NextRequest) {
     const sort = (searchParams.get("sort") || "relevance") as "relevance" | "newest" | "rating"
     const filtersParam = searchParams.get("filters")
     const engine = searchParams.get("engine") || (ALGOLIA_ENABLED ? "algolia" : ELASTICSEARCH_ENABLED && isESAvailable() ? "es" : "mongo")
+
+    // Extract request metadata for enhanced tracking
+    const reqMeta = extractRequestMeta(request)
 
     const { cleanedQuery, inferredFilters } = parseNaturalLanguageFilters(rawQuery)
     const query = cleanedQuery || rawQuery.trim()
@@ -1045,6 +1129,8 @@ export async function GET(request: NextRequest) {
             query: rawQuery, normalizedQuery: query, resultCount: suggestions.length,
             engine: "algolia", took, isSuggestion: true, isZeroResult: suggestions.length === 0,
             roleExpansionUsed: false, filtersRelaxed: false,
+            ip: reqMeta.ip, userAgent: reqMeta.userAgent, deviceType: reqMeta.deviceType,
+            anonymousId: reqMeta.anonymousId, referer: reqMeta.referer,
           }).catch(() => {})
           return NextResponse.json({
             success: true,
@@ -1387,6 +1473,7 @@ export async function GET(request: NextRequest) {
           else if (r.type === "ngo") resultTypes.ngos++
           else if (r.type === "opportunity") resultTypes.opportunities++
         }
+        const topResultTitles = finalResults.slice(0, 5).map((r: any) => r.title || r.name || "Untitled")
         const analyticsId = searchAnalyticsDb.track({
           query: rawQuery, normalizedQuery: query, resultCount: finalResults.length,
           engine: "algolia", took, isSuggestion: false,
@@ -1395,11 +1482,18 @@ export async function GET(request: NextRequest) {
           filtersRelaxed: !!filtersRelaxed,
           inferredFilters: Object.keys(inferredFilters).length > 0 ? inferredFilters : undefined,
           resultTypes,
+          ip: reqMeta.ip, userAgent: reqMeta.userAgent, deviceType: reqMeta.deviceType,
+          anonymousId: reqMeta.anonymousId, referer: reqMeta.referer, topResultTitles,
         }).catch(() => "")
 
         // Send zero-result email alert (fire-and-forget)
         if (finalResults.length === 0) {
           sendZeroResultAlert(rawQuery, "algolia", inferredFilters)
+        }
+
+        // Detect potentially irrelevant results (has results but none match query intent)
+        if (finalResults.length > 0 && finalResults.length <= 3 && filtersRelaxed) {
+          sendIrrelevantResultAlert(rawQuery, "algolia", finalResults.length, topResultTitles)
         }
 
         const searchEventId = await analyticsId
@@ -1569,6 +1663,8 @@ export async function GET(request: NextRequest) {
         query, normalizedQuery: query, resultCount: suggestions.length,
         engine: "mongodb", took: Date.now() - startTime, isSuggestion: true,
         isZeroResult: suggestions.length === 0, roleExpansionUsed: false, filtersRelaxed: false,
+        ip: reqMeta.ip, userAgent: reqMeta.userAgent, deviceType: reqMeta.deviceType,
+        anonymousId: reqMeta.anonymousId, referer: reqMeta.referer,
       }).catch(() => {})
       return NextResponse.json({
         success: true,
@@ -1587,10 +1683,13 @@ export async function GET(request: NextRequest) {
 
     const mongoTook = Date.now() - startTime
     trackEvent("search", "query", { metadata: { query, engine: "mongodb", count: results.length, took: mongoTook } })
+    const mongoTopTitles = results.slice(0, 5).map((r: any) => r.title || r.name || "Untitled")
     searchAnalyticsDb.track({
       query, normalizedQuery: query, resultCount: results.length,
       engine: "mongodb", took: mongoTook, isSuggestion: false,
       isZeroResult: results.length === 0, roleExpansionUsed: false, filtersRelaxed: false,
+      ip: reqMeta.ip, userAgent: reqMeta.userAgent, deviceType: reqMeta.deviceType,
+      anonymousId: reqMeta.anonymousId, referer: reqMeta.referer, topResultTitles: mongoTopTitles,
     }).catch(() => {})
     if (results.length === 0) sendZeroResultAlert(query, "mongodb")
     return NextResponse.json({

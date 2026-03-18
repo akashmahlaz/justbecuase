@@ -52,6 +52,14 @@ export async function GET(request: NextRequest) {
         const data = await searchAnalyticsDb.getContentGaps(days, limit)
         return NextResponse.json({ success: true, data })
       }
+      case "live-feed": {
+        const data = await searchAnalyticsDb.getLiveFeed(limit)
+        return NextResponse.json({ success: true, data })
+      }
+      case "user-search-stats": {
+        const data = await searchAnalyticsDb.getUserSearchStats(days, limit)
+        return NextResponse.json({ success: true, data })
+      }
       default:
         return NextResponse.json({ error: "Invalid section" }, { status: 400 })
     }

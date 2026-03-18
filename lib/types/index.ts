@@ -587,6 +587,7 @@ export interface AdminSettings {
 export interface TeamMember {
   _id?: ObjectId
   name: string
+  email?: string
   role: string
   bio: string
   avatar?: string
