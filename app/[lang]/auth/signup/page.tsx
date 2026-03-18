@@ -93,9 +93,10 @@ function SignUpPageInner() {
     setError("")
 
     try {
+      console.log(`[signup] starting social sign-up: ${provider}`)
       await signIn.social({
         provider,
-        callbackURL: "/auth/role-select", // Always go to role-select for social signup
+        callbackURL: localePath("/auth/role-select", locale), // Always go to role-select for social signup
       })
       // Note: This won't execute as the page redirects to OAuth provider
     } catch (err: any) {

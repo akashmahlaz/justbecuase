@@ -21,27 +21,43 @@ export default async function VolunteerDashboard({ params }: { params: Promise<{
   const { lang } = await params
   const dict = await getDictionary(lang as Locale) as any
 
+  const reqHeaders = await headers()
+  const cookieHeader = reqHeaders.get("cookie") || ""
+  console.log("[volunteer-dashboard] SSR auth check — cookie header present:", !!cookieHeader)
+  console.log("[volunteer-dashboard] cookies:", cookieHeader.split(";").map(c => c.trim().split("=")[0]).join(", "))
+
   const session = await auth.api.getSession({
-    headers: await headers(),
+    headers: reqHeaders,
+  })
+
+  console.log("[volunteer-dashboard] getSession result:", {
+    hasSession: !!session,
+    hasUser: !!session?.user,
+    role: session?.user?.role,
+    isOnboarded: (session?.user as any)?.isOnboarded,
+    email: session?.user?.email,
   })
 
   if (!session?.user) {
+    console.log("[volunteer-dashboard] NO SESSION — redirecting to signin")
     redirect(`/${lang}/auth/signin`)
   }
 
   // Role verification: Ensure user is a volunteer
   if (session.user.role !== "volunteer") {
+    console.log("[volunteer-dashboard] wrong role:", session.user.role, "— redirecting")
     if (session.user.role === "ngo") {
       redirect(`/${lang}/ngo/dashboard`)
     } else if (session.user.role === "admin") {
       redirect(`/${lang}/admin`)
     } else {
-      redirect("/auth/role-select")
+      redirect(`/${lang}/auth/role-select`)
     }
   }
 
   // Redirect to onboarding if not completed
   if (!session.user.isOnboarded) {
+    console.log("[volunteer-dashboard] not onboarded — redirecting to onboarding")
     redirect(`/${lang}/volunteer/onboarding`)
   }
 
