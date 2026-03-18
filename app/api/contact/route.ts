@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import { contactInquiriesDb, teamMembersDb } from "@/lib/database"
+import { contactInquiriesDb, teamMembersDb, getDb } from "@/lib/database"
 import { sendEmail, getContactInquiryEmailHtml } from "@/lib/email"
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -37,16 +37,33 @@ export async function POST(req: NextRequest) {
       source: validSource as "contact_page" | "pricing_contact_sales",
     })
 
-    // Send email notifications to team
+    // Collect team email addresses from multiple sources
     const teamEmails = new Set<string>()
-    teamEmails.add("admin@justbecausenetwork.com")
+
+    // 1. Fetch active team members with email
     try {
       const teamMembers = await teamMembersDb.findActive()
       for (const m of teamMembers) {
         if (m.email) teamEmails.add(m.email)
       }
-    } catch {
-      // Continue even if team fetch fails — we still have the fallback email
+    } catch (err) {
+      console.error("[Contact API] Failed to fetch team members:", err)
+    }
+
+    // 2. Fetch admin emails as fallback
+    try {
+      const db = await getDb()
+      const admins = await db.collection("admins").find({}).toArray()
+      for (const admin of admins) {
+        if (admin.email) teamEmails.add(admin.email)
+      }
+    } catch (err) {
+      console.error("[Contact API] Failed to fetch admins:", err)
+    }
+
+    // 3. Hardcoded fallback to ensure at least one recipient
+    if (teamEmails.size === 0) {
+      teamEmails.add("admin@justbecausenetwork.com")
     }
 
     const emailHtml = getContactInquiryEmailHtml({
@@ -60,12 +77,24 @@ export async function POST(req: NextRequest) {
     const subjectPrefix = validSource === "pricing_contact_sales" ? "[Sales Inquiry]" : "[Contact]"
     const emailSubject = `${subjectPrefix} New message from ${firstName.trim()} ${lastName.trim()}`
 
-    // Send to all team members in parallel
-    await Promise.allSettled(
-      Array.from(teamEmails).map((teamEmail) =>
-        sendEmail({ to: teamEmail, subject: emailSubject, html: emailHtml })
-      )
+    // Send to all team members in parallel and log results
+    const emailResults = await Promise.allSettled(
+      Array.from(teamEmails).map(async (teamEmail) => {
+        const success = await sendEmail({ to: teamEmail, subject: emailSubject, html: emailHtml })
+        if (!success) {
+          console.error(`[Contact API] Email failed for: ${teamEmail}`)
+        }
+        return { email: teamEmail, success }
+      })
     )
+
+    const failedCount = emailResults.filter(
+      (r) => r.status === "rejected" || (r.status === "fulfilled" && !r.value.success)
+    ).length
+
+    if (failedCount > 0) {
+      console.warn(`[Contact API] ${failedCount}/${teamEmails.size} notification emails failed`)
+    }
 
     return NextResponse.json({ success: true, id })
   } catch (error) {

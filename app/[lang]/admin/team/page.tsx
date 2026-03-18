@@ -47,6 +47,7 @@ import {
   User,
   Upload,
   X,
+  Mail,
 } from "lucide-react"
 import type { TeamMember } from "@/lib/types"
 
@@ -70,6 +71,7 @@ export default function AdminTeamPage() {
   // Form state
   const [formData, setFormData] = useState({
     name: "",
+    email: "",
     role: "",
     bio: "",
     avatar: "",
@@ -97,6 +99,7 @@ export default function AdminTeamPage() {
     setEditingMember(null)
     setFormData({
       name: "",
+      email: "",
       role: "",
       bio: "",
       avatar: "",
@@ -114,6 +117,7 @@ export default function AdminTeamPage() {
     setEditingMember(member)
     setFormData({
       name: member.name,
+      email: member.email || "",
       role: member.role,
       bio: member.bio,
       avatar: member.avatar || "",
@@ -188,6 +192,7 @@ export default function AdminTeamPage() {
     if (editingMember && editingMember._id) {
       const result = await updateTeamMember(editingMember._id.toString(), {
         name: formData.name,
+        email: formData.email.trim() || undefined,
         role: formData.role,
         bio: formData.bio,
         avatar: avatarUrl || undefined,
@@ -206,6 +211,7 @@ export default function AdminTeamPage() {
     } else {
       const result = await createTeamMember({
         name: formData.name,
+        email: formData.email.trim() || undefined,
         role: formData.role,
         bio: formData.bio,
         avatar: avatarUrl || undefined,
@@ -362,6 +368,11 @@ export default function AdminTeamPage() {
                     <p className="text-sm text-muted-foreground truncate">
                       {member.role}
                     </p>
+                    {member.email && (
+                      <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
+                        <Mail className="h-3 w-3" /> {member.email}
+                      </p>
+                    )}
                     <div className="flex items-center gap-2 mt-1">
                       {member.linkedinUrl && (
                         <a
@@ -452,6 +463,21 @@ export default function AdminTeamPage() {
                 }
                 placeholder="John Doe"
               />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="email">{dict.admin?.team?.emailLabel || "Email"}</Label>
+              <Input
+                id="email"
+                type="email"
+                value={formData.email}
+                onChange={(e) =>
+                  setFormData({ ...formData, email: e.target.value })
+                }
+                placeholder="john@example.com"
+              />
+              <p className="text-xs text-muted-foreground">
+                {dict.admin?.team?.emailHint || "Used for contact inquiry notifications"}
+              </p>
             </div>
             <div className="space-y-2">
               <Label htmlFor="role">{dict.admin?.team?.roleLabel || "Role / Designation *"}</Label>
