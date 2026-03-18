@@ -9,14 +9,14 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useAuth } from "@/lib/auth-context"
 import { useDictionary } from "@/components/dictionary-provider"
 import { getNGOProfile, getProjectById, updateProject } from "@/lib/actions"
-import { skillCategories } from "@/lib/skills-data"
+import { resolveSkillName } from "@/lib/skills-data"
 import type { NGOProfile, Project } from "@/lib/types"
 import { ProjectEditSkeleton } from "@/components/ui/page-skeletons"
+import { SkillSelector, type SelectedSkill } from "@/components/skill-selector"
 import {
   ArrowLeft,
   Save,
@@ -42,11 +42,10 @@ export default function EditProjectPage({ params }: Props) {
   const [isSaving, setIsSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
+  const [selectedSkills, setSelectedSkills] = useState<SelectedSkill[]>([])
   const [formData, setFormData] = useState({
     title: "",
     description: "",
-    skills: [] as { categoryId: string; subskillId: string; priority: string }[],
-    selectedSkillNames: [] as string[],
     timeCommitment: "",
     duration: "2-4 weeks",
     deadline: "",
@@ -77,21 +76,17 @@ export default function EditProjectPage({ params }: Props) {
         if (projectResult) {
           setProject(projectResult)
           
-          // Map skills to names
-          const skillNames: string[] = []
-          projectResult.skillsRequired?.forEach((skill: any) => {
-            const category = skillCategories.find((c) => c.id === skill.categoryId)
-            const subskill = category?.subskills.find((s) => s.id === skill.subskillId)
-            if (subskill) {
-              skillNames.push(subskill.name)
-            }
-          })
+          // Map skills to SelectedSkill format
+          setSelectedSkills((projectResult.skillsRequired || []).map((skill: any) => ({
+            categoryId: skill.categoryId,
+            subskillId: skill.subskillId,
+            name: resolveSkillName(skill.subskillId),
+            priority: skill.priority || "must-have",
+          })))
 
           setFormData({
             title: projectResult.title || "",
             description: projectResult.description || "",
-            skills: projectResult.skillsRequired || [],
-            selectedSkillNames: skillNames,
             timeCommitment: projectResult.timeCommitment || "",
             duration: projectResult.duration || "2-4 weeks",
             deadline: projectResult.deadline
@@ -114,24 +109,6 @@ export default function EditProjectPage({ params }: Props) {
     loadData()
   }, [user, id])
 
-  const toggleSkill = (skillName: string, categoryId: string, subskillId: string) => {
-    setFormData((prev) => {
-      const exists = prev.selectedSkillNames.includes(skillName)
-      if (exists) {
-        return {
-          ...prev,
-          selectedSkillNames: prev.selectedSkillNames.filter((s) => s !== skillName),
-          skills: prev.skills.filter((s) => !(s.categoryId === categoryId && s.subskillId === subskillId)),
-        }
-      } else {
-        return {
-          ...prev,
-          selectedSkillNames: [...prev.selectedSkillNames, skillName],
-          skills: [...prev.skills, { categoryId, subskillId, priority: "must-have" }],
-        }
-      }
-    })
-  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -143,7 +120,7 @@ export default function EditProjectPage({ params }: Props) {
       const result = await updateProject(id, {
         title: formData.title,
         description: formData.description,
-        skillsRequired: formData.skills.map((s) => ({
+        skillsRequired: selectedSkills.map((s) => ({
           categoryId: s.categoryId,
           subskillId: s.subskillId,
           priority: s.priority as "must-have" | "nice-to-have",
@@ -267,29 +244,23 @@ export default function EditProjectPage({ params }: Props) {
               {/* Skills */}
               <div className="space-y-2">
                 <Label>{dict.ngo?.common?.skillsRequired || "Skills Required"}</Label>
-                <div className="space-y-4">
-                  {skillCategories.map((category) => (
-                    <div key={category.id}>
-                      <p className="text-sm font-medium text-muted-foreground mb-2">{category.name}</p>
-                      <div className="flex flex-wrap gap-2">
-                        {category.subskills.map((subskill) => (
-                          <Badge
-                            key={subskill.id}
-                            variant={formData.selectedSkillNames.includes(subskill.name) ? "default" : "outline"}
-                            className={`cursor-pointer transition-colors ${
-                              formData.selectedSkillNames.includes(subskill.name)
-                                ? "bg-primary text-primary-foreground"
-                                : "hover:bg-primary/10 hover:border-primary"
-                            }`}
-                            onClick={() => toggleSkill(subskill.name, category.id, subskill.id)}
-                          >
-                            {subskill.name}
-                          </Badge>
-                        ))}
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                <SkillSelector
+                  selectedSkills={selectedSkills}
+                  onChange={setSelectedSkills}
+                  maxSkills={15}
+                  labels={{
+                    searchPlaceholder: dict.ngo?.postProject?.searchSkills || "Search skills (e.g. React, Grant Writing, SEO)...",
+                    noResults: dict.ngo?.postProject?.noSkillsFound || "No skills found.",
+                    addCustom: dict.ngo?.postProject?.addCustomSkill || "Add custom skill",
+                    selectedSkills: dict.ngo?.common?.skillsRequired || "Selected Skills",
+                    mustHave: dict.ngo?.postProject?.mustHave || "Must Have",
+                    niceToHave: dict.ngo?.postProject?.niceToHave || "Nice to Have",
+                    removeSkill: dict.ngo?.common?.remove || "Remove",
+                    selectSkills: dict.ngo?.postProject?.searchAndAddSkills || "Search & add skills...",
+                    skillsSelected: dict.ngo?.postProject?.skillsSelected || "skills selected",
+                    customSkill: dict.ngo?.postProject?.customSkillLabel || "custom",
+                  }}
+                />
               </div>
 
               {/* Experience Level */}

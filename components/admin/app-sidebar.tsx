@@ -19,6 +19,7 @@ import {
   Bell,
   Tag,
   Database,
+  Search,
 } from "lucide-react"
 import {
   Sidebar,
@@ -66,6 +67,7 @@ const navGroups = [
     label: "Analytics",
     items: [
       { title: "Reports", href: "/admin/reports", icon: BarChart3 },
+      { title: "Search Analytics", href: "/admin/search-analytics", icon: Search },
     ],
   },
   {

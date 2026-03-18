@@ -1,21 +1,22 @@
 import { Suspense } from "react"
 import { redirect } from "next/navigation"
 import { headers } from "next/headers"
-import Link from "next/link"
 import { auth } from "@/lib/auth"
 import { getDictionary } from "@/app/[lang]/dictionaries"
 import type { Locale } from "@/lib/i18n-config"
 import { getNGOProfile, getNGOApplicationsEnriched } from "@/lib/actions"
-import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Search, Clock, CheckCircle, XCircle, MessageSquare, ExternalLink, FileText, Loader2 } from "lucide-react"
-import { skillCategories } from "@/lib/skills-data"
-import { ApplicationActions } from "./application-actions"
+import { ApplicationsFilter } from "./applications-filter"
 
-export default async function ApplicationsPage({ params }: { params: Promise<{ lang: string }> }) {
+export default async function ApplicationsPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ lang: string }>
+  searchParams: Promise<{ project?: string }>
+}) {
   const { lang } = await params
+  const { project: projectFilter } = await searchParams
   const dict = await getDictionary(lang as Locale) as any
 
   const session = await auth.api.getSession({
@@ -52,147 +53,25 @@ export default async function ApplicationsPage({ params }: { params: Promise<{ l
           </div>
 
           <Suspense fallback={<ApplicationsSkeleton />}>
-            <ApplicationsList dict={dict} />
+            <ApplicationsList dict={dict} initialProjectFilter={projectFilter} />
           </Suspense>
     </main>
   )
 }
 
-async function ApplicationsList({ dict }: { dict: any }) {
+async function ApplicationsList({ dict, initialProjectFilter }: { dict: any; initialProjectFilter?: string }) {
   // Use optimized batch query instead of N+1 individual queries
   const enrichedApplications = await getNGOApplicationsEnriched()
 
-  const pendingCount = enrichedApplications.filter((a: any) => a.status === "pending").length
-  const acceptedCount = enrichedApplications.filter((a: any) => a.status === "accepted").length
-  const shortlistedCount = enrichedApplications.filter((a: any) => a.status === "shortlisted").length
-
-  if (enrichedApplications.length === 0) {
-    return (
-      <Card>
-        <CardContent className="py-12 text-center">
-          <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-          <p className="text-muted-foreground mb-2">{dict.ngo?.applications?.noApplications || "No applications yet"}</p>
-          <p className="text-sm text-muted-foreground">
-            {dict.ngo?.applications?.noApplicationsDesc || "When impact agents apply to your opportunities, they will appear here."}
-          </p>
-          <Button variant="link" asChild className="mt-2">
-            <Link href="/ngo/post-project">{dict.ngo?.common?.postOpportunity || "Post an Opportunity"}</Link>
-          </Button>
-        </CardContent>
-      </Card>
-    )
-  }
-
-  const statusColors: Record<string, string> = {
-    pending: "bg-yellow-100 text-yellow-700",
-    shortlisted: "bg-blue-100 text-blue-700",
-    accepted: "bg-green-100 text-green-700",
-    rejected: "bg-red-100 text-red-700",
-    withdrawn: "bg-gray-100 text-gray-700",
-  }
+  // Serialize ObjectIds for client component
+  const serializedApps = JSON.parse(JSON.stringify(enrichedApplications))
 
   return (
-    <Tabs defaultValue="pending" className="w-full">
-      <TabsList className="mb-6">
-        <TabsTrigger value="pending">{dict.ngo?.common?.pending || "Pending"} ({pendingCount})</TabsTrigger>
-        <TabsTrigger value="shortlisted">{dict.ngo?.common?.shortlisted || "Shortlisted"} ({shortlistedCount})</TabsTrigger>
-        <TabsTrigger value="accepted">{dict.ngo?.common?.accepted || "Accepted"} ({acceptedCount})</TabsTrigger>
-        <TabsTrigger value="all">{dict.ngo?.common?.all || "All"} ({enrichedApplications.length})</TabsTrigger>
-      </TabsList>
-
-      {["pending", "shortlisted", "accepted", "all"].map((tab) => (
-        <TabsContent key={tab} value={tab} className="space-y-4">
-          {enrichedApplications
-            .filter((a) => tab === "all" || a.status === tab)
-            .map((application) => {
-              const skills = application.volunteerProfile?.skills?.slice(0, 4) || []
-              
-              return (
-                <Card key={application._id?.toString()} className="hover:shadow-md transition-shadow">
-                  <CardContent className="p-6">
-                    <div className="flex flex-col sm:flex-row gap-4">
-                      <img
-                        src={application.volunteerProfile?.avatar || "/placeholder.svg?height=64&width=64"}
-                        alt="Impact Agent"
-                        className="w-16 h-16 rounded-full object-cover"
-                      />
-                      <div className="flex-1">
-                        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2 mb-2">
-                          <div>
-                            <h3 className="font-semibold text-foreground">
-                              {application.volunteerProfile?.name || (dict.ngo?.common?.impactAgent || "Impact Agent")}
-                            </h3>
-                            <p className="text-sm text-muted-foreground">
-                              {application.volunteerProfile?.location || (dict.ngo?.applications?.locationNotSpecified || "Location not specified")}
-                            </p>
-                          </div>
-                          <Badge className={statusColors[application.status]}>
-                            {application.status.charAt(0).toUpperCase() + application.status.slice(1)}
-                          </Badge>
-                        </div>
-
-                        <p className="text-sm text-foreground mb-2">
-                          {dict.ngo?.applications?.appliedFor || "Applied for: "}<span className="font-medium">{application.project?.title || (dict.ngo?.common?.opportunity || "Opportunity")}</span>
-                        </p>
-
-                        {application.coverMessage && (
-                          <p className="text-sm text-muted-foreground mb-3 line-clamp-2">
-                            "{application.coverMessage}"
-                          </p>
-                        )}
-
-                        <div className="flex items-center gap-4 text-sm text-muted-foreground mb-3">
-                          <span className="flex items-center gap-1">
-                            <Clock className="h-4 w-4" />
-                            {new Date(application.appliedAt).toLocaleDateString()}
-                          </span>
-                          <span>
-                            {application.volunteerProfile?.completedProjects || 0} {dict.ngo?.applications?.tasksCompleted || "tasks completed"}
-                          </span>
-                        </div>
-
-                        <div className="flex flex-wrap gap-2 mb-4">
-                          {skills.map((skill: any, idx: number) => {
-                            const category = skillCategories.find(c => c.id === skill.categoryId)
-                            const subskill = category?.subskills.find(s => s.id === skill.subskillId)
-                            return (
-                              <Badge key={idx} variant="secondary" className="text-xs bg-accent text-accent-foreground">
-                                {subskill?.name || skill.subskillId}
-                              </Badge>
-                            )
-                          })}
-                        </div>
-
-                        <div className="flex flex-wrap gap-2">
-                          <Button size="sm" variant="outline" asChild>
-                            <Link href={`/volunteers/${application.volunteerId}`}>
-                              <ExternalLink className="h-4 w-4 mr-1" />
-                              {dict.ngo?.common?.viewProfile || "View Profile"}
-                            </Link>
-                          </Button>
-                          
-                          <ApplicationActions 
-                            applicationId={application._id?.toString() || ""} 
-                            currentStatus={application.status}
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              )
-            })}
-          
-          {enrichedApplications.filter((a) => tab === "all" || a.status === tab).length === 0 && (
-            <Card>
-              <CardContent className="py-8 text-center">
-                <p className="text-muted-foreground">{(dict.ngo?.applications?.noTabApplications || "No {tab} applications").replace("{tab}", tab)}</p>
-              </CardContent>
-            </Card>
-          )}
-        </TabsContent>
-      ))}
-    </Tabs>
+    <ApplicationsFilter
+      applications={serializedApps}
+      dict={dict}
+      initialProjectFilter={initialProjectFilter}
+    />
   )
 }
 

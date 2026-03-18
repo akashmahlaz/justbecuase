@@ -85,6 +85,7 @@ export async function elasticSearch(params: ESSearchParams): Promise<{
   results: ESSearchResult[]
   total: number
   took: number
+  didYouMean?: string
 }> {
   const { query, types, filters, limit = 20, offset = 0, sort = "relevance" } = params
   const trimmedQuery = query.trim()

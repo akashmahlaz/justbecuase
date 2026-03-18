@@ -389,7 +389,7 @@ export async function getNGOSubscriptionStatus(): Promise<{
 
   return {
     plan,
-    canViewFreeVolunteers: plan === "pro",
+    canViewFreeVolunteers: true,
     expiryDate: profile.subscriptionExpiry,
     isExpired: !!isExpired,
   }
@@ -1601,14 +1601,8 @@ export async function getMatchedVolunteersForProject(
     { isActive: { $ne: false } } as any
   )
 
-  // Subscription-based visibility: non-Pro NGOs can only see paid volunteers
-  let visibleVolunteers = volunteers
-  if (user.role === "ngo") {
-    const ngoProfile = await ngoProfilesDb.findByUserId(user.id)
-    if (!ngoProfile || ngoProfile.subscriptionPlan !== "pro") {
-      visibleVolunteers = volunteers.filter(v => v.volunteerType === "paid")
-    }
-  }
+  // All volunteers (free + paid) are visible to all NGOs regardless of subscription
+  const visibleVolunteers = volunteers
 
   const matches = matchVolunteersToProject(project, visibleVolunteers)
 
@@ -1688,12 +1682,8 @@ export async function getRecommendedVolunteersForNGO(): Promise<
     { isActive: { $ne: false } } as any
   )
 
-  // Subscription-based visibility: non-Pro NGOs can only see paid volunteers
-  const ngoProfile = await ngoProfilesDb.findByUserId(user.id)
-  const isPro = ngoProfile?.subscriptionPlan === "pro"
-  const visibleVolunteers = isPro
-    ? volunteers
-    : volunteers.filter(v => v.volunteerType === "paid")
+  // All volunteers (free + paid) are visible to all NGOs regardless of subscription
+  const visibleVolunteers = volunteers
 
   // Score volunteers based on skill match
   const scoredVolunteers = visibleVolunteers
@@ -1709,10 +1699,10 @@ export async function getRecommendedVolunteersForNGO(): Promise<
         volunteerId: v.userId,
         score: Math.round(skillMatchScore + freeHoursBonus),
         volunteer: {
-          name: isPro ? v.name : (v.volunteerType === "paid" ? v.name : undefined),
-          headline: isPro ? v.bio?.slice(0, 60) : (v.volunteerType === "paid" ? v.bio?.slice(0, 60) : undefined),
+          name: v.name,
+          headline: v.bio?.slice(0, 60),
           skills: v.skills?.slice(0, 4),
-          avatar: isPro ? v.avatar : (v.volunteerType === "paid" ? v.avatar : undefined),
+          avatar: v.avatar,
           freeHoursPerMonth: v.volunteerType === "both" ? v.freeHoursPerMonth : undefined,
         }
       }
@@ -2516,14 +2506,8 @@ export async function browseVolunteers(filters?: {
     return true
   })
 
-  // Subscription-based visibility: non-Pro NGOs can only see paid volunteers
+  // All volunteers (free + paid) are visible to all NGOs regardless of subscription
   const currentUser = await getCurrentUser()
-  if (currentUser?.role === "ngo") {
-    const ngoProfile = await ngoProfilesDb.findByUserId(currentUser.id)
-    if (!ngoProfile || ngoProfile.subscriptionPlan !== "pro") {
-      filteredVolunteers = filteredVolunteers.filter(v => v.volunteerType === "paid")
-    }
-  }
 
   // Limit results
   const maxResults = filters?.limit || 50

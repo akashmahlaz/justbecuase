@@ -952,7 +952,7 @@ export default function AdminSettingsPage() {
                   <div>
                     <p className="font-medium">{dict.admin?.settings?.payment?.ngoProSubscription || "NGO Pro Subscription"}</p>
                     <p className="text-sm text-muted-foreground">
-                      {dict.admin?.settings?.payment?.ngoProSubscriptionDescription || "NGOs with Pro subscription can unlock unlimited FREE impact agent profiles. NGOs can view paid impact agent profiles without subscription."}
+                      {dict.admin?.settings?.payment?.ngoProSubscriptionDescription || "All NGOs can view both free and paid impact agent profiles without a subscription. Pro subscription unlocks additional platform features."}
                     </p>
                   </div>
                 </div>
@@ -967,7 +967,7 @@ export default function AdminSettingsPage() {
                 </div>
               </div>
               <p className="text-xs text-muted-foreground">
-                {dict.admin?.settings?.payment?.businessModelNote || "Note: Individual profile unlock payments are not part of the business model. NGOs must upgrade to Pro to unlock impact agent profiles."}
+                {dict.admin?.settings?.payment?.businessModelNote || "Note: All impact agent profiles (free and paid) are visible to all NGOs without requiring a subscription."}
               </p>
             </CardContent>
           </Card>

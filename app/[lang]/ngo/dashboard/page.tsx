@@ -9,8 +9,8 @@ import { SubscriptionExpiryToast } from "@/components/dashboard/subscription-exp
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { getNGOProfile, getMyProjectsAsNGO, getNGOApplications, getNGOSubscriptionStatus, getRecommendedVolunteersForNGO } from "@/lib/actions"
-import { PlusCircle, FolderKanban, Users, CheckCircle2, Eye, MessageSquare, Clock, ArrowRight, CreditCard, Zap, Unlock, Star, Sparkles, AlertTriangle } from "lucide-react"
+import { getNGOProfile, getMyProjectsAsNGO, getNGOApplicationsEnriched, getNGOSubscriptionStatus, getRecommendedVolunteersForNGO } from "@/lib/actions"
+import { PlusCircle, FolderKanban, Users, CheckCircle2, Eye, MessageSquare, Clock, ArrowRight, CreditCard, Zap, Unlock, Star, Sparkles, AlertTriangle, TrendingUp } from "lucide-react"
 import Link from "next/link"
 
 export default async function NGODashboard({ params }: { params: Promise<{ lang: string }> }) {
@@ -43,14 +43,15 @@ export default async function NGODashboard({ params }: { params: Promise<{ lang:
 
   const ngoProfile = await getNGOProfile()
   const projects = await getMyProjectsAsNGO()
-  const applications = await getNGOApplications()
+  const enrichedApplications = await getNGOApplicationsEnriched()
   const subscriptionStatus = await getNGOSubscriptionStatus()
   const recommendedVolunteers = await getRecommendedVolunteersForNGO()
 
   // Calculate stats
   const activeProjects = projects.filter((p) => p.status === "open" || p.status === "active")
   const completedProjects = projects.filter((p) => p.status === "completed")
-  const pendingApplications = applications.filter((a) => a.status === "pending")
+  const pendingApplications = enrichedApplications.filter((a: any) => a.status === "pending")
+  const shortlistedApplications = enrichedApplications.filter((a: any) => a.status === "shortlisted")
 
   return (
     <>
@@ -125,12 +126,12 @@ export default async function NGODashboard({ params }: { params: Promise<{ lang:
             <Card>
               <CardContent className="p-3 sm:p-6">
                 <div className="flex items-center gap-3 sm:gap-4">
-                  <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-primary/10 flex items-center justify-center">
-                    <Users className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
+                  <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-blue-100 flex items-center justify-center">
+                    <TrendingUp className="h-5 w-5 sm:h-6 sm:w-6 text-blue-600" />
                   </div>
                   <div>
-                    <p className="text-xl sm:text-2xl font-bold text-foreground">{applications.length}</p>
-                    <p className="text-xs sm:text-sm text-muted-foreground">{dict.ngo?.dashboard?.totalApplications || "Total Applications"}</p>
+                    <p className="text-xl sm:text-2xl font-bold text-foreground">{shortlistedApplications.length}</p>
+                    <p className="text-xs sm:text-sm text-muted-foreground">{dict.ngo?.common?.shortlisted || "Shortlisted"}</p>
                   </div>
                 </div>
               </CardContent>
@@ -160,37 +161,64 @@ export default async function NGODashboard({ params }: { params: Promise<{ lang:
                     </div>
                   ) : (
                     <div className="space-y-4">
-                      {activeProjects.slice(0, 4).map((project) => (
-                        <div key={project._id?.toString()} className="p-4 border rounded-lg hover:border-primary/50 transition-colors">
-                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                            <div className="flex-1">
-                              <div className="flex items-center gap-2 mb-2">
-                                <h3 className="font-semibold text-foreground">{project.title}</h3>
-                                <Badge variant="outline" className="text-xs">
-                                  {project.projectType}
-                                </Badge>
+                      {activeProjects.slice(0, 4).map((project) => {
+                        const deadline = project.deadline ? new Date(project.deadline) : null
+                        const now = new Date()
+                        const daysUntilDeadline = deadline ? Math.ceil((deadline.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)) : null
+                        const isOverdue = daysUntilDeadline !== null && daysUntilDeadline < 0
+                        const isDeadlineSoon = daysUntilDeadline !== null && daysUntilDeadline >= 0 && daysUntilDeadline <= 3
+
+                        // Count pending apps for this project
+                        const projectApps = enrichedApplications.filter((a: any) => a.projectId === project._id?.toString())
+                        const projectPending = projectApps.filter((a: any) => a.status === "pending").length
+
+                        return (
+                          <div key={project._id?.toString()} className="p-4 border rounded-lg hover:border-primary/50 transition-colors">
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                              <div className="flex-1">
+                                <div className="flex items-center gap-2 mb-2">
+                                  <h3 className="font-semibold text-foreground">{project.title}</h3>
+                                  <Badge variant="outline" className="text-xs">
+                                    {project.projectType}
+                                  </Badge>
+                                  {isOverdue && (
+                                    <Badge className="bg-red-100 text-red-700 text-xs">
+                                      <AlertTriangle className="h-3 w-3 mr-1" />
+                                      {dict.ngo?.common?.overdue || "Overdue"}
+                                    </Badge>
+                                  )}
+                                  {isDeadlineSoon && (
+                                    <Badge className="bg-yellow-100 text-yellow-700 text-xs">
+                                      <Clock className="h-3 w-3 mr-1" />
+                                      {daysUntilDeadline === 0 ? (dict.ngo?.common?.deadlineToday || "Due today") : `${daysUntilDeadline}d left`}
+                                    </Badge>
+                                  )}
+                                </div>
+                                <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                                  <span className="flex items-center gap-1">
+                                    <Users className="h-4 w-4" />
+                                    {project.applicantsCount || 0} {dict.ngo?.common?.applications || "applications"}
+                                    {projectPending > 0 && (
+                                      <Badge className="ml-1 bg-yellow-100 text-yellow-700 text-[10px] px-1.5 py-0">{projectPending} new</Badge>
+                                    )}
+                                  </span>
+                                  <span className="flex items-center gap-1 capitalize">
+                                    <Clock className="h-4 w-4" />
+                                    {project.workMode}
+                                  </span>
+                                </div>
                               </div>
-                              <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                                <span className="flex items-center gap-1">
-                                  <Users className="h-4 w-4" />
-                                  {project.applicantsCount || 0} {dict.ngo?.common?.applications || "applications"}
-                                </span>
-                                <span className="flex items-center gap-1 capitalize">
-                                  <Clock className="h-4 w-4" />
-                                  {project.workMode}
-                                </span>
-                              </div>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <Button variant="outline" size="sm" asChild>
-                                <Link href={`/ngo/applications?project=${project._id?.toString()}`}>
-                                  {dict.ngo?.common?.viewApplications || "View Applications"}
-                                </Link>
-                              </Button>
+                              <div className="flex items-center gap-2">
+                                <Button variant="outline" size="sm" asChild>
+                                  <Link href={`/ngo/applications?project=${project._id?.toString()}`}>
+                                    {dict.ngo?.common?.viewApplications || "View Applications"}
+                                  </Link>
+                                </Button>
                             </div>
                           </div>
                         </div>
-                      ))}
+                        )
+                      })}
                     </div>
                   )}
                 </CardContent>
@@ -217,23 +245,33 @@ export default async function NGODashboard({ params }: { params: Promise<{ lang:
                     </div>
                   ) : (
                     <div className="space-y-3">
-                      {pendingApplications.slice(0, 5).map((application) => (
-                        <div key={application._id?.toString()} className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
-                          <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                            <span className="text-sm font-medium text-primary">V</span>
+                      {pendingApplications.slice(0, 5).map((application: any) => (
+                        <Link
+                          key={application._id?.toString()}
+                          href="/ngo/applications"
+                          className="flex items-center gap-3 p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors"
+                        >
+                          <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden shrink-0">
+                            {application.volunteerProfile?.avatar ? (
+                              <img src={application.volunteerProfile.avatar} alt="" className="w-full h-full object-cover" />
+                            ) : (
+                              <span className="text-sm font-medium text-primary">
+                                {application.volunteerProfile?.name?.charAt(0) || "V"}
+                              </span>
+                            )}
                           </div>
                           <div className="flex-1 min-w-0">
                             <p className="text-sm font-medium text-foreground truncate">
-                              {dict.ngo?.dashboard?.newApplication || "New Application"}
+                              {application.volunteerProfile?.name || (dict.ngo?.common?.impactAgent || "Impact Agent")}
                             </p>
                             <p className="text-xs text-muted-foreground truncate">
-                              {new Date(application.createdAt).toLocaleDateString()}
+                              {application.project?.title || (dict.ngo?.common?.opportunity || "Opportunity")}
                             </p>
                           </div>
-                          <Button size="sm" variant="ghost" className="text-primary" asChild>
-                            <Link href="/ngo/applications">{dict.ngo?.common?.view || "View"}</Link>
-                          </Button>
-                        </div>
+                          <span className="text-[10px] text-muted-foreground whitespace-nowrap">
+                            {new Date(application.appliedAt || application.createdAt).toLocaleDateString()}
+                          </span>
+                        </Link>
                       ))}
                     </div>
                   )}
@@ -273,7 +311,7 @@ export default async function NGODashboard({ params }: { params: Promise<{ lang:
                           href={`/ngo/find-talent`}
                           className="flex items-center gap-3 p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors"
                         >
-                          <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden flex-shrink-0">
+                          <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden shrink-0">
                             {match.volunteer.avatar ? (
                               <img src={match.volunteer.avatar} alt="" className="w-full h-full object-cover" />
                             ) : (
@@ -346,7 +384,7 @@ export default async function NGODashboard({ params }: { params: Promise<{ lang:
                       {dict.ngo?.dashboard?.subscription || "Subscription"}
                     </CardTitle>
                     {subscriptionStatus?.plan === "pro" && (
-                      <Badge className="bg-gradient-to-r from-primary to-secondary text-white">
+                      <Badge className="bg-linear-to-r from-primary to-secondary text-white">
                         <Zap className="h-3 w-3 mr-1" />
                         {dict.ngo?.common?.pro || "PRO"}
                       </Badge>
@@ -397,7 +435,7 @@ export default async function NGODashboard({ params }: { params: Promise<{ lang:
                     </>
                   ) : (
                     <>
-                    <div className="p-4 rounded-lg bg-gradient-to-br from-primary/10 to-secondary/10 border border-primary/20">
+                    <div className="p-4 rounded-lg bg-linear-to-br from-primary/10 to-secondary/10 border border-primary/20">
                       <div className="flex items-center gap-2 mb-2">
                         <Zap className="h-5 w-5 text-primary" />
                         <span className="font-medium text-foreground">{dict.ngo?.dashboard?.proPlanActive || "Pro Plan Active"}</span>

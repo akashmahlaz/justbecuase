@@ -851,6 +851,49 @@ export function getReEngagementEmailHtml(
   `
 }
 
+// Zero-result search alert email to admins
+export function getZeroResultAlertEmailHtml(query: string, engine: string, filters?: Record<string, any>): string {
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://justbecausenetwork.com"
+  const filterStr = filters && Object.keys(filters).length > 0
+    ? Object.entries(filters).map(([k, v]) => `<li><strong>${k}:</strong> ${v}</li>`).join("")
+    : "<li>None</li>"
+  return `
+    <!DOCTYPE html>
+    <html>
+    <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
+    <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+      <div style="text-align: center; margin-bottom: 30px;">
+        <h1 style="color: #10b981; margin: 0;">JustBeCause Network</h1>
+        <p style="color: #666; margin-top: 5px;">Search Analytics Alert</p>
+      </div>
+      <div style="background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 24px; margin-bottom: 20px;">
+        <h2 style="margin-top: 0; color: #dc2626;">⚠️ Zero Results Search Detected</h2>
+        <p>A user searched for something that returned <strong>no results</strong>. This could indicate a content gap on the platform.</p>
+        <table style="width: 100%; border-collapse: collapse; margin: 16px 0;">
+          <tr><td style="padding: 8px; border-bottom: 1px solid #e5e7eb; font-weight: 600; width: 120px;">Query</td><td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">"${query}"</td></tr>
+          <tr><td style="padding: 8px; border-bottom: 1px solid #e5e7eb; font-weight: 600;">Engine</td><td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${engine}</td></tr>
+          <tr><td style="padding: 8px; border-bottom: 1px solid #e5e7eb; font-weight: 600;">Time</td><td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${new Date().toISOString()}</td></tr>
+        </table>
+        <p style="margin-bottom: 4px; font-weight: 600;">Inferred Filters:</p>
+        <ul style="margin-top: 4px;">${filterStr}</ul>
+        <h3 style="margin-bottom: 8px;">Possible Reasons:</h3>
+        <ul>
+          <li>No volunteers/NGOs/opportunities match this skill or role</li>
+          <li>The search term may need to be added as a synonym</li>
+          <li>A new skill category might need to be created</li>
+        </ul>
+        <div style="text-align: center; margin-top: 20px;">
+          <a href="${appUrl}/admin/search-analytics" style="display: inline-block; background: #10b981; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600;">View Search Analytics</a>
+        </div>
+      </div>
+      <div style="background: #f9fafb; padding: 16px; text-align: center; border-top: 1px solid #e5e7eb;">
+        <p style="color: #9ca3af; font-size: 12px; margin: 0;">This is an automated alert from the JustBeCause platform search system.</p>
+      </div>
+    </body>
+    </html>
+  `
+}
+
 // ============================================
 // MILESTONE CELEBRATION EMAIL
 // ============================================
