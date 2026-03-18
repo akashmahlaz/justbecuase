@@ -177,6 +177,7 @@ async function DashboardContent({ dict }: { dict: any }) {
                       activity.type === "volunteer_signup" ? "bg-blue-500" :
                       activity.type === "ngo_signup" ? "bg-purple-500" :
                       activity.type === "project_created" ? "bg-orange-500" :
+                      activity.type === "contact_inquiry" ? "bg-pink-500" :
                       "bg-primary"
                     }`} />
                     <div className="flex-1">
@@ -236,17 +237,17 @@ async function DashboardContent({ dict }: { dict: any }) {
                 </div>
               </Link>
               
-              <Link href="/admin/support">
+              <Link href="/admin/contact-inquiries">
                 <div className="p-4 rounded-lg border hover:bg-muted transition-colors cursor-pointer">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <MessageSquare className="h-5 w-5 text-purple-600" />
                       <div>
-                        <p className="font-medium text-foreground">{dict.admin?.dashboard?.supportTickets || "Support Tickets"}</p>
-                        <p className="text-sm text-muted-foreground">{dict.admin?.dashboard?.userRequests || "User requests"}</p>
+                        <p className="font-medium text-foreground">{dict.admin?.dashboard?.contactInquiries || "Contact Inquiries"}</p>
+                        <p className="text-sm text-muted-foreground">{dict.admin?.dashboard?.newMessages || "New messages"}</p>
                       </div>
                     </div>
-                    <Badge variant="secondary">3</Badge>
+                    <Badge variant={analytics.newContactInquiries > 0 ? "destructive" : "secondary"}>{analytics.newContactInquiries}</Badge>
                   </div>
                 </div>
               </Link>
