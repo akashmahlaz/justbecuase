@@ -5,7 +5,7 @@ import { getDictionary } from "@/app/[lang]/dictionaries"
 import type { Locale } from "@/lib/i18n-config"
 import { getNGOProfile, browseVolunteers, getNGOSubscriptionStatus } from "@/lib/actions"
 import React from "react"
-import VolunteersPage from "../../volunteers/page"
+import VolunteersPage from "../../../volunteers/page"
 import { Users } from "lucide-react"
 import { BrowseGridSkeleton } from "@/components/ui/page-skeletons"
 
