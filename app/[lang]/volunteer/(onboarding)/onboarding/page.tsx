@@ -340,14 +340,17 @@ export default function VolunteerOnboardingPage() {
   const MAX_SKILLS = 10
 
   const addCustomSkill = () => {
-    const name = customSkillInput.trim()
-    if (!name) return
+    const name = (customSkillInput.trim() || skillSearch.trim())
+    if (!name || name.length < 2) return
     if (selectedSkills.length >= MAX_SKILLS) {
       setError(dict.volunteer?.onboarding?.maxSkillsReached || `You can select up to ${MAX_SKILLS} skills`)
       return
     }
-    const id = `custom_${name.toLowerCase().replace(/\s+/g, "_")}`
-    if (selectedSkills.some((s) => s.subskillId === id)) return
+    const id = `custom_${name.toLowerCase().replace(/[^a-z0-9\s]/g, "").replace(/\s+/g, "_")}`
+    if (selectedSkills.some((s) => s.subskillId === id)) {
+      setError("This skill is already added")
+      return
+    }
     setSelectedSkills([...selectedSkills, { categoryId: "custom", subskillId: id, level: "intermediate" }])
     setCustomSkillInput("")
     setSkillSearch("")
@@ -554,7 +557,7 @@ export default function VolunteerOnboardingPage() {
                     value={digit}
                     onChange={(e) => handlePhoneOtpChange(index, e.target.value)}
                     onKeyDown={(e) => handlePhoneOtpKeyDown(index, e)}
-                    className="w-10 h-12 text-center text-xl font-bold flex-shrink-0"
+                    className="w-10 h-12 text-center text-xl font-bold shrink-0"
                     autoFocus={index === 0}
                   />
                 ))}
@@ -793,22 +796,40 @@ export default function VolunteerOnboardingPage() {
         </Card>
       )}
 
-      {/* Add custom skill when search has no matching subskills */}
-      {skillSearch && filteredCategories.length === 0 && (
-        <div className="p-4 rounded-lg border border-dashed border-border bg-muted/30 space-y-3">
-          <p className="text-sm text-muted-foreground">
-            {dict.volunteer?.onboarding?.noSkillsFound || "No skills found matching your search."}
-          </p>
-          <div className="flex gap-2">
-            <Input
-              placeholder={dict.volunteer?.onboarding?.addCustomSkill || "Add a custom skill..."}
-              value={customSkillInput || skillSearch}
-              onChange={(e) => setCustomSkillInput(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && addCustomSkill()}
-              className="flex-1"
-            />
-            <Button size="sm" onClick={addCustomSkill} disabled={selectedSkills.length >= MAX_SKILLS}>
-              {dict.volunteer?.common?.add || "Add"}
+      {/* Add custom skill — show when searching (always available) */}
+      {skillSearch.trim().length >= 2 && (
+        <div className="p-4 rounded-lg border border-dashed border-primary/30 bg-primary/5 space-y-3">
+          {filteredCategories.length === 0 && (
+            <p className="text-sm text-muted-foreground">
+              {dict.volunteer?.onboarding?.noSkillsFound || "No skills found matching your search."}
+            </p>
+          )}
+          <div className="flex gap-2 items-center">
+            <div className="flex-1">
+              <p className="text-xs text-muted-foreground mb-1">
+                {filteredCategories.length > 0
+                  ? "Can't find the exact skill? Add it as a custom skill:"
+                  : "Add it as a custom skill:"}
+              </p>
+              <Input
+                placeholder={dict.volunteer?.onboarding?.addCustomSkill || "Add a custom skill..."}
+                value={customSkillInput || skillSearch}
+                onChange={(e) => setCustomSkillInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault()
+                    addCustomSkill()
+                  }
+                }}
+              />
+            </div>
+            <Button
+              size="sm"
+              onClick={addCustomSkill}
+              disabled={selectedSkills.length >= MAX_SKILLS}
+              className="mt-5 shrink-0"
+            >
+              + {dict.volunteer?.common?.add || "Add"}
             </Button>
           </div>
         </div>
@@ -1212,9 +1233,10 @@ export default function VolunteerOnboardingPage() {
                 {selectedSkills.slice(0, 5).map((skill) => {
                   const category = skillCategories.find((c) => c.id === skill.categoryId)
                   const subskill = category?.subskills.find((s) => s.id === skill.subskillId)
+                  const displayName = subskill?.name || skill.subskillId.replace("custom_", "").replace(/_/g, " ")
                   return (
                     <Badge key={`${skill.categoryId}-${skill.subskillId}`} variant="secondary">
-                      {subskill?.name}
+                      {displayName}
                     </Badge>
                   )
                 })}
@@ -1258,7 +1280,7 @@ export default function VolunteerOnboardingPage() {
               {workPreferences.volunteerType === "both" && (
                 <div>
                   <h3 className="font-medium text-sm text-muted-foreground">{dict.volunteer?.onboarding?.reviewFreeHours || "Free Hours/Month"}</h3>
-                  <p className="text-foreground text-green-600">{workPreferences.freeHoursPerMonth || 0} {dict.volunteer?.common?.hours || "hours"}</p>
+                  <p className="text-green-600">{workPreferences.freeHoursPerMonth || 0} {dict.volunteer?.common?.hours || "hours"}</p>
                 </div>
               )}
               {(workPreferences.volunteerType === "paid" || workPreferences.volunteerType === "both") && (
@@ -1269,7 +1291,7 @@ export default function VolunteerOnboardingPage() {
                   </div>
                   <div>
                     <h3 className="font-medium text-sm text-muted-foreground">{dict.volunteer?.common?.discountedRate || "Discounted Rate"}</h3>
-                    <p className="text-foreground text-green-600">{getCurrencySymbol(workPreferences.currency || "USD")}{workPreferences.discountedRate || 0}/hr</p>
+                    <p className="text-green-600">{getCurrencySymbol(workPreferences.currency || "USD")}{workPreferences.discountedRate || 0}/hr</p>
                   </div>
                 </>
               )}
