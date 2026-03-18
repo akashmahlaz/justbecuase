@@ -178,6 +178,23 @@ export async function GET(request: NextRequest) {
         }
       }
 
+      // ── Rich search analytics tracking (ES) ──
+      const typeCounts: Record<string, number> = {}
+      finalResults.forEach(r => { typeCounts[r.type] = (typeCounts[r.type] || 0) + 1 })
+      trackEvent("search", "query", {
+        metadata: {
+          query,
+          engine: "elasticsearch",
+          count: finalResults.length,
+          took: result.took,
+          types: rawTypes || ["all"],
+          filters: filters ? Object.keys(filters) : [],
+          typeBreakdown: typeCounts,
+          zeroResult: finalResults.length === 0,
+          hasFilters: !!(filters && Object.keys(filters).length > 0),
+        },
+      })
+
       return NextResponse.json({
         success: true,
         results: finalResults,
@@ -197,7 +214,15 @@ export async function GET(request: NextRequest) {
         types: mongoTypes,
         limit: Math.min(limit, 8),
       })
-      trackEvent("search", "suggest", { metadata: { query, engine: "mongodb", count: suggestions.length } })
+      trackEvent("search", "suggest", {
+        metadata: {
+          query,
+          engine: "mongodb",
+          count: suggestions.length,
+          types: mongoTypes || ["all"],
+          zeroResult: suggestions.length === 0,
+        },
+      })
       return NextResponse.json({
         success: true,
         suggestions,
@@ -213,7 +238,20 @@ export async function GET(request: NextRequest) {
       limit: Math.min(limit, 50),
     })
 
-    trackEvent("search", "query", { metadata: { query, engine: "mongodb", count: results.length, took: Date.now() - startTime } })
+    const mongoTook = Date.now() - startTime
+    const mongoTypeCounts: Record<string, number> = {}
+    results.forEach((r: any) => { mongoTypeCounts[r.type || "unknown"] = (mongoTypeCounts[r.type || "unknown"] || 0) + 1 })
+    trackEvent("search", "query", {
+      metadata: {
+        query,
+        engine: "mongodb",
+        count: results.length,
+        took: mongoTook,
+        types: mongoTypes || ["all"],
+        typeBreakdown: mongoTypeCounts,
+        zeroResult: results.length === 0,
+      },
+    })
     return NextResponse.json({
       success: true,
       results,
