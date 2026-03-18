@@ -25,20 +25,20 @@ export default async function ImpactDashboardPage({ params }: { params: Promise<
   const dict = await getDictionary(lang as Locale) as any
 
   const session = await auth.api.getSession({ headers: await headers() })
-  if (!session?.user) redirect("/auth/signin")
+  if (!session?.user) redirect(`/${lang}/auth/signin`)
 
   // Role verification
   if (session.user.role !== "volunteer") {
-    if (session.user.role === "ngo") redirect("/ngo/dashboard")
-    else if (session.user.role === "admin") redirect("/admin")
-    else redirect("/auth/role-select")
+    if (session.user.role === "ngo") redirect(`/${lang}/ngo/dashboard`)
+    else if (session.user.role === "admin") redirect(`/${lang}/admin`)
+    else redirect(`/${lang}/auth/role-select`)
   }
 
   // Redirect to onboarding if not completed
-  if (!session.user.isOnboarded) redirect("/volunteer/onboarding")
+  if (!session.user.isOnboarded) redirect(`/${lang}/volunteer/onboarding`)
 
   const profile = await getVolunteerProfile()
-  if (!profile) redirect("/volunteer/onboarding")
+  if (!profile) redirect(`/${lang}/volunteer/onboarding`)
 
   const [badgesResult, reviewsResult] = await Promise.all([
     getUserBadges(session.user.id),
