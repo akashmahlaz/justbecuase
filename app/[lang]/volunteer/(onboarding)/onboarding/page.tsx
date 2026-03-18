@@ -143,6 +143,7 @@ export default function VolunteerOnboardingPage() {
   const [selectedSkills, setSelectedSkills] = useState<SelectedSkill[]>([])
   const [activeCategory, setActiveCategory] = useState<string | null>(null)
   const [skillSearch, setSkillSearch] = useState("")
+  const [customSkillInput, setCustomSkillInput] = useState("")
 
   // Step 3: Causes & Interests
   const [selectedCauses, setSelectedCauses] = useState<string[]>([])
@@ -336,6 +337,21 @@ export default function VolunteerOnboardingPage() {
   }
 
   const MAX_SKILLS = 10
+
+  const addCustomSkill = () => {
+    const name = customSkillInput.trim()
+    if (!name) return
+    if (selectedSkills.length >= MAX_SKILLS) {
+      setError(dict.volunteer?.onboarding?.maxSkillsReached || `You can select up to ${MAX_SKILLS} skills`)
+      return
+    }
+    const id = `custom_${name.toLowerCase().replace(/\s+/g, "_")}`
+    if (selectedSkills.some((s) => s.subskillId === id)) return
+    setSelectedSkills([...selectedSkills, { categoryId: "custom", subskillId: id, level: "intermediate" }])
+    setCustomSkillInput("")
+    setSkillSearch("")
+    setError("")
+  }
 
   const handleSkillToggle = (categoryId: string, subskillId: string) => {
     const existing = selectedSkills.find(
@@ -768,6 +784,27 @@ export default function VolunteerOnboardingPage() {
         </Card>
       )}
 
+      {/* Add custom skill when search has no matching subskills */}
+      {skillSearch && filteredCategories.length === 0 && (
+        <div className="p-4 rounded-lg border border-dashed border-border bg-muted/30 space-y-3">
+          <p className="text-sm text-muted-foreground">
+            {dict.volunteer?.onboarding?.noSkillsFound || "No skills found matching your search."}
+          </p>
+          <div className="flex gap-2">
+            <Input
+              placeholder={dict.volunteer?.onboarding?.addCustomSkill || "Add a custom skill..."}
+              value={customSkillInput || skillSearch}
+              onChange={(e) => setCustomSkillInput(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && addCustomSkill()}
+              className="flex-1"
+            />
+            <Button size="sm" onClick={addCustomSkill} disabled={selectedSkills.length >= MAX_SKILLS}>
+              {dict.volunteer?.common?.add || "Add"}
+            </Button>
+          </div>
+        </div>
+      )}
+
       {selectedSkills.length > 0 && (
         <div className="p-4 rounded-lg bg-muted/50">
           <p className="text-sm text-muted-foreground mb-2">
@@ -778,9 +815,17 @@ export default function VolunteerOnboardingPage() {
               const category = skillCategories.find((c) => c.id === skill.categoryId)
               const subskill = category?.subskills.find((s) => s.id === skill.subskillId)
               const level = experienceLevels.find((l) => l.id === skill.level)
+              const displayName = subskill?.name || skill.subskillId.replace("custom_", "").replace(/_/g, " ")
               return (
-                <Badge key={`${skill.categoryId}-${skill.subskillId}`} variant="secondary">
-                  {subskill?.name} ({level?.name})
+                <Badge key={`${skill.categoryId}-${skill.subskillId}`} variant="secondary" className="gap-1">
+                  {displayName} ({level?.name})
+                  <button
+                    type="button"
+                    className="ml-1 hover:text-destructive"
+                    onClick={() => setSelectedSkills(selectedSkills.filter((s) => !(s.categoryId === skill.categoryId && s.subskillId === skill.subskillId)))}
+                  >
+                    ×
+                  </button>
                 </Badge>
               )
             })}
@@ -1288,6 +1333,16 @@ export default function VolunteerOnboardingPage() {
                     setError(dict.volunteer?.onboarding?.locationRequired || "Please enter your location")
                     return
                   }
+                }
+                // Validate step 2: at least 1 skill required
+                if (step === 2 && selectedSkills.length === 0) {
+                  setError(dict.volunteer?.onboarding?.selectAtLeastOneSkill || "Please select at least one skill")
+                  return
+                }
+                // Validate step 3: at least 1 cause required
+                if (step === 3 && selectedCauses.length === 0) {
+                  setError(dict.volunteer?.onboarding?.selectAtLeastOneCause || "Please select at least one cause")
+                  return
                 }
                 setError("")
                 setStep(step + 1)

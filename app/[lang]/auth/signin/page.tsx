@@ -2,7 +2,8 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect, Suspense } from "react"
+import { useSearchParams } from "next/navigation"
 import LocaleLink from "@/components/locale-link"
 import Image from "next/image"
 import { useRouter } from "next/navigation"
@@ -16,14 +17,36 @@ import { signIn, getSession } from "@/lib/auth-client"
 import { useDictionary } from "@/components/dictionary-provider"
 
 export default function SignInPage() {
+  return (
+    <Suspense fallback={null}>
+      <SignInPageInner />
+    </Suspense>
+  )
+}
+
+function SignInPageInner() {
   const dict = useDictionary()
   const a = (dict as any).auth || {}
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [isLoading, setIsLoading] = useState(false)
   const [socialLoading, setSocialLoading] = useState<"google" | "linkedin" | null>(null)
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [error, setError] = useState("")
+
+  // Check for OAuth callback errors in URL
+  useEffect(() => {
+    const errorParam = searchParams.get("error")
+    if (errorParam) {
+      const errorMessages: Record<string, string> = {
+        invalid_code: a.oauthInvalidCode || "Sign-in session expired. Please try again.",
+        access_denied: a.oauthAccessDenied || "Access was denied. Please try again or use a different sign-in method.",
+        server_error: a.oauthServerError || "The sign-in service is temporarily unavailable. Please try again later.",
+      }
+      setError(errorMessages[errorParam] || a.oauthGenericError || "Sign-in failed. Please try again.")
+    }
+  }, [searchParams])
 
   // Handle redirect after successful login
   const handlePostLoginRedirect = async () => {
