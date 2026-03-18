@@ -7,19 +7,22 @@ import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar"
 
 export default async function AdminLayout({
   children,
+  params,
 }: {
   children: React.ReactNode
+  params: Promise<{ lang: string }>
 }) {
+  const { lang } = await params
   const session = await auth.api.getSession({
     headers: await headers(),
   })
 
   if (!session?.user) {
-    redirect("/auth/signin")
+    redirect(`/${lang}/auth/signin`)
   }
 
   if (session.user.role !== "admin") {
-    redirect("/")
+    redirect(`/${lang}`)
   }
 
   return (
