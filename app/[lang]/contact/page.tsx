@@ -152,7 +152,7 @@ function ContactPageContent() {
                       {c.emailUsDesc || "For general inquiries and support."}
                     </p>
                     <a href="mailto:hello@justbecausenetwork.com" className="text-primary hover:underline">
-                      hello@justbecausenetwork.com
+                      partner@justbecausenetwork.com
                     </a>
                   </div>
                 </CardContent>
@@ -164,8 +164,8 @@ function ContactPageContent() {
                   <div>
                     <h3 className="font-semibold mb-1">{c.visitUs || "Visit Us"}</h3>
                     <p className="text-sm text-muted-foreground">
-                      123 Impact Way, Tech Park<br />
-                      Bangalore, Karnataka 560001<br />
+                       <br />
+                      mysore, Karnataka<br />
                       India
                     </p>
                   </div>
@@ -180,8 +180,8 @@ function ContactPageContent() {
                     <p className="text-sm text-muted-foreground mb-2">
                       {c.callUsHours || "Mon-Fri from 9am to 6pm."}
                     </p>
-                    <a href="tel:+919876543210" className="text-primary hover:underline">
-                      +91 98765 43210
+                    <a href="tel:+917814002784" className="text-primary hover:underline">
+                      +91 7814002784
                     </a>
                   </div>
                 </CardContent>

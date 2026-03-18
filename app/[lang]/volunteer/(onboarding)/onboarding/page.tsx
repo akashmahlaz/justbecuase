@@ -39,6 +39,7 @@ import { uploadToCloudinary, validateImageFile } from "@/lib/upload"
 import { authClient } from "@/lib/auth-client"
 import { OnboardingPageSkeleton } from "@/components/ui/page-skeletons"
 import { useDictionary } from "@/components/dictionary-provider"
+import { OnboardingBioHelper } from "@/components/ai/onboarding-bio-helper"
 
 type SelectedSkill = {
   categoryId: string
@@ -646,6 +647,14 @@ export default function VolunteerOnboardingPage() {
             value={profile.bio}
             onChange={(e) => setProfile({ ...profile, bio: e.target.value })}
             rows={4}
+          />
+          <OnboardingBioHelper
+            name={session?.user?.name || ""}
+            location={profile.location}
+            currentBio={profile.bio}
+            linkedinUrl={profile.linkedinUrl}
+            role="volunteer"
+            onApply={(bio) => setProfile({ ...profile, bio })}
           />
         </div>
 
