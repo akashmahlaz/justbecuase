@@ -1,108 +1,208 @@
 "use client"
 
-import { testimonials } from "@/lib/data"
-import { Quote, ShieldCheck, Zap, Globe } from "lucide-react"
+import {
+  featuredTestimonial,
+  testimonialRow1,
+  testimonialRow2,
+  type Testimonial,
+} from "@/lib/data"
+import { Star } from "lucide-react"
 import { useDictionary } from "@/components/dictionary-provider"
+import { Marquee } from "@/components/ui/marquee"
+import { Highlighter } from "@/components/ui/highlighter"
+import { BlurFade } from "@/components/ui/blur-fade"
+
+/* ── Helper: render quote with highlighted fragment ── */
+
+function HighlightedQuote({ quote, highlight }: { quote: string; highlight: string }) {
+  const idx = quote.indexOf(highlight)
+  if (idx === -1) return <>&ldquo;{quote}&rdquo;</>
+  return (
+    <>
+      &ldquo;{quote.slice(0, idx)}
+      <Highlighter action="highlight" color="hsl(var(--primary) / 0.25)" animationDuration={800} isView>
+        {highlight}
+      </Highlighter>
+      {quote.slice(idx + highlight.length)}&rdquo;
+    </>
+  )
+}
+
+/* ── Star rating ── */
+
+function Stars({ size = "sm" }: { size?: "sm" | "lg" }) {
+  const s = size === "lg" ? "size-5" : "size-3.5"
+  return (
+    <div className="flex gap-0.5">
+      {Array.from({ length: 5 }).map((_, i) => (
+        <Star key={i} className={`${s} fill-amber-400 text-amber-400`} />
+      ))}
+    </div>
+  )
+}
+
+/* ── Avatar with image fallback to initials ── */
+
+function Avatar({
+  name,
+  image,
+  size = "sm",
+}: {
+  name: string
+  image: string
+  size?: "sm" | "lg"
+}) {
+  const dim = size === "lg" ? "size-14" : "size-11"
+  const ring = size === "lg" ? "ring-4" : "ring-2"
+  const textSize = size === "lg" ? "text-sm" : "text-[11px]"
+  const initials = name
+    .split(" ")
+    .map((n) => n[0])
+    .join("")
+  return (
+    <div className={`relative ${dim}`}>
+      <img
+        src={image}
+        alt={name}
+        className={`${dim} rounded-full object-cover ${ring} ring-muted bg-muted`}
+        loading="lazy"
+        onError={(e) => {
+          const target = e.currentTarget
+          target.style.display = "none"
+          const next = target.nextElementSibling
+          if (next instanceof HTMLElement) next.style.display = "flex"
+        }}
+      />
+      <div
+        className={`${dim} items-center justify-center rounded-full bg-primary text-primary-foreground ${textSize} font-bold tracking-wider ${ring} ring-muted hidden`}
+      >
+        {initials}
+      </div>
+    </div>
+  )
+}
+
+/* ── Tweet-card style Testimonial (used inside marquee) ── */
+
+function TestimonialCard({ quote, highlight, author, role, organization, avatar, tag, type }: Testimonial) {
+  return (
+    <div className="w-90 rounded-2xl border border-border bg-card p-7 shadow-sm hover:shadow-md hover:border-border/80 transition-all duration-500">
+      {/* Top row: avatar + info + tag */}
+      <div className="flex items-start gap-3.5 mb-5">
+        <Avatar name={author} image={avatar} />
+        <div className="min-w-0 flex-1">
+          <p className="text-[13px] font-semibold text-foreground truncate">{author}</p>
+          <p className="text-[11px] text-muted-foreground truncate">{organization}</p>
+        </div>
+        <span className="shrink-0 text-[10px] font-bold uppercase tracking-[2px] text-muted-foreground/50">
+          {tag}
+        </span>
+      </div>
+
+      {/* Quote with highlighted text */}
+      <p className="text-[14px] leading-[1.75] text-muted-foreground mb-5">
+        <HighlightedQuote quote={quote} highlight={highlight} />
+      </p>
+
+      {/* Bottom: stars + role */}
+      <div className="flex items-center justify-between pt-5 border-t border-border">
+        <Stars />
+        <p className="text-[11px] text-muted-foreground truncate">
+          {role} · {type}
+        </p>
+      </div>
+    </div>
+  )
+}
+
+/* ── Main Section ── */
 
 export function Testimonials() {
   const dict = useDictionary()
   const home = dict.home || {}
 
   return (
-    <section className="py-24 bg-background">
-      <div className="container mx-auto px-6">
-        {/* Modern Minimalist Header */}
-        <div className="max-w-3xl mb-16">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-muted border border-border mb-6">
-            <Zap className="h-3 w-3 text-foreground fill-foreground" />
-            <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">{home.theNetworkEffect || "The Network Effect"}</span>
+    <section className="relative py-24 sm:py-32 overflow-hidden">
+      <div className="max-w-6xl mx-auto px-6">
+        {/* Header */}
+        <BlurFade delay={0.1} inView>
+          <div className="text-center mb-20">
+            <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-[3px] mb-4">
+              {home.theNetworkEffect || "Wall of love"}
+            </p>
+            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-foreground tracking-tight leading-[1.15]">
+              {home.testimonialsTitle || (
+                <>
+                  Trusted by the architects of{" "}
+                  <br />
+                  <span className="text-muted-foreground">social change.</span>
+                </>
+              )}
+            </h2>
           </div>
-          <h2 className="text-4xl md:text-5xl font-semibold text-foreground tracking-tight mb-6">
-            {home.testimonialsTitle || "Trusted by the architects of social change."}
-          </h2>
-          <p className="text-lg text-muted-foreground font-light">
-            {home.testimonialsSubtitle || "Real stories from professional impact agents and the NGOs they've helped scale."}
-          </p>
-        </div>
+        </BlurFade>
 
-        {/* Bento Grid Layout */}
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
-          {(testimonials as any[]).map((testimonial, index) => (
-            <div 
-              key={testimonial.id}
-              className={`group relative overflow-hidden rounded-3xl border border-border bg-card p-8 transition-all duration-500 hover:shadow-[0_20px_50px_rgba(0,0,0,0.05)] hover:-translate-y-1 ${
-                index === 0 ? "md:col-span-8 md:row-span-2" : 
-                index === 1 ? "md:col-span-4" : 
-                "md:col-span-4"
-              }`}
-            >
-              {/* Top Row: Verification & Type */}
-              <div className="flex justify-between items-start mb-8">
-                <div className="flex items-center gap-2">
-                  <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center border border-border">
-                    <ShieldCheck className="h-4 w-4 text-foreground" />
-                  </div>
-                  <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">{home.verified || "Verified"} {testimonial.type}</span>
-                </div>
-                {index === 0 && (
-                  <div className="flex items-center gap-1 text-emerald-600 bg-emerald-50 px-2 py-1 rounded-md">
-                    <Globe className="h-3 w-3" />
-                    <span className="text-[9px] font-bold uppercase">{home.regionalImpact || "Regional Impact"}</span>
-                  </div>
-                )}
-              </div>
+        {/* Featured testimonial — hero quote card */}
+        <BlurFade delay={0.2} inView>
+          <div className="relative mx-auto max-w-3xl mb-20">
+            <div className="relative rounded-3xl border border-border bg-card p-10 sm:p-14 shadow-sm">
+              {/* Stars */}
+              <Stars size="lg" />
 
-              {/* The Quote - Dynamic sizing based on grid position */}
-              <div className="relative">
-                <Quote className="absolute -top-4 -left-2 h-12 w-12 text-muted/30 -z-10 group-hover:text-muted/50 transition-colors" />
-                <p className={`${
-                  index === 0 ? "text-2xl md:text-3xl" : "text-lg"
-                } font-medium text-foreground leading-snug tracking-tight mb-10`}>
-                  "{testimonial.quote}"
-                </p>
-              </div>
+              {/* Decorative quote mark */}
+              <svg
+                className="absolute top-8 right-10 size-16 text-muted"
+                viewBox="0 0 24 24"
+                fill="currentColor"
+              >
+                <path d="M4.583 17.321C3.553 16.227 3 15 3 13.011c0-3.5 2.457-6.637 6.03-8.188l.893 1.378c-3.335 1.804-3.987 4.145-4.247 5.621.537-.278 1.24-.375 1.929-.311 1.804.167 3.226 1.648 3.226 3.489a3.5 3.5 0 01-3.5 3.5c-1.073 0-2.099-.49-2.748-1.179zm10 0C13.553 16.227 13 15 13 13.011c0-3.5 2.457-6.637 6.03-8.188l.893 1.378c-3.335 1.804-3.987 4.145-4.247 5.621.537-.278 1.24-.375 1.929-.311 1.804.167 3.226 1.648 3.226 3.489a3.5 3.5 0 01-3.5 3.5c-1.073 0-2.099-.49-2.748-1.179z" />
+              </svg>
 
-              {/* Skill Tags - Direct link to your platform's core logic */}
-              <div className="flex flex-wrap gap-2 mb-8">
-                {["UI/UX", "Strategy", "Impact"].map((tag) => (
-                  <span key={tag} className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground border border-border px-2 py-0.5 rounded">
-                    {tag}
-                  </span>
-                ))}
-              </div>
+              {/* Quote text with highlight */}
+              <p className="relative z-10 mt-6 text-[22px] sm:text-[26px] lg:text-[30px] font-semibold text-foreground leading-[1.4] tracking-tight">
+                <HighlightedQuote
+                  quote={featuredTestimonial.quote}
+                  highlight={featuredTestimonial.highlight}
+                />
+              </p>
 
-              {/* Bottom Attribution */}
-              <div className="flex items-center gap-4 border-t border-border pt-6">
-                <div className="relative">
-                  <img
-                    src={testimonial.avatar || "/placeholder.svg"}
-                    alt={`${testimonial.author} - ${testimonial.role}`}
-                    className="w-12 h-12 rounded-2xl object-cover ring-4 ring-muted"
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).src = "/placeholder.svg"
-                    }}
-                  />
-                  <div className="absolute -bottom-1 -right-1 h-4 w-4 bg-white rounded-full flex items-center justify-center shadow-sm">
-                    <div className="h-2 w-2 bg-emerald-500 rounded-full animate-pulse" />
-                  </div>
-                </div>
+              {/* Author row */}
+              <div className="mt-8 flex items-center gap-4">
+                <Avatar
+                  name={featuredTestimonial.author}
+                  image={featuredTestimonial.avatar}
+                  size="lg"
+                />
                 <div>
-                  <p className="text-xs font-black uppercase tracking-wider text-foreground">{testimonial.author}</p>
-                  <p className="text-[11px] text-muted-foreground font-medium">
-                    {testimonial.role} <span className="text-border mx-1">/</span> {testimonial.organization}
+                  <p className="text-[15px] font-semibold text-foreground">
+                    {featuredTestimonial.author}
+                  </p>
+                  <p className="text-[13px] text-muted-foreground">
+                    {featuredTestimonial.role} · {featuredTestimonial.organization}
                   </p>
                 </div>
+                <span className="ml-auto hidden sm:inline-block text-[10px] font-bold uppercase tracking-[2px] text-primary border border-border rounded-full px-4 py-1.5 bg-card">
+                  {featuredTestimonial.tag}
+                </span>
               </div>
             </div>
-          ))}
-        </div>
+          </div>
+        </BlurFade>
+      </div>
 
-        {/* CTA Link - To keep users moving */}
-        <div className="mt-16 text-center">
-          <button className="text-sm font-bold text-foreground border-b-2 border-foreground pb-1 hover:text-muted-foreground hover:border-muted-foreground transition-all">
-            {home.seeMoreStories || "See more success stories →"}
-          </button>
-        </div>
+      {/* ── Marquee rows (Magic UI) — full viewport width ── */}
+      <div className="space-y-5">
+        <Marquee pauseOnHover className="[--duration:45s] [--gap:1.25rem]">
+          {testimonialRow1.map((t) => (
+            <TestimonialCard key={t.id} {...t} />
+          ))}
+        </Marquee>
+
+        <Marquee pauseOnHover reverse className="[--duration:50s] [--gap:1.25rem]">
+          {testimonialRow2.map((t) => (
+            <TestimonialCard key={t.id} {...t} />
+          ))}
+        </Marquee>
       </div>
     </section>
   )
