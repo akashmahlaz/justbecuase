@@ -111,7 +111,9 @@ function useRecentSearches() {
     try {
       const stored = localStorage.getItem(RECENT_SEARCHES_KEY)
       if (stored) setRecentSearches(JSON.parse(stored))
-    } catch {}
+    } catch (err) {
+      // localStorage may be unavailable in private browsing
+    }
   }, [])
 
   const addRecentSearch = useCallback((query: string) => {
@@ -200,6 +202,8 @@ export function GlobalSearchSection() {
       setHasSearched(false)
       return
     }
+
+    if (query.length > 200) return
 
     // Cancel previous search request (race condition fix)
     abortControllerRef.current?.abort()
@@ -799,10 +803,28 @@ export function GlobalSearchSection() {
                                         className="w-12 h-12 rounded-full object-cover bg-muted ring-2 ring-background shadow-sm"
                                         loading="lazy"
                                         onError={(e) => {
-                                          (e.target as HTMLImageElement).style.display = "none"
-                                          const parent = (e.target as HTMLImageElement).parentElement
+                                          const img = e.target as HTMLImageElement
+                                          img.style.display = "none"
+                                          const parent = img.parentElement
                                           if (parent) {
-                                            parent.innerHTML = `<div class="w-12 h-12 rounded-full flex items-center justify-center ${config.badgeClass} ring-2 ring-background shadow-sm"><svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg></div>`
+                                            const fallback = document.createElement('div')
+                                            fallback.className = `w-12 h-12 rounded-full flex items-center justify-center ${config.badgeClass} ring-2 ring-background shadow-sm`
+                                            const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
+                                            svg.setAttribute('class', 'h-5 w-5')
+                                            svg.setAttribute('viewBox', '0 0 24 24')
+                                            svg.setAttribute('fill', 'none')
+                                            svg.setAttribute('stroke', 'currentColor')
+                                            svg.setAttribute('stroke-width', '2')
+                                            const path = document.createElementNS('http://www.w3.org/2000/svg', 'path')
+                                            path.setAttribute('d', 'M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2')
+                                            const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle')
+                                            circle.setAttribute('cx', '9')
+                                            circle.setAttribute('cy', '7')
+                                            circle.setAttribute('r', '4')
+                                            svg.appendChild(path)
+                                            svg.appendChild(circle)
+                                            fallback.appendChild(svg)
+                                            parent.replaceChild(fallback, img)
                                           }
                                         }}
                                       />

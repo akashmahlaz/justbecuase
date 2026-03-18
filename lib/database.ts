@@ -74,6 +74,7 @@ export const COLLECTIONS = {
   COUPONS: "coupons",
   COUPON_USAGES: "couponUsages",
   SEARCH_ANALYTICS: "searchAnalytics",
+  CONTACT_INQUIRIES: "contactInquiries",
 } as const
 
 // Helper: safely parse JSON with fallback
@@ -2191,5 +2192,74 @@ export const searchAnalyticsDb = {
       { $sort: { searchCount: -1 } },
       { $limit: limit },
     ]).toArray() as any
+  },
+}
+
+// ============================================
+// CONTACT INQUIRIES (Sales & General Contact)
+// ============================================
+export interface ContactInquiry {
+  _id?: ObjectId
+  firstName: string
+  lastName: string
+  email: string
+  message: string
+  source: "contact_page" | "pricing_contact_sales"
+  status: "new" | "in-progress" | "resolved" | "closed"
+  adminNotes?: string
+  respondedBy?: string
+  respondedAt?: Date
+  createdAt: Date
+  updatedAt: Date
+}
+
+export const contactInquiriesDb = {
+  async create(inquiry: Omit<ContactInquiry, "_id" | "createdAt" | "updatedAt" | "status">): Promise<string> {
+    const collection = await getCollection<ContactInquiry>(COLLECTIONS.CONTACT_INQUIRIES)
+    const result = await collection.insertOne({
+      ...inquiry,
+      status: "new",
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    } as ContactInquiry)
+    return result.insertedId.toString()
+  },
+
+  async findAll(filter?: { status?: string }): Promise<ContactInquiry[]> {
+    const collection = await getCollection<ContactInquiry>(COLLECTIONS.CONTACT_INQUIRIES)
+    const query: any = {}
+    if (filter?.status) query.status = filter.status
+    return collection.find(query).sort({ createdAt: -1 }).toArray()
+  },
+
+  async findById(id: string): Promise<ContactInquiry | null> {
+    const collection = await getCollection<ContactInquiry>(COLLECTIONS.CONTACT_INQUIRIES)
+    return collection.findOne({ _id: new ObjectId(id) })
+  },
+
+  async updateStatus(id: string, status: ContactInquiry["status"], adminNotes?: string, respondedBy?: string): Promise<boolean> {
+    const collection = await getCollection<ContactInquiry>(COLLECTIONS.CONTACT_INQUIRIES)
+    const updates: any = { status, updatedAt: new Date() }
+    if (adminNotes !== undefined) updates.adminNotes = adminNotes
+    if (respondedBy) {
+      updates.respondedBy = respondedBy
+      updates.respondedAt = new Date()
+    }
+    const result = await collection.updateOne(
+      { _id: new ObjectId(id) },
+      { $set: updates }
+    )
+    return result.modifiedCount > 0
+  },
+
+  async getStats(): Promise<{ total: number; new: number; inProgress: number; resolved: number }> {
+    const collection = await getCollection<ContactInquiry>(COLLECTIONS.CONTACT_INQUIRIES)
+    const [total, newCount, inProgress, resolved] = await Promise.all([
+      collection.countDocuments(),
+      collection.countDocuments({ status: "new" }),
+      collection.countDocuments({ status: "in-progress" }),
+      collection.countDocuments({ status: "resolved" }),
+    ])
+    return { total, new: newCount, inProgress, resolved }
   },
 }

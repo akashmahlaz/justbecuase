@@ -1262,3 +1262,46 @@ export function getMilestoneCelebrationEmailHtml(
     </html>
   `
 }
+
+// Contact inquiry notification email for team
+export function getContactInquiryEmailHtml(inquiry: {
+  firstName: string
+  lastName: string
+  email: string
+  message: string
+  source: string
+}): string {
+  const sourceLabel = inquiry.source === "pricing_contact_sales" ? "Pricing Page - Contact Sales" : "Contact Page"
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://justbecausenetwork.com"
+  return `
+    <!DOCTYPE html>
+    <html>
+    <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
+    <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+      <div style="border: 1px solid #e5e7eb; border-radius: 12px; overflow: hidden;">
+        <div style="background: linear-gradient(135deg, #10b981, #059669); padding: 24px; text-align: center;">
+          <h1 style="color: white; margin: 0; font-size: 22px;">New Contact Inquiry</h1>
+          <p style="color: rgba(255,255,255,0.85); margin: 8px 0 0 0; font-size: 14px;">${sourceLabel}</p>
+        </div>
+        <div style="padding: 24px;">
+          <table style="width: 100%; border-collapse: collapse; margin-bottom: 16px;">
+            <tr><td style="padding: 8px 0; color: #6b7280; width: 100px;">Name</td><td style="padding: 8px 0; font-weight: 600;">${inquiry.firstName} ${inquiry.lastName}</td></tr>
+            <tr><td style="padding: 8px 0; color: #6b7280;">Email</td><td style="padding: 8px 0;"><a href="mailto:${inquiry.email}" style="color: #10b981;">${inquiry.email}</a></td></tr>
+            <tr><td style="padding: 8px 0; color: #6b7280;">Source</td><td style="padding: 8px 0;">${sourceLabel}</td></tr>
+          </table>
+          <div style="background: #f3f4f6; padding: 16px; border-radius: 8px; margin: 16px 0;">
+            <p style="margin: 0 0 4px 0; color: #6b7280; font-size: 13px; font-weight: 600;">Message:</p>
+            <p style="margin: 0; color: #1f2937; white-space: pre-wrap;">${inquiry.message}</p>
+          </div>
+          <div style="margin-top: 20px; text-align: center;">
+            <a href="${appUrl}/en/admin/contact-inquiries" style="display: inline-block; background: #10b981; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 500;">View in Admin Dashboard</a>
+          </div>
+        </div>
+        <div style="background: #f9fafb; padding: 16px; text-align: center; border-top: 1px solid #e5e7eb;">
+          <p style="color: #9ca3af; font-size: 12px; margin: 0;">&copy; ${new Date().getFullYear()} JustBeCause Network</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `
+}

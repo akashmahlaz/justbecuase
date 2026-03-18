@@ -8,9 +8,11 @@ import { Heart, Building2, Loader2 } from "lucide-react"
 import { authClient } from "@/lib/auth-client"
 import { selectRole } from "@/lib/actions"
 import { AuthPageSkeleton } from "@/components/ui/page-skeletons"
+import { useLocale, localePath } from "@/hooks/use-locale"
 
 function RoleSelectContent() {
   const router = useRouter()
+  const locale = useLocale()
   
   const [isLoading, setIsLoading] = useState(false)
   const [selectedRole, setSelectedRole] = useState<"volunteer" | "ngo" | null>(null)
@@ -37,9 +39,9 @@ function RoleSelectContent() {
 
       // Redirect to appropriate onboarding
       if (role === "volunteer") {
-        router.push("/volunteer/onboarding")
+        router.push(localePath("/volunteer/onboarding", locale))
       } else {
-        router.push("/ngo/onboarding")
+        router.push(localePath("/ngo/onboarding", locale))
       }
     } catch (error) {
       console.error("Error updating role:", error)
@@ -52,7 +54,7 @@ function RoleSelectContent() {
   useEffect(() => {
     // Redirect to signin if not authenticated
     if (!isPending && !session?.user) {
-      router.push("/auth/signin")
+      router.push(localePath("/auth/signin", locale))
       return
     }
     
@@ -63,26 +65,26 @@ function RoleSelectContent() {
       // If user is already onboarded, redirect to dashboard
       if (isOnboarded) {
         if (role === "volunteer") {
-          router.push("/volunteer/dashboard")
+          router.push(localePath("/volunteer/dashboard", locale))
         } else if (role === "ngo") {
-          router.push("/ngo/dashboard")
+          router.push(localePath("/ngo/dashboard", locale))
         } else if (role === "admin") {
-          router.push("/admin")
+          router.push(localePath("/admin", locale))
         }
         return
       }
       
       // If user has a valid role but not onboarded, redirect to onboarding
       if (role === "volunteer") {
-        router.push("/volunteer/onboarding")
+        router.push(localePath("/volunteer/onboarding", locale))
         return
       } else if (role === "ngo") {
-        router.push("/ngo/onboarding")
+        router.push(localePath("/ngo/onboarding", locale))
         return
       }
       // Otherwise, user needs to select a role (stay on this page)
     }
-  }, [session, isPending, router])
+  }, [session, isPending, router, locale])
 
   // Show loading while checking session
   if (isPending) {

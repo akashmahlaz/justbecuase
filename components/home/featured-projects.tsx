@@ -16,6 +16,7 @@ export function FeaturedProjects() {
   const home = dict.home || {}
   const [featuredProjects, setFeaturedProjects] = useState<Awaited<ReturnType<typeof browseProjects>>>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const scroll = (direction: "left" | "right") => {
@@ -28,8 +29,22 @@ export function FeaturedProjects() {
   useEffect(() => {
     browseProjects()
       .then(projects => setFeaturedProjects(projects.slice(0, 6)))
+      .catch(() => setError(true))
       .finally(() => setLoading(false));
   }, []);
+
+  if (error) {
+    return (
+      <section className="relative py-24 bg-background overflow-hidden">
+        <div className="container mx-auto px-4 md:px-6 text-center py-12">
+          <p className="text-muted-foreground mb-4">{home.failedToLoad || "Failed to load featured opportunities."}</p>
+          <button onClick={() => { setError(false); setLoading(true); browseProjects().then(p => setFeaturedProjects(p.slice(0, 6))).catch(() => setError(true)).finally(() => setLoading(false)) }} className="text-sm text-primary hover:underline">
+            {home.retry || "Retry"}
+          </button>
+        </div>
+      </section>
+    )
+  }
 
   return (
     <section className="relative py-24 bg-background overflow-hidden">
