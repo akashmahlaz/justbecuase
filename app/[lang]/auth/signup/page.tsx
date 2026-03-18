@@ -73,6 +73,19 @@ function SignUpPageInner() {
     }
   }, [resendCooldown])
 
+  // Check for OAuth callback errors in URL
+  useEffect(() => {
+    const errorParam = searchParams.get("error")
+    if (errorParam) {
+      const errorMessages: Record<string, string> = {
+        invalid_code: a.oauthInvalidCode || "Sign-up session expired. Please try again.",
+        access_denied: a.oauthAccessDenied || "Access was denied. Please try again or use a different sign-up method.",
+        server_error: a.oauthServerError || "The sign-up service is temporarily unavailable. Please try again later.",
+      }
+      setError(errorMessages[errorParam] || a.oauthGenericError || "Sign-up failed. Please try again.")
+    }
+  }, [searchParams])
+
   // Handle social sign-in/sign-up (Google/LinkedIn)
   // For social signup, we redirect to role-select since we don't know their intended role
   const handleSocialSignUp = async (provider: "google" | "linkedin") => {

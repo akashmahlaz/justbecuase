@@ -29,6 +29,7 @@ import {
   Phone,
   ShieldCheck,
   X,
+  Search,
 } from "lucide-react"
 import { skillCategories, causes } from "@/lib/skills-data"
 import { saveNGOOnboarding, completeOnboarding, saveOnboardingDraft, getOnboardingDraft, deleteOnboardingDraft } from "@/lib/actions"
@@ -284,6 +285,8 @@ export default function NGOOnboardingPage() {
   // Step 3: Skills needed
   const [requiredSkills, setRequiredSkills] = useState<RequiredSkill[]>([])
   const [activeCategory, setActiveCategory] = useState<string | null>(null)
+  const [skillSearch, setSkillSearch] = useState("")
+  const [customSkillInput, setCustomSkillInput] = useState("")
 
   const progress = (step / totalSteps) * 100
 
@@ -359,6 +362,21 @@ export default function NGOOnboardingPage() {
   }
 
   const MAX_SKILLS = 15
+
+  const addCustomSkill = () => {
+    const name = customSkillInput.trim()
+    if (!name) return
+    if (requiredSkills.length >= MAX_SKILLS) {
+      setError(dict.ngo?.onboarding?.maxSkillsReached || `You can select up to ${MAX_SKILLS} skills`)
+      return
+    }
+    const id = `custom_${name.toLowerCase().replace(/\s+/g, "_")}`
+    if (requiredSkills.some((s) => s.subskillId === id)) return
+    setRequiredSkills([...requiredSkills, { categoryId: "custom", subskillId: id, priority: "nice-to-have" }])
+    setCustomSkillInput("")
+    setSkillSearch("")
+    setError("")
+  }
 
   const handleSkillToggle = (categoryId: string, subskillId: string) => {
     const existing = requiredSkills.find(
@@ -767,7 +785,16 @@ export default function NGOOnboardingPage() {
     </div>
   )
 
-  const renderStep3 = () => (
+  const renderStep3 = () => {
+    const searchLower = skillSearch.toLowerCase()
+    const filteredCategories = skillSearch
+      ? skillCategories.filter((cat) =>
+          cat.name.toLowerCase().includes(searchLower) ||
+          cat.subskills.some((s) => s.name.toLowerCase().includes(searchLower))
+        )
+      : skillCategories
+
+    return (
     <div className="space-y-6">
       <div>
         <h2 className="text-xl font-semibold text-foreground mb-2">{dict.ngo?.onboarding?.skillsLookingFor || "Skills You're Looking For"}</h2>
@@ -776,8 +803,19 @@ export default function NGOOnboardingPage() {
         </p>
       </div>
 
+      {/* Search input */}
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <Input
+          placeholder={dict.ngo?.onboarding?.searchSkills || "Search skills..."}
+          value={skillSearch}
+          onChange={(e) => setSkillSearch(e.target.value)}
+          className="pl-10"
+        />
+      </div>
+
       <div className="flex flex-wrap gap-2 mb-4">
-        {skillCategories.map((category) => (
+        {filteredCategories.map((category) => (
           <Button
             key={category.id}
             variant={activeCategory === category.id ? "secondary" : "outline"}
@@ -809,7 +847,9 @@ export default function NGOOnboardingPage() {
             <div className="grid sm:grid-cols-2 gap-2">
               {skillCategories
                 .find((c) => c.id === activeCategory)
-                ?.subskills.map((subskill) => {
+                ?.subskills
+                .filter((subskill) => !skillSearch || subskill.name.toLowerCase().includes(searchLower))
+                .map((subskill) => {
                   const selected = isSkillSelected(activeCategory, subskill.id)
                   const skill = requiredSkills.find(
                     (s) => s.categoryId === activeCategory && s.subskillId === subskill.id
@@ -860,6 +900,27 @@ export default function NGOOnboardingPage() {
         </Card>
       )}
 
+      {/* Add custom skill when search has no matching subskills */}
+      {skillSearch && filteredCategories.length === 0 && (
+        <div className="p-4 rounded-lg border border-dashed border-border bg-muted/30 space-y-3">
+          <p className="text-sm text-muted-foreground">
+            {dict.ngo?.onboarding?.noSkillsFound || "No skills found matching your search."}
+          </p>
+          <div className="flex gap-2">
+            <Input
+              placeholder={dict.ngo?.onboarding?.addCustomSkill || "Add a custom skill..."}
+              value={customSkillInput || skillSearch}
+              onChange={(e) => setCustomSkillInput(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && addCustomSkill()}
+              className="flex-1"
+            />
+            <Button size="sm" onClick={addCustomSkill} disabled={requiredSkills.length >= MAX_SKILLS}>
+              {dict.ngo?.common?.add || "Add"}
+            </Button>
+          </div>
+        </div>
+      )}
+
       {requiredSkills.length > 0 && (
         <div className="p-4 rounded-lg bg-muted/50">
           <p className="text-sm text-muted-foreground mb-2">
@@ -869,12 +930,21 @@ export default function NGOOnboardingPage() {
             {requiredSkills.map((skill) => {
               const category = skillCategories.find((c) => c.id === skill.categoryId)
               const subskill = category?.subskills.find((s) => s.id === skill.subskillId)
+              const displayName = subskill?.name || skill.subskillId.replace("custom_", "").replace(/_/g, " ")
               return (
                 <Badge
                   key={`${skill.categoryId}-${skill.subskillId}`}
                   variant={skill.priority === "must-have" ? "default" : "secondary"}
+                  className="gap-1"
                 >
-                  {subskill?.name}
+                  {displayName}
+                  <button
+                    type="button"
+                    className="ml-1 hover:text-destructive"
+                    onClick={() => setRequiredSkills(requiredSkills.filter((s) => !(s.categoryId === skill.categoryId && s.subskillId === skill.subskillId)))}
+                  >
+                    ×
+                  </button>
                 </Badge>
               )
             })}
@@ -882,7 +952,7 @@ export default function NGOOnboardingPage() {
         </div>
       )}
     </div>
-  )
+  )}
 
   const renderStep4 = () => (
     <div className="space-y-6">
@@ -1093,7 +1163,7 @@ export default function NGOOnboardingPage() {
             <Button 
               variant="secondary" 
               onClick={() => {
-                // Validate step 1: phone must be verified
+                // Validate step 1: phone must be verified + org details
                 if (step === 1) {
                   if (phoneVerificationStep !== "verified") {
                     setError(dict.ngo?.onboarding?.verifyPhoneError || "Please verify your phone number to continue")
@@ -1107,6 +1177,16 @@ export default function NGOOnboardingPage() {
                     setError(dict.ngo?.onboarding?.regNumberError || "Please enter your organization registration number")
                     return
                   }
+                }
+                // Validate step 2: at least 1 cause required
+                if (step === 2 && selectedCauses.length === 0) {
+                  setError(dict.ngo?.onboarding?.selectAtLeastOneCause || "Please select at least one cause area")
+                  return
+                }
+                // Validate step 3: at least 1 skill required
+                if (step === 3 && requiredSkills.length === 0) {
+                  setError(dict.ngo?.onboarding?.selectAtLeastOneSkill || "Please select at least one skill you need")
+                  return
                 }
                 setError("")
                 setStep(step + 1)
