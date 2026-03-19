@@ -2,11 +2,11 @@
 // Idealist Scraper — HTML scraping via Cheerio
 // ============================================
 // Scrapes volunteer opportunities from idealist.org
-// Uses their public search page: https://www.idealist.org/en/volunteer-opportunities
+// Uses their public search page with /volunteer-opportunity/ links
 
 import * as cheerio from "cheerio"
 import type { ScrapedOpportunity } from "../types"
-import { mapSkillTags, mapCauseTags, detectWorkMode, detectExperienceLevel } from "../skill-mapper"
+import { mapSkillTags, mapCauseTags, detectWorkMode } from "../skill-mapper"
 
 const BASE_URL = "https://www.idealist.org"
 const SEARCH_URL = `${BASE_URL}/en/volunteer-opportunities`
@@ -23,7 +23,7 @@ export async function* scrapeIdealist(
   const maxPages = parseInt(settings.maxPages || "5", 10)
 
   for (let page = 1; page <= maxPages; page++) {
-    const url = `${SEARCH_URL}?page=${page}&q=&type=VOLOP&remote=TRUE`
+    const url = `${SEARCH_URL}?page=${page}&q=&type=VOLOP`
 
     const response = await fetch(url, {
       headers: HEADERS,
@@ -32,8 +32,7 @@ export async function* scrapeIdealist(
 
     if (!response.ok) {
       if (response.status === 429) {
-        // Rate limited — stop
-        console.warn("[Idealist Scraper] Rate limited, stopping")
+        console.warn("[Idealist] Rate limited, stopping")
         return
       }
       throw new Error(`Idealist fetch error: ${response.status}`)
@@ -42,95 +41,69 @@ export async function* scrapeIdealist(
     const html = await response.text()
     const $ = cheerio.load(html)
 
-    // Idealist uses structured listing cards
-    const listings = $('a[href*="/volunteer-opp/"]')
-
+    // Idealist uses /volunteer-opportunity/ in listing links
+    const listings = $('a[href*="/volunteer-opportunity/"]')
     if (listings.length === 0) break
 
     const processedUrls = new Set<string>()
 
-    listings.each((_, el) => {
-      const $el = $(el)
+    for (let i = 0; i < listings.length; i++) {
+      const $el = $(listings[i])
       const href = $el.attr("href")
-      if (!href || processedUrls.has(href)) return
+      if (!href || processedUrls.has(href)) continue
       processedUrls.add(href)
 
-      const title = $el.find("h3, h4, [class*='title'], [class*='Title']").first().text().trim()
+      // Title is inside an h3 within the link
+      const title = $el.find("h3").first().text().trim()
         || $el.text().trim().split("\n")[0]?.trim()
+      if (!title || title.length < 5) continue
 
-      if (!title || title.length < 5) return
+      // The link text is concatenated: "Title + OrgName + On-site/Remote + City, State + Posted X ago"
+      const fullText = $el.text().trim()
+      const textAfterTitle = fullText.replace(title, "").trim()
 
-      // Try to extract org name and location from the card
-      const cardText = $el.closest("[class*='card'], [class*='listing'], li, article").text()
-      const orgName = extractOrgName($, $el)
-      const location = extractLocation(cardText)
+      // Parse parts: org name, work mode, location, posted date
+      const parts = textAfterTitle.split(/\s{2,}|\n/).map(s => s.trim()).filter(Boolean)
+      const orgName = parts[0] || ""
+      const location = extractLocationFromParts(parts)
+      const workMode = detectWorkMode(fullText)
 
       const fullUrl = href.startsWith("http") ? href : `${BASE_URL}${href}`
-      const externalId = href.split("/").pop() || href
+      const externalId = href.split("/").filter(Boolean).pop() || href
 
-      // We can't get full descriptions from the listing page,
-      // so short description from card text
-      const snippetText = cardText.replace(title, "").replace(orgName, "").trim().slice(0, 500)
-
-      const allText = [title, snippetText, location].join(" ")
+      const allText = [title, orgName, location].join(" ")
       const causes = mapCauseTags(allText.split(/[\s,;]+/).filter(w => w.length > 3))
       const skills = mapSkillTags(allText.split(/[\s,;]+/).filter(w => w.length > 3))
 
-      // Queue the item — will be yielded outside .each()
-      ;(listings as any).__items = (listings as any).__items || []
-      ;(listings as any).__items.push({
-        sourceplatform: "idealist" as const,
+      yield {
+        sourceplatform: "idealist",
         sourceUrl: fullUrl,
-        externalId,
+        externalId: `idealist_${externalId}`,
         title,
-        description: snippetText || title,
-        shortDescription: snippetText.slice(0, 280) || title,
+        description: textAfterTitle.slice(0, 5000) || title,
+        shortDescription: title,
         organization: orgName || "Organization on Idealist",
-        organizationUrl: undefined,
         causes,
         skillsRequired: skills,
-        workMode: detectWorkMode(allText),
+        workMode,
         location: location || undefined,
         country: extractCountry(location),
         postedDate: new Date(),
-        compensationType: "volunteer" as const,
-        projectType: "short-term" as const,
-      } satisfies ScrapedOpportunity)
-    })
-
-    const items = ((listings as any).__items || []) as ScrapedOpportunity[]
-    for (const item of items) {
-      yield item
+        compensationType: "volunteer",
+        projectType: "short-term",
+      }
     }
 
-    // Be respectful — delay between pages
     await sleep(2000)
   }
 }
 
-function extractOrgName($: cheerio.CheerioAPI, $el: cheerio.Cheerio<any>): string {
-  // Try common patterns
-  const card = $el.closest("[class*='card'], [class*='listing'], li, article")
-  const orgEl = card.find("[class*='org'], [class*='company'], [class*='Org']").first()
-  if (orgEl.length) return orgEl.text().trim()
-
-  // Try looking for a secondary link or span
-  const spans = card.find("span, p")
-  for (let i = 0; i < spans.length; i++) {
-    const text = $(spans[i]).text().trim()
-    if (text && text.length > 2 && text.length < 100 && !text.includes("Volunteer")) {
-      return text
-    }
+function extractLocationFromParts(parts: string[]): string {
+  for (const part of parts) {
+    // Location patterns: "City, State" or "City, Country" or standalone "Remote"
+    if (/^remote$/i.test(part)) return "Remote"
+    if (/[A-Z][a-z]+,\s*[A-Z]/.test(part)) return part
   }
-
-  return ""
-}
-
-function extractLocation(text: string): string {
-  // Try to find location patterns: "City, State" or "City, Country" or "Remote"
-  const match = text.match(/(?:in\s+)?([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*,\s*[A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)/)
-  if (match) return match[1]
-  if (/remote/i.test(text)) return "Remote"
   return ""
 }
 
