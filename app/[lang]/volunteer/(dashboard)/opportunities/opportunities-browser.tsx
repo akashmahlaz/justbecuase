@@ -146,8 +146,6 @@ const TIME_COMMITMENTS = [
 
 const WORK_MODES = [
   { value: "remote", label: "Remote" },
-  { value: "onsite", label: "On-site" },
-  { value: "hybrid", label: "Hybrid" },
 ]
 
 // ============================================
