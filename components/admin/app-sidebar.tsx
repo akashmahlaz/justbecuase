@@ -21,6 +21,7 @@ import {
   Database,
   Search,
   MessageSquare,
+  Globe,
 } from "lucide-react"
 import {
   Sidebar,
@@ -79,6 +80,7 @@ const navGroups = [
       { title: "Ban History", href: "/admin/bans", icon: Ban },
       { title: "Admin Accounts", href: "/admin/admins", icon: Shield },
       { title: "Search Index", href: "/admin/search", icon: Database },
+      { title: "Scrapers", href: "/admin/scraper", icon: Globe },
       { title: "Settings", href: "/admin/settings", icon: Settings },
     ],
   },
