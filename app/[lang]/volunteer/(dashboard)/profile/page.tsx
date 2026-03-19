@@ -129,7 +129,7 @@ export default function VolunteerProfileEditPage() {
             linkedinUrl: profileData.linkedinUrl || "",
             portfolioUrl: profileData.portfolioUrl || "",
             hoursPerWeek: profileData.hoursPerWeek || "5-10",
-            workMode: profileData.workMode || "remote",
+            workMode: "remote",
           })
         }
       } catch (err) {
