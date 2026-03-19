@@ -61,6 +61,7 @@
     "bcryptjs": "^3.0.3",
     "better-auth": "^1.4.5",
     "canvas-confetti": "^1.9.4",
+    "cheerio": "^1.2.0",
     "class-variance-authority": "^0.7.1",
     "cloudinary": "^2.8.0",
     "clsx": "^2.1.1",
