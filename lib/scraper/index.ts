@@ -1,3 +1,7 @@
 export { runScraper, runAllScrapers } from "./runner"
 export { externalOpportunitiesDb, scraperRunsDb, scraperConfigsDb } from "./db"
+export { fetchPage, extractPageContent, extractListings } from "./text-extractor"
+export { scrapeSingleUrl, scrapeListingUrl } from "./platforms/generic"
 export type { ScraperPlatform, ScrapedOpportunity, ScraperRun, ScraperConfig, ExternalOpportunity } from "./types"
+export type { ExtractedContent, ExtractedListing } from "./text-extractor"
+export type { GenericScrapeOptions } from "./platforms/generic"
