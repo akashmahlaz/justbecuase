@@ -2,7 +2,7 @@
 // UN Jobs Scraper — HTML scraping via Cheerio
 // ============================================
 // Scrapes from unjobs.org (independent UN job aggregator)
-// Public listings available at: https://unjobs.org/
+// Uses a[href*="/vacancies/"] links on the homepage
 
 import * as cheerio from "cheerio"
 import type { ScrapedOpportunity } from "../types"
@@ -31,7 +31,7 @@ export async function* scrapeUNJobs(
 
     if (!response.ok) {
       if (response.status === 429) {
-        console.warn("[UNJobs Scraper] Rate limited, stopping")
+        console.warn("[UNJobs] Rate limited, stopping")
         return
       }
       throw new Error(`UNJobs fetch error: ${response.status}`)
@@ -40,84 +40,66 @@ export async function* scrapeUNJobs(
     const html = await response.text()
     const $ = cheerio.load(html)
 
-    // UN Jobs typically lists jobs in table rows or card elements
-    const jobLinks = $('a[href*="/duty_stations/"], a[href*="/organizations/"], table a, .job-listing a, article a')
-      .filter((_, el) => {
-        const href = $(el).attr("href") || ""
-        // Filter for actual job links (typically contain year or detail pages)
-        return href.length > 5 && !href.includes("javascript") && !href.startsWith("#")
-      })
+    // Only select actual vacancy links
+    const vacancyLinks = $('a[href*="/vacancies/"]')
+    if (vacancyLinks.length === 0) break
 
-    // Also try structured job listing selectors
-    const jobRows = $("tr, .job-item, .listing-item, article").filter((_, el) => {
-      const text = $(el).text()
-      return text.length > 50 && (
-        text.includes("UN") || text.includes("UNDP") || text.includes("UNICEF") ||
-        text.includes("WHO") || text.includes("FAO") || text.includes("Programme") ||
-        text.includes("Officer") || text.includes("Specialist") || text.includes("Consultant")
-      )
-    })
+    const processedUrls = new Set<string>()
 
-    const items: ScrapedOpportunity[] = []
-    const processedIds = new Set<string>()
+    for (let i = 0; i < vacancyLinks.length; i++) {
+      const $link = $(vacancyLinks[i])
+      const href = $link.attr("href")
+      if (!href || processedUrls.has(href)) continue
+      processedUrls.add(href)
 
-    // Process job rows
-    jobRows.each((_, el) => {
-      const $row = $(el)
-      const link = $row.find("a").first()
-      const href = link.attr("href") || ""
-      const title = link.text().trim()
-
-      if (!title || title.length < 5 || processedIds.has(href)) return
-      processedIds.add(href)
-
-      const rowText = $row.text()
-      const org = extractOrg(rowText)
-      const location = extractLocation(rowText)
-      const deadline = extractDeadline(rowText)
+      const title = $link.text().trim()
+      if (!title || title.length < 5) continue
 
       const fullUrl = href.startsWith("http") ? href : `${BASE_URL}${href}`
-      const externalId = href.replace(/[^a-zA-Z0-9]/g, "_").slice(0, 200)
+      const externalId = href.split("/").filter(Boolean).pop() || href
 
-      const allText = [title, rowText].join(" ")
+      // The vacancy link sits inside a div. Sibling or parent text may contain
+      // organization name, location, and ISO date strings.
+      const $container = $link.closest("div")
+      const containerText = $container.length ? $container.text() : ""
+
+      // Try to extract ISO date from surrounding text (e.g. "2026-03-19T15:04:27Z")
+      const dateMatch = containerText.match(/\d{4}-\d{2}-\d{2}T[\d:]+Z/)
+      const deadline = dateMatch ? tryParseDate(dateMatch[0]) : undefined
+
+      // Extract org from title patterns or surrounding text
+      const org = extractOrg(title + " " + containerText)
+
+      const allText = [title, containerText].join(" ")
       const causes = mapCauseTags(allText.split(/[\s,;:]+/).filter(w => w.length > 3))
       const skills = mapSkillTags(allText.split(/[\s,;:]+/).filter(w => w.length > 3))
 
-      items.push({
+      yield {
         sourceplatform: "unjobs",
         sourceUrl: fullUrl,
-        externalId,
+        externalId: `unjobs_${externalId}`,
         title,
-        description: rowText.trim().slice(0, 5000),
+        description: title,
         shortDescription: title,
         organization: org || "United Nations",
         causes,
         skillsRequired: skills,
         experienceLevel: detectExperienceLevel(allText),
         workMode: detectWorkMode(allText),
-        location: location || undefined,
-        country: extractCountry(location),
-        deadline: deadline || undefined,
+        deadline,
         postedDate: new Date(),
         compensationType: "paid",
         projectType: "long-term",
-      })
-    })
-
-    if (items.length === 0 && jobLinks.length === 0) break
-
-    for (const item of items) {
-      yield item
+      }
     }
 
-    // Respect rate limits
     await sleep(3000)
   }
 }
 
 function extractOrg(text: string): string {
   const patterns = [
-    /\b(UNDP|UNICEF|WHO|FAO|UNHCR|UNESCO|WFP|UNFPA|ILO|UNIDO|ITU|IAEA|IMF|UNODC|UN Women|UN\s+\w+)\b/,
+    /\b(UNDP|UNICEF|WHO|FAO|UNHCR|UNESCO|WFP|UNFPA|ILO|UNIDO|ITU|IAEA|IMF|UNODC|UN Women|UNOPS|OCHA|ECLAC|ESCAP|ECA)\b/,
     /\b(World Bank|Red Cross|ICRC|MSF|Save the Children|Oxfam|CARE)\b/i,
   ]
   for (const pattern of patterns) {
@@ -127,38 +109,9 @@ function extractOrg(text: string): string {
   return ""
 }
 
-function extractLocation(text: string): string {
-  // Look for "City, Country" or "Duty Station: ..." patterns
-  const dutyMatch = text.match(/[Dd]uty\s+[Ss]tation[:\s]+([^\n,]+(?:,\s*[^\n]+)?)/i)
-  if (dutyMatch) return dutyMatch[1].trim().slice(0, 100)
-
-  const locMatch = text.match(/[Ll]ocation[:\s]+([^\n,]+(?:,\s*[^\n]+)?)/i)
-  if (locMatch) return locMatch[1].trim().slice(0, 100)
-
-  return ""
-}
-
-function extractDeadline(text: string): Date | null {
-  // Look for "Closing date: DD Month YYYY" or similar
-  const patterns = [
-    /[Cc]losing\s+[Dd]ate[:\s]+(\d{1,2}\s+\w+\s+\d{4})/,
-    /[Dd]eadline[:\s]+(\d{1,2}\s+\w+\s+\d{4})/,
-    /(\d{1,2}\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\w*\s+\d{4})/i,
-  ]
-  for (const pattern of patterns) {
-    const match = text.match(pattern)
-    if (match) {
-      const d = new Date(match[1])
-      if (!isNaN(d.getTime())) return d
-    }
-  }
-  return null
-}
-
-function extractCountry(location: string): string | undefined {
-  if (!location) return undefined
-  const parts = location.split(",").map(s => s.trim())
-  return parts.length > 1 ? parts[parts.length - 1] : location
+function tryParseDate(str: string): Date | undefined {
+  const d = new Date(str)
+  return isNaN(d.getTime()) ? undefined : d
 }
 
 function sleep(ms: number) {

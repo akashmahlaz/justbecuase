@@ -1,162 +1,123 @@
 // ============================================
-// ReliefWeb Scraper — Uses official REST API
+// ReliefWeb Scraper — HTML scraping
 // ============================================
-// Docs: https://apidoc.reliefweb.int/
-// Endpoint: https://api.reliefweb.int/v1/jobs
-// Rate limit: 1000 calls/day, 1000 items/call
-// No API key needed — just pass appname param
+// Scrapes job listings from reliefweb.int/updates?list=Jobs
+// The REST API requires an approved appname, so we scrape HTML instead.
 
+import * as cheerio from "cheerio"
 import type { ScrapedOpportunity } from "../types"
 import { mapSkillTags, mapCauseTags, detectWorkMode, detectExperienceLevel } from "../skill-mapper"
 
-const API_BASE = "https://api.reliefweb.int/v1"
-const APP_NAME = "justbecausenetwork"
+const BASE_URL = "https://reliefweb.int"
+const SEARCH_URL = `${BASE_URL}/updates?list=Jobs&view=reports`
 
-interface ReliefWebJob {
-  id: number
-  fields: {
-    title: string
-    body?: string
-    "body-html"?: string
-    url: string
-    url_alias?: string
-    source?: { name: string; homepage?: string; shortname?: string }[]
-    date?: { created: string; closing?: string }
-    country?: { name: string; iso3?: string }[]
-    city?: { name: string }[]
-    theme?: { name: string }[]
-    type?: { name: string }[]
-    career_categories?: { name: string }[]
-    experience?: { name: string }[]
-    status?: string
-  }
+const HEADERS = {
+  "User-Agent": "Mozilla/5.0 (compatible; JustBeCauseBot/1.0; +https://justbecausenetwork.com)",
+  "Accept": "text/html,application/xhtml+xml",
+  "Accept-Language": "en-US,en;q=0.9",
 }
 
-/**
- * Scrape ReliefWeb jobs via their public API.
- * Yields one ScrapedOpportunity at a time.
- */
 export async function* scrapeReliefWeb(
   settings: Record<string, string>
 ): AsyncGenerator<ScrapedOpportunity> {
   const maxPages = parseInt(settings.maxPages || "5", 10)
-  const limit = 50 // Max per page recommended by ReliefWeb
 
   for (let page = 0; page < maxPages; page++) {
-    const offset = page * limit
+    const offset = page * 20
+    const url = offset === 0 ? SEARCH_URL : `${SEARCH_URL}&offset=${offset}`
 
-    const url = new URL(`${API_BASE}/jobs`)
-    url.searchParams.set("appname", APP_NAME)
-    url.searchParams.set("limit", String(limit))
-    url.searchParams.set("offset", String(offset))
-    url.searchParams.set("preset", "latest")
-    url.searchParams.set(
-      "fields[include][]",
-      [
-        "title", "body", "url", "url_alias", "source",
-        "date", "country", "city", "theme", "type",
-        "career_categories", "experience", "status",
-      ].join(",")
-    )
-    // Only active jobs
-    url.searchParams.set("filter[field]", "status")
-    url.searchParams.set("filter[value]", "open")
-
-    const response = await fetch(url.toString(), {
-      headers: { "Accept": "application/json" },
+    const response = await fetch(url, {
+      headers: HEADERS,
       signal: AbortSignal.timeout(30000),
     })
 
     if (!response.ok) {
-      throw new Error(`ReliefWeb API error: ${response.status} ${response.statusText}`)
+      if (response.status === 429) {
+        console.warn("[ReliefWeb] Rate limited, stopping")
+        return
+      }
+      throw new Error(`ReliefWeb fetch error: ${response.status}`)
     }
 
-    const data = await response.json()
-    const jobs: ReliefWebJob[] = data.data || []
+    const html = await response.text()
+    const $ = cheerio.load(html)
 
-    if (jobs.length === 0) break
+    const jobLinks = $('a[href*="/job/"]')
+    if (jobLinks.length === 0) break
 
-    for (const job of jobs) {
-      const f = job.fields
-      if (!f.title) continue
+    const processedUrls = new Set<string>()
 
-      const description = stripHtml(f["body-html"] || f.body || "")
-      const countries = (f.country || []).map(c => c.name)
-      const cities = (f.city || []).map(c => c.name)
-      const themes = (f.theme || []).map(t => t.name)
-      const categories = (f.career_categories || []).map(c => c.name)
-      const source = f.source?.[0]
+    for (let i = 0; i < jobLinks.length; i++) {
+      const $link = $(jobLinks[i])
+      const href = $link.attr("href")
+      if (!href || processedUrls.has(href)) continue
+      processedUrls.add(href)
 
-      // Map themes + categories to our skill/cause taxonomy
-      const allTags = [...themes, ...categories]
-      const skillsRequired = mapSkillTags(categories)
-      const causes = mapCauseTags(themes)
+      const title = $link.text().trim()
+      if (!title || title.length < 5) continue
 
-      // Detect work mode from title/body
-      const fullText = [f.title, description, ...countries, ...cities].join(" ")
-      const workMode = detectWorkMode(fullText)
+      const fullUrl = href.startsWith("http") ? href : `${BASE_URL}${href}`
+      const externalId = href.split("/").filter(Boolean).pop() || href
+
+      // Walk up to find surrounding metadata
+      const $container = $link.closest("article, li, div, section")
+      const containerText = $container.length ? $container.text() : ""
+
+      // Extract organization from source element
+      const org = $container.find('[class*="source"], [class*="org"]').first().text().trim()
+        || extractFromText(containerText, title, "org")
+
+      // Extract country
+      const country = $container.find('[class*="country"], [class*="location"]').first().text().trim()
+        || extractFromText(containerText, title, "country")
+
+      // Extract date
+      const $time = $container.find("time")
+      const dateStr = $time.attr("datetime") || $time.text().trim()
+      const postedDate = dateStr ? tryParseDate(dateStr) : undefined
+
+      const allText = [title, org, country, containerText].join(" ")
+      const causes = mapCauseTags(allText.split(/[\s,;:]+/).filter(w => w.length > 3))
+      const skills = mapSkillTags(allText.split(/[\s,;:]+/).filter(w => w.length > 3))
 
       yield {
         sourceplatform: "reliefweb",
-        sourceUrl: f.url || f.url_alias || `https://reliefweb.int/job/${job.id}`,
-        externalId: String(job.id),
-        title: f.title,
-        description: description.slice(0, 10000),
-        shortDescription: description.slice(0, 280),
-        organization: source?.name || "Unknown Organization",
-        organizationUrl: source?.homepage || undefined,
+        sourceUrl: fullUrl,
+        externalId: `rw_${externalId}`,
+        title,
+        description: containerText.trim().slice(0, 5000) || title,
+        shortDescription: title,
+        organization: org || "Organization on ReliefWeb",
         causes,
-        skillsRequired,
-        experienceLevel: mapExperience(f.experience),
-        workMode,
-        location: [...cities, ...countries].filter(Boolean).join(", ") || undefined,
-        city: cities[0] || undefined,
-        country: countries[0] || undefined,
-        deadline: f.date?.closing ? new Date(f.date.closing) : undefined,
-        postedDate: f.date?.created ? new Date(f.date.created) : undefined,
-        compensationType: detectCompensationType(f.type),
-        projectType: "short-term",
+        skillsRequired: skills,
+        experienceLevel: detectExperienceLevel(allText),
+        workMode: detectWorkMode(allText),
+        location: country || undefined,
+        country: country || undefined,
+        postedDate: postedDate || new Date(),
+        compensationType: "paid",
+        projectType: "long-term",
       }
     }
 
-    // Respect rate limits — small delay between pages
-    await sleep(500)
+    await sleep(1500)
   }
 }
 
-function mapExperience(
-  exp?: { name: string }[]
-): "beginner" | "intermediate" | "advanced" | "expert" | undefined {
-  if (!exp || exp.length === 0) return undefined
-  const name = exp[0].name.toLowerCase()
-  if (name.includes("0") || name.includes("entry") || name.includes("intern")) return "beginner"
-  if (name.includes("5") || name.includes("mid")) return "intermediate"
-  if (name.includes("10") || name.includes("senior")) return "advanced"
-  if (name.includes("15") || name.includes("expert") || name.includes("director")) return "expert"
-  return "intermediate"
+function extractFromText(text: string, title: string, type: "org" | "country"): string {
+  // Remove the title from the text and try to find patterns
+  const cleaned = text.replace(title, "").trim()
+  if (type === "org") {
+    // Look for organization-like patterns (capitalized words)
+    const match = cleaned.match(/(?:by|from|source[:\s]*)\s*([A-Z][\w\s&.-]+)/i)
+    return match?.[1]?.trim().slice(0, 100) || ""
+  }
+  return ""
 }
 
-function detectCompensationType(
-  types?: { name: string }[]
-): "volunteer" | "paid" | "stipend" | undefined {
-  if (!types) return undefined
-  const names = types.map(t => t.name.toLowerCase()).join(" ")
-  if (names.includes("volunteer")) return "volunteer"
-  if (names.includes("intern")) return "stipend"
-  return "paid"
-}
-
-function stripHtml(html: string): string {
-  return html
-    .replace(/<[^>]*>/g, " ")
-    .replace(/&nbsp;/g, " ")
-    .replace(/&amp;/g, "&")
-    .replace(/&lt;/g, "<")
-    .replace(/&gt;/g, ">")
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
-    .replace(/\s+/g, " ")
-    .trim()
+function tryParseDate(str: string): Date | undefined {
+  const d = new Date(str)
+  return isNaN(d.getTime()) ? undefined : d
 }
 
 function sleep(ms: number) {
