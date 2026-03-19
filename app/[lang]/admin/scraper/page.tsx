@@ -7,6 +7,14 @@ import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { Switch } from "@/components/ui/switch"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { Input } from "@/components/ui/input"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import {
   Globe,
   RefreshCw,
@@ -20,6 +28,9 @@ import {
   Zap,
   Settings2,
   AlertCircle,
+  Link2,
+  FileText,
+  Download,
 } from "lucide-react"
 import { toast } from "sonner"
 
@@ -83,6 +94,16 @@ export default function ScraperAdminPage() {
   const [oppPage, setOppPage] = useState(1)
   const [oppTotal, setOppTotal] = useState(0)
   const [oppFilter, setOppFilter] = useState("")
+
+  // URL scraper state
+  const [scrapeUrl, setScrapeUrl] = useState("")
+  const [scrapeMode, setScrapeMode] = useState<"single" | "listing">("single")
+  const [scrapePlatform, setScrapePlatform] = useState("devex")
+  const [scrapeDeep, setScrapeDeep] = useState(false)
+  const [scrapeSave, setScrapeSave] = useState(false)
+  const [scraping, setScraping] = useState(false)
+  const [scrapeResults, setScrapeResults] = useState<any[]>([])
+  const [scrapeError, setScrapeError] = useState("")
 
   const fetchData = useCallback(async () => {
     try {
@@ -192,6 +213,46 @@ export default function ScraperAdminPage() {
     if (res.ok) {
       toast.success("Defaults seeded & indexes created")
       fetchData()
+    }
+  }
+
+  const handleScrapeUrl = async () => {
+    if (!scrapeUrl.trim()) return toast.error("Enter a URL to scrape")
+    setScraping(true)
+    setScrapeResults([])
+    setScrapeError("")
+    try {
+      const res = await fetch("/api/admin/scraper/scrape-url", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          url: scrapeUrl.trim(),
+          mode: scrapeMode,
+          platform: scrapePlatform,
+          deepScrape: scrapeDeep,
+          save: scrapeSave,
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        setScrapeError(data.error || "Scrape failed")
+        toast.error(data.error || "Scrape failed")
+      } else {
+        const results = data.opportunity
+          ? [data.opportunity]
+          : data.opportunities || []
+        setScrapeResults(results)
+        const msg = scrapeSave
+          ? `Scraped ${results.length} items (${data.newItems || 0} new, saved to DB)`
+          : `Found ${results.length} items (preview only)`
+        toast.success(msg)
+        if (scrapeSave) { fetchData(); fetchOpportunities() }
+      }
+    } catch {
+      setScrapeError("Network error")
+      toast.error("Network error")
+    } finally {
+      setScraping(false)
     }
   }
 
@@ -435,9 +496,130 @@ export default function ScraperAdminPage() {
         </CardContent>
       </Card>
 
-      <Separator />
+      {/* On-Demand URL Scraper */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Link2 className="h-5 w-5" />
+            Scrape Any URL
+          </CardTitle>
+          <CardDescription>
+            Paste any job listing or search page URL to extract opportunities using the text scraper engine
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex gap-2">
+            <Input
+              placeholder="https://example.org/jobs/volunteer-coordinator"
+              value={scrapeUrl}
+              onChange={e => setScrapeUrl(e.target.value)}
+              className="flex-1"
+            />
+            <Select value={scrapeMode} onValueChange={v => setScrapeMode(v as "single" | "listing")}>
+              <SelectTrigger className="w-[140px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="single">Single Page</SelectItem>
+                <SelectItem value="listing">Listing Page</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={scrapePlatform} onValueChange={setScrapePlatform}>
+              <SelectTrigger className="w-[140px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {Object.entries(PLATFORM_INFO).map(([key, info]) => (
+                  <SelectItem key={key} value={key}>
+                    {info.icon} {info.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="flex items-center gap-6">
+            <label className="flex items-center gap-2 text-sm">
+              <Switch checked={scrapeDeep} onCheckedChange={setScrapeDeep} />
+              Deep scrape (fetch detail pages)
+            </label>
+            <label className="flex items-center gap-2 text-sm">
+              <Switch checked={scrapeSave} onCheckedChange={setScrapeSave} />
+              Save to database
+            </label>
+            <Button onClick={handleScrapeUrl} disabled={scraping}>
+              {scraping ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <FileText className="h-4 w-4 mr-2" />
+              )}
+              {scraping ? "Scraping..." : "Scrape"}
+            </Button>
+          </div>
 
-      {/* Scraped Opportunities */}
+          {scrapeError && (
+            <div className="p-3 bg-destructive/10 text-destructive rounded-md text-sm">
+              {scrapeError}
+            </div>
+          )}
+
+          {scrapeResults.length > 0 && (
+            <div className="space-y-3 mt-4">
+              <h4 className="text-sm font-medium">
+                Results ({scrapeResults.length} {scrapeResults.length === 1 ? "item" : "items"})
+              </h4>
+              <div className="max-h-[500px] overflow-auto space-y-2">
+                {scrapeResults.map((item: any, i: number) => (
+                  <div key={i} className="border rounded-lg p-3 space-y-1">
+                    <div className="flex items-center justify-between">
+                      <h5 className="font-medium text-sm">{item.title}</h5>
+                      {item.sourceUrl && (
+                        <a
+                          href={item.sourceUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-muted-foreground hover:text-foreground"
+                        >
+                          <ExternalLink className="h-3.5 w-3.5" />
+                        </a>
+                      )}
+                    </div>
+                    <div className="flex gap-2 text-xs text-muted-foreground">
+                      {item.organization && <span>{item.organization}</span>}
+                      {item.location && <span>• {item.location}</span>}
+                      {item.workMode && (
+                        <Badge variant="secondary" className="text-xs capitalize">
+                          {item.workMode}
+                        </Badge>
+                      )}
+                      {item.compensationType && (
+                        <Badge variant="outline" className="text-xs capitalize">
+                          {item.compensationType}
+                        </Badge>
+                      )}
+                    </div>
+                    {item.shortDescription && (
+                      <p className="text-xs text-muted-foreground line-clamp-2">
+                        {item.shortDescription}
+                      </p>
+                    )}
+                    {(item.causes?.length > 0 || item.skillsRequired?.length > 0) && (
+                      <div className="flex gap-1 flex-wrap">
+                        {item.causes?.slice(0, 5).map((c: string) => (
+                          <Badge key={c} variant="outline" className="text-[10px]">
+                            {c}
+                          </Badge>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Separator />
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">

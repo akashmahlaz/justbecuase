@@ -11,6 +11,10 @@ import { mapSkillTags, mapCauseTags, detectWorkMode, detectExperienceLevel } fro
 import { scrapeReliefWeb } from "./platforms/reliefweb"
 import { scrapeIdealist } from "./platforms/idealist"
 import { scrapeUNJobs } from "./platforms/unjobs"
+import { scrapeDevex } from "./platforms/devex"
+import { scrapeImpactpool } from "./platforms/impactpool"
+import { scrapeWorkForGood } from "./platforms/workforgood"
+import { scrapeDevNetJobs } from "./platforms/devnetjobs"
 
 type PlatformScraper = (settings: Record<string, string>) => AsyncGenerator<ScrapedOpportunity>
 
@@ -18,6 +22,10 @@ const SCRAPERS: Record<string, PlatformScraper> = {
   reliefweb: scrapeReliefWeb,
   idealist: scrapeIdealist,
   unjobs: scrapeUNJobs,
+  devex: scrapeDevex,
+  impactpool: scrapeImpactpool,
+  workforgood: scrapeWorkForGood,
+  devnetjobs: scrapeDevNetJobs,
 }
 
 /**
