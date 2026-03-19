@@ -2,85 +2,97 @@
 // Impactpool Scraper — Impact career platform
 // ============================================
 // Scrapes from impactpool.org — jobs in UN, NGOs, and international development
-// Uses HTML scraping with text extractor for deep content extraction
+// Uses div.job containers with cheerio
 
+import * as cheerio from "cheerio"
 import type { ScrapedOpportunity } from "../types"
-import { fetchPage, extractListings, extractPageContent } from "../text-extractor"
 import { mapSkillTags, mapCauseTags, detectWorkMode, detectExperienceLevel } from "../skill-mapper"
 
 const BASE_URL = "https://www.impactpool.org"
 const SEARCH_URL = `${BASE_URL}/jobs`
 
+const HEADERS = {
+  "User-Agent": "Mozilla/5.0 (compatible; JustBeCauseBot/1.0; +https://justbecausenetwork.com)",
+  "Accept": "text/html,application/xhtml+xml",
+  "Accept-Language": "en-US,en;q=0.9",
+}
+
 export async function* scrapeImpactpool(
   settings: Record<string, string>
 ): AsyncGenerator<ScrapedOpportunity> {
   const maxPages = parseInt(settings.maxPages || "3", 10)
-  const deepScrape = settings.deepScrape !== "false"
-  const maxDetailPages = parseInt(settings.maxDetailPages || "25", 10)
-  let detailCount = 0
 
   for (let page = 1; page <= maxPages; page++) {
     const url = page === 1 ? SEARCH_URL : `${SEARCH_URL}?page=${page}`
 
-    let html: string
-    try {
-      html = await fetchPage(url)
-    } catch (err) {
-      console.error(`[Impactpool] Page ${page} fetch failed:`, err)
-      break
+    const response = await fetch(url, {
+      headers: HEADERS,
+      signal: AbortSignal.timeout(30000),
+    })
+
+    if (!response.ok) {
+      if (response.status === 429) {
+        console.warn("[Impactpool] Rate limited, stopping")
+        return
+      }
+      throw new Error(`Impactpool fetch error: ${response.status}`)
     }
 
-    const listings = extractListings(html, BASE_URL)
-    if (listings.length === 0) break
+    const html = await response.text()
+    const $ = cheerio.load(html)
 
-    for (const listing of listings) {
-      if (!listing.url.includes("/job/") && !listing.url.includes("/jobs/")) continue
+    // Impactpool uses div.job containers for each job card
+    const jobCards = $("div.job")
+    if (jobCards.length === 0) break
 
-      let description = listing.snippet || ""
-      let organization = listing.organization || ""
-      let location = listing.location || ""
-      let deadline: string | undefined
-      let salary: string | undefined
-      let tags = listing.tags
+    const processedUrls = new Set<string>()
 
-      if (deepScrape && detailCount < maxDetailPages) {
-        try {
-          const detailHtml = await fetchPage(listing.url)
-          const content = extractPageContent(detailHtml, BASE_URL)
-          description = content.description || description
-          organization = content.organization || organization
-          location = content.location || location
-          deadline = content.deadline
-          salary = content.salary
-          tags = [...tags, ...content.tags]
-          detailCount++
-          await sleep(2500)
-        } catch {
-          // Use listing-level data
-        }
-      }
+    for (let i = 0; i < jobCards.length; i++) {
+      const $card = $(jobCards[i])
 
-      const externalId = listing.url.split("/").filter(Boolean).pop() || listing.url
-      const allText = [listing.title, description, location, ...tags].join(" ")
+      // Job link inside the card - href like /jobs/{ID}
+      const $link = $card.find('a[href*="/jobs/"]').first()
+      const href = $link.attr("href")
+      if (!href || processedUrls.has(href)) continue
+      processedUrls.add(href)
+
+      // Title is the link text
+      const title = $link.text().trim()
+      if (!title || title.length < 5) continue
+
+      // Full card text contains: "Title + OrgName + Location + Level"
+      const cardText = $card.text().trim()
+      const textAfterTitle = cardText.replace(title, "").trim()
+
+      // Parse the remaining text for org, location, etc.
+      const lines = textAfterTitle.split(/\n/).map(s => s.trim()).filter(Boolean)
+      const org = lines[0] || ""
+      const location = lines.find(l => /remote|home based|office|city|country/i.test(l) || l.includes(",") || l.includes("|"))
+        || lines[1] || ""
+
+      const fullUrl = href.startsWith("http") ? href : `${BASE_URL}${href}`
+      const externalId = href.split("/").filter(Boolean).pop() || href
+
+      const allText = [title, org, location, cardText].join(" ")
+      const causes = mapCauseTags(allText.split(/[\s,;:]+/).filter(w => w.length > 3))
+      const skills = mapSkillTags(allText.split(/[\s,;:]+/).filter(w => w.length > 3))
 
       yield {
         sourceplatform: "impactpool",
-        sourceUrl: listing.url,
+        sourceUrl: fullUrl,
         externalId: `impactpool_${externalId}`,
-        title: listing.title,
-        description: description.slice(0, 10000),
-        shortDescription: description.slice(0, 280),
-        organization: organization || "Organization on Impactpool",
-        causes: mapCauseTags(allText.split(/[\s,;:]+/).filter(w => w.length > 3)),
-        skillsRequired: mapSkillTags(allText.split(/[\s,;:]+/).filter(w => w.length > 3)),
+        title,
+        description: cardText.slice(0, 5000),
+        shortDescription: title,
+        organization: org || "Organization on Impactpool",
+        causes,
+        skillsRequired: skills,
         experienceLevel: detectExperienceLevel(allText),
         workMode: detectWorkMode(allText),
         location: location || undefined,
         country: extractCountry(location),
-        deadline: deadline ? tryParseDate(deadline) : undefined,
-        postedDate: listing.postedDate ? tryParseDate(listing.postedDate) : new Date(),
+        postedDate: new Date(),
         compensationType: "paid",
-        salary,
         projectType: "long-term",
       }
     }
@@ -93,11 +105,6 @@ function extractCountry(location: string): string | undefined {
   if (!location) return undefined
   const parts = location.split(",").map(s => s.trim())
   return parts.length > 1 ? parts[parts.length - 1] : undefined
-}
-
-function tryParseDate(str: string): Date | undefined {
-  const d = new Date(str)
-  return isNaN(d.getTime()) ? undefined : d
 }
 
 function sleep(ms: number) {

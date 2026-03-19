@@ -225,8 +225,8 @@ async function main() {
   // 1. Text Extractor (foundation — test first)
   results.push(await testTextExtractor())
 
-  // 2. ReliefWeb (API-based, most reliable)
-  results.push(await testScraper("ReliefWeb (API)", () => scrapeReliefWeb({ maxPages: "1" }), 3))
+  // 2. ReliefWeb (HTML scraping)
+  results.push(await testScraper("ReliefWeb (HTML)", () => scrapeReliefWeb({ maxPages: "1" }), 3))
 
   // 3. Generic URL scraper
   results.push(await testGenericScraper())
@@ -237,17 +237,17 @@ async function main() {
   // 5. UN Jobs (HTML)
   results.push(await testScraper("UN Jobs (HTML)", () => scrapeUNJobs({ maxPages: "1" }), 1))
 
-  // 6. Devex (HTML + deep)
-  results.push(await testScraper("Devex (HTML)", () => scrapeDevex({ maxPages: "1", deepScrape: "false" }), 1))
+  // 6. Devex — DISABLED (JS SPA)
+  results.push(await testScraper("Devex (DISABLED)", () => scrapeDevex({ maxPages: "1" }), 0))
 
-  // 7. Impactpool (HTML + deep)
-  results.push(await testScraper("Impactpool (HTML)", () => scrapeImpactpool({ maxPages: "1", deepScrape: "false" }), 1))
+  // 7. Impactpool (HTML)
+  results.push(await testScraper("Impactpool (HTML)", () => scrapeImpactpool({ maxPages: "1" }), 1))
 
-  // 8. WorkForGood (HTML)
-  results.push(await testScraper("WorkForGood (HTML)", () => scrapeWorkForGood({ maxPages: "1", deepScrape: "false" }), 1))
+  // 8. WorkForGood — DISABLED (not a job board)
+  results.push(await testScraper("WorkForGood (DISABLED)", () => scrapeWorkForGood({ maxPages: "1" }), 0))
 
-  // 9. DevNetJobs (HTML)
-  results.push(await testScraper("DevNetJobs (HTML)", () => scrapeDevNetJobs({ maxPages: "1", deepScrape: "false" }), 1))
+  // 9. DevNetJobs — DISABLED (ASP.NET postback)
+  results.push(await testScraper("DevNetJobs (DISABLED)", () => scrapeDevNetJobs({ maxPages: "1" }), 0))
 
   // ============================================
   // SUMMARY

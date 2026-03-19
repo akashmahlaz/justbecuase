@@ -222,10 +222,10 @@ export const scraperConfigsDb = {
       },
       {
         platform: "impactpool",
-        enabled: false,
+        enabled: true,
         cronSchedule: "30 5 * * *",
         totalItemsScraped: 0,
-        settings: { maxPages: "3", deepScrape: "true", maxDetailPages: "25" },
+        settings: { maxPages: "3" },
         createdAt: new Date(),
         updatedAt: new Date(),
       },
