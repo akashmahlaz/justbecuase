@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect } from "react"
 import LocaleLink from "@/components/locale-link"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
@@ -36,23 +36,6 @@ export function DashboardContentHeader({ userType, userName, userAvatar }: Dashb
   const router = useRouter()
   const locale = useLocale()
   const { toggleSidebar } = useSidebar()
-  const [sidebarFirstTime, setSidebarFirstTime] = useState(false)
-
-  // Check if user has used sidebar shortcut before
-  useEffect(() => {
-    try {
-      if (!localStorage.getItem("sidebar-hint-seen")) {
-        setSidebarFirstTime(true)
-      }
-    } catch {}
-  }, [])
-
-  const markSidebarSeen = () => {
-    if (sidebarFirstTime) {
-      setSidebarFirstTime(false)
-      try { localStorage.setItem("sidebar-hint-seen", "1") } catch {}
-    }
-  }
 
   // "S" key toggles sidebar (ignored in inputs)
   useEffect(() => {
@@ -67,42 +50,18 @@ export function DashboardContentHeader({ userType, userName, userAvatar }: Dashb
       if (e.metaKey || e.ctrlKey || e.altKey) return
       if (e.key === "s" || e.key === "S") {
         e.preventDefault()
-        markSidebarSeen()
         toggleSidebar()
       }
     }
     window.addEventListener("keydown", handleKeyDown)
     return () => window.removeEventListener("keydown", handleKeyDown)
-  }, [toggleSidebar, markSidebarSeen])
+  }, [toggleSidebar])
 
   return (
     <header className="flex h-16 shrink-0 items-center justify-between border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-4 md:px-6">
       {/* Left side */}
       <div className="flex items-center gap-2">
         <SidebarTrigger className="-ml-1" />
-        <button
-          type="button"
-          onClick={() => {
-            markSidebarSeen()
-            toggleSidebar()
-          }}
-          className={`hidden md:inline-flex items-center gap-1 select-none cursor-pointer transition-all duration-500 ${
-            sidebarFirstTime
-              ? "bg-primary/5 border border-primary/20 rounded-full px-2.5 py-1 animate-pulse hover:bg-primary/10"
-              : "rounded-md px-1.5 py-0.5 hover:bg-muted/60"
-          }`}
-        >
-          <kbd className={`inline-flex items-center justify-center rounded border font-mono leading-none pointer-events-none ${
-            sidebarFirstTime
-              ? "border-primary/30 bg-primary/10 px-1.5 py-0.5 text-[11px] text-primary"
-              : "border-border/50 bg-muted/40 px-1 py-0.5 text-[10px] text-muted-foreground/60"
-          }`}>
-            S
-          </kbd>
-          {sidebarFirstTime && (
-            <span className="text-[11px] font-medium text-foreground/70">sidebar</span>
-          )}
-        </button>
         <Separator orientation="vertical" className="mr-2 h-4" />
         <LocaleLink href="/" className="flex items-center">
           <Image src="/logo-main.png" alt="JBC Logo" width={200} height={98} className="h-10 sm:h-14 w-auto" />
