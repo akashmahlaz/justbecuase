@@ -30,6 +30,7 @@ interface ApplyButtonProps {
   volunteerSkills?: string[]
   volunteerBio?: string
   deadline?: Date | string
+  onApplied?: () => void
 }
 
 export function ApplyButton({ 
@@ -42,6 +43,7 @@ export function ApplyButton({
   volunteerSkills = [],
   volunteerBio = "",
   deadline,
+  onApplied,
 }: ApplyButtonProps) {
   const router = useRouter()
   const [isOpen, setIsOpen] = useState(false)
@@ -72,9 +74,9 @@ export function ApplyButton({
 
       if (result.success) {
         setSubmitted(true)
+        onApplied?.()
         setTimeout(() => {
           setIsOpen(false)
-          setSubmitted(false)
           router.refresh()
         }, 2000)
       } else {

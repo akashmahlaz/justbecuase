@@ -979,6 +979,7 @@ export function OpportunitiesBrowser() {
                           projectId={projectId}
                           projectTitle={project.title}
                           hasApplied={appliedIds.has(projectId)}
+                          onApplied={() => setAppliedIds((prev) => new Set(prev).add(projectId))}
                         />
                       </div>
                     </div>

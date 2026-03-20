@@ -32,7 +32,6 @@ import {
 } from "@/components/ui/sidebar"
 
 const SIDEBAR_HINT_KEY = "sidebar-hint-seen"
-const DOCK_HINT_KEY = "dock-guide-seen"
 
 function SidebarShortcutHints() {
   const { toggleSidebar, open } = useSidebar()
