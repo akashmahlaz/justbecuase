@@ -274,6 +274,18 @@ export function OpportunitiesBrowser() {
   const [autoWorkMode, setAutoWorkMode] = useState<string | null>(null)
   const [sortBy, setSortBy] = useState("best-match")
 
+  // ---- APPLIED PROJECT IDS ----
+  const [appliedIds, setAppliedIds] = useState<Set<string>>(new Set())
+
+  useEffect(() => {
+    fetch("/api/volunteer/applied-ids")
+      .then((res) => res.ok ? res.json() : null)
+      .then((data) => {
+        if (data?.appliedIds) setAppliedIds(new Set(data.appliedIds))
+      })
+      .catch(() => {})
+  }, [])
+
   // ---- UNIFIED SEARCH ----
   const [unifiedMatchedIds, setUnifiedMatchedIds] = useState<string[] | null>(null)
   const [unifiedRelevanceOrder, setUnifiedRelevanceOrder] = useState<Map<string, number>>(new Map())
@@ -966,6 +978,7 @@ export function OpportunitiesBrowser() {
                         <ApplyButton
                           projectId={projectId}
                           projectTitle={project.title}
+                          hasApplied={appliedIds.has(projectId)}
                         />
                       </div>
                     </div>
