@@ -236,6 +236,10 @@ const ROLE_TO_SKILLS: Record<string, string[]> = {
   "copywriting": ["Email Copywriting", "Social Media Copywriting", "Blog / Article Writing"],
   "writer": ["Blog / Article Writing", "Email Copywriting", "Social Media Copywriting", "Impact Story Writing"],
   "writing": ["Blog / Article Writing", "Email Copywriting", "Social Media Copywriting"],
+  "type writing": ["Data Entry & Documentation", "Blog / Article Writing"],
+  "typewriting": ["Data Entry & Documentation", "Blog / Article Writing"],
+  "typing": ["Data Entry & Documentation"],
+  "typist": ["Data Entry & Documentation"],
   "editor": ["Video Editing (Premiere Pro / DaVinci)", "Photo Editing / Retouching", "Blog / Article Writing"],
   "grant writer": ["Grant Writing", "Grant Research", "Proposal / RFP Writing"],
   "grant writing": ["Grant Writing", "Grant Research"],
@@ -1356,6 +1360,31 @@ export async function GET(request: NextRequest) {
           })
         }
 
+        // ── SKILL-RELEVANCE FILTER (volunteers) ────────────────────
+        // When role expansion matched skills, filter volunteer results to
+        // only include those whose skills overlap with the expanded set.
+        // Prevents irrelevant bio-text matches (e.g. "type writing" matching
+        // a volunteer who mentions "writing" in bio but has no writing skills).
+        if (roleSkills.length > 0) {
+          const skillRelevant = finalResults.filter(result => {
+            if (result.type !== "volunteer") return true
+            if (!result.skills || result.skills.length === 0) return false
+            return result.skills.some((skill: string) => {
+              const sCore = skill.toLowerCase().replace(/\s*\(.*\)$/, "").replace(/[^a-z0-9\s]/g, " ").trim()
+              return roleSkills.some((rs: string) => {
+                const rsCore = rs.toLowerCase().replace(/\s*\(.*\)$/, "").replace(/[^a-z0-9\s]/g, " ").trim()
+                return sCore.includes(rsCore) || rsCore.includes(sCore)
+              })
+            })
+          })
+          if (skillRelevant.length > 0) {
+            finalResults = skillRelevant
+            if (DEBUG_SEARCH) console.log(`🟢 [Search API] Skill-relevance filter: ${finalResults.length} results with matching skills`)
+          } else {
+            if (DEBUG_SEARCH) console.log(`🟡 [Search API] Skill-relevance filter: 0 matches — keeping text results for fallback`)
+          }
+        }
+
         // ── ROLE-EXPANSION FALLBACK ──────────────────────────────────
         // If the primary text search returned very few results AND the query
         // matches a known role, do a supplementary Algolia search using
@@ -1663,6 +1692,24 @@ export async function GET(request: NextRequest) {
         finalResults = mappedResults.filter(r => allowedSet.has(r.type))
       }
 
+      // Skill-relevance filter: when role expansion found skills, keep only
+      // volunteers whose skills overlap with the expanded set.
+      const esRoleSkills = expandRoleToSkills(query)
+      if (esRoleSkills.length > 0) {
+        const skillFiltered = finalResults.filter(r => {
+          if (r.type !== "volunteer") return true
+          if (!r.skills || r.skills.length === 0) return false
+          return r.skills.some((skill: string) => {
+            const sCore = skill.toLowerCase().replace(/\s*\(.*\)$/, "").replace(/[^a-z0-9\s]/g, " ").trim()
+            return esRoleSkills.some(rs => {
+              const rsCore = rs.toLowerCase().replace(/\s*\(.*\)$/, "").replace(/[^a-z0-9\s]/g, " ").trim()
+              return sCore.includes(rsCore) || rsCore.includes(sCore)
+            })
+          })
+        })
+        if (skillFiltered.length > 0) finalResults = skillFiltered
+      }
+
       // When ES returns no results, fall back to MongoDB.
       // Skip fallback for pure work-mode queries (remote/onsite/hybrid).
       const isPureWorkModeQuery = /^(remote|onsite|on-site|on site|in-person|in person|office|wfh|work from home|virtual|online|hybrid)$/i.test(query.trim())
@@ -1720,11 +1767,28 @@ export async function GET(request: NextRequest) {
       })
     }
 
-    const results = await unifiedSearch({
+    let results = await unifiedSearch({
       query,
       types: mongoTypes,
       limit: Math.min(limit, 50),
     })
+
+    // Skill-relevance filter for MongoDB results
+    const mongoRoleSkills = expandRoleToSkills(query)
+    if (mongoRoleSkills.length > 0) {
+      const skillFiltered = results.filter((r: any) => {
+        if (r.type !== "volunteer") return true
+        if (!r.skills || r.skills.length === 0) return false
+        return r.skills.some((skill: string) => {
+          const sCore = skill.toLowerCase().replace(/\s*\(.*\)$/, "").replace(/[^a-z0-9\s]/g, " ").trim()
+          return mongoRoleSkills.some(rs => {
+            const rsCore = rs.toLowerCase().replace(/\s*\(.*\)$/, "").replace(/[^a-z0-9\s]/g, " ").trim()
+            return sCore.includes(rsCore) || rsCore.includes(sCore)
+          })
+        })
+      })
+      if (skillFiltered.length > 0) results = skillFiltered
+    }
 
     const mongoTook = Date.now() - startTime
     trackEvent("search", "query", { metadata: { query, engine: "mongodb", count: results.length, took: mongoTook } })
