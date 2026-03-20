@@ -1361,28 +1361,29 @@ export async function GET(request: NextRequest) {
         }
 
         // ── SKILL-RELEVANCE FILTER (volunteers) ────────────────────
-        // When role expansion matched skills, filter volunteer results to
-        // only include those whose skills overlap with the expanded set.
-        // Prevents irrelevant bio-text matches (e.g. "type writing" matching
-        // a volunteer who mentions "writing" in bio but has no writing skills).
+        // When role expansion matched skills, prioritize volunteers whose
+        // skills overlap with the expanded set. Volunteers with NO skills
+        // listed are kept (unknown ≠ non-match). Those whose skills don't
+        // overlap are demoted (moved to end) rather than removed outright.
         if (roleSkills.length > 0) {
-          const skillRelevant = finalResults.filter(result => {
-            if (result.type !== "volunteer") return true
-            if (!result.skills || result.skills.length === 0) return false
-            return result.skills.some((skill: string) => {
+          const withSkillMatch: typeof finalResults = []
+          const withoutSkillMatch: typeof finalResults = []
+          for (const result of finalResults) {
+            if (result.type !== "volunteer") { withSkillMatch.push(result); continue }
+            if (!result.skills || result.skills.length === 0) { withoutSkillMatch.push(result); continue }
+            const hasOverlap = result.skills.some((skill: string) => {
               const sCore = skill.toLowerCase().replace(/\s*\(.*\)$/, "").replace(/[^a-z0-9\s]/g, " ").trim()
               return roleSkills.some((rs: string) => {
                 const rsCore = rs.toLowerCase().replace(/\s*\(.*\)$/, "").replace(/[^a-z0-9\s]/g, " ").trim()
                 return sCore.includes(rsCore) || rsCore.includes(sCore)
               })
             })
-          })
-          if (skillRelevant.length > 0) {
-            finalResults = skillRelevant
-            if (DEBUG_SEARCH) console.log(`🟢 [Search API] Skill-relevance filter: ${finalResults.length} results with matching skills`)
-          } else {
-            if (DEBUG_SEARCH) console.log(`🟡 [Search API] Skill-relevance filter: 0 matches — keeping text results for fallback`)
+            if (hasOverlap) withSkillMatch.push(result)
+            else withoutSkillMatch.push(result)
           }
+          // Skill-matched first, then unknowns/non-matches
+          finalResults = [...withSkillMatch, ...withoutSkillMatch]
+          if (DEBUG_SEARCH) console.log(`🟢 [Search API] Skill-relevance sort: ${withSkillMatch.length} with matching skills, ${withoutSkillMatch.length} demoted`)
         }
 
         // ── ROLE-EXPANSION FALLBACK ──────────────────────────────────
@@ -1692,22 +1693,24 @@ export async function GET(request: NextRequest) {
         finalResults = mappedResults.filter(r => allowedSet.has(r.type))
       }
 
-      // Skill-relevance filter: when role expansion found skills, keep only
-      // volunteers whose skills overlap with the expanded set.
+      // Skill-relevance sort: prioritize volunteers with matching skills.
       const esRoleSkills = expandRoleToSkills(query)
       if (esRoleSkills.length > 0) {
-        const skillFiltered = finalResults.filter(r => {
-          if (r.type !== "volunteer") return true
-          if (!r.skills || r.skills.length === 0) return false
-          return r.skills.some((skill: string) => {
+        const matched: typeof finalResults = []
+        const rest: typeof finalResults = []
+        for (const r of finalResults) {
+          if (r.type !== "volunteer") { matched.push(r); continue }
+          if (!r.skills || r.skills.length === 0) { rest.push(r); continue }
+          const hasOverlap = r.skills.some((skill: string) => {
             const sCore = skill.toLowerCase().replace(/\s*\(.*\)$/, "").replace(/[^a-z0-9\s]/g, " ").trim()
             return esRoleSkills.some(rs => {
               const rsCore = rs.toLowerCase().replace(/\s*\(.*\)$/, "").replace(/[^a-z0-9\s]/g, " ").trim()
               return sCore.includes(rsCore) || rsCore.includes(sCore)
             })
           })
-        })
-        if (skillFiltered.length > 0) finalResults = skillFiltered
+          if (hasOverlap) matched.push(r); else rest.push(r)
+        }
+        finalResults = [...matched, ...rest]
       }
 
       // When ES returns no results, fall back to MongoDB.
@@ -1773,21 +1776,24 @@ export async function GET(request: NextRequest) {
       limit: Math.min(limit, 50),
     })
 
-    // Skill-relevance filter for MongoDB results
+    // Skill-relevance sort for MongoDB results
     const mongoRoleSkills = expandRoleToSkills(query)
     if (mongoRoleSkills.length > 0) {
-      const skillFiltered = results.filter((r: any) => {
-        if (r.type !== "volunteer") return true
-        if (!r.skills || r.skills.length === 0) return false
-        return r.skills.some((skill: string) => {
+      const matched: any[] = []
+      const rest: any[] = []
+      for (const r of results) {
+        if (r.type !== "volunteer") { matched.push(r); continue }
+        if (!r.skills || r.skills.length === 0) { rest.push(r); continue }
+        const hasOverlap = r.skills.some((skill: string) => {
           const sCore = skill.toLowerCase().replace(/\s*\(.*\)$/, "").replace(/[^a-z0-9\s]/g, " ").trim()
           return mongoRoleSkills.some(rs => {
             const rsCore = rs.toLowerCase().replace(/\s*\(.*\)$/, "").replace(/[^a-z0-9\s]/g, " ").trim()
             return sCore.includes(rsCore) || rsCore.includes(sCore)
           })
         })
-      })
-      if (skillFiltered.length > 0) results = skillFiltered
+        if (hasOverlap) matched.push(r); else rest.push(r)
+      }
+      results = [...matched, ...rest]
     }
 
     const mongoTook = Date.now() - startTime
