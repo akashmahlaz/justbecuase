@@ -117,14 +117,9 @@ export function ProjectCard({ project }: { project: Project }) {
             {project.applicants} {t.applied || "applied"}
           </span>
         </div>
-        <div className="flex items-center gap-2">
-          <Button asChild size="sm" variant="outline" className="text-sm">
-            <LocaleLink href={`/projects/${project.id}`}>{t.viewDetails || "View Details"}</LocaleLink>
-          </Button>
-          <Button asChild size="sm" className="text-sm bg-primary hover:bg-primary/90">
-            <LocaleLink href={`/projects/${project.id}`}>{t.apply || "Apply"} <ArrowRight className="h-3 w-3 inline ml-1" /></LocaleLink>
-          </Button>
-        </div>
+        <Button asChild size="sm" variant="ghost" className="text-primary hover:text-primary hover:bg-primary/10">
+          <LocaleLink href={`/projects/${project.id}`}>{t.apply || "Apply"} <ArrowRight className="h-3 w-3 inline ml-1" /></LocaleLink>
+        </Button>
       </div>
     </div>
   )
