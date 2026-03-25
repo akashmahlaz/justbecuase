@@ -59,6 +59,7 @@ export default function PricingPage() {
   const defaultTab = userRole === "volunteer" ? "volunteer" : "ngo"
   const [activeTab, setActiveTab] = useState(defaultTab)
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null)
+  const [billingCycle, setBillingCycle] = useState<"monthly" | "yearly">("monthly")
   
   // Get current plan from store
   const currentNGOPlan = ngoSubscription?.plan || "free"
@@ -71,6 +72,12 @@ export default function PricingPage() {
   // Get admin-configured prices (whole currency units, e.g., 2999 = ₹2,999)
   const ngoProPrice = platformSettings?.ngoProPrice ?? 2999
   const volunteerProPrice = platformSettings?.volunteerProPrice ?? 999
+  const ngoProYearlyPrice = platformSettings?.ngoProYearlyPrice ?? Math.round(ngoProPrice * 10)
+  const volunteerProYearlyPrice = platformSettings?.volunteerProYearlyPrice ?? Math.round(volunteerProPrice * 10)
+  
+  // Calculate savings percentages
+  const ngoYearlySavingsPercent = Math.round((1 - ngoProYearlyPrice / (ngoProPrice * 12)) * 100)
+  const volunteerYearlySavingsPercent = Math.round((1 - volunteerProYearlyPrice / (volunteerProPrice * 12)) * 100)
   
   // Show only the plans relevant to the user's role
   // If user is logged in as volunteer, they can only see/buy volunteer plans
@@ -88,6 +95,7 @@ export default function PricingPage() {
       price: 0,
       priceDisplay: `${currencySymbol}0`,
       period: p.forever || "forever",
+      savingsPercent: 0,
       icon: Building2,
       features: (p.ngoFreeFeatures || [
         `Post up to ${platformSettings?.ngoFreeProjectsPerMonth || 3} projects per month`,
@@ -106,9 +114,10 @@ export default function PricingPage() {
       id: "ngo-pro",
       name: p.pro || "Pro",
       description: p.ngoProDesc || "Unlock unlimited FREE impact agent profiles",
-      price: ngoProPrice,
-      priceDisplay: formatPrice(ngoProPrice, currency),
-      period: p.perMonth || "per month",
+      price: billingCycle === "yearly" ? ngoProYearlyPrice : ngoProPrice,
+      priceDisplay: formatPrice(billingCycle === "yearly" ? ngoProYearlyPrice : ngoProPrice, currency),
+      period: billingCycle === "yearly" ? (p.perYear || "per year") : (p.perMonth || "per month"),
+      savingsPercent: billingCycle === "yearly" ? ngoYearlySavingsPercent : 0,
       icon: Zap,
       features: platformSettings?.ngoProFeatures || p.ngoProFeaturesDefault || [
         "Unlimited opportunities",
@@ -132,6 +141,7 @@ export default function PricingPage() {
       price: 0,
       priceDisplay: `${currencySymbol}0`,
       period: p.forever || "forever",
+      savingsPercent: 0,
       icon: User,
       features: (p.volFreeFeatures || [
         "Browse all opportunities",
@@ -149,9 +159,10 @@ export default function PricingPage() {
       id: "volunteer-pro",
       name: p.pro || "Pro",
       description: p.volProDesc || "Apply to unlimited jobs",
-      price: volunteerProPrice,
-      priceDisplay: formatPrice(volunteerProPrice, currency),
-      period: p.perMonth || "per month",
+      price: billingCycle === "yearly" ? volunteerProYearlyPrice : volunteerProPrice,
+      priceDisplay: formatPrice(billingCycle === "yearly" ? volunteerProYearlyPrice : volunteerProPrice, currency),
+      period: billingCycle === "yearly" ? (p.perYear || "per year") : (p.perMonth || "per month"),
+      savingsPercent: billingCycle === "yearly" ? volunteerYearlySavingsPercent : 0,
       icon: Sparkles,
       features: platformSettings?.volunteerProFeatures || p.volProFeaturesDefault || [
         "Unlimited job applications",
@@ -169,7 +180,7 @@ export default function PricingPage() {
 
   const handleSubscribe = (planId: string, amount: number) => {
     if (!user) {
-      router.push(localePath(`/auth/signin?redirect=/checkout?plan=${planId}`, locale))
+      router.push(localePath(`/auth/signin?redirect=/checkout?plan=${planId}&billing=${billingCycle}`, locale))
       return
     }
 
@@ -180,7 +191,7 @@ export default function PricingPage() {
     }
 
     // Redirect to checkout page
-    router.push(localePath(`/checkout?plan=${planId}`, locale))
+    router.push(localePath(`/checkout?plan=${planId}&billing=${billingCycle}`, locale))
   }
 
   const renderPlanCard = (plan: typeof ngoPlans[0], currentPlan?: string) => {
@@ -194,10 +205,15 @@ export default function PricingPage() {
         className={`relative flex flex-col ${plan.popular ? "border-primary shadow-lg scale-[1.02]" : ""}`}
       >
         {plan.popular && (
-          <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+          <div className="absolute -top-3 left-1/2 -translate-x-1/2 flex gap-2">
             <Badge className="bg-primary text-primary-foreground">
               {p.recommended || "Recommended"}
             </Badge>
+            {plan.savingsPercent > 0 && (
+              <Badge className="bg-green-600 text-white">
+                Save {plan.savingsPercent}%
+              </Badge>
+            )}
           </div>
         )}
         <CardHeader>
@@ -312,6 +328,33 @@ export default function PricingPage() {
               )}
 
               <TabsContent value="ngo">
+                <div className="flex justify-center mb-8">
+                  <div className="inline-flex items-center rounded-lg border bg-muted p-1">
+                    <button
+                      onClick={() => setBillingCycle("monthly")}
+                      className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
+                        billingCycle === "monthly"
+                          ? "bg-background text-foreground shadow-sm"
+                          : "text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      {p.monthly || "Monthly"}
+                    </button>
+                    <button
+                      onClick={() => setBillingCycle("yearly")}
+                      className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
+                        billingCycle === "yearly"
+                          ? "bg-background text-foreground shadow-sm"
+                          : "text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      {p.yearly || "Yearly"}
+                      {ngoYearlySavingsPercent > 0 && (
+                        <span className="ml-1.5 text-xs text-green-600 font-semibold">Save {ngoYearlySavingsPercent}%</span>
+                      )}
+                    </button>
+                  </div>
+                </div>
                 <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
                   {ngoPlans.map((plan) => renderPlanCard(plan, currentNGOPlan === "pro" ? "ngo-pro" : undefined))}
                 </div>
@@ -327,6 +370,33 @@ export default function PricingPage() {
               </TabsContent>
 
               <TabsContent value="volunteer">
+                <div className="flex justify-center mb-8">
+                  <div className="inline-flex items-center rounded-lg border bg-muted p-1">
+                    <button
+                      onClick={() => setBillingCycle("monthly")}
+                      className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
+                        billingCycle === "monthly"
+                          ? "bg-background text-foreground shadow-sm"
+                          : "text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      {p.monthly || "Monthly"}
+                    </button>
+                    <button
+                      onClick={() => setBillingCycle("yearly")}
+                      className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
+                        billingCycle === "yearly"
+                          ? "bg-background text-foreground shadow-sm"
+                          : "text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      {p.yearly || "Yearly"}
+                      {volunteerYearlySavingsPercent > 0 && (
+                        <span className="ml-1.5 text-xs text-green-600 font-semibold">Save {volunteerYearlySavingsPercent}%</span>
+                      )}
+                    </button>
+                  </div>
+                </div>
                 <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
                   {volunteerPlans.map((plan) => renderPlanCard(plan, currentVolunteerPlan === "pro" ? "volunteer-pro" : undefined))}
                 </div>
