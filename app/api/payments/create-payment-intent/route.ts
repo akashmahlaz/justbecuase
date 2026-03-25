@@ -22,7 +22,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { planId, couponCode } = body
+    const { planId, couponCode, billingCycle } = body
 
     if (!planId) {
       return NextResponse.json({ error: "Plan ID required" }, { status: 400 })
@@ -48,9 +48,16 @@ export async function POST(request: NextRequest) {
     // Fetch admin prices
     const adminSettings = await adminSettingsDb.get()
     const currency = (adminSettings?.currency || "INR").toLowerCase()
-    const priceWholeUnits = planId === "ngo-pro"
-      ? (Number(adminSettings?.ngoProPrice) || 2999)
-      : (Number(adminSettings?.volunteerProPrice) || 999)
+    const priceWholeUnits = (() => {
+      if (billingCycle === "yearly") {
+        return planId === "ngo-pro"
+          ? (Number(adminSettings?.ngoProYearlyPrice) || Math.round((Number(adminSettings?.ngoProPrice) || 2999) * 10))
+          : (Number(adminSettings?.volunteerProYearlyPrice) || Math.round((Number(adminSettings?.volunteerProPrice) || 999) * 10))
+      }
+      return planId === "ngo-pro"
+        ? (Number(adminSettings?.ngoProPrice) || 2999)
+        : (Number(adminSettings?.volunteerProPrice) || 999)
+    })()
 
     if (priceWholeUnits <= 0) {
       return NextResponse.json({ error: "Price not configured" }, { status: 400 })
@@ -121,6 +128,7 @@ export async function POST(request: NextRequest) {
         userId: session.user.id,
         planId,
         userRole,
+        billingCycle: billingCycle || "monthly",
         ...(couponData
           ? {
               couponCode: couponData.couponCode,

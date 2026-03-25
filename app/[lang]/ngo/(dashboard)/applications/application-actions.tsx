@@ -290,10 +290,26 @@ export function ApplicationActions({ applicationId, currentStatus, volunteerName
 
   if (currentStatus === "accepted") {
     return (
-      <Button size="sm" variant="outline" className="bg-transparent">
-        <MessageSquare className="h-4 w-4 mr-1" />
-        {dict.ngo?.common?.message || "Message"}
-      </Button>
+      <>
+        <Button
+          size="sm"
+          variant="outline"
+          className="bg-transparent text-blue-600 border-blue-600 hover:bg-blue-50"
+          onClick={() => handleQuickAction("shortlisted")}
+          disabled={isLoading !== null}
+        >
+          {isLoading === "shortlisted" ? (
+            <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+          ) : (
+            <Star className="h-4 w-4 mr-1" />
+          )}
+          {dict.ngo?.applications?.shortlist || "Shortlist"}
+        </Button>
+        <Button size="sm" variant="outline" className="bg-transparent">
+          <MessageSquare className="h-4 w-4 mr-1" />
+          {dict.ngo?.common?.message || "Message"}
+        </Button>
+      </>
     )
   }
 

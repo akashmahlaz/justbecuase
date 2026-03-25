@@ -533,6 +533,7 @@ export interface AdminSettings {
   volunteerFreeApplicationsPerMonth: number
   volunteerFreeProfileVisibility: boolean
   volunteerProPrice: number
+  volunteerProYearlyPrice?: number
   volunteerProApplicationsUnlimited: boolean
   volunteerProFeatures: string[]
   
@@ -540,6 +541,7 @@ export interface AdminSettings {
   ngoFreeProjectsPerMonth: number
   ngoFreeProfileUnlocksPerMonth: number
   ngoProPrice: number
+  ngoProYearlyPrice?: number
   ngoProProjectsUnlimited: boolean
   ngoProUnlocksUnlimited: boolean
   ngoProFeatures: string[]

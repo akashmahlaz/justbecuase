@@ -1054,6 +1054,30 @@ export default function AdminSettingsPage() {
                 </div>
               </div>
 
+              <div className="space-y-2 max-w-xs">
+                <Label htmlFor="volunteerProYearlyPrice">{"Yearly Price"}</Label>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
+                    {getCurrencySymbol()}
+                  </span>
+                  <Input
+                    id="volunteerProYearlyPrice"
+                    type="number"
+                    className="pl-8"
+                    value={(settings as any).volunteerProYearlyPrice || Math.round((settings.volunteerProPrice || 999) * 10)}
+                    onChange={(e) =>
+                      setSettings({
+                        ...settings,
+                        volunteerProYearlyPrice: parseInt(e.target.value) || 0,
+                      } as any)
+                    }
+                  />
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {"Yearly billing price (default: ~10 months worth)"}
+                </p>
+              </div>
+
               <Separator />
 
               <div className="space-y-4">
@@ -1183,6 +1207,31 @@ export default function AdminSettingsPage() {
                     />
                   </div>
                 </div>
+                <div className="space-y-2">
+                  <Label htmlFor="ngoProYearlyPrice">{"Yearly Price"}</Label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
+                      {getCurrencySymbol()}
+                    </span>
+                    <Input
+                      id="ngoProYearlyPrice"
+                      type="number"
+                      className="pl-8"
+                      value={(settings as any).ngoProYearlyPrice || Math.round((settings.ngoProPrice || 2999) * 10)}
+                      onChange={(e) =>
+                        setSettings({
+                          ...settings,
+                          ngoProYearlyPrice: parseInt(e.target.value) || 0,
+                        } as any)
+                      }
+                    />
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    {"Yearly billing price (default: ~10 months worth)"}
+                  </p>
+                </div>
+              </div>
+              <div className="grid sm:grid-cols-3 gap-4">
                 <div className="space-y-2 flex items-center gap-2 pt-6">
                   <Switch
                     checked={settings.ngoProProjectsUnlimited !== false}

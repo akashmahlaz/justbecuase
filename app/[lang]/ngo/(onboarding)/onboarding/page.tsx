@@ -781,6 +781,69 @@ export default function NGOOnboardingPage() {
             ))}
           </RadioGroup>
         </div>
+
+        {/* Verification Documents - Mandatory */}
+        <div className="space-y-3">
+          <Label>{"Verification Documents"} <span className="text-destructive">*</span></Label>
+          <p className="text-sm text-muted-foreground">
+            {dict.ngo?.onboarding?.uploadVerificationDesc || "Add your registration certificate to get verified badge"}
+          </p>
+          
+          <input
+            ref={verificationDocRef}
+            type="file"
+            accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+            multiple
+            onChange={handleVerificationDocUpload}
+            className="hidden"
+            id="verification-doc-upload"
+          />
+          
+          <Button 
+            type="button"
+            variant="outline" 
+            size="sm"
+            onClick={() => verificationDocRef.current?.click()}
+            disabled={uploadingDoc}
+          >
+            {uploadingDoc ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                {dict.ngo?.common?.saving || "Uploading..."}
+              </>
+            ) : (
+              <>
+                <FileText className="h-4 w-4 mr-2" />
+                {dict.ngo?.onboarding?.uploadDocument || "Upload Document"}
+              </>
+            )}
+          </Button>
+          
+          {verificationDocuments.length > 0 && (
+            <div className="space-y-2">
+              {verificationDocuments.map((doc, index) => (
+                <div key={index} className="flex items-center justify-between p-3 bg-muted rounded-lg">
+                  <div className="flex items-center gap-2">
+                    <FileText className="h-4 w-4 text-primary" />
+                    <span className="text-sm truncate max-w-[200px]">{doc.name}</span>
+                    <Badge variant="secondary" className="text-xs">
+                      {doc.type.includes("pdf") ? "PDF" : doc.type.includes("word") || doc.type.includes("doc") ? "DOC" : "Image"}
+                    </Badge>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => removeVerificationDoc(index)}
+                    className="text-destructive hover:text-destructive/80 h-8 w-8 p-0"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   )
@@ -1075,67 +1138,26 @@ export default function NGOOnboardingPage() {
 
       <Card className="border-dashed">
         <CardContent className="pt-6">
-          <div className="text-center">
-            <Upload className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
-            <h3 className="font-medium">{dict.ngo?.onboarding?.uploadVerification || "Upload Verification Documents (Optional)"}</h3>
-            <p className="text-sm text-muted-foreground mb-4">
-              {dict.ngo?.onboarding?.uploadVerificationDesc || "Add your registration certificate to get verified badge"}
-            </p>
-            
-            {/* Hidden file input */}
-            <input
-              ref={verificationDocRef}
-              type="file"
-              accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
-              multiple
-              onChange={handleVerificationDocUpload}
-              className="hidden"
-              id="verification-doc-upload"
-            />
-            
-            <Button 
-              variant="outline" 
-              size="sm"
-              onClick={() => verificationDocRef.current?.click()}
-              disabled={uploadingDoc}
-            >
-              {uploadingDoc ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  {dict.ngo?.common?.saving || "Uploading..."}
-                </>
-              ) : (
-                <>
-                  <FileText className="h-4 w-4 mr-2" />
-                  {dict.ngo?.onboarding?.uploadDocument || "Upload Document"}
-                </>
-              )}
-            </Button>
-            
-            {/* Uploaded documents list */}
-            {verificationDocuments.length > 0 && (
-              <div className="mt-4 space-y-2 text-left">
+          <div>
+            <h3 className="font-medium flex items-center gap-2 mb-3">
+              <FileText className="h-5 w-5 text-primary" />
+              {"Verification Documents"}
+            </h3>
+            {verificationDocuments.length > 0 ? (
+              <div className="space-y-2">
                 {verificationDocuments.map((doc, index) => (
-                  <div key={index} className="flex items-center justify-between p-3 bg-muted rounded-lg">
-                    <div className="flex items-center gap-2">
-                      <FileText className="h-4 w-4 text-primary" />
-                      <span className="text-sm truncate max-w-[200px]">{doc.name}</span>
-                      <Badge variant="secondary" className="text-xs">
-                        {doc.type.includes("pdf") ? "PDF" : doc.type.includes("word") || doc.type.includes("doc") ? "DOC" : "Image"}
-                      </Badge>
-                    </div>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => removeVerificationDoc(index)}
-                      className="text-destructive hover:text-destructive/80 h-8 w-8 p-0"
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
+                  <div key={index} className="flex items-center gap-2 p-3 bg-muted rounded-lg">
+                    <FileText className="h-4 w-4 text-primary" />
+                    <span className="text-sm truncate max-w-[250px]">{doc.name}</span>
+                    <Badge variant="secondary" className="text-xs">
+                      {doc.type.includes("pdf") ? "PDF" : doc.type.includes("word") || doc.type.includes("doc") ? "DOC" : "Image"}
+                    </Badge>
+                    <CheckCircle className="h-4 w-4 text-green-500 ml-auto" />
                   </div>
                 ))}
               </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">No documents uploaded</p>
             )}
           </div>
         </CardContent>
@@ -1209,6 +1231,10 @@ export default function NGOOnboardingPage() {
                   }
                   if (!orgDetails.registrationNumber) {
                     setError(dict.ngo?.onboarding?.regNumberError || "Please enter your organization registration number")
+                    return
+                  }
+                  if (verificationDocuments.length === 0) {
+                    setError("Please upload at least one verification document")
                     return
                   }
                 }

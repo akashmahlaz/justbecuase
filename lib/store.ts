@@ -171,12 +171,14 @@ interface PlatformSettingsState {
     // Volunteer Plans
     volunteerFreeApplicationsPerMonth: number
     volunteerProPrice: number
+    volunteerProYearlyPrice?: number
     volunteerProFeatures: string[]
     
     // NGO Plans
     ngoFreeProjectsPerMonth: number
     ngoFreeProfileUnlocksPerMonth: number
     ngoProPrice: number
+    ngoProYearlyPrice?: number
     ngoProFeatures: string[]
     
     // Features

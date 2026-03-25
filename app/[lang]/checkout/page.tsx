@@ -63,6 +63,7 @@ function CheckoutOrchestrator() {
   const dict = useDictionary()
   const searchParams = useSearchParams()
   const planId = searchParams.get("plan")
+  const billingCycle = (searchParams.get("billing") || "monthly") as "monthly" | "yearly"
 
   const { data: session } = client.useSession()
   const user = session?.user
@@ -132,6 +133,8 @@ function CheckoutOrchestrator() {
   const currencySymbol = getCurrencySymbol(currency)
   const ngoProPrice = Number(platformSettings?.ngoProPrice) || 2999
   const volunteerProPrice = Number(platformSettings?.volunteerProPrice) || 999
+  const ngoProYearlyPrice = Number(platformSettings?.ngoProYearlyPrice) || Math.round(ngoProPrice * 10)
+  const volunteerProYearlyPrice = Number(platformSettings?.volunteerProYearlyPrice) || Math.round(volunteerProPrice * 10)
 
   const plan = useMemo<PlanInfo | null>(() => {
     if (!planId) return null
@@ -140,7 +143,7 @@ function CheckoutOrchestrator() {
         id: "ngo-pro",
         name: dict.checkout?.ngoPlanName || "NGO Pro Plan",
         description: dict.checkout?.ngoPlanDesc || "Unlimited projects and profile unlocks for your organization",
-        price: ngoProPrice,
+        price: billingCycle === "yearly" ? ngoProYearlyPrice : ngoProPrice,
         features: platformSettings?.ngoProFeatures || [
           dict.checkout?.ngoFeature1 || "Unlimited projects",
           dict.checkout?.ngoFeature2 || "Unlimited profile unlocks",
@@ -157,7 +160,7 @@ function CheckoutOrchestrator() {
         id: "volunteer-pro",
         name: dict.checkout?.agentPlanName || "Impact Agent Pro Plan",
         description: dict.checkout?.agentPlanDesc || "Unlimited applications and premium features",
-        price: volunteerProPrice,
+        price: billingCycle === "yearly" ? volunteerProYearlyPrice : volunteerProPrice,
         features: platformSettings?.volunteerProFeatures || [
           dict.checkout?.agentFeature1 || "Unlimited job applications",
           dict.checkout?.agentFeature2 || "Featured profile badge",
@@ -171,7 +174,7 @@ function CheckoutOrchestrator() {
       }
     }
     return null
-  }, [planId, ngoProPrice, volunteerProPrice, platformSettings, dict])
+  }, [planId, ngoProPrice, volunteerProPrice, ngoProYearlyPrice, volunteerProYearlyPrice, billingCycle, platformSettings, dict])
 
   const currentPlan = planId?.startsWith("ngo-")
     ? ngoSubscription?.plan
@@ -250,6 +253,7 @@ function CheckoutOrchestrator() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           planId: plan.id,
+          billingCycle,
           couponCode: appliedCoupon?.code || undefined,
         }),
       })
@@ -466,7 +470,7 @@ function CheckoutOrchestrator() {
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">{plan.name}</span>
-                  <span>{formatPrice(originalAmount, currency)}{dict.checkout?.perMonth || "/mo"}</span>
+                  <span>{formatPrice(originalAmount, currency)}{billingCycle === "yearly" ? (dict.checkout?.perYear || "/yr") : (dict.checkout?.perMonth || "/mo")}</span>
                 </div>
                 {savings > 0 && (
                   <div className="flex justify-between text-green-600">
