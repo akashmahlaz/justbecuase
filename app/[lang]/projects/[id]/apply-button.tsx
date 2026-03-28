@@ -6,6 +6,9 @@ import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Separator } from "@/components/ui/separator"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Progress } from "@/components/ui/progress"
 import {
   Dialog,
   DialogContent,
@@ -15,7 +18,7 @@ import {
   DialogTrigger,
   DialogFooter,
 } from "@/components/ui/dialog"
-import { CheckCircle, Zap } from "lucide-react"
+import { CheckCircle, Zap, AlertTriangle } from "lucide-react"
 import { applyToProject } from "@/lib/actions"
 import { AICoverLetterButton } from "@/components/ai/cover-letter-button"
 import LocaleLink from "@/components/locale-link"
@@ -114,50 +117,56 @@ export function ApplyButton({
 
         {submitted ? (
           <div className="py-8 text-center">
-            <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-4">
+            <div className="size-16 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-4">
               <CheckCircle className="h-8 w-8 text-green-600" />
             </div>
             <h3 className="text-lg font-semibold text-foreground mb-2">Application Submitted!</h3>
             <p className="text-muted-foreground">
               The organization will review your application and get back to you soon.
             </p>
+            <Progress value={100} className="mt-4 h-1" />
           </div>
         ) : (
-          <form action={handleSubmit} className="space-y-4">
-            {error && (
-              <div className={`p-3 rounded-lg text-sm ${limitReached ? "bg-amber-50 border border-amber-200" : "bg-red-50 border border-red-200 text-red-600"}`}>
-                {limitReached ? (
-                  <div className="space-y-3">
-                    <p className="text-amber-800 font-medium">Monthly limit reached!</p>
-                    <p className="text-amber-700">You've used all 3 free applications this month.</p>
-                    <Button asChild size="sm" className="w-full">
-                      <LocaleLink href="/pricing">
-                        <Zap className="h-4 w-4 mr-2" />
-                        Upgrade to Pro for unlimited applications
-                      </LocaleLink>
-                    </Button>
-                  </div>
-                ) : (
-                  error
-                )}
-              </div>
+          <form action={handleSubmit} className="flex flex-col gap-4">
+            {error && !limitReached && (
+              <Alert variant="destructive">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
             )}
 
-            {/* AI Cover Letter Generator */}
+            {limitReached && (
+              <Alert className="border-amber-200 bg-amber-50 dark:bg-amber-950/20">
+                <AlertTriangle className="h-4 w-4 text-amber-600" />
+                <AlertDescription>
+                  <p className="font-medium text-amber-800 dark:text-amber-400">Monthly limit reached!</p>
+                  <p className="text-amber-700 dark:text-amber-500 text-sm mt-1">You&apos;ve used all 3 free applications this month.</p>
+                  <Button asChild size="sm" className="w-full mt-3">
+                    <LocaleLink href="/pricing">
+                      <Zap className="h-4 w-4 mr-2" />
+                      Upgrade to Pro for unlimited applications
+                    </LocaleLink>
+                  </Button>
+                </AlertDescription>
+              </Alert>
+            )}
+
             {volunteerName && (
-              <AICoverLetterButton
-                projectTitle={projectTitle}
-                projectDescription={projectDescription}
-                projectSkills={projectSkills}
-                volunteerName={volunteerName}
-                volunteerSkills={volunteerSkills}
-                volunteerBio={volunteerBio}
-                onGenerated={(letter) => {
-                  // Auto-fill the interest field with the generated letter
-                  const interestField = document.getElementById("interest") as HTMLTextAreaElement
-                  if (interestField) interestField.value = letter
-                }}
-              />
+              <>
+                <AICoverLetterButton
+                  projectTitle={projectTitle}
+                  projectDescription={projectDescription}
+                  projectSkills={projectSkills}
+                  volunteerName={volunteerName}
+                  volunteerSkills={volunteerSkills}
+                  volunteerBio={volunteerBio}
+                  onGenerated={(letter) => {
+                    const interestField = document.getElementById("interest") as HTMLTextAreaElement
+                    if (interestField) interestField.value = letter
+                  }}
+                />
+                <Separator />
+              </>
             )}
 
             <div>

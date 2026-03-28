@@ -21,8 +21,16 @@
       "schedule": "0 9 * * 1"
     },
     {
-      "path": "/api/cron/scraper",
+      "path": "/api/cron/scraper?platform=idealist",
       "schedule": "0 4 * * *"
+    },
+    {
+      "path": "/api/cron/scraper?platform=impactpool",
+      "schedule": "30 5 * * *"
+    },
+    {
+      "path": "/api/cron/scraper?platform=unjobs",
+      "schedule": "0 6 * * *"
     }
   ]
 }
