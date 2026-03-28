@@ -189,7 +189,7 @@ function ProjectsContent() {
 
         // Fetch and merge external opportunities (looks like native projects)
         try {
-          const extRes = await fetch("/api/external-opportunities?limit=30")
+          const extRes = await fetch("/api/external-opportunities?limit=500")
           if (extRes.ok) {
             const extData = await extRes.json()
             const externalAsProjects: Project[] = (extData.opportunities || []).map((opp: any) => ({

@@ -159,9 +159,14 @@ export const scraperConfigsDb = {
   async upsert(config: Omit<ScraperConfig, "_id">) {
     const db = await getDb()
     const collection = db.collection<ScraperConfig>(COLLECTIONS.SCRAPER_CONFIGS)
+    const { createdAt, ...updatableFields } = config
+
     await collection.updateOne(
       { platform: config.platform },
-      { $set: { ...config, updatedAt: new Date() }, $setOnInsert: { createdAt: new Date() } },
+      {
+        $set: { ...updatableFields, updatedAt: new Date() },
+        $setOnInsert: { createdAt: createdAt || new Date() },
+      },
       { upsert: true }
     )
   },
@@ -189,16 +194,16 @@ export const scraperConfigsDb = {
         enabled: true,
         cronSchedule: "0 4 * * *",
         totalItemsScraped: 0,
-        settings: { maxPages: "5", jobTypes: "volunteer,internship" },
+        settings: { maxPages: "25", jobTypes: "volunteer,internship" },
         createdAt: new Date(),
         updatedAt: new Date(),
       },
       {
         platform: "idealist",
         enabled: true,
-        cronSchedule: "0 5 * * *",
+        cronSchedule: "0 4 * * *",
         totalItemsScraped: 0,
-        settings: { maxPages: "5" },
+        settings: { maxPages: "25" },
         createdAt: new Date(),
         updatedAt: new Date(),
       },
@@ -207,7 +212,7 @@ export const scraperConfigsDb = {
         enabled: true,
         cronSchedule: "0 6 * * *",
         totalItemsScraped: 0,
-        settings: { maxPages: "3" },
+        settings: { maxPages: "15" },
         createdAt: new Date(),
         updatedAt: new Date(),
       },
@@ -216,7 +221,7 @@ export const scraperConfigsDb = {
         enabled: false,
         cronSchedule: "30 4 * * *",
         totalItemsScraped: 0,
-        settings: { maxPages: "3", deepScrape: "true", maxDetailPages: "30" },
+        settings: { maxPages: "15", deepScrape: "true", maxDetailPages: "30" },
         createdAt: new Date(),
         updatedAt: new Date(),
       },
@@ -225,7 +230,7 @@ export const scraperConfigsDb = {
         enabled: true,
         cronSchedule: "30 5 * * *",
         totalItemsScraped: 0,
-        settings: { maxPages: "3" },
+        settings: { maxPages: "15" },
         createdAt: new Date(),
         updatedAt: new Date(),
       },
@@ -234,7 +239,7 @@ export const scraperConfigsDb = {
         enabled: false,
         cronSchedule: "0 7 * * *",
         totalItemsScraped: 0,
-        settings: { maxPages: "3", deepScrape: "true", maxDetailPages: "25" },
+        settings: { maxPages: "15", deepScrape: "true", maxDetailPages: "25" },
         createdAt: new Date(),
         updatedAt: new Date(),
       },
@@ -243,7 +248,7 @@ export const scraperConfigsDb = {
         enabled: false,
         cronSchedule: "30 7 * * *",
         totalItemsScraped: 0,
-        settings: { maxPages: "3", deepScrape: "true", maxDetailPages: "20" },
+        settings: { maxPages: "15", deepScrape: "true", maxDetailPages: "20" },
         createdAt: new Date(),
         updatedAt: new Date(),
       },
