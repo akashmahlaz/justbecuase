@@ -25,6 +25,7 @@ interface Project {
   status?: string
   matchScore?: number
   matchReasons?: string[]
+  externalUrl?: string
 }
 
 export function ProjectCard({ project }: { project: Project }) {
@@ -118,7 +119,11 @@ export function ProjectCard({ project }: { project: Project }) {
           </span>
         </div>
         <Button asChild size="sm" variant="ghost" className="text-primary hover:text-primary hover:bg-primary/10">
-          <LocaleLink href={`/projects/${project.id}`}>{t.apply || "Apply"} <ArrowRight className="h-3 w-3 inline ml-1" /></LocaleLink>
+          {project.externalUrl ? (
+            <a href={project.externalUrl} target="_blank" rel="noopener noreferrer">{t.viewDetails || "View Details"} <ArrowRight className="h-3 w-3 inline ml-1" /></a>
+          ) : (
+            <LocaleLink href={`/projects/${project.id}`}>{t.apply || "Apply"} <ArrowRight className="h-3 w-3 inline ml-1" /></LocaleLink>
+          )}
         </Button>
       </div>
     </div>
