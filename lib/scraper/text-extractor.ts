@@ -15,6 +15,8 @@ export interface ExtractedContent {
   deadline?: string
   postedDate?: string
   salary?: string
+  duration?: string
+  experienceLevel?: string
   tags: string[]
   workMode?: string
   links: { text: string; url: string }[]
@@ -96,11 +98,14 @@ export function extractPageContent(html: string, baseUrl: string): ExtractedCont
   // === Strategy 3: DOM heuristics ===
   const domData = extractFromDom($, baseUrl)
 
-  // === Merge all strategies (priority: JSON-LD > OG > DOM) ===
+  // === Merge all strategies (priority: longest/richest for description, JSON-LD > OG > DOM for metadata) ===
   const title =
     jsonLd.title || ogData.title || domData.title || $("title").text().trim() || ""
-  const description =
-    jsonLd.description || ogData.description || domData.description || ""
+
+  // For description, prefer the longest version — JSON-LD can be truncated on some platforms
+  const candidates = [jsonLd.description, ogData.description, domData.description].filter(Boolean)
+  const description = candidates.sort((a, b) => (b?.length || 0) - (a?.length || 0))[0] || ""
+
   const organization =
     jsonLd.organization || ogData.siteName || domData.organization || ""
 
@@ -113,6 +118,8 @@ export function extractPageContent(html: string, baseUrl: string): ExtractedCont
     deadline: jsonLd.deadline || domData.deadline,
     postedDate: jsonLd.postedDate || ogData.publishedTime || domData.postedDate,
     salary: jsonLd.salary || domData.salary,
+    duration: domData.duration,
+    experienceLevel: domData.experienceLevel,
     tags: [...new Set([...(jsonLd.tags || []), ...domData.tags])],
     workMode: domData.workMode,
     links: domData.links,
@@ -306,6 +313,8 @@ interface DomData {
   deadline?: string
   postedDate?: string
   salary?: string
+  duration?: string
+  experienceLevel?: string
   tags: string[]
   workMode?: string
   links: { text: string; url: string }[]
@@ -314,7 +323,7 @@ interface DomData {
 
 function extractFromDom($: cheerio.CheerioAPI, baseUrl: string): DomData {
   // Remove noise
-  $("script, style, nav, footer, header, iframe, noscript, .sidebar, .cookie-banner, .modal").remove()
+  $("script, style, nav, footer, header, iframe, noscript, .sidebar, .cookie-banner, .modal, .ad, .advertisement, .social-share, .share-buttons, .related-jobs, .similar-jobs, .breadcrumb, [class*='newsletter'], [class*='subscribe'], [class*='popup'], [class*='banner'], [class*='cookie'], [class*='alert'], [class*='cta']").remove()
 
   // === Title ===
   const title =
@@ -322,14 +331,69 @@ function extractFromDom($: cheerio.CheerioAPI, baseUrl: string): DomData {
     $('[class*="title" i], [class*="Title"]').first().text().trim() ||
     ""
 
-  // === Description / main content ===
-  const mainContent =
-    $("main, article, [role='main'], .content, .description, .job-description, .body, #content")
-      .first()
-      .text()
-      .trim() ||
-    $("body").text().trim()
-  const description = cleanText(mainContent).slice(0, 15000)
+  // === Description / main content — platform-aware deep extraction ===
+  let description = ""
+
+  // Strategy A: Look for specific job description containers (most job boards use these)
+  const descSelectors = [
+    // Common job description sections
+    '.job-description', '[class*="job-description"]', '[class*="jobDescription"]',
+    '.job-details', '[class*="job-details"]', '[class*="jobDetails"]',
+    '.description-content', '[class*="description-content"]',
+    '.posting-description', '[class*="posting"]',
+    // Impactpool / UN specific
+    '[class*="vacancy"]', '[class*="announcement"]',
+    '.field-body', '.field--body', '[class*="field-body"]',
+    // ReliefWeb specific
+    '.rw-article__content', '.rw-report__content',
+    // Generic detail content
+    '[class*="detail-content"]', '[class*="detailContent"]',
+    '.details-body', '[class*="details-body"]',
+    '[class*="opportunity-description"]', '[class*="post-content"]',
+    // Rich-text containers
+    '[class*="rich-text"]', '[class*="richText"]', '[class*="ql-editor"]',
+    '.prose', '.entry-content', '.article-body', '.article-content',
+  ]
+
+  for (const sel of descSelectors) {
+    const el = $(sel).first()
+    if (el.length) {
+      const text = el.text().trim()
+      if (text.length > 200) {
+        description = cleanText(text)
+        break
+      }
+    }
+  }
+
+  // Strategy B: Collect all substantial <p>, <li>, heading text in main/article
+  if (!description || description.length < 300) {
+    const mainEl = $("main, article, [role='main'], #content, .content").first()
+    if (mainEl.length) {
+      const paragraphs: string[] = []
+      mainEl.find("h2, h3, h4, p, li, dd, blockquote").each((_, el) => {
+        const text = $(el).text().trim()
+        if (text.length > 15) paragraphs.push(text)
+      })
+      const collected = paragraphs.join("\n\n")
+      if (collected.length > description.length) {
+        description = cleanText(collected)
+      }
+    }
+  }
+
+  // Strategy C: Fallback — grab whole main/body text
+  if (!description || description.length < 200) {
+    const mainContent =
+      $("main, article, [role='main'], .content, #content")
+        .first()
+        .text()
+        .trim() ||
+      $("body").text().trim()
+    description = cleanText(mainContent)
+  }
+
+  description = description.slice(0, 25000)
 
   // === Organization ===
   let organization = ""
@@ -409,6 +473,27 @@ function extractFromDom($: cheerio.CheerioAPI, baseUrl: string): DomData {
   else if (/\bon[- ]?site\b|\bin[- ]?person\b|\bon[- ]?location\b/.test(fullText))
     workMode = "onsite"
 
+  // === Duration ===
+  let duration = ""
+  const durationMatch = description.match(
+    /(?:duration|contract|assignment|period|length)[:\s]+([^.\n]{3,80})/i
+  )
+  if (durationMatch) duration = durationMatch[1].trim()
+  if (!duration) {
+    const monthMatch = description.match(/(\d+)\s*months?\b/i)
+    if (monthMatch) duration = `${monthMatch[1]} months`
+  }
+
+  // === Experience Level ===
+  let experienceLevel = ""
+  const expMatch = description.match(
+    /(?:experience|minimum|at least|required)[:\s]*(\d+)\s*(?:\+\s*)?years?/i
+  )
+  if (expMatch) {
+    const y = parseInt(expMatch[1])
+    experienceLevel = y <= 2 ? "entry" : y <= 5 ? "mid" : y <= 8 ? "senior" : "expert"
+  }
+
   // === Relevant links ===
   const links: { text: string; url: string }[] = []
   $("a[href]").each((_, el) => {
@@ -436,6 +521,8 @@ function extractFromDom($: cheerio.CheerioAPI, baseUrl: string): DomData {
     deadline,
     postedDate,
     salary,
+    duration,
+    experienceLevel,
     tags,
     workMode,
     links: links.slice(0, 100),

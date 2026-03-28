@@ -74,8 +74,9 @@ export async function* scrapeIdealist(
       const fullText = $el.text().trim()
       const textAfterTitle = fullText.replace(title, "").trim()
 
-      // Parse structured parts from the card text
-      const parts = textAfterTitle.split(/\s{2,}|\n/).map(s => s.trim()).filter(Boolean)
+      // Parse structured parts from the card text — skip badge labels
+      const BADGE_LABELS = /^(new|featured|hot|promoted|urgent|closing soon|top pick)$/i
+      const parts = textAfterTitle.split(/\s{2,}|\n/).map(s => s.trim()).filter(s => s.length > 1 && !BADGE_LABELS.test(s))
       const orgName = parts[0] || ""
       const location = extractLocationFromParts(parts)
       const workMode = detectWorkMode(fullText)

@@ -17,6 +17,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { ScrollProgress } from "@/components/ui/scroll-progress"
 import { getProject, getNGOById, getActiveProjects, hasAppliedToProject, isProjectSaved, getVolunteerProfile } from "@/lib/actions"
 import { externalOpportunitiesDb } from "@/lib/scraper"
+import { fetchPage, extractPageContent } from "@/lib/scraper/text-extractor"
 import { skillCategories } from "@/lib/skills-data"
 import { ApplyButton } from "./apply-button"
 import { SaveButton } from "./save-button"
@@ -33,7 +34,6 @@ import {
   Briefcase,
   Download,
   AlertCircle,
-  ExternalLink,
   Globe,
 } from "lucide-react"
 
@@ -60,8 +60,9 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
   const isExternal = id.startsWith("ext-")
   if (isExternal) {
     const extId = id.replace("ext-", "")
-    const opportunity = await externalOpportunitiesDb.findById(extId)
+    let opportunity = await externalOpportunitiesDb.findById(extId)
     if (!opportunity) notFound()
+    opportunity = await enrichIfNeeded(opportunity)
     return <ExternalOpportunityView opportunity={opportunity} lang={lang} dict={dict} />
   }
   
@@ -71,8 +72,9 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
   if (!project) {
     // Fallback: check if it's an external opportunity by raw MongoDB ID
     try {
-      const opportunity = await externalOpportunitiesDb.findById(id)
+      let opportunity = await externalOpportunitiesDb.findById(id)
       if (opportunity) {
+        opportunity = await enrichIfNeeded(opportunity)
         return <ExternalOpportunityView opportunity={opportunity} lang={lang} dict={dict} />
       }
     } catch { /* not a valid ObjectId */ }
@@ -517,6 +519,55 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
 }
 
 // ── External/Partner Opportunity View ──
+/**
+ * On-demand enrichment: if the stored description is thin (card text only),
+ * fetch the actual source page, extract the full job description, update DB, and return enriched data.
+ */
+async function enrichIfNeeded(opportunity: any): Promise<any> {
+  const desc = opportunity.description || ""
+  const isThin = desc.length < 500 || desc === opportunity.title || desc === opportunity.shortDescription
+
+  if (!isThin || !opportunity.sourceUrl) return opportunity
+
+  try {
+    const html = await fetchPage(opportunity.sourceUrl, 1)
+    const baseUrl = new URL(opportunity.sourceUrl).origin
+    const content = extractPageContent(html, baseUrl)
+
+    if (!content.description || content.description.length <= desc.length) return opportunity
+
+    // Build enrichment payload
+    const enriched: Record<string, any> = {}
+    enriched.description = content.description.slice(0, 25000)
+    enriched.shortDescription = content.description.slice(0, 280)
+    if (content.organization && content.organization.length > 2) enriched.organization = content.organization
+    if (content.organizationUrl) enriched.organizationUrl = content.organizationUrl
+    if (content.location) enriched.location = content.location
+    if (content.salary) enriched.salary = content.salary
+    if (content.duration) enriched.duration = content.duration
+    if (content.experienceLevel) enriched.experienceLevel = content.experienceLevel
+    if (content.deadline) {
+      const d = new Date(content.deadline)
+      if (!isNaN(d.getTime())) enriched.deadline = d
+    }
+    if (content.postedDate) {
+      const d = new Date(content.postedDate)
+      if (!isNaN(d.getTime())) enriched.postedDate = d
+    }
+
+    // Persist enriched data for future views
+    await externalOpportunitiesDb.enrich(
+      opportunity.sourceplatform,
+      opportunity.externalId,
+      enriched
+    )
+
+    return { ...opportunity, ...enriched }
+  } catch {
+    return opportunity
+  }
+}
+
 function ExternalOpportunityView({ opportunity, lang, dict }: { opportunity: any; lang: string; dict: any }) {
   const getInitials = (name: string) => name.split(/\s+/).map(w => w[0]).join("").slice(0, 2).toUpperCase()
 
@@ -605,9 +656,11 @@ function ExternalOpportunityView({ opportunity, lang, dict }: { opportunity: any
                     {dict.projectDetail?.opportunityDescription || "Opportunity Description"}
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="prose prose-slate max-w-none">
-                  <div className="text-foreground leading-relaxed whitespace-pre-line">
-                    {opportunity.description || opportunity.shortDescription || opportunity.title}
+                <CardContent className="prose prose-slate dark:prose-invert max-w-none">
+                  <div className="text-foreground leading-relaxed whitespace-pre-line text-[15px]">
+                    {opportunity.description && opportunity.description.length > 50
+                      ? opportunity.description
+                      : opportunity.shortDescription || opportunity.title}
                   </div>
                 </CardContent>
               </Card>
@@ -647,34 +700,34 @@ function ExternalOpportunityView({ opportunity, lang, dict }: { opportunity: any
               )}
 
               {/* About Organization */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Building2 className="h-5 w-5 text-primary" />
-                    {(dict.projectDetail?.aboutOrg || "About {name}").replace("{name}", opportunity.organization || "")}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex items-start gap-4">
-                    <Avatar className="size-16 rounded-xl shrink-0">
-                      <AvatarFallback className="rounded-xl bg-primary/10 text-primary font-semibold text-lg">
-                        {getInitials(opportunity.organization || "O")}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="space-y-2">
-                      <p className="text-muted-foreground text-sm">
-                        This opportunity is aggregated from {opportunity.sourceplatform} to give you the widest range of impact opportunities.
-                      </p>
-                      {opportunity.organizationUrl && (
-                        <a href={opportunity.organizationUrl} target="_blank" rel="noopener noreferrer"
-                          className="text-sm text-primary hover:underline inline-flex items-center gap-1">
-                          <Globe className="h-3 w-3" /> Visit organization website
-                        </a>
-                      )}
+              {opportunity.organization && opportunity.organization !== "Organization" && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Building2 className="h-5 w-5 text-primary" />
+                      {(dict.projectDetail?.aboutOrg || "About {name}").replace("{name}", opportunity.organization || "")}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex items-start gap-4">
+                      <Avatar className="size-16 rounded-xl shrink-0">
+                        <AvatarFallback className="rounded-xl bg-primary/10 text-primary font-semibold text-lg">
+                          {getInitials(opportunity.organization || "O")}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="space-y-2">
+                        <p className="font-semibold text-foreground">{opportunity.organization}</p>
+                        {opportunity.organizationUrl && (
+                          <a href={opportunity.organizationUrl} target="_blank" rel="noopener noreferrer"
+                            className="text-sm text-primary hover:underline inline-flex items-center gap-1">
+                            <Globe className="h-3 w-3" /> Visit organization website
+                          </a>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
+                  </CardContent>
+                </Card>
+              )}
             </div>
 
             {/* Sidebar */}
@@ -749,9 +802,6 @@ function ExternalOpportunityView({ opportunity, lang, dict }: { opportunity: any
                       {dict.projectDetail?.applyNow || "Apply Now"}
                     </a>
                   </Button>
-                  <p className="text-[11px] text-muted-foreground text-center mt-2">
-                    You will be redirected to {opportunity.sourceplatform}
-                  </p>
 
                   <div className="flex gap-2 mt-3">
                     <ShareButton
