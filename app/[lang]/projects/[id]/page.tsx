@@ -16,6 +16,7 @@ import { Progress } from "@/components/ui/progress"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { ScrollProgress } from "@/components/ui/scroll-progress"
 import { getProject, getNGOById, getActiveProjects, hasAppliedToProject, isProjectSaved, getVolunteerProfile } from "@/lib/actions"
+import { externalOpportunitiesDb } from "@/lib/scraper"
 import { skillCategories } from "@/lib/skills-data"
 import { ApplyButton } from "./apply-button"
 import { SaveButton } from "./save-button"
@@ -32,6 +33,8 @@ import {
   Briefcase,
   Download,
   AlertCircle,
+  ExternalLink,
+  Globe,
 } from "lucide-react"
 
 // Helper to get skill name
@@ -52,11 +55,27 @@ function formatDate(date?: Date | string, flexibleText: string = "Flexible"): st
 export default async function ProjectDetailPage({ params }: { params: Promise<{ id: string; lang: string }> }) {
   const { id, lang } = await params
   const dict = await getDictionary(lang as Locale) as any;
+
+  // Detect external/partner opportunity (ext- prefix)
+  const isExternal = id.startsWith("ext-")
+  if (isExternal) {
+    const extId = id.replace("ext-", "")
+    const opportunity = await externalOpportunitiesDb.findById(extId)
+    if (!opportunity) notFound()
+    return <ExternalOpportunityView opportunity={opportunity} lang={lang} dict={dict} />
+  }
   
   // Get project from database
   const project = await getProject(id)
   
   if (!project) {
+    // Fallback: check if it's an external opportunity by raw MongoDB ID
+    try {
+      const opportunity = await externalOpportunitiesDb.findById(id)
+      if (opportunity) {
+        return <ExternalOpportunityView opportunity={opportunity} lang={lang} dict={dict} />
+      }
+    } catch { /* not a valid ObjectId */ }
     notFound()
   }
   
@@ -487,6 +506,262 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
                   </CardContent>
                 </Card>
               )}
+            </div>
+          </div>
+        </div>
+      </main>
+
+      <Footer />
+    </div>
+  )
+}
+
+// ── External/Partner Opportunity View ──
+function ExternalOpportunityView({ opportunity, lang, dict }: { opportunity: any; lang: string; dict: any }) {
+  const getInitials = (name: string) => name.split(/\s+/).map(w => w[0]).join("").slice(0, 2).toUpperCase()
+
+  return (
+    <div className="min-h-screen flex flex-col bg-background">
+      <Navbar />
+      <ScrollProgress className="top-0" />
+
+      <main className="flex-1">
+        {/* Breadcrumb */}
+        <div className="border-b border-border">
+          <div className="container mx-auto px-4 md:px-6 py-4">
+            <Breadcrumb>
+              <BreadcrumbList>
+                <BreadcrumbItem>
+                  <BreadcrumbLink href="/">{dict.projectDetail?.home || "Home"}</BreadcrumbLink>
+                </BreadcrumbItem>
+                <BreadcrumbSeparator />
+                <BreadcrumbItem>
+                  <BreadcrumbLink href="/projects">{dict.projectDetail?.opportunities || "Opportunities"}</BreadcrumbLink>
+                </BreadcrumbItem>
+                <BreadcrumbSeparator />
+                <BreadcrumbItem>
+                  <BreadcrumbPage className="truncate max-w-50">{opportunity.title}</BreadcrumbPage>
+                </BreadcrumbItem>
+              </BreadcrumbList>
+            </Breadcrumb>
+          </div>
+        </div>
+
+        <div className="container mx-auto px-4 md:px-6 py-8">
+          <div className="grid lg:grid-cols-3 gap-8">
+            {/* Main Content */}
+            <div className="lg:col-span-2 space-y-8">
+              {/* Header */}
+              <div>
+                <div className="flex flex-wrap items-center gap-2 mb-4">
+                  {opportunity.workMode && (
+                    <Badge variant="outline" className="capitalize">
+                      <Briefcase className="h-3 w-3 mr-1" />
+                      {opportunity.workMode}
+                    </Badge>
+                  )}
+                  {opportunity.location && (
+                    <Badge variant="outline">
+                      <MapPin className="h-3 w-3 mr-1" />
+                      {opportunity.location}
+                    </Badge>
+                  )}
+                  {opportunity.compensationType && (
+                    <Badge variant="outline" className="capitalize">{opportunity.compensationType}</Badge>
+                  )}
+                  {opportunity.experienceLevel && (
+                    <Badge variant="secondary" className="capitalize">{opportunity.experienceLevel}</Badge>
+                  )}
+                  {/* Subtle partner indicator */}
+                  <Badge variant="outline" className="text-[10px] text-muted-foreground border-dashed">
+                    <Globe className="h-2.5 w-2.5 mr-1" />
+                    via {opportunity.sourceplatform}
+                  </Badge>
+                </div>
+
+                <h1 className="text-3xl font-bold text-foreground mb-4">{opportunity.title}</h1>
+
+                {/* Organization */}
+                <div className="flex items-center gap-4">
+                  <Avatar className="size-12 rounded-lg">
+                    <AvatarFallback className="rounded-lg bg-primary/10 text-primary font-semibold">
+                      {getInitials(opportunity.organization || "O")}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div>
+                    <span className="font-semibold text-foreground">{opportunity.organization}</span>
+                    <p className="text-sm text-muted-foreground">
+                      {dict.projectDetail?.organization || "Organization"}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Description */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <FileText className="h-5 w-5 text-primary" />
+                    {dict.projectDetail?.opportunityDescription || "Opportunity Description"}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="prose prose-slate max-w-none">
+                  <div className="text-foreground leading-relaxed whitespace-pre-line">
+                    {opportunity.description || opportunity.shortDescription || opportunity.title}
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Skills */}
+              {opportunity.skillsRequired && opportunity.skillsRequired.length > 0 && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>{dict.projectDetail?.skillsRequired || "Skills Required"}</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex flex-wrap gap-2">
+                      {opportunity.skillsRequired.map((skill: any, i: number) => (
+                        <Badge key={i} variant="secondary" className="text-sm py-1 px-3">
+                          {typeof skill === "string" ? skill : skill.subskillId || skill.categoryId}
+                        </Badge>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Causes */}
+              {opportunity.causes && opportunity.causes.length > 0 && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>{dict.projectDetail?.causes || "Causes"}</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex flex-wrap gap-2">
+                      {opportunity.causes.map((cause: string, i: number) => (
+                        <Badge key={i} variant="secondary" className="text-sm py-1 px-3">{cause}</Badge>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* About Organization */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Building2 className="h-5 w-5 text-primary" />
+                    {(dict.projectDetail?.aboutOrg || "About {name}").replace("{name}", opportunity.organization || "")}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex items-start gap-4">
+                    <Avatar className="size-16 rounded-xl shrink-0">
+                      <AvatarFallback className="rounded-xl bg-primary/10 text-primary font-semibold text-lg">
+                        {getInitials(opportunity.organization || "O")}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="space-y-2">
+                      <p className="text-muted-foreground text-sm">
+                        This opportunity is aggregated from {opportunity.sourceplatform} to give you the widest range of impact opportunities.
+                      </p>
+                      {opportunity.organizationUrl && (
+                        <a href={opportunity.organizationUrl} target="_blank" rel="noopener noreferrer"
+                          className="text-sm text-primary hover:underline inline-flex items-center gap-1">
+                          <Globe className="h-3 w-3" /> Visit organization website
+                        </a>
+                      )}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Sidebar */}
+            <div className="space-y-6">
+              {/* Apply Card - Sticky */}
+              <Card className="lg:sticky lg:top-24">
+                <CardContent className="p-6">
+                  <div className="flex flex-col gap-0 mb-6">
+                    {opportunity.workMode && (
+                      <>
+                        <div className="flex items-center justify-between py-3">
+                          <div className="flex items-center gap-2 text-muted-foreground">
+                            <Briefcase className="h-4 w-4" />
+                            <span>{dict.projectDetail?.workMode || "Work Mode"}</span>
+                          </div>
+                          <span className="font-medium text-foreground capitalize">{opportunity.workMode}</span>
+                        </div>
+                        <Separator />
+                      </>
+                    )}
+                    {opportunity.location && (
+                      <>
+                        <div className="flex items-center justify-between py-3">
+                          <div className="flex items-center gap-2 text-muted-foreground">
+                            <MapPin className="h-4 w-4" />
+                            <span>{dict.projectDetail?.location || "Location"}</span>
+                          </div>
+                          <span className="font-medium text-foreground">{opportunity.location}</span>
+                        </div>
+                        <Separator />
+                      </>
+                    )}
+                    {opportunity.timeCommitment && (
+                      <>
+                        <div className="flex items-center justify-between py-3">
+                          <div className="flex items-center gap-2 text-muted-foreground">
+                            <Clock className="h-4 w-4" />
+                            <span>{dict.projectDetail?.timeCommitment || "Time Commitment"}</span>
+                          </div>
+                          <span className="font-medium text-foreground">{opportunity.timeCommitment}</span>
+                        </div>
+                        <Separator />
+                      </>
+                    )}
+                    {opportunity.deadline && (
+                      <>
+                        <div className="flex items-center justify-between py-3">
+                          <div className="flex items-center gap-2 text-muted-foreground">
+                            <Calendar className="h-4 w-4" />
+                            <span>{dict.projectDetail?.deadline || "Deadline"}</span>
+                          </div>
+                          <span className="font-medium text-foreground">{formatDate(opportunity.deadline)}</span>
+                        </div>
+                        <Separator />
+                      </>
+                    )}
+                    {opportunity.compensationType && (
+                      <div className="flex items-center justify-between py-3">
+                        <div className="flex items-center gap-2 text-muted-foreground">
+                          <span>{dict.projectDetail?.compensation || "Compensation"}</span>
+                        </div>
+                        <span className="font-medium text-foreground capitalize">
+                          {opportunity.compensationType}{opportunity.salary ? ` — ${opportunity.salary}` : ""}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Apply Button — redirects to source */}
+                  <Button asChild className="w-full bg-primary hover:bg-primary/90" size="lg">
+                    <a href={opportunity.sourceUrl} target="_blank" rel="noopener noreferrer">
+                      {dict.projectDetail?.applyNow || "Apply Now"}
+                    </a>
+                  </Button>
+                  <p className="text-[11px] text-muted-foreground text-center mt-2">
+                    You will be redirected to {opportunity.sourceplatform}
+                  </p>
+
+                  <div className="flex gap-2 mt-3">
+                    <ShareButton
+                      title={opportunity.title}
+                      description={opportunity.shortDescription || opportunity.title}
+                      className="flex-1 bg-transparent"
+                    />
+                  </div>
+                </CardContent>
+              </Card>
             </div>
           </div>
         </div>

@@ -1,0 +1,427 @@
+import Link from "next/link"
+import { notFound } from "next/navigation"
+import { getDictionary } from "@/app/[lang]/dictionaries"
+import type { Locale } from "@/lib/i18n-config"
+import { Navbar } from "@/components/navbar"
+import { Footer } from "@/components/footer"
+import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Separator } from "@/components/ui/separator"
+import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { ShareButton } from "@/components/share-button"
+import { externalOpportunitiesDb } from "@/lib/scraper"
+import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb"
+import {
+  Clock,
+  MapPin,
+  Calendar,
+  Briefcase,
+  Building2,
+  FileText,
+  ExternalLink,
+  Globe,
+  Shield,
+  ArrowLeft,
+  Handshake,
+  Tag,
+  GraduationCap,
+  DollarSign,
+} from "lucide-react"
+
+function getInitials(name: string): string {
+  return name.split(/\s+/).map(w => w[0]).join("").slice(0, 2).toUpperCase()
+}
+
+function formatDate(date?: Date | string, fallback = "Not specified"): string {
+  if (!date) return fallback
+  const d = new Date(date)
+  if (isNaN(d.getTime())) return fallback
+  return d.toLocaleDateString("en-IN", { month: "short", day: "numeric", year: "numeric" })
+}
+
+const PLATFORM_LABELS: Record<string, { name: string; color: string }> = {
+  reliefweb: { name: "ReliefWeb", color: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400" },
+  idealist: { name: "Idealist", color: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400" },
+  unjobs: { name: "UN Jobs", color: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400" },
+  impactpool: { name: "Impactpool", color: "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400" },
+  devex: { name: "Devex", color: "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400" },
+}
+
+export default async function ExternalOpportunityDetailPage({
+  params,
+}: {
+  params: Promise<{ id: string; lang: string }>
+}) {
+  const { id, lang } = await params
+  const dict = await getDictionary(lang as Locale) as any
+
+  const opportunity = await externalOpportunitiesDb.findById(id)
+  if (!opportunity) {
+    notFound()
+  }
+
+  const platform = PLATFORM_LABELS[opportunity.sourceplatform] || {
+    name: opportunity.sourceplatform,
+    color: "bg-muted text-muted-foreground",
+  }
+
+  return (
+    <div className="min-h-screen flex flex-col bg-background">
+      <Navbar />
+
+      <main className="flex-1">
+        {/* Breadcrumb */}
+        <div className="border-b border-border bg-muted/30">
+          <div className="container mx-auto px-4 md:px-6 py-4">
+            <Breadcrumb>
+              <BreadcrumbList>
+                <BreadcrumbItem>
+                  <BreadcrumbLink href={`/${lang}/projects`}>
+                    {dict.projectDetail?.backToOpportunities || "Opportunities"}
+                  </BreadcrumbLink>
+                </BreadcrumbItem>
+                <BreadcrumbSeparator />
+                <BreadcrumbItem>
+                  <BreadcrumbPage className="truncate max-w-xs">
+                    {opportunity.title}
+                  </BreadcrumbPage>
+                </BreadcrumbItem>
+              </BreadcrumbList>
+            </Breadcrumb>
+          </div>
+        </div>
+
+        {/* Strategic Partner Banner */}
+        <div className="bg-gradient-to-r from-primary/5 via-primary/10 to-primary/5 border-b border-primary/20">
+          <div className="container mx-auto px-4 md:px-6 py-3">
+            <div className="flex items-center gap-3 text-sm">
+              <div className="flex items-center gap-2 text-primary font-medium">
+                <Handshake className="h-4 w-4" />
+                <span>Strategic Partner Opportunity</span>
+              </div>
+              <Separator orientation="vertical" className="h-4" />
+              <span className="text-muted-foreground">
+                Sourced from{" "}
+                <Badge variant="outline" className={`text-xs ${platform.color}`}>
+                  {platform.name}
+                </Badge>
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div className="container mx-auto px-4 md:px-6 py-8">
+          <div className="grid lg:grid-cols-3 gap-8">
+            {/* Main Content */}
+            <div className="lg:col-span-2 space-y-6">
+              {/* Header */}
+              <div>
+                <div className="flex flex-wrap items-center gap-2 mb-4">
+                  {opportunity.workMode && (
+                    <Badge variant="outline" className="capitalize">
+                      <Briefcase className="h-3 w-3 mr-1" />
+                      {opportunity.workMode}
+                    </Badge>
+                  )}
+                  {opportunity.location && (
+                    <Badge variant="outline">
+                      <MapPin className="h-3 w-3 mr-1" />
+                      {opportunity.location}
+                    </Badge>
+                  )}
+                  {opportunity.compensationType && (
+                    <Badge variant="outline" className="capitalize">
+                      <DollarSign className="h-3 w-3 mr-1" />
+                      {opportunity.compensationType}
+                    </Badge>
+                  )}
+                  {opportunity.experienceLevel && (
+                    <Badge variant="secondary" className="capitalize">
+                      <GraduationCap className="h-3 w-3 mr-1" />
+                      {opportunity.experienceLevel}
+                    </Badge>
+                  )}
+                </div>
+
+                <h1 className="text-3xl font-bold text-foreground mb-4">{opportunity.title}</h1>
+
+                {/* Organization */}
+                <div className="flex items-center gap-4">
+                  <Avatar className="h-12 w-12 rounded-lg">
+                    {opportunity.organizationLogo ? (
+                      <img
+                        src={opportunity.organizationLogo}
+                        alt={opportunity.organization}
+                        className="h-full w-full object-cover rounded-lg"
+                      />
+                    ) : null}
+                    <AvatarFallback className="rounded-lg bg-primary/10 text-primary font-semibold">
+                      {getInitials(opportunity.organization || "O")}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold text-foreground">{opportunity.organization}</span>
+                      <Badge variant="outline" className={`text-xs ${platform.color}`}>
+                        <Shield className="h-3 w-3 mr-1" />
+                        {platform.name}
+                      </Badge>
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      Via Strategic Partner Network
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <Separator />
+
+              {/* Description */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <FileText className="h-5 w-5 text-primary" />
+                    {dict.projectDetail?.opportunityDescription || "Opportunity Description"}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-foreground leading-relaxed whitespace-pre-line">
+                    {opportunity.description || opportunity.shortDescription || opportunity.title}
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Skills */}
+              {opportunity.skillsRequired && opportunity.skillsRequired.length > 0 && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Tag className="h-5 w-5 text-primary" />
+                      {dict.projectDetail?.skillsRequired || "Skills Required"}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex flex-wrap gap-2">
+                      {opportunity.skillsRequired.map((skill: any, i: number) => (
+                        <Badge key={i} variant="secondary" className="text-sm py-1 px-3">
+                          {skill.subskillId || skill.categoryId || skill}
+                        </Badge>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Skill Tags (raw from source) */}
+              {opportunity.skillTags && opportunity.skillTags.length > 0 && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-base">Tags from Source</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex flex-wrap gap-2">
+                      {opportunity.skillTags.map((tag: string, i: number) => (
+                        <Badge key={i} variant="outline" className="text-xs">
+                          {tag}
+                        </Badge>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Causes */}
+              {opportunity.causes && opportunity.causes.length > 0 && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>{dict.projectDetail?.causes || "Causes"}</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex flex-wrap gap-2">
+                      {opportunity.causes.map((cause: string, i: number) => (
+                        <Badge key={i} variant="secondary" className="text-sm py-1 px-3">
+                          {cause}
+                        </Badge>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* About the Organization */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Building2 className="h-5 w-5 text-primary" />
+                    About {opportunity.organization}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex items-start gap-4">
+                    <Avatar className="h-16 w-16 rounded-xl shrink-0">
+                      <AvatarFallback className="rounded-xl bg-primary/10 text-primary font-semibold text-lg">
+                        {getInitials(opportunity.organization || "O")}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="space-y-2">
+                      <p className="text-muted-foreground text-sm">
+                        This opportunity is sourced from <strong>{platform.name}</strong>, one of our strategic partner platforms.
+                        The organization details are provided by the source platform.
+                      </p>
+                      {opportunity.organizationUrl && (
+                        <a
+                          href={opportunity.organizationUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-sm text-primary hover:underline inline-flex items-center gap-1"
+                        >
+                          <Globe className="h-3 w-3" />
+                          Visit organization website
+                        </a>
+                      )}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Sidebar */}
+            <div className="space-y-6">
+              {/* Apply Card - Sticky */}
+              <Card className="lg:sticky lg:top-24 border-primary/20">
+                <CardContent className="p-6">
+                  <div className="space-y-4 mb-6">
+                    {opportunity.workMode && (
+                      <div className="flex items-center justify-between py-3 border-b border-border">
+                        <div className="flex items-center gap-2 text-muted-foreground">
+                          <Briefcase className="h-4 w-4" />
+                          <span>Work Mode</span>
+                        </div>
+                        <span className="font-medium text-foreground capitalize">{opportunity.workMode}</span>
+                      </div>
+                    )}
+                    {opportunity.location && (
+                      <div className="flex items-center justify-between py-3 border-b border-border">
+                        <div className="flex items-center gap-2 text-muted-foreground">
+                          <MapPin className="h-4 w-4" />
+                          <span>Location</span>
+                        </div>
+                        <span className="font-medium text-foreground">{opportunity.location}</span>
+                      </div>
+                    )}
+                    {opportunity.timeCommitment && (
+                      <div className="flex items-center justify-between py-3 border-b border-border">
+                        <div className="flex items-center gap-2 text-muted-foreground">
+                          <Clock className="h-4 w-4" />
+                          <span>Time Commitment</span>
+                        </div>
+                        <span className="font-medium text-foreground">{opportunity.timeCommitment}</span>
+                      </div>
+                    )}
+                    {opportunity.duration && (
+                      <div className="flex items-center justify-between py-3 border-b border-border">
+                        <div className="flex items-center gap-2 text-muted-foreground">
+                          <Calendar className="h-4 w-4" />
+                          <span>Duration</span>
+                        </div>
+                        <span className="font-medium text-foreground">{opportunity.duration}</span>
+                      </div>
+                    )}
+                    {opportunity.deadline && (
+                      <div className="flex items-center justify-between py-3 border-b border-border">
+                        <div className="flex items-center gap-2 text-muted-foreground">
+                          <Calendar className="h-4 w-4" />
+                          <span>Deadline</span>
+                        </div>
+                        <span className="font-medium text-foreground">{formatDate(opportunity.deadline)}</span>
+                      </div>
+                    )}
+                    {opportunity.compensationType && (
+                      <div className="flex items-center justify-between py-3 border-b border-border">
+                        <div className="flex items-center gap-2 text-muted-foreground">
+                          <DollarSign className="h-4 w-4" />
+                          <span>Compensation</span>
+                        </div>
+                        <span className="font-medium text-foreground capitalize">
+                          {opportunity.compensationType}
+                          {opportunity.salary ? ` — ${opportunity.salary}` : ""}
+                        </span>
+                      </div>
+                    )}
+                    <div className="flex items-center justify-between py-3">
+                      <div className="flex items-center gap-2 text-muted-foreground">
+                        <Globe className="h-4 w-4" />
+                        <span>Source</span>
+                      </div>
+                      <Badge variant="outline" className={`text-xs ${platform.color}`}>
+                        {platform.name}
+                      </Badge>
+                    </div>
+                  </div>
+
+                  {/* Apply Button — redirects to source */}
+                  <Button asChild className="w-full" size="lg">
+                    <a
+                      href={opportunity.sourceUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      <ExternalLink className="h-4 w-4 mr-2" />
+                      Apply on {platform.name}
+                    </a>
+                  </Button>
+                  <p className="text-xs text-muted-foreground text-center mt-2">
+                    You will be redirected to {platform.name} to complete your application
+                  </p>
+
+                  <div className="flex gap-2 mt-4">
+                    <ShareButton
+                      title={opportunity.title}
+                      description={opportunity.shortDescription || opportunity.title}
+                      className="flex-1 bg-transparent"
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Partner Info Card */}
+              <Card className="bg-muted/30">
+                <CardContent className="p-6">
+                  <div className="flex items-center gap-3 mb-3">
+                    <Handshake className="h-5 w-5 text-primary" />
+                    <h3 className="font-semibold text-sm">Strategic Partner</h3>
+                  </div>
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    This opportunity is sourced from our strategic partner network.
+                    We aggregate opportunities from leading platforms like ReliefWeb,
+                    Idealist, UN Jobs, and Impactpool to give you the widest range
+                    of impact opportunities in one place.
+                  </p>
+                </CardContent>
+              </Card>
+
+              {/* Posted Info */}
+              <Card>
+                <CardContent className="p-6 space-y-2 text-sm text-muted-foreground">
+                  {opportunity.postedDate && (
+                    <div className="flex items-center gap-2">
+                      <Calendar className="h-4 w-4" />
+                      <span>Posted: {formatDate(opportunity.postedDate)}</span>
+                    </div>
+                  )}
+                  <div className="flex items-center gap-2">
+                    <Clock className="h-4 w-4" />
+                    <span>Last updated: {formatDate(opportunity.updatedAt)}</span>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        </div>
+      </main>
+
+      <Footer />
+    </div>
+  )
+}

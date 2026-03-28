@@ -6,14 +6,15 @@
 import { externalOpportunitiesDb, scraperRunsDb, scraperConfigsDb } from "./db"
 import type { ScraperPlatform, ScrapedOpportunity, ScraperRun, ExternalOpportunity } from "./types"
 import { mapSkillTags, mapCauseTags, detectWorkMode, detectExperienceLevel } from "./skill-mapper"
+import { fetchPage, extractPageContent } from "./text-extractor"
 
 // Platform scraper registry
 import { scrapeReliefWeb } from "./platforms/reliefweb"
 import { scrapeIdealist } from "./platforms/idealist"
 import { scrapeUNJobs } from "./platforms/unjobs"
-import { scrapeDevex } from "./platforms/devex"
+import { scrapeCharityJob } from "./platforms/charityjob"
 import { scrapeImpactpool } from "./platforms/impactpool"
-import { scrapeWorkForGood } from "./platforms/workforgood"
+import { scrapeGoAbroad } from "./platforms/goabroad"
 import { scrapeDevNetJobs } from "./platforms/devnetjobs"
 
 type PlatformScraper = (settings: Record<string, string>) => AsyncGenerator<ScrapedOpportunity>
@@ -22,9 +23,9 @@ const SCRAPERS: Record<string, PlatformScraper> = {
   reliefweb: scrapeReliefWeb,
   idealist: scrapeIdealist,
   unjobs: scrapeUNJobs,
-  devex: scrapeDevex,
+  devex: scrapeCharityJob,
   impactpool: scrapeImpactpool,
-  workforgood: scrapeWorkForGood,
+  workforgood: scrapeGoAbroad,
   devnetjobs: scrapeDevNetJobs,
 }
 
@@ -44,6 +45,9 @@ export async function runScraper(
   // Get config
   const config = await scraperConfigsDb.getByPlatform(platform)
   const settings = config?.settings || {}
+  const deepScrapeEnabled = settings.deepScrape === "true"
+  const maxDeepScrapes = parseInt(settings.maxDetailPages || "50", 10)
+  let deepScrapeCount = 0
 
   // Create run record
   const run: Omit<ScraperRun, "_id"> = {
@@ -71,6 +75,20 @@ export async function runScraper(
         run.itemsScraped++
         if (isNew) run.itemsNew++
         else run.itemsUpdated++
+
+        // Deep scrape: fetch detail page for new items to get richer data
+        if (isNew && deepScrapeEnabled && deepScrapeCount < maxDeepScrapes && item.sourceUrl) {
+          try {
+            const enriched = await deepScrapeDetailPage(item.sourceUrl, item.sourceplatform)
+            if (enriched) {
+              await externalOpportunitiesDb.enrich(item.sourceplatform, item.externalId, enriched)
+            }
+            deepScrapeCount++
+            await new Promise(r => setTimeout(r, 1500)) // rate limit
+          } catch {
+            // Non-fatal — listing data is already saved
+          }
+        }
       } catch (err) {
         run.itemsSkipped++
         const msg = err instanceof Error ? err.message : String(err)
@@ -180,5 +198,63 @@ function transformToOpportunity(item: ScrapedOpportunity): Omit<ExternalOpportun
     isActive: true,
     scrapedAt: new Date(),
     updatedAt: new Date(),
+  }
+}
+
+/**
+ * Deep scrape a detail page to extract rich structured data.
+ * Uses the text extractor (JSON-LD, OG, DOM heuristics) for any URL.
+ * Returns partial fields to merge into the existing record.
+ */
+async function deepScrapeDetailPage(
+  url: string,
+  platform: ScraperPlatform
+): Promise<Partial<ExternalOpportunity> | null> {
+  try {
+    const html = await fetchPage(url)
+    const baseUrl = new URL(url).origin
+    const content = extractPageContent(html, baseUrl)
+
+    if (!content.title && !content.description) return null
+
+    const allText = [content.title, content.description, content.location || "", ...content.tags].join(" ")
+
+    const enriched: Partial<ExternalOpportunity> = {}
+
+    // Only override fields with richer data (longer description, non-empty values)
+    if (content.description && content.description.length > 100) {
+      enriched.description = content.description.slice(0, 10000)
+      enriched.shortDescription = content.description.slice(0, 280)
+    }
+    if (content.organization) enriched.organization = content.organization
+    if (content.organizationUrl) enriched.organizationUrl = content.organizationUrl
+    if (content.location) {
+      enriched.location = content.location
+      const parts = content.location.split(",").map(s => s.trim())
+      if (parts.length > 1) enriched.country = parts[parts.length - 1]
+    }
+    if (content.deadline) {
+      const d = new Date(content.deadline)
+      if (!isNaN(d.getTime())) enriched.deadline = d
+    }
+    if (content.postedDate) {
+      const d = new Date(content.postedDate)
+      if (!isNaN(d.getTime())) enriched.postedDate = d
+    }
+    if (content.salary) enriched.salary = content.salary
+
+    // Re-map skills and causes from the richer text
+    const words = allText.split(/[\s,;:]+/).filter(w => w.length > 3)
+    const skills = mapSkillTags(words)
+    const causes = mapCauseTags(words)
+    if (skills.length > 0) enriched.skillsRequired = skills
+    if (causes.length > 0) enriched.causes = causes
+
+    enriched.experienceLevel = detectExperienceLevel(allText)
+    enriched.workMode = detectWorkMode(allText)
+
+    return Object.keys(enriched).length > 0 ? enriched : null
+  } catch {
+    return null
   }
 }
