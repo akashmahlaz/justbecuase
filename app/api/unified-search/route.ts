@@ -7,6 +7,7 @@ import { isESAvailable, markESFailed } from "@/lib/elasticsearch"
 import { getAlgoliaSearchClient, ALGOLIA_INDEXES } from "@/lib/algolia"
 import { skillCategories, causes as causesList } from "@/lib/skills-data"
 import { searchAnalyticsDb, teamMembersDb } from "@/lib/database"
+import { externalOpportunitiesDb } from "@/lib/scraper"
 import { sendEmail, getZeroResultAlertEmailHtml, getIrrelevantResultAlertEmailHtml } from "@/lib/email"
 import { adminSettingsDb } from "@/lib/database"
 import crypto from "crypto"
@@ -992,6 +993,43 @@ async function getTeamEmails(): Promise<string[]> {
   return Array.from(emails)
 }
 
+/** Search external opportunities and map to unified result format (looks like native) */
+async function searchExternalOpportunities(query: string, limit: number = 10): Promise<any[]> {
+  try {
+    const filter: Record<string, unknown> = {}
+    if (query) {
+      filter.$or = [
+        { title: { $regex: query, $options: "i" } },
+        { organization: { $regex: query, $options: "i" } },
+        { shortDescription: { $regex: query, $options: "i" } },
+      ]
+    }
+    const results = await externalOpportunitiesDb.findAll(filter as any, limit, 0)
+    return results.map((opp: any) => ({
+      id: `ext-${opp._id?.toString() || opp.externalId}`,
+      mongoId: `ext-${opp._id?.toString() || opp.externalId}`,
+      type: "opportunity",
+      title: opp.title || "",
+      subtitle: opp.organization || "",
+      description: opp.shortDescription || opp.title || "",
+      url: opp.sourceUrl || "",
+      score: 0.7,
+      highlights: [],
+      location: opp.location || undefined,
+      skills: opp.skillsRequired || undefined,
+      causes: opp.causes || undefined,
+      workMode: opp.workMode || undefined,
+      ngoName: opp.organization || undefined,
+      experienceLevel: opp.experienceLevel || undefined,
+      verified: false,
+      isExternal: true,
+    }))
+  } catch (err) {
+    console.error("[Search] External opportunities search failed:", err)
+    return []
+  }
+}
+
 export async function GET(request: NextRequest) {
   const startTime = Date.now()
   try {
@@ -1573,6 +1611,17 @@ export async function GET(request: NextRequest) {
 
         const searchEventId = await analyticsId
 
+        // Merge external opportunities into results (look like native)
+        if (!rawTypes || rawTypes.includes("opportunity")) {
+          const externalResults = await searchExternalOpportunities(query, 10)
+          const existingIds = new Set(finalResults.map((r: any) => r.id))
+          for (const ext of externalResults) {
+            if (!existingIds.has(ext.id)) {
+              finalResults.push(ext)
+            }
+          }
+        }
+
         return NextResponse.json({
           success: true,
           results: finalResults.slice(0, limit),
@@ -1807,6 +1856,18 @@ export async function GET(request: NextRequest) {
       anonymousId: reqMeta.anonymousId, referer: reqMeta.referer, topResultTitles: mongoTopTitles,
     }).catch(() => {})
     if (results.length === 0) sendZeroResultAlert(query, "mongodb")
+
+    // Merge external opportunities (look like native)
+    if (!rawTypes || rawTypes.includes("opportunity")) {
+      const externalResults = await searchExternalOpportunities(query, 10)
+      const existingIds = new Set(results.map((r: any) => r.id))
+      for (const ext of externalResults) {
+        if (!existingIds.has(ext.id)) {
+          results.push(ext)
+        }
+      }
+    }
+
     return NextResponse.json({
       success: true,
       results,

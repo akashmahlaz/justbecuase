@@ -38,6 +38,7 @@ interface Project {
     verified?: boolean
   }
   skills?: string[]
+  externalUrl?: string
 }
 
 export default function ProjectsPage() {
@@ -184,6 +185,38 @@ function ProjectsContent() {
             const data = await res.json()
             setProjects(data.projects || [])
           }
+        }
+
+        // Fetch and merge external opportunities (looks like native projects)
+        try {
+          const extRes = await fetch("/api/external-opportunities?limit=30")
+          if (extRes.ok) {
+            const extData = await extRes.json()
+            const externalAsProjects: Project[] = (extData.opportunities || []).map((opp: any) => ({
+              _id: { toString: () => `ext-${opp._id || opp.externalId}` },
+              id: `ext-${opp._id || opp.externalId}`,
+              title: opp.title || "",
+              description: opp.shortDescription || opp.title || "",
+              skillsRequired: (opp.skillsRequired || []).map((s: string) => ({ categoryId: "external", subskillId: s })),
+              ngoId: "",
+              status: "published",
+              workMode: opp.workMode || "remote",
+              location: opp.location || undefined,
+              timeCommitment: opp.experienceLevel || "Flexible",
+              projectType: opp.compensationType === "Paid" ? "short-term" : "long-term",
+              applicantsCount: 0,
+              createdAt: opp.scrapedAt ? new Date(opp.scrapedAt) : new Date(),
+              ngo: {
+                name: opp.organization || "Organization",
+                verified: false,
+              },
+              skills: opp.skillsRequired || [],
+              externalUrl: opp.sourceUrl,
+            }))
+            setProjects(prev => [...prev, ...externalAsProjects])
+          }
+        } catch {
+          // External fetch failed — continue with internal only
         }
       } catch (error) {
         console.error("Failed to fetch projects:", error)
@@ -596,6 +629,7 @@ function ProjectsContent() {
                       ngo: project.ngo || { name: dict.projectsListing?.ngoFallback || "NGO", verified: false },
                       matchScore: scoreData?.score,
                       matchReasons: scoreData?.matchReasons,
+                      externalUrl: project.externalUrl,
                     }} />
                     )
                   })}
