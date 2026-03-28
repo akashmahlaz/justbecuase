@@ -8,7 +8,7 @@ export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url)
   const platform = searchParams.get("platform") || undefined
   const page = Math.max(1, parseInt(searchParams.get("page") || "1", 10))
-  const limit = Math.min(30, parseInt(searchParams.get("limit") || "12", 10))
+  const limit = Math.min(500, parseInt(searchParams.get("limit") || "100", 10))
   const skip = (page - 1) * limit
   const search = searchParams.get("q")?.trim()
 
