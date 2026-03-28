@@ -6,28 +6,28 @@ import { Navbar } from "@/components/navbar"
 import { Footer } from "@/components/footer"
 import { ProjectCard } from "@/components/project-card"
 import { Button } from "@/components/ui/button"
-import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious, PaginationEllipsis } from "@/components/ui/pagination"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Separator } from "@/components/ui/separator"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
-import { Card, CardContent } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { NumberTicker } from "@/components/ui/number-ticker"
 import { BlurFade } from "@/components/ui/blur-fade"
 import { TextAnimate } from "@/components/ui/text-animate"
 import { ScrollProgress } from "@/components/ui/scroll-progress"
 import { skillCategories, resolveSkillName } from "@/lib/skills-data"
-import { SlidersHorizontal, Grid3X3, List, X, Loader2, Search, Sparkles, TrendingUp, BookmarkCheck, Info } from "lucide-react"
+import { Skeleton } from "@/components/ui/skeleton"
+import { SlidersHorizontal, Grid3X3, List, X, Loader2, Search, Sparkles, TrendingUp, Info, Briefcase } from "lucide-react"
 import { UnifiedSearchBar } from "@/components/unified-search-bar"
-import { BrowseGridSkeleton } from "@/components/ui/page-skeletons"
 import { useDictionary } from "@/components/dictionary-provider"
+import { useLocale } from "@/hooks/use-locale"
 
 interface Project {
   _id?: { toString: () => string }
@@ -51,6 +51,8 @@ interface Project {
   }
   skills?: string[]
   externalUrl?: string
+  _source?: "native" | "external"
+  _platform?: string
 }
 
 export default function ProjectsPage() {
@@ -65,22 +67,29 @@ export default function ProjectsPage() {
   )
 }
 
-const PROJECTS_PER_PAGE = 12
+const PROJECTS_PER_PAGE = 100
 
 function ProjectsContent() {
   const searchParams = useSearchParams()
   const dict = useDictionary()
+  const locale = useLocale()
   const [projects, setProjects] = useState<Project[]>([])
   const [loading, setLoading] = useState(true)
+  const [fetchError, setFetchError] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState("")
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid")
   const [selectedSkills, setSelectedSkills] = useState<string[]>([])
   const [selectedTimeCommitment, setSelectedTimeCommitment] = useState<string[]>([])
   const [selectedLocation, setSelectedLocation] = useState<string>("")
+  const [selectedCompensation, setSelectedCompensation] = useState<string[]>([])
+  const [selectedExperience, setSelectedExperience] = useState<string[]>([])
   const [sortBy, setSortBy] = useState("bestMatch")
   const [isPersonalized, setIsPersonalized] = useState(false)
   const [activeTab, setActiveTab] = useState("all")
   const [currentPage, setCurrentPage] = useState(1)
+  const [totalCount, setTotalCount] = useState(0)
+  const [serverTotalPages, setServerTotalPages] = useState(1)
+  const [loadingMore, setLoadingMore] = useState(false)
   // Map of projectId → { score, matchReasons }
   const [matchScores, setMatchScores] = useState<Map<string, { score: number; matchReasons: string[] }>>(new Map())
 
@@ -153,6 +162,7 @@ function ProjectsContent() {
   useEffect(() => {
     async function fetchProjects() {
       try {
+        setLoading(true)
         // Try personalized endpoint first (works for logged-in volunteers)
         let personalized = false
         try {
@@ -165,88 +175,48 @@ function ProjectsContent() {
                 const p = opp.project
                 const pid = p._id?.toString?.() || p.id || opp.projectId
                 scoreMap.set(pid, { score: opp.score, matchReasons: opp.matchReasons || [] })
-                return { ...p, _id: p._id || { toString: () => pid }, id: pid }
+                return { ...p, _id: p._id || { toString: () => pid }, id: pid, _source: "native" as const }
               })
-              setProjects(projectList)
               setMatchScores(scoreMap)
               setIsPersonalized(true)
               personalized = true
+              // Still load merged endpoint for external jobs alongside personalized native
+              // Personalized scores are overlaid onto the merged list
             }
           }
         } catch {
           // Personalized endpoint failed — fall back silently
         }
 
-        // Fallback: try skill-matched endpoint for volunteers without
-        // a full profile, so they still see relevant projects
-        if (!personalized) {
-          try {
-            const mRes = await fetch("/api/projects/matched")
-            if (mRes.ok) {
-              const mData = await mRes.json()
-              if (mData.matched && mData.projects?.length > 0) {
-                setProjects(mData.projects)
-                personalized = true
-              }
-            }
-          } catch {
-            // fall through to generic
-          }
-        }
-
-        // Last resort: generic listing (for non-volunteers / guests)
-        if (!personalized) {
-          const res = await fetch("/api/projects")
-          if (res.ok) {
-            const data = await res.json()
-            setProjects(data.projects || [])
-          }
-        }
-
-        // Fetch and merge external opportunities (looks like native projects)
-        try {
-          const extRes = await fetch("/api/external-opportunities?limit=500")
-          if (extRes.ok) {
-            const extData = await extRes.json()
-            const externalAsProjects: Project[] = (extData.opportunities || []).map((opp: any) => ({
-              _id: { toString: () => `ext-${opp._id || opp.externalId}` },
-              id: `ext-${opp._id || opp.externalId}`,
-              title: opp.title || "",
-              description: opp.shortDescription || opp.title || "",
-              skillsRequired: (opp.skillsRequired || []).map((s: any) =>
-                typeof s === "string" ? { categoryId: "external", subskillId: s } : s
-              ),
-              ngoId: "",
-              status: "published",
-              workMode: opp.workMode || "remote",
-              location: opp.location || undefined,
-              timeCommitment: opp.experienceLevel || "Flexible",
-              projectType: opp.compensationType === "Paid" ? "short-term" : "long-term",
-              applicantsCount: 0,
-              createdAt: opp.scrapedAt ? new Date(opp.scrapedAt) : new Date(),
-              ngo: {
-                name: opp.organization || "Organization",
-                verified: false,
-              },
-              skills: (opp.skillsRequired || []).map((s: any) => typeof s === "string" ? s : s.subskillId || ""),
-              externalUrl: opp.sourceUrl,
-            }))
-            setProjects(prev => [...prev, ...externalAsProjects])
-          }
-        } catch {
-          // External fetch failed — continue with internal only
+        // Load merged paginated endpoint (native + external)
+        const res = await fetch(`/api/projects?page=${currentPage}&limit=${PROJECTS_PER_PAGE}`)
+        if (res.ok) {
+          const data = await res.json()
+          const pageProjects: Project[] = (data.projects || []).map((p: any) => ({
+            ...p,
+            _id: p._id ? (typeof p._id === "string" ? { toString: () => p._id } : p._id) : { toString: () => p.id || "" },
+            id: p.id || p._id?.toString?.() || (typeof p._id === "string" ? p._id : ""),
+          }))
+          setProjects(pageProjects)
+          setTotalCount(data.pagination?.total || pageProjects.length)
+          setServerTotalPages(data.pagination?.totalPages || 1)
+        } else if (!personalized) {
+          setFetchError("Failed to load opportunities")
         }
       } catch (error) {
         console.error("Failed to fetch projects:", error)
+        setFetchError("Something went wrong loading opportunities")
       } finally {
         setLoading(false)
       }
     }
     fetchProjects()
-  }, [])
+  }, [currentPage])
 
   const timeCommitments = ["1-2 hours", "5-10 hours", "10-15 hours", "15-25 hours", "25-40 hours", "40+ hours"]
   const locations = ["Remote", "On-site", "Hybrid"]
+  const compensationTypes = ["volunteer", "paid", "stipend"]
+  const experienceLevels = ["entry", "mid", "senior"]
 
   const timeCommitmentLabels: Record<string, string> = {
     "1-2 hours": dict.projectsListing?.hours1to2 || "1-2 hours",
@@ -271,14 +241,24 @@ function ProjectsContent() {
     setSelectedTimeCommitment((prev) => (prev.includes(time) ? prev.filter((t) => t !== time) : [...prev, time]))
   }
 
+  const toggleCompensation = (comp: string) => {
+    setSelectedCompensation((prev) => (prev.includes(comp) ? prev.filter((c) => c !== comp) : [...prev, comp]))
+  }
+
+  const toggleExperience = (exp: string) => {
+    setSelectedExperience((prev) => (prev.includes(exp) ? prev.filter((e) => e !== exp) : [...prev, exp]))
+  }
+
   const clearFilters = () => {
     setSelectedSkills([])
     setSelectedTimeCommitment([])
     setSelectedLocation("")
+    setSelectedCompensation([])
+    setSelectedExperience([])
     setSearchQuery("")
   }
 
-  const hasActiveFilters = selectedSkills.length > 0 || selectedTimeCommitment.length > 0 || selectedLocation !== ""
+  const hasActiveFilters = selectedSkills.length > 0 || selectedTimeCommitment.length > 0 || selectedLocation !== "" || selectedCompensation.length > 0 || selectedExperience.length > 0
 
   // Filter and sort projects
   const filteredProjects = useMemo(() => {
@@ -376,6 +356,22 @@ function ProjectsContent() {
         return location.includes(filterLocation)
       })
     }
+
+    // Compensation type filter
+    if (selectedCompensation.length > 0) {
+      result = result.filter((project) => {
+        const pType = project.projectType?.toLowerCase() || ""
+        return selectedCompensation.some(c => pType.includes(c.toLowerCase()))
+      })
+    }
+
+    // Experience level filter
+    if (selectedExperience.length > 0) {
+      result = result.filter((project) => {
+        const expLevel = (project as any).experienceLevel?.toLowerCase() || ""
+        return selectedExperience.some(e => expLevel.includes(e.toLowerCase()))
+      })
+    }
     
     // Sorting — auto-use relevance when searching
     const effectiveSort = (searchQuery.trim().length >= 2 && unifiedMatchedIds !== null && sortBy === "bestMatch") ? "relevant" : sortBy
@@ -421,7 +417,7 @@ function ProjectsContent() {
     }
     
     return result
-  }, [projects, searchQuery, selectedSkills, selectedTimeCommitment, selectedLocation, sortBy, unifiedMatchedIds, unifiedRelevanceOrder, isPersonalized, matchScores, activeTab])
+  }, [projects, searchQuery, selectedSkills, selectedTimeCommitment, selectedLocation, selectedCompensation, selectedExperience, sortBy, unifiedMatchedIds, unifiedRelevanceOrder, isPersonalized, matchScores, activeTab])
 
   const FilterContent = () => (
     <div className="flex flex-col gap-1">
@@ -504,6 +500,56 @@ function ProjectsContent() {
             </Select>
           </AccordionContent>
         </AccordionItem>
+
+        <AccordionItem value="compensation">
+          <AccordionTrigger className="text-sm font-semibold text-foreground">
+            Compensation Type
+            {selectedCompensation.length > 0 && (
+              <Badge variant="secondary" className="ml-2">{selectedCompensation.length}</Badge>
+            )}
+          </AccordionTrigger>
+          <AccordionContent>
+            <div className="flex flex-col gap-2">
+              {compensationTypes.map((comp) => (
+                <div key={comp} className="flex items-center gap-2">
+                  <Checkbox
+                    id={`comp-${comp}`}
+                    checked={selectedCompensation.includes(comp)}
+                    onCheckedChange={() => toggleCompensation(comp)}
+                  />
+                  <label htmlFor={`comp-${comp}`} className="text-sm text-foreground cursor-pointer capitalize">
+                    {comp}
+                  </label>
+                </div>
+              ))}
+            </div>
+          </AccordionContent>
+        </AccordionItem>
+
+        <AccordionItem value="experience">
+          <AccordionTrigger className="text-sm font-semibold text-foreground">
+            Experience Level
+            {selectedExperience.length > 0 && (
+              <Badge variant="secondary" className="ml-2">{selectedExperience.length}</Badge>
+            )}
+          </AccordionTrigger>
+          <AccordionContent>
+            <div className="flex flex-col gap-2">
+              {experienceLevels.map((exp) => (
+                <div key={exp} className="flex items-center gap-2">
+                  <Checkbox
+                    id={`exp-${exp}`}
+                    checked={selectedExperience.includes(exp)}
+                    onCheckedChange={() => toggleExperience(exp)}
+                  />
+                  <label htmlFor={`exp-${exp}`} className="text-sm text-foreground cursor-pointer capitalize">
+                    {exp === "entry" ? "Entry Level" : exp === "mid" ? "Mid Level" : "Senior Level"}
+                  </label>
+                </div>
+              ))}
+            </div>
+          </AccordionContent>
+        </AccordionItem>
       </Accordion>
 
       <Separator className="my-2" />
@@ -517,17 +563,14 @@ function ProjectsContent() {
     </div>
   )
 
-  // Pagination
-  const totalPages = Math.ceil(filteredProjects.length / PROJECTS_PER_PAGE)
-  const paginatedProjects = useMemo(() => {
-    const start = (currentPage - 1) * PROJECTS_PER_PAGE
-    return filteredProjects.slice(start, start + PROJECTS_PER_PAGE)
-  }, [filteredProjects, currentPage])
+  // Server-side pagination — projects are already the current page
+  const totalPages = serverTotalPages
+  const paginatedProjects = filteredProjects
 
   // Reset page when filters change
   useEffect(() => {
     setCurrentPage(1)
-  }, [searchQuery, selectedSkills, selectedTimeCommitment, selectedLocation, sortBy, activeTab])
+  }, [searchQuery, selectedSkills, selectedTimeCommitment, selectedLocation, selectedCompensation, selectedExperience, sortBy, activeTab])
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
@@ -535,37 +578,70 @@ function ProjectsContent() {
       <ScrollProgress className="top-0" />
 
       <main className="flex-1">
-        {/* Header */}
-        <div className="border-b border-border bg-muted/30">
-          <div className="container mx-auto px-4 md:px-6 py-8">
-            <TextAnimate animation="blurInUp" by="word" as="h1" className="text-3xl font-bold text-foreground mb-2">
-              {dict.projectsListing?.title || "Browse Opportunities"}
-            </TextAnimate>
-            <p className="text-muted-foreground">{dict.projectsListing?.subtitle || "Find opportunities that match your skills and interests"}</p>
+        {/* Hero Header */}
+        <div className="border-b border-border bg-linear-to-b from-primary/5 to-background">
+          <div className="container mx-auto px-4 md:px-6 py-10 md:py-14">
+            <div className="max-w-2xl">
+              <TextAnimate animation="blurInUp" by="word" as="h1" className="text-3xl md:text-4xl font-bold text-foreground mb-3">
+                {dict.projectsListing?.title || "Browse Opportunities"}
+              </TextAnimate>
+              <p className="text-muted-foreground text-lg mb-6">{dict.projectsListing?.subtitle || "Find opportunities that match your skills and interests"}</p>
+              <div className="max-w-xl">
+                <UnifiedSearchBar
+                  defaultType="opportunity"
+                  allowedTypes={["opportunity"]}
+                  variant="default"
+                  placeholder={dict.projectsListing?.searchPlaceholder || "Search opportunities, skills, or organizations..."}
+                  value={searchQuery}
+                  onSearchChange={setSearchQuery}
+                  navigateOnSelect={false}
+                />
+              </div>
+            </div>
+
+            {/* Stats Row */}
+            <div className="flex flex-wrap items-center gap-6 mt-8">
+              <div className="flex items-center gap-2">
+                <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                  <Briefcase className="h-4 w-4 text-primary" />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-foreground"><NumberTicker value={totalCount} /></p>
+                  <p className="text-xs text-muted-foreground">Opportunities</p>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 
         <div className="container mx-auto px-4 md:px-6 py-8">
-          {/* Search and Controls */}
-          <div className="flex flex-col md:flex-row gap-4 mb-8">
-            <div className="flex-1">
-              <UnifiedSearchBar
-                defaultType="opportunity"
-                allowedTypes={["opportunity"]}
-                variant="default"
-                placeholder={dict.projectsListing?.searchPlaceholder || "Search opportunities, skills, or organizations..."}
-                value={searchQuery}
-                onSearchChange={setSearchQuery}
-                navigateOnSelect={false}
-              />
-            </div>
+          {/* Controls Bar */}
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+            <Tabs value={activeTab} onValueChange={setActiveTab}>
+              <TabsList>
+                <TabsTrigger value="all" className="gap-1.5">
+                  <Search className="h-3.5 w-3.5" />
+                  All
+                </TabsTrigger>
+                {isPersonalized && (
+                  <TabsTrigger value="recommended" className="gap-1.5">
+                    <Sparkles className="h-3.5 w-3.5" />
+                    For You
+                  </TabsTrigger>
+                )}
+                <TabsTrigger value="trending" className="gap-1.5">
+                  <TrendingUp className="h-3.5 w-3.5" />
+                  Trending
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
 
             <div className="flex items-center gap-2">
               {/* Mobile Filter Button */}
               <Sheet>
                 <SheetTrigger asChild>
-                  <Button variant="outline" className="lg:hidden bg-transparent">
-                    <SlidersHorizontal className="h-4 w-4 mr-2" />
+                  <Button variant="outline" size="sm" className="lg:hidden">
+                    <SlidersHorizontal className="h-4 w-4 mr-1.5" />
                     {dict.projectsListing?.filters || "Filters"}
                     {hasActiveFilters && (
                       <Badge className="ml-2 bg-primary text-primary-foreground">
@@ -653,35 +729,37 @@ function ProjectsContent() {
                   </button>
                 </Badge>
               )}
+              {selectedCompensation.map((comp) => (
+                <Badge key={comp} variant="secondary" className="flex items-center gap-1 capitalize">
+                  {comp}
+                  <button onClick={() => toggleCompensation(comp)}>
+                    <X className="h-3 w-3" />
+                  </button>
+                </Badge>
+              ))}
+              {selectedExperience.map((exp) => (
+                <Badge key={exp} variant="secondary" className="flex items-center gap-1 capitalize">
+                  {exp === "entry" ? "Entry Level" : exp === "mid" ? "Mid Level" : "Senior Level"}
+                  <button onClick={() => toggleExperience(exp)}>
+                    <X className="h-3 w-3" />
+                  </button>
+                </Badge>
+              ))}
             </div>
           )}
 
-          {/* Tabs for All / Recommended / Saved */}
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-6">
-            <TabsList>
-              <TabsTrigger value="all" className="gap-1.5">
-                <Search className="h-3.5 w-3.5" />
-                {dict.projectsListing?.allTab || "All"}
-              </TabsTrigger>
-              {isPersonalized && (
-                <TabsTrigger value="recommended" className="gap-1.5">
-                  <Sparkles className="h-3.5 w-3.5" />
-                  {dict.projectsListing?.recommendedTab || "Recommended"}
-                </TabsTrigger>
-              )}
-              <TabsTrigger value="trending" className="gap-1.5">
-                <TrendingUp className="h-3.5 w-3.5" />
-                {dict.projectsListing?.trendingTab || "Trending"}
-              </TabsTrigger>
-            </TabsList>
-          </Tabs>
-
+          {/* Main Layout */}
           <div className="flex gap-8">
             {/* Desktop Sidebar */}
             <aside className="hidden lg:block w-64 shrink-0">
               <Card className="sticky top-24">
-                <CardContent className="p-6">
-                  <h3 className="font-semibold text-foreground mb-4">{dict.projectsListing?.filters || "Filters"}</h3>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm flex items-center gap-2">
+                    <SlidersHorizontal className="h-4 w-4" />
+                    Filters
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="pt-0">
                   <FilterContent />
                 </CardContent>
               </Card>
@@ -697,14 +775,37 @@ function ProjectsContent() {
                   </span>
                   {" "}of{" "}
                   <span className="font-semibold text-foreground">
-                    <NumberTicker value={projects.length} />
+                    <NumberTicker value={totalCount} />
                   </span>
                   {" "}opportunities
+                  {currentPage > 1 && (
+                    <span className="text-xs text-muted-foreground ml-2">
+                      (page {currentPage} of {totalPages})
+                    </span>
+                  )}
                 </p>
               </div>
 
               {loading ? (
-                <BrowseGridSkeleton columns={3} count={6} />
+                <div className={viewMode === "grid" ? "grid sm:grid-cols-2 xl:grid-cols-3 gap-6" : "space-y-4"}>
+                  {Array.from({ length: 6 }).map((_, i) => (
+                    <Card key={i}>
+                      <CardContent className="p-6 space-y-4">
+                        <div className="flex items-center gap-3">
+                          <Skeleton className="h-10 w-10 rounded-lg" />
+                          <Skeleton className="h-4 w-32" />
+                        </div>
+                        <Skeleton className="h-5 w-3/4" />
+                        <Skeleton className="h-4 w-full" />
+                        <Skeleton className="h-4 w-2/3" />
+                        <div className="flex gap-2 pt-2">
+                          <Skeleton className="h-6 w-16 rounded-full" />
+                          <Skeleton className="h-6 w-20 rounded-full" />
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
               ) : filteredProjects.length === 0 ? (
                 <Alert className="max-w-md mx-auto">
                   <Info className="h-4 w-4" />
@@ -738,10 +839,10 @@ function ProjectsContent() {
                             applicants: project.applicantsCount || 0,
                             postedAt: project.createdAt ? new Date(project.createdAt).toLocaleDateString() : (dict.projectsListing?.recently || "Recently"),
                             projectType: project.projectType,
-                            ngo: project.ngo || { name: dict.projectsListing?.ngoFallback || "NGO", verified: false },
+                            deadline: project.deadline ? new Date(project.deadline).toLocaleDateString() : undefined,
+                            ngo: project.ngo || { name: "NGO", verified: false },
                             matchScore: scoreData?.score,
                             matchReasons: scoreData?.matchReasons,
-                            externalUrl: project.externalUrl,
                           }} />
                         </BlurFade>
                       )
@@ -792,6 +893,7 @@ function ProjectsContent() {
                   )}
                 </>
               )}
+
             </div>
           </div>
         </div>

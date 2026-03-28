@@ -9,7 +9,7 @@ import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/h
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { Progress } from "@/components/ui/progress"
 import { Separator } from "@/components/ui/separator"
-import { Clock, MapPin, Users, CheckCircle, ArrowRight, Star } from "lucide-react"
+import { Clock, MapPin, Users, CheckCircle, ArrowRight, Star, Calendar } from "lucide-react"
 import { useDictionary } from "@/components/dictionary-provider"
 
 interface Project {
@@ -31,7 +31,6 @@ interface Project {
   status?: string
   matchScore?: number
   matchReasons?: string[]
-  externalUrl?: string
 }
 
 export function ProjectCard({ project }: { project: Project }) {
@@ -163,6 +162,12 @@ export function ProjectCard({ project }: { project: Project }) {
               <span>{project.location}</span>
             </div>
           )}
+          {project.deadline && (
+            <div className="flex items-center gap-1 text-orange-600 dark:text-orange-400">
+              <Calendar className="h-3.5 w-3.5" />
+              <span>{project.deadline}</span>
+            </div>
+          )}
         </div>
       </CardContent>
 
@@ -173,17 +178,17 @@ export function ProjectCard({ project }: { project: Project }) {
           <Badge className={`text-xs ${projectTypeColors[project.projectType] || "bg-gray-100 text-gray-700"}`}>
             {project.projectType === "consultation" ? (t.oneHourCall || "1-hour call") : project.projectType}
           </Badge>
-          <span className="text-xs text-muted-foreground">
-            <Users className="h-3 w-3 inline mr-1" />
-            {project.applicants} {t.applied || "applied"}
-          </span>
+          {project.applicants > 0 ? (
+            <span className="text-xs text-muted-foreground">
+              <Users className="h-3 w-3 inline mr-1" />
+              {project.applicants} {t.applied || "applied"}
+            </span>
+          ) : project.postedAt ? (
+            <span className="text-xs text-muted-foreground">{project.postedAt}</span>
+          ) : null}
         </div>
         <Button asChild size="sm" variant="ghost" className="text-primary hover:text-primary hover:bg-primary/10">
-          {project.externalUrl ? (
-            <a href={project.externalUrl} target="_blank" rel="noopener noreferrer">{t.viewDetails || "View Details"} <ArrowRight className="h-3 w-3 inline ml-1" /></a>
-          ) : (
-            <LocaleLink href={`/projects/${project.id}`}>{t.apply || "Apply"} <ArrowRight className="h-3 w-3 inline ml-1" /></LocaleLink>
-          )}
+          <LocaleLink href={`/projects/${project.id}`}>{t.apply || "Apply"} <ArrowRight className="h-3 w-3 inline ml-1" /></LocaleLink>
         </Button>
       </CardFooter>
     </Card>

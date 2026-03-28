@@ -41,6 +41,16 @@ export const externalOpportunitiesDb = {
     return { isNew: true }
   },
 
+  /** Update an existing opportunity with enriched detail-page data */
+  async enrich(platform: ScraperPlatform, externalId: string, data: Partial<ExternalOpportunity>) {
+    const db = await getDb()
+    const collection = db.collection<ExternalOpportunity>(COLLECTIONS.EXTERNAL_OPPORTUNITIES)
+    await collection.updateOne(
+      { sourceplatform: platform, externalId },
+      { $set: { ...data, updatedAt: new Date() } }
+    )
+  },
+
   async findByPlatform(platform: ScraperPlatform, limit = 50, skip = 0) {
     const db = await getDb()
     const collection = db.collection<ExternalOpportunity>(COLLECTIONS.EXTERNAL_OPPORTUNITIES)
@@ -192,54 +202,54 @@ export const scraperConfigsDb = {
       {
         platform: "reliefweb",
         enabled: true,
-        cronSchedule: "0 4 * * *",
+        cronSchedule: "0 */2 * * *",
         totalItemsScraped: 0,
-        settings: { maxPages: "25", jobTypes: "volunteer,internship" },
+        settings: { maxPages: "500", deepScrape: "true", maxDetailPages: "50", jobTypes: "volunteer,internship,job" },
         createdAt: new Date(),
         updatedAt: new Date(),
       },
       {
         platform: "idealist",
         enabled: true,
-        cronSchedule: "0 4 * * *",
+        cronSchedule: "20 */2 * * *",
         totalItemsScraped: 0,
-        settings: { maxPages: "25" },
+        settings: { maxPages: "400", deepScrape: "true", maxDetailPages: "50" },
         createdAt: new Date(),
         updatedAt: new Date(),
       },
       {
         platform: "unjobs",
         enabled: true,
-        cronSchedule: "0 6 * * *",
+        cronSchedule: "40 */2 * * *",
         totalItemsScraped: 0,
-        settings: { maxPages: "15" },
+        settings: { maxPages: "400", deepScrape: "true", maxDetailPages: "50" },
         createdAt: new Date(),
         updatedAt: new Date(),
       },
       {
         platform: "devex",
-        enabled: false,
-        cronSchedule: "30 4 * * *",
+        enabled: true,
+        cronSchedule: "10 */2 * * *",
         totalItemsScraped: 0,
-        settings: { maxPages: "15", deepScrape: "true", maxDetailPages: "30" },
+        settings: { maxPages: "200", deepScrape: "true", maxDetailPages: "200" },
         createdAt: new Date(),
         updatedAt: new Date(),
       },
       {
         platform: "impactpool",
         enabled: true,
-        cronSchedule: "30 5 * * *",
+        cronSchedule: "50 */2 * * *",
         totalItemsScraped: 0,
-        settings: { maxPages: "15" },
+        settings: { maxPages: "300", deepScrape: "true", maxDetailPages: "50" },
         createdAt: new Date(),
         updatedAt: new Date(),
       },
       {
         platform: "workforgood",
-        enabled: false,
-        cronSchedule: "0 7 * * *",
+        enabled: true,
+        cronSchedule: "30 */2 * * *",
         totalItemsScraped: 0,
-        settings: { maxPages: "15", deepScrape: "true", maxDetailPages: "25" },
+        settings: { maxPages: "150", deepScrape: "true", maxDetailPages: "150" },
         createdAt: new Date(),
         updatedAt: new Date(),
       },

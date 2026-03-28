@@ -6,6 +6,11 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
+import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { Separator } from "@/components/ui/separator"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card"
 import { getAdminAnalytics } from "@/lib/actions"
 import { AnalyticsCharts } from "@/components/admin/analytics-charts"
 import {
@@ -106,55 +111,72 @@ async function DashboardContent({ dict }: { dict: any }) {
       </div>
 
       {/* Conversion Metrics */}
-      <div className="grid sm:grid-cols-3 gap-4">
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-2">
-                <Shield className="h-5 w-5 text-green-600" />
-                <span className="font-medium">{dict.admin?.dashboard?.ngoVerificationRate || "NGO Verification Rate"}</span>
-              </div>
-              <span className="text-2xl font-bold text-green-600">{analytics.ngoVerificationRate}%</span>
-            </div>
-            <Progress value={analytics.ngoVerificationRate} className="h-2" />
-            <p className="text-xs text-muted-foreground mt-2">
-              {(dict.admin?.dashboard?.ngosVerified || "{verified} of {total} NGOs verified").replace("{verified}", `${analytics.verifiedNGOs}`).replace("{total}", `${analytics.totalNGOs}`)}
-            </p>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-2">
-                <Target className="h-5 w-5 text-blue-600" />
-                <span className="font-medium">{dict.admin?.dashboard?.projectSuccessRate || "Project Success Rate"}</span>
-              </div>
-              <span className="text-2xl font-bold text-blue-600">{analytics.projectSuccessRate}%</span>
-            </div>
-            <Progress value={analytics.projectSuccessRate} className="h-2" />
-            <p className="text-xs text-muted-foreground mt-2">
-              {(dict.admin?.dashboard?.projectsCompleted || "{completed} of {total} projects completed").replace("{completed}", `${analytics.completedProjects}`).replace("{total}", `${analytics.totalProjects}`)}
-            </p>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-2">
-                <Zap className="h-5 w-5 text-purple-600" />
-                <span className="font-medium">{dict.admin?.dashboard?.applicationAcceptRate || "Application Accept Rate"}</span>
-              </div>
-              <span className="text-2xl font-bold text-purple-600">{analytics.applicationAcceptRate}%</span>
-            </div>
-            <Progress value={analytics.applicationAcceptRate} className="h-2" />
-            <p className="text-xs text-muted-foreground mt-2">
-              {(dict.admin?.dashboard?.applicationsAccepted || "{accepted} of {total} applications accepted").replace("{accepted}", `${analytics.acceptedApplications}`).replace("{total}", `${analytics.totalApplications}`)}
-            </p>
-          </CardContent>
-        </Card>
-      </div>
+      <TooltipProvider>
+        <div className="grid sm:grid-cols-3 gap-4">
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Card className="hover:shadow-md transition-shadow cursor-default">
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-2">
+                      <Shield className="h-5 w-5 text-green-600" />
+                      <span className="font-medium">{dict.admin?.dashboard?.ngoVerificationRate || "NGO Verification Rate"}</span>
+                    </div>
+                    <span className="text-2xl font-bold text-green-600">{analytics.ngoVerificationRate}%</span>
+                  </div>
+                  <Progress value={analytics.ngoVerificationRate} className="h-2" />
+                  <p className="text-xs text-muted-foreground mt-2">
+                    {(dict.admin?.dashboard?.ngosVerified || "{verified} of {total} NGOs verified").replace("{verified}", `${analytics.verifiedNGOs}`).replace("{total}", `${analytics.totalNGOs}`)}
+                  </p>
+                </CardContent>
+              </Card>
+            </TooltipTrigger>
+            <TooltipContent>Percentage of registered NGOs that have been verified</TooltipContent>
+          </Tooltip>
+          
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Card className="hover:shadow-md transition-shadow cursor-default">
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-2">
+                      <Target className="h-5 w-5 text-blue-600" />
+                      <span className="font-medium">{dict.admin?.dashboard?.projectSuccessRate || "Project Success Rate"}</span>
+                    </div>
+                    <span className="text-2xl font-bold text-blue-600">{analytics.projectSuccessRate}%</span>
+                  </div>
+                  <Progress value={analytics.projectSuccessRate} className="h-2" />
+                  <p className="text-xs text-muted-foreground mt-2">
+                    {(dict.admin?.dashboard?.projectsCompleted || "{completed} of {total} projects completed").replace("{completed}", `${analytics.completedProjects}`).replace("{total}", `${analytics.totalProjects}`)}
+                  </p>
+                </CardContent>
+              </Card>
+            </TooltipTrigger>
+            <TooltipContent>Rate of projects reaching completion</TooltipContent>
+          </Tooltip>
+          
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Card className="hover:shadow-md transition-shadow cursor-default">
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-2">
+                      <Zap className="h-5 w-5 text-purple-600" />
+                      <span className="font-medium">{dict.admin?.dashboard?.applicationAcceptRate || "Application Accept Rate"}</span>
+                    </div>
+                    <span className="text-2xl font-bold text-purple-600">{analytics.applicationAcceptRate}%</span>
+                  </div>
+                  <Progress value={analytics.applicationAcceptRate} className="h-2" />
+                  <p className="text-xs text-muted-foreground mt-2">
+                    {(dict.admin?.dashboard?.applicationsAccepted || "{accepted} of {total} applications accepted").replace("{accepted}", `${analytics.acceptedApplications}`).replace("{total}", `${analytics.totalApplications}`)}
+                  </p>
+                </CardContent>
+              </Card>
+            </TooltipTrigger>
+            <TooltipContent>Percentage of applications that get accepted by NGOs</TooltipContent>
+          </Tooltip>
+        </div>
+      </TooltipProvider>
 
       {/* Main Content Grid */}
       <div className="grid lg:grid-cols-3 gap-8">
@@ -168,25 +190,36 @@ async function DashboardContent({ dict }: { dict: any }) {
             <CardDescription>{dict.admin?.dashboard?.recentActivityDescription || "Real-time platform activity feed"}</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
+            <div className="space-y-1">
               {analytics.recentActivity.length > 0 ? (
                 analytics.recentActivity.map((activity: any, i: number) => (
-                  <div key={i} className="flex items-start gap-3 p-3 rounded-lg hover:bg-muted/50 transition-colors">
-                    <div className={`w-2 h-2 rounded-full mt-2 ${
-                      activity.type === "payment" ? "bg-green-500" :
-                      activity.type === "volunteer_signup" ? "bg-blue-500" :
-                      activity.type === "ngo_signup" ? "bg-purple-500" :
-                      activity.type === "project_created" ? "bg-orange-500" :
-                      activity.type === "contact_inquiry" ? "bg-pink-500" :
-                      "bg-primary"
-                    }`} />
-                    <div className="flex-1">
-                      <p className="text-sm text-foreground">{activity.text}</p>
-                      <p className="text-xs text-muted-foreground">{activity.timeAgo}</p>
+                  <div key={i}>
+                    {i > 0 && <Separator className="my-2" />}
+                    <div className="flex items-start gap-3 p-2 rounded-lg hover:bg-muted/50 transition-colors">
+                      <Avatar className="h-8 w-8 mt-0.5">
+                        <AvatarFallback className={`text-[10px] font-bold text-white ${
+                          activity.type === "payment" ? "bg-green-500" :
+                          activity.type === "volunteer_signup" ? "bg-blue-500" :
+                          activity.type === "ngo_signup" ? "bg-purple-500" :
+                          activity.type === "project_created" ? "bg-orange-500" :
+                          activity.type === "contact_inquiry" ? "bg-pink-500" :
+                          "bg-primary"
+                        }`}>
+                          {activity.type === "payment" ? "$" :
+                           activity.type === "volunteer_signup" ? "V" :
+                           activity.type === "ngo_signup" ? "N" :
+                           activity.type === "project_created" ? "P" :
+                           activity.type === "contact_inquiry" ? "C" : "A"}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm text-foreground">{activity.text}</p>
+                        <p className="text-[10px] text-muted-foreground">{activity.timeAgo}</p>
+                      </div>
+                      <Badge variant="outline" className="text-[10px] shrink-0">
+                        {activity.type.replace("_", " ")}
+                      </Badge>
                     </div>
-                    <Badge variant="outline" className="text-xs">
-                      {activity.type.replace("_", " ")}
-                    </Badge>
                   </div>
                 ))
               ) : (
@@ -271,70 +304,80 @@ async function DashboardContent({ dict }: { dict: any }) {
         </Card>
       </div>
 
-      {/* Insights Row */}
-      <div className="grid md:grid-cols-2 gap-8">
-        {/* Skills in Demand */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <BarChart3 className="h-5 w-5 text-primary" />
-              {dict.admin?.dashboard?.skillsInDemand || "Skills in Demand"}
-            </CardTitle>
-            <CardDescription>{dict.admin?.dashboard?.skillsInDemandDescription || "Most requested skills from active opportunities"}</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {analytics.skillsInDemand.length > 0 ? (
-                analytics.skillsInDemand.map((skill: any, i: number) => (
-                  <div key={i} className="flex items-center gap-4">
-                    <div className="w-32 text-sm font-medium truncate">{skill.skill}</div>
-                    <div className="flex-1">
-                      <Progress 
-                        value={(skill.count / (analytics.skillsInDemand[0]?.count || 1)) * 100} 
-                        className="h-2"
-                      />
-                    </div>
-                    <div className="w-8 text-sm text-muted-foreground text-right">{skill.count}</div>
-                  </div>
-                ))
-              ) : (
-                <p className="text-center text-muted-foreground py-4">{dict.admin?.dashboard?.noDataAvailable || "No data available"}</p>
-              )}
-            </div>
-          </CardContent>
-        </Card>
+      {/* Insights - Tabbed */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <BarChart3 className="h-5 w-5 text-primary" />
+            {dict.admin?.dashboard?.platformInsights || "Platform Insights"}
+          </CardTitle>
+          <CardDescription>Demand trends across skills and causes</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Tabs defaultValue="skills" className="w-full">
+            <TabsList className="mb-4">
+              <TabsTrigger value="skills" className="flex items-center gap-1.5">
+                <BarChart3 className="h-3.5 w-3.5" />
+                {dict.admin?.dashboard?.skillsInDemand || "Skills in Demand"}
+              </TabsTrigger>
+              <TabsTrigger value="causes" className="flex items-center gap-1.5">
+                <PieChart className="h-3.5 w-3.5" />
+                {dict.admin?.dashboard?.topCauses || "Top Causes"}
+              </TabsTrigger>
+            </TabsList>
 
-        {/* Top Causes */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <PieChart className="h-5 w-5 text-primary" />
-              {dict.admin?.dashboard?.topCauses || "Top Causes"}
-            </CardTitle>
-            <CardDescription>{dict.admin?.dashboard?.topCausesDescription || "Most popular cause categories"}</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {analytics.topCauses.length > 0 ? (
-                analytics.topCauses.map((cause: any, i: number) => (
-                  <div key={i} className="flex items-center gap-4">
-                    <div className="w-32 text-sm font-medium truncate">{cause.cause}</div>
-                    <div className="flex-1">
-                      <Progress 
-                        value={(cause.count / (analytics.topCauses[0]?.count || 1)) * 100} 
-                        className="h-2"
-                      />
+            <TabsContent value="skills">
+              <div className="space-y-3">
+                {analytics.skillsInDemand.length > 0 ? (
+                  analytics.skillsInDemand.map((skill: any, i: number) => (
+                    <div key={i}>
+                      {i > 0 && <Separator className="my-2" />}
+                      <div className="flex items-center gap-4">
+                        <span className="w-6 text-xs text-muted-foreground font-medium">#{i + 1}</span>
+                        <div className="w-28 text-sm font-medium truncate">{skill.skill}</div>
+                        <div className="flex-1">
+                          <Progress 
+                            value={(skill.count / (analytics.skillsInDemand[0]?.count || 1)) * 100} 
+                            className="h-2"
+                          />
+                        </div>
+                        <Badge variant="secondary" className="text-[10px]">{skill.count}</Badge>
+                      </div>
                     </div>
-                    <div className="w-8 text-sm text-muted-foreground text-right">{cause.count}</div>
-                  </div>
-                ))
-              ) : (
-                <p className="text-center text-muted-foreground py-4">{dict.admin?.dashboard?.noDataAvailable || "No data available"}</p>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+                  ))
+                ) : (
+                  <p className="text-center text-muted-foreground py-4">{dict.admin?.dashboard?.noDataAvailable || "No data available"}</p>
+                )}
+              </div>
+            </TabsContent>
+
+            <TabsContent value="causes">
+              <div className="space-y-3">
+                {analytics.topCauses.length > 0 ? (
+                  analytics.topCauses.map((cause: any, i: number) => (
+                    <div key={i}>
+                      {i > 0 && <Separator className="my-2" />}
+                      <div className="flex items-center gap-4">
+                        <span className="w-6 text-xs text-muted-foreground font-medium">#{i + 1}</span>
+                        <div className="w-28 text-sm font-medium truncate">{cause.cause}</div>
+                        <div className="flex-1">
+                          <Progress 
+                            value={(cause.count / (analytics.topCauses[0]?.count || 1)) * 100} 
+                            className="h-2"
+                          />
+                        </div>
+                        <Badge variant="secondary" className="text-[10px]">{cause.count}</Badge>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-center text-muted-foreground py-4">{dict.admin?.dashboard?.noDataAvailable || "No data available"}</p>
+                )}
+              </div>
+            </TabsContent>
+          </Tabs>
+        </CardContent>
+      </Card>
 
       {/* Quick Navigation */}
       <Card>
@@ -405,30 +448,37 @@ function MetricCard({
   trendValue: string
 }) {
   return (
-    <Card>
-      <CardContent className="p-6">
-        <div className="flex items-center justify-between mb-4">
-          <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-            <Icon className="h-5 w-5 text-primary" />
-          </div>
-          <span
-            className={`text-xs font-medium flex items-center gap-0.5 ${
-              trend === "up" ? "text-green-600" : "text-red-600"
-            }`}
-          >
-            {trend === "up" ? (
-              <TrendingUp className="h-3 w-3" />
-            ) : (
-              <TrendingDown className="h-3 w-3" />
-            )}
-            {trendValue}
-          </span>
-        </div>
-        <p className="text-2xl font-bold text-foreground">{value}</p>
-        <p className="text-sm text-muted-foreground">{title}</p>
-        <p className="text-xs text-muted-foreground mt-1">{subtext}</p>
-      </CardContent>
-    </Card>
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Card className="hover:shadow-md transition-shadow cursor-default">
+            <CardContent className="p-5">
+              <div className="flex items-center justify-between mb-3">
+                <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                  <Icon className="h-5 w-5 text-primary" />
+                </div>
+                <span
+                  className={`text-xs font-medium flex items-center gap-0.5 ${
+                    trend === "up" ? "text-green-600" : "text-red-600"
+                  }`}
+                >
+                  {trend === "up" ? (
+                    <TrendingUp className="h-3 w-3" />
+                  ) : (
+                    <TrendingDown className="h-3 w-3" />
+                  )}
+                  {trendValue}
+                </span>
+              </div>
+              <p className="text-2xl font-bold text-foreground">{value}</p>
+              <p className="text-sm text-muted-foreground">{title}</p>
+              <p className="text-[10px] text-muted-foreground mt-1">{subtext}</p>
+            </CardContent>
+          </Card>
+        </TooltipTrigger>
+        <TooltipContent>{subtext}</TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
   )
 }
 

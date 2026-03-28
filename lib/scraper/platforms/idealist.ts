@@ -1,19 +1,20 @@
 // ============================================
-// Idealist Scraper — HTML scraping via Cheerio
+// Idealist Scraper — HTML scraping with improved extraction
 // ============================================
 // Scrapes volunteer opportunities from idealist.org
-// Uses their public search page with /volunteer-opportunity/ links
+// Extracts structured data from listing cards.
+// Deep scraping (via runner) enriches new items with full detail page content.
 
 import * as cheerio from "cheerio"
 import type { ScrapedOpportunity } from "../types"
-import { mapSkillTags, mapCauseTags, detectWorkMode } from "../skill-mapper"
+import { mapSkillTags, mapCauseTags, detectWorkMode, detectExperienceLevel } from "../skill-mapper"
 
 const BASE_URL = "https://www.idealist.org"
 const SEARCH_URL = `${BASE_URL}/en/volunteer-opportunities`
 
 const HEADERS = {
-  "User-Agent": "Mozilla/5.0 (compatible; JustBeCauseBot/1.0; +https://justbecausenetwork.com)",
-  "Accept": "text/html,application/xhtml+xml",
+  "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+  "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
   "Accept-Language": "en-US,en;q=0.9",
 }
 
@@ -25,25 +26,36 @@ export async function* scrapeIdealist(
   for (let page = 1; page <= maxPages; page++) {
     const url = `${SEARCH_URL}?page=${page}&q=&type=VOLOP`
 
-    const response = await fetch(url, {
-      headers: HEADERS,
-      signal: AbortSignal.timeout(30000),
-    })
+    let html: string
+    try {
+      const response = await fetch(url, {
+        headers: HEADERS,
+        signal: AbortSignal.timeout(30000),
+      })
 
-    if (!response.ok) {
-      if (response.status === 429) {
-        console.warn("[Idealist] Rate limited, stopping")
-        return
+      if (!response.ok) {
+        if (response.status === 429) {
+          console.warn("[Idealist] Rate limited at page", page)
+          await sleep(10000)
+          continue
+        }
+        console.warn(`[Idealist] HTTP ${response.status} at page ${page}`)
+        break
       }
-      throw new Error(`Idealist fetch error: ${response.status}`)
+      html = await response.text()
+    } catch (err) {
+      console.warn(`[Idealist] Fetch failed page ${page}:`, err)
+      break
     }
 
-    const html = await response.text()
     const $ = cheerio.load(html)
 
     // Idealist uses /volunteer-opportunity/ in listing links
     const listings = $('a[href*="/volunteer-opportunity/"]')
-    if (listings.length === 0) break
+    if (listings.length === 0) {
+      console.log(`[Idealist] No listings on page ${page}, stopping`)
+      break
+    }
 
     const processedUrls = new Set<string>()
 
@@ -53,27 +65,38 @@ export async function* scrapeIdealist(
       if (!href || processedUrls.has(href)) continue
       processedUrls.add(href)
 
-      // Title is inside an h3 within the link
+      // Title is inside an h3 within the link  
       const title = $el.find("h3").first().text().trim()
         || $el.text().trim().split("\n")[0]?.trim()
       if (!title || title.length < 5) continue
 
-      // The link text is concatenated: "Title + OrgName + On-site/Remote + City, State + Posted X ago"
+      // The link text is concatenated with org, work mode, location, date
       const fullText = $el.text().trim()
       const textAfterTitle = fullText.replace(title, "").trim()
 
-      // Parse parts: org name, work mode, location, posted date
+      // Parse structured parts from the card text
       const parts = textAfterTitle.split(/\s{2,}|\n/).map(s => s.trim()).filter(Boolean)
       const orgName = parts[0] || ""
       const location = extractLocationFromParts(parts)
       const workMode = detectWorkMode(fullText)
 
+      // Look for time commitment in the card text
+      const timeMatch = fullText.match(/(\d+\s*(?:hours?|hrs?)\s*(?:\/|per)\s*(?:week|month|day))/i)
+      const timeCommitment = timeMatch ? timeMatch[1] : ""
+
+      // Look for posted date indicators
+      const postedMatch = fullText.match(/posted\s+(\d+\s+(?:day|week|month|hour)s?\s+ago)/i)
+      const postedText = postedMatch ? postedMatch[1] : ""
+      const postedDate = postedText ? parseRelativeDate(postedText) : new Date()
+
       const fullUrl = href.startsWith("http") ? href : `${BASE_URL}${href}`
       const externalId = href.split("/").filter(Boolean).pop() || href
 
-      const allText = [title, orgName, location].join(" ")
-      const causes = mapCauseTags(allText.split(/[\s,;]+/).filter(w => w.length > 3))
-      const skills = mapSkillTags(allText.split(/[\s,;]+/).filter(w => w.length > 3))
+      const allText = [title, orgName, location, textAfterTitle].join(" ")
+      const words = allText.split(/[\s,;]+/).filter(w => w.length > 3)
+      const causes = mapCauseTags(words)
+      const skills = mapSkillTags(words)
+      const experienceLevel = detectExperienceLevel(allText)
 
       yield {
         sourceplatform: "idealist",
@@ -85,10 +108,12 @@ export async function* scrapeIdealist(
         organization: orgName || "Organization on Idealist",
         causes,
         skillsRequired: skills,
+        experienceLevel,
         workMode,
         location: location || undefined,
         country: extractCountry(location),
-        postedDate: new Date(),
+        timeCommitment: timeCommitment || undefined,
+        postedDate,
         compensationType: "volunteer",
         projectType: "short-term",
       }
@@ -100,9 +125,9 @@ export async function* scrapeIdealist(
 
 function extractLocationFromParts(parts: string[]): string {
   for (const part of parts) {
-    // Location patterns: "City, State" or "City, Country" or standalone "Remote"
     if (/^remote$/i.test(part)) return "Remote"
     if (/[A-Z][a-z]+,\s*[A-Z]/.test(part)) return part
+    if (/\b(united states|canada|uk|india|kenya|nigeria|germany|france|australia)\b/i.test(part)) return part
   }
   return ""
 }
@@ -111,6 +136,20 @@ function extractCountry(location: string): string | undefined {
   if (!location) return undefined
   const parts = location.split(",").map(s => s.trim())
   return parts.length > 1 ? parts[parts.length - 1] : undefined
+}
+
+/** Parse relative date strings like "3 days ago", "2 weeks ago" */
+function parseRelativeDate(text: string): Date {
+  const now = new Date()
+  const match = text.match(/(\d+)\s*(day|week|month|hour)s?\s*ago/i)
+  if (!match) return now
+  const num = parseInt(match[1], 10)
+  const unit = match[2].toLowerCase()
+  if (unit === "hour") now.setHours(now.getHours() - num)
+  else if (unit === "day") now.setDate(now.getDate() - num)
+  else if (unit === "week") now.setDate(now.getDate() - num * 7)
+  else if (unit === "month") now.setMonth(now.getMonth() - num)
+  return now
 }
 
 function sleep(ms: number) {
