@@ -197,7 +197,9 @@ function ProjectsContent() {
               id: `ext-${opp._id || opp.externalId}`,
               title: opp.title || "",
               description: opp.shortDescription || opp.title || "",
-              skillsRequired: (opp.skillsRequired || []).map((s: string) => ({ categoryId: "external", subskillId: s })),
+              skillsRequired: (opp.skillsRequired || []).map((s: any) =>
+                typeof s === "string" ? { categoryId: "external", subskillId: s } : s
+              ),
               ngoId: "",
               status: "published",
               workMode: opp.workMode || "remote",
@@ -210,7 +212,7 @@ function ProjectsContent() {
                 name: opp.organization || "Organization",
                 verified: false,
               },
-              skills: opp.skillsRequired || [],
+              skills: (opp.skillsRequired || []).map((s: any) => typeof s === "string" ? s : s.subskillId || ""),
               externalUrl: opp.sourceUrl,
             }))
             setProjects(prev => [...prev, ...externalAsProjects])
