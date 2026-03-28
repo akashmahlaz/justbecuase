@@ -271,7 +271,7 @@ async function deepScrapeDetailPage(
   }
 }
 
-const SCRAPER_NOTIFY_EMAIL = "akashdalla406@gmail.com"
+const SCRAPER_NOTIFY_EMAILS = ["akashdalla406@gmail.com", "julesfern@gmail.com"]
 
 async function sendScraperEmail(run: ScraperRun) {
   try {
@@ -287,7 +287,7 @@ async function sendScraperEmail(run: ScraperRun) {
       : ""
 
     await sendEmail({
-      to: SCRAPER_NOTIFY_EMAIL,
+      to: SCRAPER_NOTIFY_EMAILS,
       subject: `${emoji} Scraper ${run.platform} — ${run.status} | ${run.itemsNew} new, ${run.itemsScraped} total`,
       html: `
         <div style="font-family:system-ui,-apple-system,sans-serif;max-width:560px;margin:0 auto">

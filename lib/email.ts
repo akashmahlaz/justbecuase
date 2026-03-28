@@ -5,7 +5,7 @@ const RESEND_API_KEY = process.env.RESEND_API_KEY || process.env.RESEND_AKASH
 const FROM_EMAIL = process.env.FROM_EMAIL || "JustBeCause <onboarding@resend.dev>"
 
 interface EmailOptions {
-  to: string
+  to: string | string[]
   subject: string
   html?: string
   text?: string
