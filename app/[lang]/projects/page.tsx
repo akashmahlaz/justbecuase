@@ -11,8 +11,20 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
+import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious, PaginationEllipsis } from "@/components/ui/pagination"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Separator } from "@/components/ui/separator"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { Card, CardContent } from "@/components/ui/card"
+import { NumberTicker } from "@/components/ui/number-ticker"
+import { BlurFade } from "@/components/ui/blur-fade"
+import { TextAnimate } from "@/components/ui/text-animate"
+import { ScrollProgress } from "@/components/ui/scroll-progress"
 import { skillCategories, resolveSkillName } from "@/lib/skills-data"
-import { SlidersHorizontal, Grid3X3, List, X, Loader2 } from "lucide-react"
+import { SlidersHorizontal, Grid3X3, List, X, Loader2, Search, Sparkles, TrendingUp, BookmarkCheck, Info } from "lucide-react"
 import { UnifiedSearchBar } from "@/components/unified-search-bar"
 import { BrowseGridSkeleton } from "@/components/ui/page-skeletons"
 import { useDictionary } from "@/components/dictionary-provider"
@@ -53,6 +65,8 @@ export default function ProjectsPage() {
   )
 }
 
+const PROJECTS_PER_PAGE = 12
+
 function ProjectsContent() {
   const searchParams = useSearchParams()
   const dict = useDictionary()
@@ -65,6 +79,8 @@ function ProjectsContent() {
   const [selectedLocation, setSelectedLocation] = useState<string>("")
   const [sortBy, setSortBy] = useState("bestMatch")
   const [isPersonalized, setIsPersonalized] = useState(false)
+  const [activeTab, setActiveTab] = useState("all")
+  const [currentPage, setCurrentPage] = useState(1)
   // Map of projectId → { score, matchReasons }
   const [matchScores, setMatchScores] = useState<Map<string, { score: number; matchReasons: string[] }>>(new Map())
 
@@ -267,6 +283,18 @@ function ProjectsContent() {
   // Filter and sort projects
   const filteredProjects = useMemo(() => {
     let result = [...projects]
+
+    // Tab filter
+    if (activeTab === "recommended" && isPersonalized && matchScores.size > 0) {
+      result = result.filter(p => {
+        const pid = p._id?.toString() || p.id || ""
+        return (matchScores.get(pid)?.score || 0) > 0
+      })
+    } else if (activeTab === "trending") {
+      result = result
+        .sort((a, b) => (b.applicantsCount || 0) - (a.applicantsCount || 0))
+        .slice(0, 20)
+    }
     
     // Search filter — powered by unified search API
     if (searchQuery.trim().length >= 2) {
@@ -393,69 +421,92 @@ function ProjectsContent() {
     }
     
     return result
-  }, [projects, searchQuery, selectedSkills, selectedTimeCommitment, selectedLocation, sortBy, unifiedMatchedIds, unifiedRelevanceOrder, isPersonalized, matchScores])
+  }, [projects, searchQuery, selectedSkills, selectedTimeCommitment, selectedLocation, sortBy, unifiedMatchedIds, unifiedRelevanceOrder, isPersonalized, matchScores, activeTab])
 
   const FilterContent = () => (
-    <div className="space-y-6">
-      {/* Skills */}
-      <div>
-        <Label className="text-sm font-semibold text-foreground mb-3 block">{dict.projectsListing?.skills || "Skills"}</Label>
-        <div className="space-y-2">
-          {skillCategories.map((category) => (
-            <div key={category.name} className="flex items-center space-x-2">
-              <Checkbox
-                id={category.name}
-                checked={selectedSkills.includes(category.name)}
-                onCheckedChange={() => toggleSkill(category.name)}
-              />
-              <label
-                htmlFor={category.name}
-                className="text-sm text-foreground cursor-pointer flex-1 flex items-center justify-between"
-              >
-                <span>{category.name}</span>
-                <span className="text-muted-foreground text-xs">{(dict.projectsListing?.skillsCount || "({count} skills)").replace("{count}", category.subskills.length.toString())}</span>
-              </label>
+    <div className="flex flex-col gap-1">
+      <Accordion type="multiple" defaultValue={["skills", "time", "location"]} className="w-full">
+        {/* Skills */}
+        <AccordionItem value="skills">
+          <AccordionTrigger className="text-sm font-semibold text-foreground">
+            {dict.projectsListing?.skills || "Skills"}
+            {selectedSkills.length > 0 && (
+              <Badge variant="secondary" className="ml-2">{selectedSkills.length}</Badge>
+            )}
+          </AccordionTrigger>
+          <AccordionContent>
+            <div className="flex flex-col gap-2">
+              {skillCategories.map((category) => (
+                <div key={category.name} className="flex items-center gap-2">
+                  <Checkbox
+                    id={category.name}
+                    checked={selectedSkills.includes(category.name)}
+                    onCheckedChange={() => toggleSkill(category.name)}
+                  />
+                  <label
+                    htmlFor={category.name}
+                    className="text-sm text-foreground cursor-pointer flex-1 flex items-center justify-between"
+                  >
+                    <span>{category.name}</span>
+                    <Badge variant="outline" className="text-xs">{category.subskills.length}</Badge>
+                  </label>
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
-      </div>
+          </AccordionContent>
+        </AccordionItem>
 
-      {/* Time Commitment */}
-      <div>
-        <Label className="text-sm font-semibold text-foreground mb-3 block">{dict.projectsListing?.timeCommitment || "Time Commitment"}</Label>
-        <div className="space-y-2">
-          {timeCommitments.map((time) => (
-            <div key={time} className="flex items-center space-x-2">
-              <Checkbox
-                id={time}
-                checked={selectedTimeCommitment.includes(time)}
-                onCheckedChange={() => toggleTimeCommitment(time)}
-              />
-              <label htmlFor={time} className="text-sm text-foreground cursor-pointer">
-                {timeCommitmentLabels[time] || time}
-              </label>
+        <AccordionItem value="time">
+          <AccordionTrigger className="text-sm font-semibold text-foreground">
+            {dict.projectsListing?.timeCommitment || "Time Commitment"}
+            {selectedTimeCommitment.length > 0 && (
+              <Badge variant="secondary" className="ml-2">{selectedTimeCommitment.length}</Badge>
+            )}
+          </AccordionTrigger>
+          <AccordionContent>
+            <div className="flex flex-col gap-2">
+              {timeCommitments.map((time) => (
+                <div key={time} className="flex items-center gap-2">
+                  <Checkbox
+                    id={time}
+                    checked={selectedTimeCommitment.includes(time)}
+                    onCheckedChange={() => toggleTimeCommitment(time)}
+                  />
+                  <label htmlFor={time} className="text-sm text-foreground cursor-pointer">
+                    {timeCommitmentLabels[time] || time}
+                  </label>
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
-      </div>
+          </AccordionContent>
+        </AccordionItem>
 
-      {/* Location */}
-      <div>
-        <Label className="text-sm font-semibold text-foreground mb-3 block">{dict.projectsListing?.location || "Location"}</Label>
-        <Select value={selectedLocation} onValueChange={setSelectedLocation}>
-          <SelectTrigger>
-            <SelectValue placeholder={dict.projectsListing?.allLocations || "All locations"} />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">{dict.projectsListing?.allLocations || "All locations"}</SelectItem>
-            {locations.map((location) => (
-              <SelectItem key={location} value={location}>
-                {locationLabels[location] || location}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
+        <AccordionItem value="location">
+          <AccordionTrigger className="text-sm font-semibold text-foreground">
+            {dict.projectsListing?.location || "Location"}
+            {selectedLocation && selectedLocation !== "all" && (
+              <Badge variant="secondary" className="ml-2">1</Badge>
+            )}
+          </AccordionTrigger>
+          <AccordionContent>
+            <Select value={selectedLocation} onValueChange={setSelectedLocation}>
+              <SelectTrigger>
+                <SelectValue placeholder={dict.projectsListing?.allLocations || "All locations"} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">{dict.projectsListing?.allLocations || "All locations"}</SelectItem>
+                {locations.map((location) => (
+                  <SelectItem key={location} value={location}>
+                    {locationLabels[location] || location}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </AccordionContent>
+        </AccordionItem>
+      </Accordion>
+
+      <Separator className="my-2" />
 
       {hasActiveFilters && (
         <Button variant="outline" className="w-full bg-transparent" onClick={clearFilters}>
@@ -466,15 +517,30 @@ function ProjectsContent() {
     </div>
   )
 
+  // Pagination
+  const totalPages = Math.ceil(filteredProjects.length / PROJECTS_PER_PAGE)
+  const paginatedProjects = useMemo(() => {
+    const start = (currentPage - 1) * PROJECTS_PER_PAGE
+    return filteredProjects.slice(start, start + PROJECTS_PER_PAGE)
+  }, [filteredProjects, currentPage])
+
+  // Reset page when filters change
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [searchQuery, selectedSkills, selectedTimeCommitment, selectedLocation, sortBy, activeTab])
+
   return (
     <div className="min-h-screen flex flex-col bg-background">
       <Navbar />
+      <ScrollProgress className="top-0" />
 
       <main className="flex-1">
         {/* Header */}
         <div className="border-b border-border bg-muted/30">
           <div className="container mx-auto px-4 md:px-6 py-8">
-            <h1 className="text-3xl font-bold text-foreground mb-2">{dict.projectsListing?.title || "Browse Opportunities"}</h1>
+            <TextAnimate animation="blurInUp" by="word" as="h1" className="text-3xl font-bold text-foreground mb-2">
+              {dict.projectsListing?.title || "Browse Opportunities"}
+            </TextAnimate>
             <p className="text-muted-foreground">{dict.projectsListing?.subtitle || "Find opportunities that match your skills and interests"}</p>
           </div>
         </div>
@@ -531,22 +597,31 @@ function ProjectsContent() {
                 </SelectContent>
               </Select>
 
-              <div className="hidden sm:flex items-center border border-border rounded-lg p-1">
-                <Button
-                  variant={viewMode === "grid" ? "secondary" : "ghost"}
-                  size="sm"
-                  onClick={() => setViewMode("grid")}
+              <TooltipProvider>
+                <ToggleGroup
+                  type="single"
+                  value={viewMode}
+                  onValueChange={(v) => v && setViewMode(v as "grid" | "list")}
+                  className="hidden sm:flex"
                 >
-                  <Grid3X3 className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant={viewMode === "list" ? "secondary" : "ghost"}
-                  size="sm"
-                  onClick={() => setViewMode("list")}
-                >
-                  <List className="h-4 w-4" />
-                </Button>
-              </div>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <ToggleGroupItem value="grid" aria-label="Grid view">
+                        <Grid3X3 className="h-4 w-4" />
+                      </ToggleGroupItem>
+                    </TooltipTrigger>
+                    <TooltipContent>Grid view</TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <ToggleGroupItem value="list" aria-label="List view">
+                        <List className="h-4 w-4" />
+                      </ToggleGroupItem>
+                    </TooltipTrigger>
+                    <TooltipContent>List view</TooltipContent>
+                  </Tooltip>
+                </ToggleGroup>
+              </TooltipProvider>
             </div>
           </div>
 
@@ -581,70 +656,141 @@ function ProjectsContent() {
             </div>
           )}
 
+          {/* Tabs for All / Recommended / Saved */}
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-6">
+            <TabsList>
+              <TabsTrigger value="all" className="gap-1.5">
+                <Search className="h-3.5 w-3.5" />
+                {dict.projectsListing?.allTab || "All"}
+              </TabsTrigger>
+              {isPersonalized && (
+                <TabsTrigger value="recommended" className="gap-1.5">
+                  <Sparkles className="h-3.5 w-3.5" />
+                  {dict.projectsListing?.recommendedTab || "Recommended"}
+                </TabsTrigger>
+              )}
+              <TabsTrigger value="trending" className="gap-1.5">
+                <TrendingUp className="h-3.5 w-3.5" />
+                {dict.projectsListing?.trendingTab || "Trending"}
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
+
           <div className="flex gap-8">
             {/* Desktop Sidebar */}
-            <aside className="hidden lg:block w-64 flex-shrink-0">
-              <div className="sticky top-24 bg-card border border-border rounded-xl p-6">
-                <h3 className="font-semibold text-foreground mb-4">{dict.projectsListing?.filters || "Filters"}</h3>
-                <FilterContent />
-              </div>
+            <aside className="hidden lg:block w-64 shrink-0">
+              <Card className="sticky top-24">
+                <CardContent className="p-6">
+                  <h3 className="font-semibold text-foreground mb-4">{dict.projectsListing?.filters || "Filters"}</h3>
+                  <FilterContent />
+                </CardContent>
+              </Card>
             </aside>
 
             {/* Projects Grid/List */}
             <div className="flex-1">
               <div className="flex items-center justify-between mb-6">
-                <p className="text-muted-foreground">
-                  {(dict.projectsListing?.showingTemplate || "Showing {shown} of {total} opportunities").replace("{shown}", filteredProjects.length.toString()).replace("{total}", projects.length.toString())}
+                <p className="text-muted-foreground flex items-center gap-1.5">
+                  Showing{" "}
+                  <span className="font-semibold text-foreground">
+                    <NumberTicker value={filteredProjects.length} />
+                  </span>
+                  {" "}of{" "}
+                  <span className="font-semibold text-foreground">
+                    <NumberTicker value={projects.length} />
+                  </span>
+                  {" "}opportunities
                 </p>
               </div>
 
               {loading ? (
                 <BrowseGridSkeleton columns={3} count={6} />
               ) : filteredProjects.length === 0 ? (
-                <div className="text-center py-12">
-                  <p className="text-muted-foreground">{dict.projectsListing?.noOpportunitiesFound || "No opportunities found"}</p>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    {hasActiveFilters ? (dict.projectsListing?.tryAdjustingFilters || "Try adjusting your filters") : (dict.projectsListing?.checkBackLater || "Check back later for new opportunities")}
-                  </p>
-                  {hasActiveFilters && (
-                    <Button variant="outline" className="mt-4" onClick={clearFilters}>
-                      {dict.projectsListing?.clearFilters || "Clear Filters"}
-                    </Button>
-                  )}
-                </div>
+                <Alert className="max-w-md mx-auto">
+                  <Info className="h-4 w-4" />
+                  <AlertDescription className="text-center">
+                    <p className="font-medium">{dict.projectsListing?.noOpportunitiesFound || "No opportunities found"}</p>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      {hasActiveFilters ? (dict.projectsListing?.tryAdjustingFilters || "Try adjusting your filters") : (dict.projectsListing?.checkBackLater || "Check back later for new opportunities")}
+                    </p>
+                    {hasActiveFilters && (
+                      <Button variant="outline" className="mt-4" onClick={clearFilters}>
+                        {dict.projectsListing?.clearFilters || "Clear Filters"}
+                      </Button>
+                    )}
+                  </AlertDescription>
+                </Alert>
               ) : (
-                <div className={viewMode === "grid" ? "grid sm:grid-cols-2 xl:grid-cols-3 gap-6" : "space-y-4"}>
-                  {filteredProjects.map((project) => {
-                    const pid = project._id?.toString() || project.id || ""
-                    const scoreData = matchScores.get(pid)
-                    return (
-                    <ProjectCard key={pid} project={{
-                      id: pid,
-                      title: project.title,
-                      description: project.description,
-                      skills: (project.skills || project.skillsRequired?.map(s => s.subskillId) || []).map(resolveSkillName),
-                      location: project.workMode === "remote" ? (dict.projectsListing?.remote || "Remote") : project.location || (dict.projectsListing?.onSite || "On-site"),
-                      timeCommitment: project.timeCommitment,
-                      applicants: project.applicantsCount || 0,
-                      postedAt: project.createdAt ? new Date(project.createdAt).toLocaleDateString() : (dict.projectsListing?.recently || "Recently"),
-                      projectType: project.projectType,
-                      ngo: project.ngo || { name: dict.projectsListing?.ngoFallback || "NGO", verified: false },
-                      matchScore: scoreData?.score,
-                      matchReasons: scoreData?.matchReasons,
-                      externalUrl: project.externalUrl,
-                    }} />
-                    )
-                  })}
-                </div>
-              )}
+                <>
+                  <div className={viewMode === "grid" ? "grid sm:grid-cols-2 xl:grid-cols-3 gap-6" : "flex flex-col gap-4"}>
+                    {paginatedProjects.map((project, index) => {
+                      const pid = project._id?.toString() || project.id || ""
+                      const scoreData = matchScores.get(pid)
+                      return (
+                        <BlurFade key={pid} delay={0.04 * index} inView>
+                          <ProjectCard project={{
+                            id: pid,
+                            title: project.title,
+                            description: project.description,
+                            skills: (project.skills || project.skillsRequired?.map(s => s.subskillId) || []).map(resolveSkillName),
+                            location: project.workMode === "remote" ? (dict.projectsListing?.remote || "Remote") : project.location || (dict.projectsListing?.onSite || "On-site"),
+                            timeCommitment: project.timeCommitment,
+                            applicants: project.applicantsCount || 0,
+                            postedAt: project.createdAt ? new Date(project.createdAt).toLocaleDateString() : (dict.projectsListing?.recently || "Recently"),
+                            projectType: project.projectType,
+                            ngo: project.ngo || { name: dict.projectsListing?.ngoFallback || "NGO", verified: false },
+                            matchScore: scoreData?.score,
+                            matchReasons: scoreData?.matchReasons,
+                            externalUrl: project.externalUrl,
+                          }} />
+                        </BlurFade>
+                      )
+                    })}
+                  </div>
 
-              {/* Load More */}
-              {projects.length > 0 && (
-                <div className="mt-12 text-center">
-                  <Button variant="outline" size="lg">
-                    {dict.projectsListing?.loadMore || "Load More Opportunities"}
-                  </Button>
-                </div>
+                  {/* Pagination */}
+                  {totalPages > 1 && (
+                    <Pagination className="mt-10">
+                      <PaginationContent>
+                        <PaginationItem>
+                          <PaginationPrevious
+                            onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                            className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                          />
+                        </PaginationItem>
+                        {Array.from({ length: totalPages }, (_, i) => i + 1)
+                          .filter(page => {
+                            if (totalPages <= 7) return true
+                            if (page === 1 || page === totalPages) return true
+                            if (Math.abs(page - currentPage) <= 1) return true
+                            return false
+                          })
+                          .map((page, idx, arr) => (
+                            <span key={page} className="contents">
+                              {idx > 0 && arr[idx - 1] !== page - 1 && (
+                                <PaginationItem><PaginationEllipsis /></PaginationItem>
+                              )}
+                              <PaginationItem>
+                                <PaginationLink
+                                  isActive={currentPage === page}
+                                  onClick={() => setCurrentPage(page)}
+                                  className="cursor-pointer"
+                                >
+                                  {page}
+                                </PaginationLink>
+                              </PaginationItem>
+                            </span>
+                          ))}
+                        <PaginationItem>
+                          <PaginationNext
+                            onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                            className={currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                          />
+                        </PaginationItem>
+                      </PaginationContent>
+                    </Pagination>
+                  )}
+                </>
               )}
             </div>
           </div>

@@ -7,6 +7,14 @@ import { Footer } from "@/components/footer"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card"
+import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb"
+import { Separator } from "@/components/ui/separator"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { Progress } from "@/components/ui/progress"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { ScrollProgress } from "@/components/ui/scroll-progress"
 import { getProject, getNGOById, getActiveProjects, hasAppliedToProject, isProjectSaved, getVolunteerProfile } from "@/lib/actions"
 import { skillCategories } from "@/lib/skills-data"
 import { ApplyButton } from "./apply-button"
@@ -18,12 +26,12 @@ import {
   Calendar,
   Users,
   CheckCircle,
-  ArrowLeft,
   Building2,
   FileText,
   Eye,
   Briefcase,
   Download,
+  AlertCircle,
 } from "lucide-react"
 
 // Helper to get skill name
@@ -79,18 +87,27 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
   return (
     <div className="min-h-screen flex flex-col bg-background">
       <Navbar />
+      <ScrollProgress className="top-0" />
 
       <main className="flex-1">
         {/* Breadcrumb */}
         <div className="border-b border-border">
           <div className="container mx-auto px-4 md:px-6 py-4">
-            <Link
-              href="/projects"
-              className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground transition-colors"
-            >
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              {dict.projectDetail?.backToOpportunities || "Back to Opportunities"}
-            </Link>
+            <Breadcrumb>
+              <BreadcrumbList>
+                <BreadcrumbItem>
+                  <BreadcrumbLink href="/">{dict.projectDetail?.home || "Home"}</BreadcrumbLink>
+                </BreadcrumbItem>
+                <BreadcrumbSeparator />
+                <BreadcrumbItem>
+                  <BreadcrumbLink href="/projects">{dict.projectDetail?.opportunities || "Opportunities"}</BreadcrumbLink>
+                </BreadcrumbItem>
+                <BreadcrumbSeparator />
+                <BreadcrumbItem>
+                  <BreadcrumbPage className="truncate max-w-50">{project.title}</BreadcrumbPage>
+                </BreadcrumbItem>
+              </BreadcrumbList>
+            </Breadcrumb>
           </div>
         </div>
 
@@ -124,31 +141,54 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
 
                 {ngo && (
                   <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-lg bg-muted flex items-center justify-center overflow-hidden">
-                      {ngo.logo ? (
-                        <img
-                          src={ngo.logo}
-                          alt={ngo.orgName}
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <Building2 className="h-6 w-6 text-muted-foreground" />
-                      )}
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <Link 
-                          href={`/ngos/${project.ngoId}`}
-                          className="font-semibold text-foreground hover:text-primary transition-colors"
-                        >
-                          {ngo.orgName}
-                        </Link>
-                        {ngo.isVerified && <CheckCircle className="h-4 w-4 text-primary" />}
-                      </div>
-                      <p className="text-sm text-muted-foreground">
-                        {ngo.isVerified ? (dict.projectDetail?.verifiedOrganization || "Verified Organization") : (dict.projectDetail?.organization || "Organization")}
-                      </p>
-                    </div>
+                    <HoverCard>
+                      <HoverCardTrigger asChild>
+                        <button className="flex items-center gap-4 hover:opacity-80 transition-opacity">
+                          <Avatar className="size-12 rounded-lg">
+                            <AvatarImage src={ngo.logo || ""} alt={ngo.orgName} />
+                            <AvatarFallback className="rounded-lg">
+                              {ngo.logo ? null : <Building2 className="h-6 w-6 text-muted-foreground" />}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <span className="font-semibold text-foreground hover:text-primary transition-colors">
+                                {ngo.orgName}
+                              </span>
+                              {ngo.isVerified && <CheckCircle className="h-4 w-4 text-primary" />}
+                            </div>
+                            <p className="text-sm text-muted-foreground">
+                              {ngo.isVerified ? (dict.projectDetail?.verifiedOrganization || "Verified Organization") : (dict.projectDetail?.organization || "Organization")}
+                            </p>
+                          </div>
+                        </button>
+                      </HoverCardTrigger>
+                      <HoverCardContent className="w-80" align="start">
+                        <div className="flex items-start gap-4">
+                          <Avatar className="size-14 rounded-lg">
+                            <AvatarImage src={ngo.logo || ""} alt={ngo.orgName} />
+                            <AvatarFallback className="rounded-lg">
+                              <Building2 className="h-7 w-7 text-muted-foreground" />
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="flex-1">
+                            <p className="text-sm font-semibold">{ngo.orgName}</p>
+                            {ngo.isVerified && (
+                              <Badge variant="secondary" className="text-xs mt-1">
+                                <CheckCircle className="h-3 w-3 mr-1" />
+                                Verified
+                              </Badge>
+                            )}
+                            <p className="text-xs text-muted-foreground mt-2 line-clamp-2">
+                              {ngo.description || "Nonprofit organization"}
+                            </p>
+                            <Button asChild variant="link" className="px-0 mt-1 text-xs h-auto">
+                              <Link href={`/ngos/${project.ngoId}`}>View Profile →</Link>
+                            </Button>
+                          </div>
+                        </div>
+                      </HoverCardContent>
+                    </HoverCard>
                   </div>
                 )}
               </div>
@@ -174,19 +214,28 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
                   <CardTitle>{dict.projectDetail?.skillsRequired || "Skills Required"}</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-3">
+                  <div className="flex flex-col gap-3">
                     {project.skillsRequired.map((skill, index) => (
-                      <div key={index} className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
-                        <span className="font-medium text-foreground">
-                          {getSkillName(skill.categoryId, skill.subskillId)}
-                        </span>
-                        <Badge 
-                          variant={skill.priority === "must-have" ? "default" : "outline"}
-                          className="capitalize"
-                        >
-                          {skill.priority.replace("-", " ")}
-                        </Badge>
-                      </div>
+                      <TooltipProvider key={index}>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors">
+                              <span className="font-medium text-foreground">
+                                {getSkillName(skill.categoryId, skill.subskillId)}
+                              </span>
+                              <Badge 
+                                variant={skill.priority === "must-have" ? "default" : "outline"}
+                                className="capitalize"
+                              >
+                                {skill.priority.replace("-", " ")}
+                              </Badge>
+                            </div>
+                          </TooltipTrigger>
+                          <TooltipContent side="left">
+                            {skill.priority === "must-have" ? "Required skill" : "Nice to have"}
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
                     ))}
                     {project.skillsRequired.length === 0 && (
                       <p className="text-muted-foreground italic">{dict.projectDetail?.noSkillsRequired || "No specific skills required"}</p>
@@ -194,14 +243,15 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
                   </div>
                   
                   {project.experienceLevel && (
-                    <div className="mt-4 pt-4 border-t border-border">
+                    <>
+                      <Separator className="my-4" />
                       <div className="flex items-center justify-between">
                         <span className="text-muted-foreground">{dict.projectDetail?.experienceLevel || "Experience Level"}</span>
                         <Badge variant="secondary" className="capitalize">
                           {project.experienceLevel}
                         </Badge>
                       </div>
-                    </div>
+                    </>
                   )}
                 </CardContent>
               </Card>
@@ -279,17 +329,12 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
                   </CardHeader>
                   <CardContent>
                     <div className="flex items-start gap-4">
-                      <div className="w-16 h-16 rounded-xl bg-muted flex items-center justify-center overflow-hidden shrink-0">
-                        {ngo.logo ? (
-                          <img
-                            src={ngo.logo}
-                            alt={ngo.orgName}
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
+                      <Avatar className="size-16 rounded-xl shrink-0">
+                        <AvatarImage src={ngo.logo || ""} alt={ngo.orgName} />
+                        <AvatarFallback className="rounded-xl">
                           <Building2 className="h-8 w-8 text-muted-foreground" />
-                        )}
-                      </div>
+                        </AvatarFallback>
+                      </Avatar>
                       <div>
                         <p className="text-foreground leading-relaxed">
                           {ngo.description || (dict.projectDetail?.orgFallbackDesc || "{name} is a registered nonprofit organization working to make a positive impact.").replace("{name}", ngo.orgName || "")}
@@ -320,35 +365,39 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
               {/* Apply Card - Sticky */}
               <Card className="lg:sticky lg:top-24">
                 <CardContent className="p-6">
-                  <div className="space-y-4 mb-6">
-                    <div className="flex items-center justify-between py-3 border-b border-border">
+                  <div className="flex flex-col gap-0 mb-6">
+                    <div className="flex items-center justify-between py-3">
                       <div className="flex items-center gap-2 text-muted-foreground">
                         <Clock className="h-4 w-4" />
                         <span>{dict.projectDetail?.timeCommitment || "Time Commitment"}</span>
                       </div>
                       <span className="font-medium text-foreground">{project.timeCommitment || (dict.projectDetail?.flexible || "Flexible")}</span>
                     </div>
-                    <div className="flex items-center justify-between py-3 border-b border-border">
+                    <Separator />
+                    <div className="flex items-center justify-between py-3">
                       <div className="flex items-center gap-2 text-muted-foreground">
                         <Calendar className="h-4 w-4" />
                         <span>{dict.projectDetail?.duration || "Duration"}</span>
                       </div>
                       <span className="font-medium text-foreground">{project.duration || (dict.projectDetail?.flexible || "Flexible")}</span>
                     </div>
-                    <div className="flex items-center justify-between py-3 border-b border-border">
+                    <Separator />
+                    <div className="flex items-center justify-between py-3">
                       <div className="flex items-center gap-2 text-muted-foreground">
                         <Calendar className="h-4 w-4" />
                         <span>{dict.projectDetail?.deadline || "Deadline"}</span>
                       </div>
                       <span className="font-medium text-foreground">{formatDate(project.deadline, dict.projectDetail?.flexible || "Flexible")}</span>
                     </div>
-                    <div className="flex items-center justify-between py-3 border-b border-border">
+                    <Separator />
+                    <div className="flex items-center justify-between py-3">
                       <div className="flex items-center gap-2 text-muted-foreground">
                         <Briefcase className="h-4 w-4" />
                         <span>{dict.projectDetail?.workMode || "Work Mode"}</span>
                       </div>
                       <span className="font-medium text-foreground capitalize">{project.workMode}</span>
                     </div>
+                    <Separator />
                     <div className="flex items-center justify-between py-3">
                       <div className="flex items-center gap-2 text-muted-foreground">
                         <Users className="h-4 w-4" />
@@ -395,10 +444,23 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
               {/* Stats */}
               <Card>
                 <CardContent className="p-6">
-                  <div className="flex items-center gap-3 text-sm text-muted-foreground">
-                    <Eye className="h-4 w-4" />
-                    <span>{(dict.projectDetail?.viewedCount || "{count} people viewed this opportunity").replace("{count}", String(project.viewsCount))}</span>
+                  <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-3 text-sm text-muted-foreground">
+                      <Eye className="h-4 w-4" />
+                      <span>{(dict.projectDetail?.viewedCount || "{count} people viewed this opportunity").replace("{count}", String(project.viewsCount))}</span>
+                    </div>
                   </div>
+                  {project.applicantsCount > 10 && (
+                    <>
+                      <Separator className="my-3" />
+                      <Alert variant="default" className="border-0 p-0 bg-transparent">
+                        <AlertCircle className="h-4 w-4" />
+                        <AlertDescription className="text-xs">
+                          High demand — {project.applicantsCount}+ applications received
+                        </AlertDescription>
+                      </Alert>
+                    </>
+                  )}
                 </CardContent>
               </Card>
 
