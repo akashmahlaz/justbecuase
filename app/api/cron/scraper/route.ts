@@ -2,7 +2,7 @@ import { NextResponse } from "next/server"
 import { runAllScrapers, runScraper, scraperConfigsDb, externalOpportunitiesDb } from "@/lib/scraper"
 import type { ScraperPlatform } from "@/lib/scraper"
 
-export const maxDuration = 900 // 15 min for high-volume scraping (Vercel Pro)
+export const maxDuration = 800 // Max allowed on Vercel Pro plan
 
 const VALID_PLATFORMS: ScraperPlatform[] = [
   "reliefweb",
