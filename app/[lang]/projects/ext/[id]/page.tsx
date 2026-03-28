@@ -11,6 +11,7 @@ import { Separator } from "@/components/ui/separator"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { ShareButton } from "@/components/share-button"
 import { externalOpportunitiesDb } from "@/lib/scraper"
+import { fetchPage, extractPageContent } from "@/lib/scraper/text-extractor"
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb"
 import {
   Clock,
@@ -19,7 +20,6 @@ import {
   Briefcase,
   Building2,
   FileText,
-  ExternalLink,
   Globe,
   Shield,
   ArrowLeft,
@@ -56,10 +56,13 @@ export default async function ExternalOpportunityDetailPage({
   const { id, lang } = await params
   const dict = await getDictionary(lang as Locale) as any
 
-  const opportunity = await externalOpportunitiesDb.findById(id)
-  if (!opportunity) {
+  const raw = await externalOpportunitiesDb.findById(id)
+  if (!raw) {
     notFound()
   }
+
+  // On-demand enrichment: if the stored description is thin, fetch full content from source
+  const opportunity = await enrichIfNeeded(raw)
 
   const platform = PLATFORM_LABELS[opportunity.sourceplatform] || {
     name: opportunity.sourceplatform,
@@ -186,8 +189,10 @@ export default async function ExternalOpportunityDetailPage({
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-foreground leading-relaxed whitespace-pre-line">
-                    {opportunity.description || opportunity.shortDescription || opportunity.title}
+                  <div className="prose prose-slate dark:prose-invert max-w-none text-foreground leading-relaxed whitespace-pre-line text-[15px]">
+                    {opportunity.description && opportunity.description.length > 50
+                      ? opportunity.description
+                      : opportunity.shortDescription || opportunity.title}
                   </div>
                 </CardContent>
               </Card>
@@ -250,40 +255,39 @@ export default async function ExternalOpportunityDetailPage({
               )}
 
               {/* About the Organization */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Building2 className="h-5 w-5 text-primary" />
-                    About {opportunity.organization}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex items-start gap-4">
-                    <Avatar className="h-16 w-16 rounded-xl shrink-0">
-                      <AvatarFallback className="rounded-xl bg-primary/10 text-primary font-semibold text-lg">
-                        {getInitials(opportunity.organization || "O")}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="space-y-2">
-                      <p className="text-muted-foreground text-sm">
-                        This opportunity is sourced from <strong>{platform.name}</strong>, one of our strategic partner platforms.
-                        The organization details are provided by the source platform.
-                      </p>
-                      {opportunity.organizationUrl && (
-                        <a
-                          href={opportunity.organizationUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-sm text-primary hover:underline inline-flex items-center gap-1"
-                        >
-                          <Globe className="h-3 w-3" />
-                          Visit organization website
-                        </a>
-                      )}
+              {opportunity.organization && opportunity.organization !== "Organization" && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Building2 className="h-5 w-5 text-primary" />
+                      About {opportunity.organization}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex items-start gap-4">
+                      <Avatar className="h-16 w-16 rounded-xl shrink-0">
+                        <AvatarFallback className="rounded-xl bg-primary/10 text-primary font-semibold text-lg">
+                          {getInitials(opportunity.organization || "O")}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="space-y-2">
+                        <p className="font-semibold text-foreground">{opportunity.organization}</p>
+                        {opportunity.organizationUrl && (
+                          <a
+                            href={opportunity.organizationUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-sm text-primary hover:underline inline-flex items-center gap-1"
+                          >
+                            <Globe className="h-3 w-3" />
+                            Visit organization website
+                          </a>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
+                  </CardContent>
+                </Card>
+              )}
             </div>
 
             {/* Sidebar */}
@@ -367,13 +371,9 @@ export default async function ExternalOpportunityDetailPage({
                       target="_blank"
                       rel="noopener noreferrer"
                     >
-                      <ExternalLink className="h-4 w-4 mr-2" />
                       Apply on {platform.name}
                     </a>
                   </Button>
-                  <p className="text-xs text-muted-foreground text-center mt-2">
-                    You will be redirected to {platform.name} to complete your application
-                  </p>
 
                   <div className="flex gap-2 mt-4">
                     <ShareButton
@@ -424,4 +424,52 @@ export default async function ExternalOpportunityDetailPage({
       <Footer />
     </div>
   )
+}
+
+/**
+ * On-demand enrichment: if the stored description is thin (card text only),
+ * fetch the actual source page, extract the full job description, update DB, and return enriched data.
+ */
+async function enrichIfNeeded(opportunity: any): Promise<any> {
+  const desc = opportunity.description || ""
+  const isThin = desc.length < 500 || desc === opportunity.title || desc === opportunity.shortDescription
+
+  if (!isThin || !opportunity.sourceUrl) return opportunity
+
+  try {
+    const html = await fetchPage(opportunity.sourceUrl, 1)
+    const baseUrl = new URL(opportunity.sourceUrl).origin
+    const content = extractPageContent(html, baseUrl)
+
+    if (!content.description || content.description.length <= desc.length) return opportunity
+
+    const enriched: Record<string, any> = {}
+    enriched.description = content.description.slice(0, 25000)
+    enriched.shortDescription = content.description.slice(0, 280)
+    if (content.organization && content.organization.length > 2) enriched.organization = content.organization
+    if (content.organizationUrl) enriched.organizationUrl = content.organizationUrl
+    if (content.location) enriched.location = content.location
+    if (content.salary) enriched.salary = content.salary
+    if (content.duration) enriched.duration = content.duration
+    if (content.experienceLevel) enriched.experienceLevel = content.experienceLevel
+    if (content.deadline) {
+      const d = new Date(content.deadline)
+      if (!isNaN(d.getTime())) enriched.deadline = d
+    }
+    if (content.postedDate) {
+      const d = new Date(content.postedDate)
+      if (!isNaN(d.getTime())) enriched.postedDate = d
+    }
+
+    // Persist enriched data for future views
+    await externalOpportunitiesDb.enrich(
+      opportunity.sourceplatform,
+      opportunity.externalId,
+      enriched
+    )
+
+    return { ...opportunity, ...enriched }
+  } catch {
+    return opportunity
+  }
 }

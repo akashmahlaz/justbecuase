@@ -498,9 +498,9 @@ export default async function NGODashboard({ params }: { params: Promise<{ lang:
                                   <Progress value={match.score} className="h-1.5 flex-1" />
                                   <span className="text-xs font-medium">{match.score}%</span>
                                 </div>
-                                {match.volunteer.skills?.length > 0 && (
+                                {(match.volunteer.skills?.length ?? 0) > 0 && (
                                   <div className="flex flex-wrap gap-1">
-                                    {match.volunteer.skills.slice(0, 5).map((s: string) => (
+                                    {match.volunteer.skills?.slice(0, 5).map((s: string) => (
                                       <Badge key={s} variant="secondary" className="text-[10px]">{s}</Badge>
                                     ))}
                                   </div>

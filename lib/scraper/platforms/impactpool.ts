@@ -82,8 +82,9 @@ export async function* scrapeImpactpool(
       const cardText = $card.text().trim()
       const textAfterTitle = cardText.replace(title, "").trim()
 
-      // Parse structured data from card
-      const lines = textAfterTitle.split(/\n/).map(s => s.trim()).filter(s => s.length > 1)
+      // Parse structured data from card — skip badge labels like "New", "Featured", etc.
+      const BADGE_LABELS = /^(new|featured|hot|promoted|urgent|closing soon|top pick)$/i
+      const lines = textAfterTitle.split(/\n/).map(s => s.trim()).filter(s => s.length > 1 && !BADGE_LABELS.test(s))
       const org = lines[0] || ""
 
       // Extract location — look for patterns with commas or location keywords
@@ -127,7 +128,7 @@ export async function* scrapeImpactpool(
         sourceUrl: fullUrl,
         externalId: `impactpool_${externalId}`,
         title,
-        description: cardText.slice(0, 5000),
+        description: textAfterTitle.slice(0, 5000),
         shortDescription: title,
         organization: org || "Organization on Impactpool",
         causes,

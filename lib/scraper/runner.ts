@@ -7,6 +7,7 @@ import { externalOpportunitiesDb, scraperRunsDb, scraperConfigsDb } from "./db"
 import type { ScraperPlatform, ScrapedOpportunity, ScraperRun, ExternalOpportunity } from "./types"
 import { mapSkillTags, mapCauseTags, detectWorkMode, detectExperienceLevel } from "./skill-mapper"
 import { fetchPage, extractPageContent } from "./text-extractor"
+import { sendEmail } from "@/lib/email"
 
 // Platform scraper registry
 import { scrapeReliefWeb } from "./platforms/reliefweb"
@@ -76,15 +77,20 @@ export async function runScraper(
         if (isNew) run.itemsNew++
         else run.itemsUpdated++
 
-        // Deep scrape: fetch detail page for new items to get richer data
-        if (isNew && deepScrapeEnabled && deepScrapeCount < maxDeepScrapes && item.sourceUrl) {
+        // Deep scrape: fetch detail page for NEW items or EXISTING items with thin descriptions
+        const shouldDeepScrape = deepScrapeEnabled
+          && deepScrapeCount < maxDeepScrapes
+          && item.sourceUrl
+          && (isNew || opportunity.description.length < 500)
+
+        if (shouldDeepScrape) {
           try {
             const enriched = await deepScrapeDetailPage(item.sourceUrl, item.sourceplatform)
             if (enriched) {
               await externalOpportunitiesDb.enrich(item.sourceplatform, item.externalId, enriched)
             }
             deepScrapeCount++
-            await new Promise(r => setTimeout(r, 1500)) // rate limit
+            await new Promise(r => setTimeout(r, 1200)) // rate limit
           } catch {
             // Non-fatal — listing data is already saved
           }
@@ -118,6 +124,9 @@ export async function runScraper(
 
   // Update config with last run status
   await scraperConfigsDb.updateRunStatus(platform, run.status, run.itemsNew)
+
+  // Send email notification
+  await sendScraperEmail(run as ScraperRun)
 
   return run as ScraperRun
 }
@@ -223,7 +232,7 @@ async function deepScrapeDetailPage(
 
     // Only override fields with richer data (longer description, non-empty values)
     if (content.description && content.description.length > 100) {
-      enriched.description = content.description.slice(0, 10000)
+      enriched.description = content.description.slice(0, 25000)
       enriched.shortDescription = content.description.slice(0, 280)
     }
     if (content.organization) enriched.organization = content.organization
@@ -242,6 +251,8 @@ async function deepScrapeDetailPage(
       if (!isNaN(d.getTime())) enriched.postedDate = d
     }
     if (content.salary) enriched.salary = content.salary
+    if (content.duration) enriched.duration = content.duration
+    if (content.experienceLevel) enriched.experienceLevel = content.experienceLevel
 
     // Re-map skills and causes from the richer text
     const words = allText.split(/[\s,;:]+/).filter(w => w.length > 3)
@@ -250,11 +261,53 @@ async function deepScrapeDetailPage(
     if (skills.length > 0) enriched.skillsRequired = skills
     if (causes.length > 0) enriched.causes = causes
 
-    enriched.experienceLevel = detectExperienceLevel(allText)
-    enriched.workMode = detectWorkMode(allText)
+    enriched.experienceLevel = content.experienceLevel || detectExperienceLevel(allText)
+    const wm = content.workMode || detectWorkMode(allText)
+    if (wm === "remote" || wm === "onsite" || wm === "hybrid") enriched.workMode = wm
 
     return Object.keys(enriched).length > 0 ? enriched : null
   } catch {
     return null
+  }
+}
+
+const SCRAPER_NOTIFY_EMAIL = "akashdalla406@gmail.com"
+
+async function sendScraperEmail(run: ScraperRun) {
+  try {
+    const duration = run.completedAt && run.startedAt
+      ? Math.round((new Date(run.completedAt).getTime() - new Date(run.startedAt).getTime()) / 1000)
+      : 0
+    const mins = Math.floor(duration / 60)
+    const secs = duration % 60
+    const isSuccess = run.status === "completed"
+    const emoji = isSuccess ? "✅" : "❌"
+    const errorSection = run.errors.length > 0
+      ? `<tr><td style="padding:8px 12px;color:#64748b">Errors</td><td style="padding:8px 12px;color:#ef4444">${run.errors.slice(0, 5).join("<br/>")}</td></tr>`
+      : ""
+
+    await sendEmail({
+      to: SCRAPER_NOTIFY_EMAIL,
+      subject: `${emoji} Scraper ${run.platform} — ${run.status} | ${run.itemsNew} new, ${run.itemsScraped} total`,
+      html: `
+        <div style="font-family:system-ui,-apple-system,sans-serif;max-width:560px;margin:0 auto">
+          <h2 style="margin:0 0 16px;color:${isSuccess ? '#16a34a' : '#dc2626'}">${emoji} ${run.platform.toUpperCase()} Scraper ${run.status}</h2>
+          <table style="width:100%;border-collapse:collapse;font-size:14px">
+            <tr style="border-bottom:1px solid #e2e8f0"><td style="padding:8px 12px;color:#64748b">Platform</td><td style="padding:8px 12px;font-weight:600">${run.platform}</td></tr>
+            <tr style="border-bottom:1px solid #e2e8f0"><td style="padding:8px 12px;color:#64748b">Status</td><td style="padding:8px 12px;font-weight:600;color:${isSuccess ? '#16a34a' : '#dc2626'}">${run.status}</td></tr>
+            <tr style="border-bottom:1px solid #e2e8f0"><td style="padding:8px 12px;color:#64748b">Items Scraped</td><td style="padding:8px 12px;font-weight:600">${run.itemsScraped}</td></tr>
+            <tr style="border-bottom:1px solid #e2e8f0"><td style="padding:8px 12px;color:#64748b">New Items</td><td style="padding:8px 12px;font-weight:600;color:#2563eb">${run.itemsNew}</td></tr>
+            <tr style="border-bottom:1px solid #e2e8f0"><td style="padding:8px 12px;color:#64748b">Updated</td><td style="padding:8px 12px">${run.itemsUpdated}</td></tr>
+            <tr style="border-bottom:1px solid #e2e8f0"><td style="padding:8px 12px;color:#64748b">Skipped</td><td style="padding:8px 12px">${run.itemsSkipped}</td></tr>
+            <tr style="border-bottom:1px solid #e2e8f0"><td style="padding:8px 12px;color:#64748b">Duration</td><td style="padding:8px 12px">${mins}m ${secs}s</td></tr>
+            <tr style="border-bottom:1px solid #e2e8f0"><td style="padding:8px 12px;color:#64748b">Triggered By</td><td style="padding:8px 12px">${run.triggeredBy}</td></tr>
+            ${errorSection}
+          </table>
+          <p style="margin:16px 0 0;font-size:12px;color:#94a3b8">JustBeCause Scraper System — ${new Date().toUTCString()}</p>
+        </div>
+      `,
+    })
+  } catch {
+    console.warn(`[Scraper] Failed to send email notification for ${run.platform}`)
   }
 }

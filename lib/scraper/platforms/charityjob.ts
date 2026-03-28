@@ -148,10 +148,11 @@ export async function* scrapeCharityJob(
 }
 
 function extractOrgFromCardText(text: string, title: string): string {
+  const BADGE_LABELS = /^(new|featured|hot|promoted|urgent|closing soon|top pick)$/i
   const cleaned = text.replace(title, "").trim()
-  // Org name often appears right after title in card text
-  const lines = cleaned.split(/\n/).map(s => s.trim()).filter(Boolean)
-  if (lines[0] && lines[0].length > 2 && lines[0].length < 100) return lines[0]
+  // Org name often appears right after title in card text — skip badge labels
+  const lines = cleaned.split(/\n/).map(s => s.trim()).filter(s => s.length > 2 && !BADGE_LABELS.test(s))
+  if (lines[0] && lines[0].length < 100) return lines[0]
   return ""
 }
 
