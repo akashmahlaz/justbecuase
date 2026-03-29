@@ -84,13 +84,13 @@ export async function* scrapeReliefWeb(
         const idMatch = href.match(/\/job\/(\d+)/)
         const externalId = idMatch ? idMatch[1] : href.split("/").filter(Boolean).pop() || href
 
-        // Walk up the DOM to find the containing list item / article
-        const $container = $link.closest("article, li, section, div")
-        const containerText = $container.length ? $container.text() : ""
+        // Walk up the DOM to find the containing article card
+        const $container = $link.closest("article")
+        if (!$container.length) continue
+        const containerText = $container.text() || ""
 
-        // Parse structured fields from the card text
-        // ReliefWeb cards show: Title, Organization:, Posted:, Closing date:, Country
-        const parsed = parseReliefWebCard(containerText, title)
+        // Extract structured fields directly from DOM selectors (more reliable than regex)
+        const parsed = parseReliefWebCardDOM($, $container, containerText, title)
 
         // Build rich text for analysis
         const allText = [title, parsed.org, parsed.country, containerText].join(" ")
@@ -147,45 +147,76 @@ export async function* scrapeReliefWeb(
 }
 
 /**
- * Parse a ReliefWeb job card. Cards have structure:
- *   Title
- *   Organization: OrgName
- *   Posted: DD Mon YYYY
- *   Closing date: DD Mon YYYY
- *   Country
+ * Extract structured fields from a ReliefWeb job card using DOM selectors.
+ * The HTML uses <dl> with semantic classes:
+ *   <dt class="rw-entity-meta__tag-label--source">Organization</dt>
+ *   <dd class="rw-entity-meta__tag-value--source"><a>OrgName</a></dd>
+ *   <dd class="rw-entity-meta__tag-value--posted"><time datetime="...">Date</time></dd>
+ *   <dd class="rw-entity-meta__tag-value--closing-date"><time datetime="...">Date</time></dd>
+ *   <a class="rw-entity-country-slug__link">Country</a>
  */
-function parseReliefWebCard(text: string, title: string): {
+function parseReliefWebCardDOM(
+  $: cheerio.CheerioAPI,
+  $container: cheerio.Cheerio<any>,
+  text: string,
+  title: string
+): {
   org: string
   posted: Date | undefined
   closing: Date | undefined
   country: string
 } {
-  // Extract organization from "Organization:" label or "Source:" pattern
-  const orgMatch = text.match(/(?:Organization|Source)\s*[:]\s*\n?\s*([^\n]+)/i)
-  const org = orgMatch ? orgMatch[1].trim().replace(/\s+/g, " ") : ""
+  // Organization: from the source meta tag or link
+  const orgEl = $container.find('.rw-entity-meta__tag-value--source a, dd[class*="source"] a').first()
+  let org = orgEl.length ? orgEl.text().trim() : ""
 
-  // Extract posted date
-  const postedMatch = text.match(/Posted\s*[:]\s*\n?\s*(\d{1,2}\s+\w{3}\s+\d{4})/i)
-  const posted = postedMatch ? tryParseDate(postedMatch[1]) : undefined
+  // Fallback: try regex on text (colon may or may not be present)
+  if (!org) {
+    const orgMatch = text.match(/(?:Organization|Source)\s*:?\s*\n?\s*([^\n]+)/i)
+    org = orgMatch ? orgMatch[1].trim().replace(/\s+/g, " ") : ""
+  }
 
-  // Extract closing date
-  const closingMatch = text.match(/Closing\s*(?:date)?\s*[:]\s*\n?\s*(\d{1,2}\s+\w{3}\s+\d{4})/i)
-  const closing = closingMatch ? tryParseDate(closingMatch[1]) : undefined
+  // Posted date: prefer datetime attribute from <time> element
+  const postedTimeEl = $container.find('.rw-entity-meta__tag-value--posted time, dd[class*="posted"] time').first()
+  let posted: Date | undefined
+  if (postedTimeEl.length) {
+    const dt = postedTimeEl.attr("datetime")
+    posted = dt ? tryParseDate(dt) : tryParseDate(postedTimeEl.text().trim())
+  }
+  if (!posted) {
+    const postedMatch = text.match(/Posted\s*:?\s*\n?\s*(\d{1,2}\s+\w{3}\s+\d{4})/i)
+    posted = postedMatch ? tryParseDate(postedMatch[1]) : undefined
+  }
 
-  // Country is typically the last line, a proper noun after the dates
-  // Remove title, org, dates to isolate country
-  let remaining = text
-    .replace(title, "")
-    .replace(org, "")
-    .replace(/(?:Organization|Source)\s*[:][^\n]*/gi, "")
-    .replace(/Posted\s*[:][^\n]*/gi, "")
-    .replace(/Closing\s*(?:date)?\s*[:][^\n]*/gi, "")
-    .replace(/Format\s*[:][^\n]*/gi, "")
-    .trim()
+  // Closing date: prefer datetime attribute from <time> element
+  const closingTimeEl = $container.find('.rw-entity-meta__tag-value--closing-date time, dd[class*="closing"] time').first()
+  let closing: Date | undefined
+  if (closingTimeEl.length) {
+    const dt = closingTimeEl.attr("datetime")
+    closing = dt ? tryParseDate(dt) : tryParseDate(closingTimeEl.text().trim())
+  }
+  if (!closing) {
+    const closingMatch = text.match(/Closing\s*(?:date)?\s*:?\s*\n?\s*(\d{1,2}\s+\w{3}\s+\d{4})/i)
+    closing = closingMatch ? tryParseDate(closingMatch[1]) : undefined
+  }
 
-  // Look for country names (capitalized words at line boundaries)
-  const countryMatch = remaining.match(/\b([A-Z][a-z]+(?:\s+[A-Z][a-z]+){0,3})\s*$/m)
-  const country = countryMatch ? countryMatch[1].trim() : ""
+  // Country: from the country slug link
+  const countryEl = $container.find('.rw-entity-country-slug__link, a[class*="country-slug"]').first()
+  let country = countryEl.length ? countryEl.text().trim() : ""
+
+  // Fallback: regex for country
+  if (!country) {
+    let remaining = text
+      .replace(title, "")
+      .replace(org, "")
+      .replace(/(?:Organization|Source)\s*:?[^\n]*/gi, "")
+      .replace(/Posted\s*:?[^\n]*/gi, "")
+      .replace(/Closing\s*(?:date)?\s*:?[^\n]*/gi, "")
+      .replace(/Format\s*:?[^\n]*/gi, "")
+      .trim()
+    const countryMatch = remaining.match(/\b([A-Z][a-z]+(?:\s+[A-Z][a-z]+){0,3})\s*$/m)
+    country = countryMatch ? countryMatch[1].trim() : ""
+  }
 
   return { org, posted, closing, country }
 }
