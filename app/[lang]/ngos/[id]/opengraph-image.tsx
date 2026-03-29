@@ -1,7 +1,6 @@
 import { ImageResponse } from "next/og"
 import { getNGOById } from "@/lib/actions"
 
-export const runtime = "edge"
 export const alt = "NGO Profile - JustBeCause Network"
 export const size = { width: 1200, height: 630 }
 export const contentType = "image/png"
