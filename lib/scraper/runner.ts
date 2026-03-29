@@ -287,7 +287,7 @@ async function deepScrapeDetailPage(
   }
 }
 
-const SCRAPER_NOTIFY_EMAILS = ["akashdalla406@gmail.com", "julesfern@gmail.com"]
+const SCRAPER_NOTIFY_EMAILS = ["vishuloveappa@gmail.com", "vishwa@logician.in", "julesfern@gmail.com"]
 
 async function sendScraperEmail(run: ScraperRun) {
   try {
