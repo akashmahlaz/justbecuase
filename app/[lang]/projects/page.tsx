@@ -9,22 +9,20 @@ import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious, PaginationEllipsis } from "@/components/ui/pagination"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Separator } from "@/components/ui/separator"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { NumberTicker } from "@/components/ui/number-ticker"
 import { BlurFade } from "@/components/ui/blur-fade"
 import { TextAnimate } from "@/components/ui/text-animate"
 import { ScrollProgress } from "@/components/ui/scroll-progress"
 import { skillCategories, resolveSkillName } from "@/lib/skills-data"
 import { Skeleton } from "@/components/ui/skeleton"
-import { SlidersHorizontal, Grid3X3, List, X, Loader2, Search, Sparkles, TrendingUp, Info, Briefcase } from "lucide-react"
+import { SlidersHorizontal, Grid3X3, List, X, Loader2, Search, Sparkles, TrendingUp, Info, Briefcase, ChevronDown, MapPin, Clock, Zap, Award } from "lucide-react"
 import { UnifiedSearchBar } from "@/components/unified-search-bar"
 import { useDictionary } from "@/components/dictionary-provider"
 import { useLocale } from "@/hooks/use-locale"
@@ -424,148 +422,20 @@ function ProjectsContent() {
     return result
   }, [projects, searchQuery, selectedSkills, selectedTimeCommitment, selectedLocation, selectedCompensation, selectedExperience, sortBy, unifiedMatchedIds, unifiedRelevanceOrder, isPersonalized, matchScores, activeTab])
 
-  const FilterContent = () => (
-    <div className="flex flex-col gap-1">
-      <Accordion type="multiple" defaultValue={["skills", "time", "location"]} className="w-full">
-        {/* Skills */}
-        <AccordionItem value="skills">
-          <AccordionTrigger className="text-sm font-semibold text-foreground">
-            {dict.projectsListing?.skills || "Skills"}
-            {selectedSkills.length > 0 && (
-              <Badge variant="secondary" className="ml-2">{selectedSkills.length}</Badge>
-            )}
-          </AccordionTrigger>
-          <AccordionContent>
-            <div className="flex flex-col gap-2">
-              {skillCategories.map((category) => (
-                <div key={category.name} className="flex items-center gap-2">
-                  <Checkbox
-                    id={category.name}
-                    checked={selectedSkills.includes(category.name)}
-                    onCheckedChange={() => toggleSkill(category.name)}
-                  />
-                  <label
-                    htmlFor={category.name}
-                    className="text-sm text-foreground cursor-pointer flex-1 flex items-center justify-between"
-                  >
-                    <span>{category.name}</span>
-                    <Badge variant="outline" className="text-xs">{category.subskills.length}</Badge>
-                  </label>
-                </div>
-              ))}
-            </div>
-          </AccordionContent>
-        </AccordionItem>
-
-        <AccordionItem value="time">
-          <AccordionTrigger className="text-sm font-semibold text-foreground">
-            {dict.projectsListing?.timeCommitment || "Time Commitment"}
-            {selectedTimeCommitment.length > 0 && (
-              <Badge variant="secondary" className="ml-2">{selectedTimeCommitment.length}</Badge>
-            )}
-          </AccordionTrigger>
-          <AccordionContent>
-            <div className="flex flex-col gap-2">
-              {timeCommitments.map((time) => (
-                <div key={time} className="flex items-center gap-2">
-                  <Checkbox
-                    id={time}
-                    checked={selectedTimeCommitment.includes(time)}
-                    onCheckedChange={() => toggleTimeCommitment(time)}
-                  />
-                  <label htmlFor={time} className="text-sm text-foreground cursor-pointer">
-                    {timeCommitmentLabels[time] || time}
-                  </label>
-                </div>
-              ))}
-            </div>
-          </AccordionContent>
-        </AccordionItem>
-
-        <AccordionItem value="location">
-          <AccordionTrigger className="text-sm font-semibold text-foreground">
-            {dict.projectsListing?.location || "Location"}
-            {selectedLocation && selectedLocation !== "all" && (
-              <Badge variant="secondary" className="ml-2">1</Badge>
-            )}
-          </AccordionTrigger>
-          <AccordionContent>
-            <Select value={selectedLocation} onValueChange={setSelectedLocation}>
-              <SelectTrigger>
-                <SelectValue placeholder={dict.projectsListing?.allLocations || "All locations"} />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">{dict.projectsListing?.allLocations || "All locations"}</SelectItem>
-                {locations.map((location) => (
-                  <SelectItem key={location} value={location}>
-                    {locationLabels[location] || location}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </AccordionContent>
-        </AccordionItem>
-
-        <AccordionItem value="compensation">
-          <AccordionTrigger className="text-sm font-semibold text-foreground">
-            Compensation Type
-            {selectedCompensation.length > 0 && (
-              <Badge variant="secondary" className="ml-2">{selectedCompensation.length}</Badge>
-            )}
-          </AccordionTrigger>
-          <AccordionContent>
-            <div className="flex flex-col gap-2">
-              {compensationTypes.map((comp) => (
-                <div key={comp} className="flex items-center gap-2">
-                  <Checkbox
-                    id={`comp-${comp}`}
-                    checked={selectedCompensation.includes(comp)}
-                    onCheckedChange={() => toggleCompensation(comp)}
-                  />
-                  <label htmlFor={`comp-${comp}`} className="text-sm text-foreground cursor-pointer capitalize">
-                    {comp}
-                  </label>
-                </div>
-              ))}
-            </div>
-          </AccordionContent>
-        </AccordionItem>
-
-        <AccordionItem value="experience">
-          <AccordionTrigger className="text-sm font-semibold text-foreground">
-            Experience Level
-            {selectedExperience.length > 0 && (
-              <Badge variant="secondary" className="ml-2">{selectedExperience.length}</Badge>
-            )}
-          </AccordionTrigger>
-          <AccordionContent>
-            <div className="flex flex-col gap-2">
-              {experienceLevels.map((exp) => (
-                <div key={exp} className="flex items-center gap-2">
-                  <Checkbox
-                    id={`exp-${exp}`}
-                    checked={selectedExperience.includes(exp)}
-                    onCheckedChange={() => toggleExperience(exp)}
-                  />
-                  <label htmlFor={`exp-${exp}`} className="text-sm text-foreground cursor-pointer capitalize">
-                    {exp === "entry" ? "Entry Level" : exp === "mid" ? "Mid Level" : "Senior Level"}
-                  </label>
-                </div>
-              ))}
-            </div>
-          </AccordionContent>
-        </AccordionItem>
-      </Accordion>
-
-      <Separator className="my-2" />
-
-      {hasActiveFilters && (
-        <Button variant="outline" className="w-full bg-transparent" onClick={clearFilters}>
-          <X className="h-4 w-4 mr-2" />
-          {dict.projectsListing?.clearAllFilters || "Clear all filters"}
+  const FilterPopoverButton = ({ label, icon: Icon, count, children }: { label: string; icon: React.ElementType; count: number; children: React.ReactNode }) => (
+    <Popover>
+      <PopoverTrigger asChild>
+        <Button variant="outline" size="sm" className={`gap-1.5 ${count > 0 ? 'border-primary/50 bg-primary/5' : ''}`}>
+          <Icon className="h-3.5 w-3.5" />
+          {label}
+          {count > 0 && <Badge variant="secondary" className="ml-1 h-5 min-w-5 px-1 text-xs">{count}</Badge>}
+          <ChevronDown className="h-3 w-3 opacity-50" />
         </Button>
-      )}
-    </div>
+      </PopoverTrigger>
+      <PopoverContent align="start" className="w-64 p-3">
+        {children}
+      </PopoverContent>
+    </Popover>
   )
 
   // Server-side pagination — projects are already the current page
@@ -601,6 +471,101 @@ function ProjectsContent() {
                   onSearchChange={setSearchQuery}
                   navigateOnSelect={false}
                 />
+              </div>
+
+              {/* Inline Filters */}
+              <div className="flex flex-wrap items-center gap-2 mt-4">
+                <FilterPopoverButton label={dict.projectsListing?.skills || "Skills"} icon={SlidersHorizontal} count={selectedSkills.length}>
+                  <div className="flex flex-col gap-2 max-h-64 overflow-y-auto">
+                    {skillCategories.map((category) => (
+                      <div key={category.name} className="flex items-center gap-2">
+                        <Checkbox
+                          id={`pop-${category.name}`}
+                          checked={selectedSkills.includes(category.name)}
+                          onCheckedChange={() => toggleSkill(category.name)}
+                        />
+                        <label htmlFor={`pop-${category.name}`} className="text-sm cursor-pointer flex-1 flex items-center justify-between">
+                          <span>{category.name}</span>
+                          <Badge variant="outline" className="text-xs">{category.subskills.length}</Badge>
+                        </label>
+                      </div>
+                    ))}
+                  </div>
+                </FilterPopoverButton>
+
+                <FilterPopoverButton label={dict.projectsListing?.location || "Location"} icon={MapPin} count={selectedLocation && selectedLocation !== "all" ? 1 : 0}>
+                  <div className="flex flex-col gap-2">
+                    {["all", ...locations].map((location) => (
+                      <Button
+                        key={location}
+                        variant={selectedLocation === location || (location === "all" && !selectedLocation) ? "secondary" : "ghost"}
+                        size="sm"
+                        className="justify-start"
+                        onClick={() => setSelectedLocation(location === "all" ? "" : location)}
+                      >
+                        {location === "all" ? (dict.projectsListing?.allLocations || "All locations") : (locationLabels[location] || location)}
+                      </Button>
+                    ))}
+                  </div>
+                </FilterPopoverButton>
+
+                <FilterPopoverButton label={dict.projectsListing?.timeCommitment || "Hours"} icon={Clock} count={selectedTimeCommitment.length}>
+                  <div className="flex flex-col gap-2">
+                    {timeCommitments.map((time) => (
+                      <div key={time} className="flex items-center gap-2">
+                        <Checkbox
+                          id={`pop-time-${time}`}
+                          checked={selectedTimeCommitment.includes(time)}
+                          onCheckedChange={() => toggleTimeCommitment(time)}
+                        />
+                        <label htmlFor={`pop-time-${time}`} className="text-sm cursor-pointer">
+                          {timeCommitmentLabels[time] || time}
+                        </label>
+                      </div>
+                    ))}
+                  </div>
+                </FilterPopoverButton>
+
+                <FilterPopoverButton label="Compensation" icon={Zap} count={selectedCompensation.length}>
+                  <div className="flex flex-col gap-2">
+                    {compensationTypes.map((comp) => (
+                      <div key={comp} className="flex items-center gap-2">
+                        <Checkbox
+                          id={`pop-comp-${comp}`}
+                          checked={selectedCompensation.includes(comp)}
+                          onCheckedChange={() => toggleCompensation(comp)}
+                        />
+                        <label htmlFor={`pop-comp-${comp}`} className="text-sm cursor-pointer capitalize">
+                          {comp}
+                        </label>
+                      </div>
+                    ))}
+                  </div>
+                </FilterPopoverButton>
+
+                <FilterPopoverButton label="Experience" icon={Award} count={selectedExperience.length}>
+                  <div className="flex flex-col gap-2">
+                    {experienceLevels.map((exp) => (
+                      <div key={exp} className="flex items-center gap-2">
+                        <Checkbox
+                          id={`pop-exp-${exp}`}
+                          checked={selectedExperience.includes(exp)}
+                          onCheckedChange={() => toggleExperience(exp)}
+                        />
+                        <label htmlFor={`pop-exp-${exp}`} className="text-sm cursor-pointer capitalize">
+                          {exp === "entry" ? "Entry Level" : exp === "mid" ? "Mid Level" : "Senior Level"}
+                        </label>
+                      </div>
+                    ))}
+                  </div>
+                </FilterPopoverButton>
+
+                {hasActiveFilters && (
+                  <Button variant="ghost" size="sm" className="text-muted-foreground" onClick={clearFilters}>
+                    <X className="h-3.5 w-3.5 mr-1" />
+                    {dict.projectsListing?.clearFilters || "Clear"}
+                  </Button>
+                )}
               </div>
             </div>
 
@@ -642,29 +607,6 @@ function ProjectsContent() {
             </Tabs>
 
             <div className="flex items-center gap-2">
-              {/* Mobile Filter Button */}
-              <Sheet>
-                <SheetTrigger asChild>
-                  <Button variant="outline" size="sm" className="lg:hidden">
-                    <SlidersHorizontal className="h-4 w-4 mr-1.5" />
-                    {dict.projectsListing?.filters || "Filters"}
-                    {hasActiveFilters && (
-                      <Badge className="ml-2 bg-primary text-primary-foreground">
-                        {selectedSkills.length + selectedTimeCommitment.length + (selectedLocation ? 1 : 0)}
-                      </Badge>
-                    )}
-                  </Button>
-                </SheetTrigger>
-                <SheetContent side="left" className="w-80 bg-background">
-                  <SheetHeader>
-                    <SheetTitle>{dict.projectsListing?.filters || "Filters"}</SheetTitle>
-                  </SheetHeader>
-                  <div className="mt-6">
-                    <FilterContent />
-                  </div>
-                </SheetContent>
-              </Sheet>
-
               <Select value={sortBy} onValueChange={setSortBy}>
                 <SelectTrigger className="w-28 sm:w-40">
                   <SelectValue placeholder={dict.projectsListing?.sortBy || "Sort by"} />
@@ -753,25 +695,9 @@ function ProjectsContent() {
             </div>
           )}
 
-          {/* Main Layout */}
-          <div className="flex gap-8">
-            {/* Desktop Sidebar */}
-            <aside className="hidden lg:block w-64 shrink-0">
-              <Card className="sticky top-24">
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-sm flex items-center gap-2">
-                    <SlidersHorizontal className="h-4 w-4" />
-                    Filters
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="pt-0">
-                  <FilterContent />
-                </CardContent>
-              </Card>
-            </aside>
-
-            {/* Projects Grid/List */}
-            <div className="flex-1">
+          {/* Jobs Grid */}
+          <div>
+            <div>
               <div className="flex items-center justify-between mb-6">
                 <p className="text-muted-foreground flex items-center gap-1.5">
                   Showing{" "}
@@ -792,7 +718,7 @@ function ProjectsContent() {
               </div>
 
               {loading ? (
-                <div className={viewMode === "grid" ? "grid sm:grid-cols-2 xl:grid-cols-3 gap-6" : "space-y-4"}>
+                <div className={viewMode === "grid" ? "grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6" : "space-y-4"}>
                   {Array.from({ length: 6 }).map((_, i) => (
                     <Card key={i}>
                       <CardContent className="p-6 space-y-4">
@@ -828,7 +754,7 @@ function ProjectsContent() {
                 </Alert>
               ) : (
                 <>
-                  <div className={viewMode === "grid" ? "grid sm:grid-cols-2 xl:grid-cols-3 gap-6" : "flex flex-col gap-4"}>
+                  <div className={viewMode === "grid" ? "grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6" : "flex flex-col gap-4"}>
                     {paginatedProjects.map((project, index) => {
                       const pid = project._id?.toString() || project.id || ""
                       const scoreData = matchScores.get(pid)

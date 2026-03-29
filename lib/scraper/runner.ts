@@ -201,7 +201,7 @@ function transformToOpportunity(item: ScrapedOpportunity): Omit<ExternalOpportun
     title: item.title,
     description: item.description,
     shortDescription: item.shortDescription || item.description.slice(0, 280),
-    organization: item.organization,
+    organization: orgName,
     organizationUrl: item.organizationUrl,
     organizationLogo: item.organizationLogo,
     causes: mappedCauses,
