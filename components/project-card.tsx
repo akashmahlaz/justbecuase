@@ -2,10 +2,14 @@
 
 import LocaleLink from "@/components/locale-link"
 import { Badge } from "@/components/ui/badge"
-import { Card } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
-import { CheckCircle, ArrowUpRight, Star, MapPin, Clock, DollarSign, Calendar, Briefcase, GraduationCap, Globe, Users, ExternalLink } from "lucide-react"
+import { Progress } from "@/components/ui/progress"
+import { Separator } from "@/components/ui/separator"
+import { Clock, MapPin, Users, CheckCircle, ArrowRight, Star, Calendar, DollarSign, Globe, GraduationCap } from "lucide-react"
 import { useDictionary } from "@/components/dictionary-provider"
 
 interface Project {
@@ -37,199 +41,201 @@ interface Project {
   _platform?: string
 }
 
-// Clean up scraped descriptions that contain HTML/metadata noise
-function cleanDescription(desc: string): string {
-  if (!desc) return ""
-  // Strip lines that look like metadata: "Organization", "Posted", "Closing date", etc.
-  const cleaned = desc
-    .replace(/\n\s*\n/g, "\n")
-    .replace(/^\s*(Organization|Posted|Closing date|Location)[\s\S]*$/gm, "")
-    .replace(/<[^>]+>/g, "")
-    .trim()
-  // If still noisy or same as title, return empty
-  if (cleaned.length < 15) return ""
-  return cleaned
-}
-
-const experienceLabels: Record<string, string> = {
-  entry: "Entry Level",
-  junior: "Junior",
-  intermediate: "Mid Level",
-  mid: "Mid Level",
-  senior: "Senior",
-  expert: "Expert",
-}
-
-const typeLabels: Record<string, { label: string; color: string }> = {
-  "short-term": { label: "Short-term", color: "bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-400" },
-  "long-term": { label: "Long-term", color: "bg-green-50 text-green-700 dark:bg-green-950/40 dark:text-green-400" },
-  consultation: { label: "Consultation", color: "bg-purple-50 text-purple-700 dark:bg-purple-950/40 dark:text-purple-400" },
-  paid: { label: "Paid", color: "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400" },
-  volunteer: { label: "Volunteer", color: "bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400" },
-  stipend: { label: "Stipend", color: "bg-teal-50 text-teal-700 dark:bg-teal-950/40 dark:text-teal-400" },
-}
-
 export function ProjectCard({ project }: { project: Project }) {
   const dict = useDictionary()
   const t = (dict as any).common || {}
-
-  const href = project._source === "external"
-    ? `/projects/ext/${project.id.replace("ext-", "")}`
-    : `/projects/${project.id}`
-
-  const description = cleanDescription(project.description)
-  const location = project.workMode || project.location
-  const time = project.timeCommitment || project.duration
-  const pay = project.salary
-    ? (project.salary.length > 28 ? project.salary.slice(0, 28) + "…" : project.salary)
-    : null
-  const typeInfo = typeLabels[project.projectType] || typeLabels[project.compensationType || ""] || null
-  const expLabel = experienceLabels[project.experienceLevel || ""] || null
+  const projectTypeColors: { [key: string]: string } = {
+    consultation: "bg-purple-100 text-purple-700",
+    "short-term": "bg-blue-100 text-blue-700",
+    "long-term": "bg-green-100 text-green-700",
+  }
 
   return (
-    <LocaleLink href={href} className="block group h-full">
-      <Card className="h-full px-5 py-4 hover:border-primary/40 hover:shadow-md transition-all duration-200 flex flex-col">
-        {/* Header: Org info + type badge */}
-        <div className="flex items-start justify-between gap-3 mb-3">
-          <div className="flex items-center gap-2.5 min-w-0">
-            <Avatar className="size-9 rounded-lg shrink-0 border">
-              <AvatarImage src={project.ngo?.logo || ""} alt={project.ngo?.name || ""} />
-              <AvatarFallback className="rounded-lg text-xs font-semibold bg-muted">
-                {(project.ngo?.name || "O").slice(0, 2).toUpperCase()}
-              </AvatarFallback>
-            </Avatar>
-            <div className="min-w-0">
-              <div className="flex items-center gap-1">
-                <span className="text-xs font-medium text-foreground truncate">
-                  {project.ngo?.name || "Organization"}
-                </span>
-                {project.ngo?.verified && <CheckCircle className="h-3 w-3 text-primary shrink-0" />}
-              </div>
-              {project._platform && (
-                <span className="text-[10px] text-muted-foreground capitalize">{project._platform}</span>
-              )}
-            </div>
-          </div>
-          <div className="flex items-center gap-1.5 shrink-0">
-            {project.matchScore != null && project.matchScore > 0 && (
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Badge variant="outline" className={`text-[10px] font-semibold gap-0.5 ${
-                      project.matchScore >= 75 ? "border-green-300 text-green-700 dark:border-green-800 dark:text-green-400" :
-                      project.matchScore >= 50 ? "border-blue-300 text-blue-700 dark:border-blue-800 dark:text-blue-400" :
-                      "border-orange-300 text-orange-600 dark:border-orange-800 dark:text-orange-400"
+    <Card className="group flex flex-col h-full hover:border-primary/30 hover:shadow-lg transition-all duration-300">
+      <CardHeader className="pb-3">
+        {/* Match Score Badge */}
+        {project.matchScore != null && project.matchScore > 0 && (
+          <div className="flex items-center gap-2 mb-2">
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div className="flex items-center gap-2 flex-1">
+                    <Badge className={`text-xs font-semibold ${
+                      project.matchScore >= 75 ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400" :
+                      project.matchScore >= 50 ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400" :
+                      "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400"
                     }`}>
-                      <Star className="h-2.5 w-2.5" />
-                      {Math.round(project.matchScore)}%
+                      <Star className="h-3 w-3 mr-1" />
+                      {Math.round(project.matchScore)}% Match
                     </Badge>
-                  </TooltipTrigger>
-                  <TooltipContent side="top" className="max-w-xs text-xs">
-                    {project.matchReasons?.length
-                      ? project.matchReasons.join(", ")
-                      : `${Math.round(project.matchScore)}% match`}
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            )}
-            {project._source === "external" && (
-              <ExternalLink className="h-3 w-3 text-muted-foreground/50" />
-            )}
+                    <Progress
+                      value={project.matchScore}
+                      className="h-1.5 flex-1 max-w-20"
+                    />
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent side="top" className="max-w-xs">
+                  {project.matchReasons && project.matchReasons.length > 0
+                    ? project.matchReasons.join(", ")
+                    : `${Math.round(project.matchScore)}% match based on your skills`}
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           </div>
-        </div>
-
-        {/* Title */}
-        <h3 className="text-[15px] font-semibold text-foreground leading-snug line-clamp-2 group-hover:text-primary transition-colors mb-2">
-          {project.title}
-        </h3>
-
-        {/* Description */}
-        {description && (
-          <p className="text-xs text-muted-foreground leading-relaxed line-clamp-2 mb-3">
-            {description}
-          </p>
         )}
 
-        {/* Info Grid */}
-        <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 text-xs text-muted-foreground mb-3">
-          {location && (
-            <span className="flex items-center gap-1.5 capitalize truncate">
-              <MapPin className="h-3 w-3 shrink-0 text-muted-foreground/70" />
-              {location}
-            </span>
+        {/* NGO Info with HoverCard */}
+        <div className="flex items-center gap-3">
+          <HoverCard>
+            <HoverCardTrigger asChild>
+              <button className="flex items-center gap-3 hover:opacity-80 transition-opacity">
+                <Avatar className="size-10 rounded-lg">
+                  <AvatarImage src={project.ngo?.logo || ""} alt={project.ngo?.name || "Organization"} />
+                  <AvatarFallback className="rounded-lg text-xs font-medium">
+                    {(project.ngo?.name || "O").slice(0, 2).toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="flex-1 min-w-0 text-left">
+                  <div className="flex items-center gap-1.5">
+                    <p className="text-sm font-medium text-foreground truncate">{project.ngo?.name || (t.unknown || "Unknown")}</p>
+                    {project.ngo?.verified && <CheckCircle className="h-4 w-4 text-primary shrink-0" />}
+                  </div>
+                </div>
+              </button>
+            </HoverCardTrigger>
+            <HoverCardContent className="w-64" align="start">
+              <div className="flex items-center gap-3">
+                <Avatar className="size-12 rounded-lg">
+                  <AvatarImage src={project.ngo?.logo || ""} alt={project.ngo?.name || "Organization"} />
+                  <AvatarFallback className="rounded-lg">
+                    {(project.ngo?.name || "O").slice(0, 2).toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+                <div>
+                  <p className="text-sm font-semibold">{project.ngo?.name}</p>
+                  {project.ngo?.verified && (
+                    <Badge variant="secondary" className="text-xs mt-1">
+                      <CheckCircle className="h-3 w-3 mr-1" />
+                      Verified
+                    </Badge>
+                  )}
+                </div>
+              </div>
+            </HoverCardContent>
+          </HoverCard>
+        </div>
+      </CardHeader>
+
+      <CardContent className="flex-1 flex flex-col gap-3 pt-0">
+        {/* Project Title & Description */}
+        <h3 className="text-lg font-semibold text-foreground line-clamp-2 group-hover:text-primary transition-colors">
+          {project.title}
+        </h3>
+        <p className="text-sm text-muted-foreground line-clamp-2 grow">{project.description}</p>
+
+        {/* Dynamic badges row — work mode, experience, salary */}
+        <div className="flex flex-wrap gap-1.5">
+          {project.workMode && (
+            <Badge variant="outline" className="text-xs capitalize">
+              <Globe className="h-3 w-3 mr-1" />
+              {project.workMode}
+            </Badge>
           )}
-          {time && (
-            <span className="flex items-center gap-1.5 truncate">
-              <Clock className="h-3 w-3 shrink-0 text-muted-foreground/70" />
-              {time}
-            </span>
+          {project.experienceLevel && (
+            <Badge variant="outline" className="text-xs capitalize">
+              <GraduationCap className="h-3 w-3 mr-1" />
+              {project.experienceLevel}
+            </Badge>
           )}
-          {expLabel && (
-            <span className="flex items-center gap-1.5 truncate">
-              <GraduationCap className="h-3 w-3 shrink-0 text-muted-foreground/70" />
-              {expLabel}
-            </span>
+          {project.salary && (
+            <Badge variant="outline" className="text-xs">
+              <DollarSign className="h-3 w-3 mr-1" />
+              {project.salary.length > 25 ? project.salary.slice(0, 25) + "…" : project.salary}
+            </Badge>
           )}
-          {pay && (
-            <span className="flex items-center gap-1.5 truncate">
-              <DollarSign className="h-3 w-3 shrink-0 text-muted-foreground/70" />
-              {pay}
-            </span>
+          {project.compensationType && !project.salary && (
+            <Badge variant="outline" className="text-xs capitalize">
+              <DollarSign className="h-3 w-3 mr-1" />
+              {project.compensationType}
+            </Badge>
           )}
         </div>
 
         {/* Skills */}
-        {(project.skills?.length ?? 0) > 0 && (
-          <div className="flex flex-wrap gap-1.5 mb-3">
-            {project.skills.slice(0, 3).map((skill) => (
-              <Badge key={skill} variant="secondary" className="text-[11px] px-2 py-0.5 font-normal">
-                {skill}
-              </Badge>
-            ))}
-            {project.skills.length > 3 && (
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Badge variant="outline" className="text-[11px] px-2 py-0.5 font-normal cursor-default">
-                      +{project.skills.length - 3}
-                    </Badge>
-                  </TooltipTrigger>
-                  <TooltipContent className="text-xs max-w-48">
-                    {project.skills.slice(3).join(", ")}
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            )}
-          </div>
-        )}
-
-        {/* Footer */}
-        <div className="flex items-center justify-between mt-auto pt-2.5 border-t border-border/40">
-          <div className="flex items-center gap-2 flex-wrap">
-            {typeInfo && (
-              <Badge className={`text-[10px] font-medium px-2 py-0 h-5 border-0 ${typeInfo.color}`}>
-                {typeInfo.label}
-              </Badge>
-            )}
-            {project.deadline && (
-              <span className="flex items-center gap-1 text-[11px] text-orange-600 dark:text-orange-400">
-                <Calendar className="h-3 w-3" />
-                {project.deadline}
-              </span>
-            )}
-            {!project.deadline && project.applicants > 0 && (
-              <span className="flex items-center gap-1 text-[11px] text-muted-foreground">
-                <Users className="h-3 w-3" />
-                {project.applicants} applied
-              </span>
-            )}
-            {!project.deadline && !project.applicants && project.postedAt && (
-              <span className="text-[11px] text-muted-foreground">{project.postedAt}</span>
-            )}
-          </div>
-          <ArrowUpRight className="h-4 w-4 text-muted-foreground/40 group-hover:text-primary transition-colors shrink-0" />
+        <div className="flex flex-wrap gap-1.5">
+          {(project.skills || []).slice(0, 3).map((skill) => (
+            <Badge key={skill} variant="secondary" className="text-xs">
+              {skill}
+            </Badge>
+          ))}
+          {(project.skills || []).length > 3 && (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Badge variant="outline" className="text-xs cursor-default">
+                    +{project.skills.length - 3}
+                  </Badge>
+                </TooltipTrigger>
+                <TooltipContent>
+                  {project.skills.slice(3).join(", ")}
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          )}
         </div>
-      </Card>
-    </LocaleLink>
+
+        {/* Meta Info */}
+        <div className="flex items-center gap-4 text-sm text-muted-foreground flex-wrap">
+          {project.timeCommitment && (
+            <div className="flex items-center gap-1">
+              <Clock className="h-4 w-4" />
+              <span>{project.timeCommitment}</span>
+            </div>
+          )}
+          {project.duration && !project.timeCommitment && (
+            <div className="flex items-center gap-1">
+              <Clock className="h-4 w-4" />
+              <span>{project.duration}</span>
+            </div>
+          )}
+          {project.location && (
+            <div className="flex items-center gap-1">
+              <MapPin className="h-4 w-4" />
+              <span>{project.location}</span>
+            </div>
+          )}
+          {project.deadline && (
+            <div className="flex items-center gap-1 text-orange-600 dark:text-orange-400">
+              <Calendar className="h-3.5 w-3.5" />
+              <span>{project.deadline}</span>
+            </div>
+          )}
+        </div>
+      </CardContent>
+
+      <Separator />
+
+      <CardFooter className="flex items-center justify-between pt-4">
+        <div className="flex items-center gap-2">
+          <Badge className={`text-xs ${projectTypeColors[project.projectType] || "bg-gray-100 text-gray-700"}`}>
+            {project.projectType === "consultation" ? (t.oneHourCall || "1-hour call") : project.projectType}
+          </Badge>
+
+          {project.applicants > 0 ? (
+            <span className="text-xs text-muted-foreground">
+              <Users className="h-3 w-3 inline mr-1" />
+              {project.applicants} {t.applied || "applied"}
+            </span>
+          ) : project.postedAt ? (
+            <span className="text-xs text-muted-foreground">{project.postedAt}</span>
+          ) : null}
+        </div>
+        <Button asChild size="sm" variant="ghost" className="text-primary hover:text-primary hover:bg-primary/10">
+          <LocaleLink href={project._source === "external" ? `/projects/ext/${project.id.replace("ext-", "")}` : `/projects/${project.id}`}>
+            {t.apply || "Apply"} <ArrowRight className="h-3 w-3 inline ml-1" />
+          </LocaleLink>
+        </Button>
+      </CardFooter>
+    </Card>
   )
 }
