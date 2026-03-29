@@ -1,8 +1,18 @@
+import type { Metadata } from "next"
 import { Navbar } from "@/components/navbar"
 import { Footer } from "@/components/footer"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { CheckCircle, AlertTriangle, Wrench, Sparkles, Clock } from "lucide-react"
+
+export const metadata: Metadata = {
+  title: "Changelog",
+  description: "See what's new on JustBeCause Network. Latest features, improvements, and bug fixes for the skills-based volunteering platform.",
+  openGraph: {
+    title: "Changelog | JustBeCause Network",
+    description: "Latest features, improvements, and updates to JustBeCause Network.",
+  },
+}
 
 const changelogEntries = [
   {

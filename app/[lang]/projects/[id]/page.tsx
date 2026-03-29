@@ -1,7 +1,9 @@
 import Link from "next/link"
+import type { Metadata } from "next"
 import { notFound } from "next/navigation"
 import { getDictionary } from "@/app/[lang]/dictionaries"
-import type { Locale } from "@/lib/i18n-config"
+import { i18n, type Locale } from "@/lib/i18n-config"
+import { absoluteUrl } from "@/lib/seo"
 import { Navbar } from "@/components/navbar"
 import { Footer } from "@/components/footer"
 import { Button } from "@/components/ui/button"
@@ -22,6 +24,7 @@ import { skillCategories } from "@/lib/skills-data"
 import { ApplyButton } from "./apply-button"
 import { SaveButton } from "./save-button"
 import { ShareButton } from "@/components/share-button"
+import { JobPostingJsonLd, BreadcrumbJsonLd } from "@/components/json-ld"
 import {
   Clock,
   MapPin,
@@ -50,6 +53,62 @@ function formatDate(date?: Date | string, flexibleText: string = "Flexible"): st
   if (!date) return flexibleText
   const d = new Date(date)
   return d.toLocaleDateString("en-IN", { month: "short", day: "numeric", year: "numeric" })
+}
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string; lang: string }>
+}): Promise<Metadata> {
+  const { id, lang } = await params
+  const isExternal = id.startsWith("ext-")
+
+  let title = "Opportunity"
+  let description = "View this opportunity on JustBeCause Network"
+  let ogImage: string | undefined
+
+  if (isExternal) {
+    const extId = id.replace("ext-", "")
+    const opportunity = await externalOpportunitiesDb.findById(extId)
+    if (opportunity) {
+      title = opportunity.title || "Opportunity"
+      description = (opportunity.description || "").slice(0, 160).replace(/<[^>]*>/g, "")
+    }
+  } else {
+    const project = await getProject(id)
+    if (project) {
+      title = project.title
+      description = (project.description || "").slice(0, 160)
+      const ngo = await getNGOById(project.ngoId)
+      if (ngo) {
+        description = `${title} by ${ngo.orgName}. ${description}`
+      }
+    }
+  }
+
+  return {
+    title,
+    description: description || `View this opportunity on JustBeCause Network`,
+    openGraph: {
+      title: `${title} | JustBeCause Network`,
+      description,
+      url: absoluteUrl(`/${lang}/projects/${id}`),
+      type: "article",
+      images: ogImage ? [{ url: ogImage, width: 1200, height: 630 }] : undefined,
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: `${title} | JustBeCause Network`,
+      description,
+      site: "@justbecausenet",
+    },
+    alternates: {
+      canonical: absoluteUrl(`/${lang}/projects/${id}`),
+      languages: Object.fromEntries(
+        i18n.locales.map((l) => [l, absoluteUrl(`/${l}/projects/${id}`)])
+      ),
+    },
+  }
 }
 
 export default async function ProjectDetailPage({ params }: { params: Promise<{ id: string; lang: string }> }) {
@@ -107,6 +166,22 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
+      <JobPostingJsonLd
+        title={project.title}
+        description={project.description || ""}
+        orgName={ngo?.orgName || "Organization"}
+        location={project.location}
+        datePosted={project.createdAt ? new Date(project.createdAt).toISOString() : undefined}
+        deadline={project.deadline ? new Date(project.deadline).toISOString() : undefined}
+        url={`https://justbecausenetwork.com/${lang}/projects/${id}`}
+      />
+      <BreadcrumbJsonLd
+        items={[
+          { name: "Home", url: `https://justbecausenetwork.com/${lang}` },
+          { name: "Projects", url: `https://justbecausenetwork.com/${lang}/projects` },
+          { name: project.title, url: `https://justbecausenetwork.com/${lang}/projects/${id}` },
+        ]}
+      />
       <Navbar />
       <ScrollProgress className="top-0" />
 

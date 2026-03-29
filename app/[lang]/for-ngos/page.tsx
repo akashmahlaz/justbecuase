@@ -1,3 +1,4 @@
+import type { Metadata } from "next"
 import LocaleLink from "@/components/locale-link"
 import { Navbar } from "@/components/navbar"
 import { Footer } from "@/components/footer"
@@ -7,6 +8,23 @@ import { getImpactMetrics } from "@/lib/actions"
 import { getDictionary } from "@/app/[lang]/dictionaries"
 import type { Locale } from "@/lib/i18n-config"
 import { Users, Clock, DollarSign, FileText, MessageSquare, Shield, ArrowRight, Star, Briefcase, Database, Target, Search, Gift } from "lucide-react"
+
+export const metadata: Metadata = {
+  title: "For NGOs - Find Skilled Volunteers for Your Projects",
+  description: "Find skilled professionals for your NGO. Post projects, access top talent, manage applications, and amplify your social impact with JustBeCause Network. Free to get started.",
+  keywords: [
+    "NGO volunteer platform",
+    "find volunteers for nonprofit",
+    "skilled volunteer recruitment",
+    "NGO project management",
+    "pro bono talent acquisition",
+    "CSR partner platform",
+  ],
+  openGraph: {
+    title: "For NGOs | JustBeCause Network",
+    description: "Find skilled professionals for your NGO. Post projects and amplify your social impact.",
+  },
+}
 
 export default async function ForNGOsPage({ params }: { params: Promise<{ lang: string }> }) {
   const { lang } = await params

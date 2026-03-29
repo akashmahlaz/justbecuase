@@ -1,3 +1,4 @@
+import type { Metadata } from "next"
 import { Navbar } from "@/components/navbar"
 import { Footer } from "@/components/footer"
 import { Card, CardContent } from "@/components/ui/card"
@@ -7,6 +8,8 @@ import Link from "next/link"
 import { Calendar, User, ArrowLeft, Share2, Facebook, Twitter, Linkedin } from "lucide-react"
 import { notFound } from "next/navigation"
 import { getBlogPostBySlug } from "@/lib/actions"
+import { i18n } from "@/lib/i18n-config"
+import { absoluteUrl } from "@/lib/seo"
 
 // Blog posts content
 const blogPosts: Record<string, {
@@ -208,6 +211,49 @@ Our support team is here to help you succeed. Reach out anytime through the Help
 *Ready to post your first project? [Create one now](/ngo/post-project).*
     `,
   },
+}
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string; lang: string }>
+}): Promise<Metadata> {
+  const { slug, lang } = await params
+
+  let title = "Blog Post"
+  let description = "Read this article on JustBeCause Network"
+
+  const dbResult = await getBlogPostBySlug(slug)
+  if (dbResult.success && dbResult.data) {
+    title = dbResult.data.title
+    description = (dbResult.data.excerpt || dbResult.data.content || "").slice(0, 160).replace(/<[^>]*>/g, "")
+  } else if (blogPosts[slug]) {
+    title = blogPosts[slug].title
+    description = blogPosts[slug].excerpt.slice(0, 160)
+  }
+
+  return {
+    title,
+    description,
+    openGraph: {
+      title: `${title} | JustBeCause Network`,
+      description,
+      url: absoluteUrl(`/${lang}/blog/${slug}`),
+      type: "article",
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: `${title} | JustBeCause Network`,
+      description,
+      site: "@justbecausenet",
+    },
+    alternates: {
+      canonical: absoluteUrl(`/${lang}/blog/${slug}`),
+      languages: Object.fromEntries(
+        i18n.locales.map((l) => [l, absoluteUrl(`/${l}/blog/${slug}`)])
+      ),
+    },
+  }
 }
 
 export default async function BlogPostPage({ params }: { params: Promise<{ slug: string }> }) {

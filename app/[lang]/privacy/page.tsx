@@ -1,7 +1,17 @@
+import type { Metadata } from "next"
 import { Navbar } from "@/components/navbar"
 import { Footer } from "@/components/footer"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Shield } from "lucide-react"
+
+export const metadata: Metadata = {
+  title: "Privacy Policy",
+  description: "Learn how JustBeCause Network protects your data. Our privacy policy covers data collection, usage, cookies, and your rights under GDPR and Indian data protection laws.",
+  openGraph: {
+    title: "Privacy Policy | JustBeCause Network",
+    description: "How we protect your data and respect your privacy.",
+  },
+}
 
 export default function PrivacyPage() {
   return (

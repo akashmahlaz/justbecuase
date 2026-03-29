@@ -1,18 +1,29 @@
+import type { Metadata } from "next"
 import { notFound } from "next/navigation"
 import { i18n, type Locale, isRtlLocale } from "@/lib/i18n-config"
 import { getDictionary } from "./dictionaries"
 import { DictionaryProvider } from "@/components/dictionary-provider"
 import { HtmlDirSetter } from "@/components/html-dir-setter"
-
-/**
- * Locale segment layout — validates that the [lang] param is a supported locale.
- * Loads the dictionary and wraps all children with DictionaryProvider so every
- * page and component under [lang] can call useDictionary().
- * Also sets the HTML lang and dir attributes for the current locale.
- */
+import { absoluteUrl } from "@/lib/seo"
 
 export async function generateStaticParams() {
   return i18n.locales.map((locale) => ({ lang: locale }))
+}
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ lang: string }>
+}): Promise<Metadata> {
+  const { lang } = await params
+  return {
+    alternates: {
+      canonical: absoluteUrl(`/${lang}`),
+      languages: Object.fromEntries(
+        i18n.locales.map((l) => [l, absoluteUrl(`/${l}`)])
+      ),
+    },
+  }
 }
 
 export default async function LocaleLayout({

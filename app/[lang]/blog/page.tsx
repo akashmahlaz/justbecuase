@@ -1,3 +1,4 @@
+import type { Metadata } from "next"
 import { Navbar } from "@/components/navbar"
 import { Footer } from "@/components/footer"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -40,6 +41,16 @@ const fallbackPosts = [
 ]
 
 export const revalidate = 300
+
+export const metadata: Metadata = {
+  title: "Blog - Insights on Skills-Based Volunteering & Social Impact",
+  description: "Read insights, guides, and stories about skills-based volunteering, social impact, NGO success stories, and how to make a difference with your professional expertise.",
+  keywords: ["volunteering blog", "social impact stories", "NGO guides", "skills-based volunteering tips", "nonprofit insights"],
+  openGraph: {
+    title: "Blog | JustBeCause Network",
+    description: "Insights, guides, and stories about skills-based volunteering and social impact.",
+  },
+}
 
 export default async function BlogPage({ params }: { params: Promise<{ lang: string }> }) {
   const { lang } = await params

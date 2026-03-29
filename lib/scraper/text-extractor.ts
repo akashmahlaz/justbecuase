@@ -548,7 +548,7 @@ function extractFromDom($: cheerio.CheerioAPI, baseUrl: string): DomData {
   if (!location) {
     // Regex fallback
     const locMatch = description.match(
-      /(?:location|duty station|based in|city)[:\s]+([^.\n]{3,80})/i
+      /(?:location|duty station|based in|city)[:\s]*([^.\n]{3,80})/i
     )
     if (locMatch) location = locMatch[1].trim()
   }
@@ -556,21 +556,21 @@ function extractFromDom($: cheerio.CheerioAPI, baseUrl: string): DomData {
   // === Deadline ===
   let deadline = ""
   const deadlineMatch = description.match(
-    /(?:deadline|closing date|apply by|due date|expires?)[:\s]+([^.\n]{5,60})/i
+    /(?:deadline|closing date|apply by|due date|expires?)[:\s]*([^.\n]{5,60})/i
   )
   if (deadlineMatch) deadline = deadlineMatch[1].trim()
 
   // === Posted Date ===
   let postedDate = ""
   const postedMatch = description.match(
-    /(?:posted|published|date)[:\s]+(\d{1,2}[\s/.-]\w{3,9}[\s/.-]\d{2,4})/i
+    /(?:posted|published|date)[:\s]*(\d{1,2}[\s/.-]\w{3,9}[\s/.-]\d{2,4})/i
   )
   if (postedMatch) postedDate = postedMatch[1].trim()
 
   // === Salary ===
   let salary = ""
   const salaryMatch = description.match(
-    /(?:salary|compensation|stipend|pay)[:\s]+([^.\n]{3,120})/i
+    /(?:salary|compensation|stipend|pay)[:\s]*([^.\n]{3,120})/i
   )
   if (salaryMatch) salary = salaryMatch[1].trim()
 
@@ -594,7 +594,7 @@ function extractFromDom($: cheerio.CheerioAPI, baseUrl: string): DomData {
   // === Duration ===
   let duration = ""
   const durationMatch = description.match(
-    /(?:duration|contract|assignment|period|length)[:\s]+([^.\n]{3,80})/i
+    /(?:duration|contract|assignment|period|length)[:\s]*([^.\n]{3,80})/i
   )
   if (durationMatch) duration = durationMatch[1].trim()
   if (!duration) {
