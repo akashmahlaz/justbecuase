@@ -104,7 +104,7 @@ export async function* scrapeImpactpool(
         title: parsed.title,
         description: linkText.slice(0, 5000),
         shortDescription: parsed.title,
-        organization: parsed.org || "International Organization",
+        organization: parsed.org || "",
         causes,
         skillsRequired: skills,
         experienceLevel: detectExperienceLevel(allText),

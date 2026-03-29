@@ -123,7 +123,7 @@ export async function* scrapeReliefWeb(
           title,
           description: containerText.trim().slice(0, 5000) || title,
           shortDescription: title,
-          organization: parsed.org || "Organization on ReliefWeb",
+          organization: parsed.org || "",
           causes,
           skillsRequired: skills,
           experienceLevel,

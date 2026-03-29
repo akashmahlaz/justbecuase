@@ -137,7 +137,7 @@ export async function* scrapeCharityJob(
         title,
         description: cardText.slice(0, 5000) || title,
         shortDescription: title,
-        organization: org || "Charity Organization",
+        organization: org || "",
         causes,
         skillsRequired: skills,
         experienceLevel: detectExperienceLevel(allText),

@@ -127,7 +127,7 @@ export async function* scrapeUNJobs(
           title,
           description: containerText.trim().slice(0, 5000) || title,
           shortDescription: title + (grade ? ` (${grade})` : ""),
-          organization: org || "United Nations",
+          organization: org || "",
           causes,
           skillsRequired: skills,
           experienceLevel: detectExperienceLevel(allText),
