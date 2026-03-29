@@ -9,7 +9,6 @@ import { skillCategories, resolveSkillName } from "@/lib/skills-data"
 import { useDictionary } from "@/components/dictionary-provider"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Badge } from "@/components/ui/badge"
-import { TextAnimate } from "@/components/ui/text-animate"
 import type { VolunteerProfileView } from "@/lib/types"
 
 export function FeaturedCandidates() {
@@ -65,9 +64,9 @@ export function FeaturedCandidates() {
       <div className="container mx-auto px-4 md:px-6">
         {/* Header */}
         <header className="mb-12">
-          <TextAnimate as="h2" by="word" animation="slideUp" className="text-3xl md:text-4xl font-semibold text-foreground tracking-tight mb-2">
+          <h2 className="text-3xl md:text-4xl font-semibold text-foreground tracking-tight mb-2">
             {home.browseFeaturedCandidates || "Browse our Featured Candidates"}
-          </TextAnimate>
+          </h2>
         </header>
 
         {/* Card Carousel */}

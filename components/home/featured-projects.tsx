@@ -9,8 +9,6 @@ import { resolveSkillName } from "@/lib/skills-data"
 import { useDictionary } from "@/components/dictionary-provider"
 import { useLocale } from "@/hooks/use-locale"
 import { Skeleton } from "@/components/ui/skeleton"
-import { DotPattern } from "@/components/ui/dot-pattern"
-import { TextAnimate } from "@/components/ui/text-animate"
 
 export function FeaturedProjects() {
   const dict = useDictionary()
@@ -49,22 +47,14 @@ export function FeaturedProjects() {
   }
 
   return (
-    <section className="relative py-24 bg-background overflow-hidden">
-      {/* Editorial Dot Grid Pattern */}
-      <DotPattern
-        width={32}
-        height={32}
-        cr={1}
-        className="absolute inset-0 z-0 fill-muted-foreground/20 [mask-image:radial-gradient(ellipse_at_center,white_30%,transparent_80%)]"
-      />
-
-      <div className="container relative z-10 mx-auto px-4 md:px-6">
+    <section className="py-24 bg-background overflow-hidden">
+      <div className="container mx-auto px-4 md:px-6">
         {/* Header Section */}
         <header className="flex flex-col md:flex-row md:items-end justify-between mb-20 border-b border-border pb-8">
           <div className="max-w-2xl">
-            <TextAnimate as="h2" by="word" animation="slideUp" className="text-4xl md:text-5xl font-medium text-foreground tracking-tighter mb-6">
+            <h2 className="text-3xl md:text-4xl font-semibold text-foreground tracking-tight mb-4">
               {home.featuredProjects || "Featured Opportunities"}
-            </TextAnimate>
+            </h2>
             <p className="text-muted-foreground leading-relaxed">
               {home.featuredProjectsDesc || "A curated directory of high-impact opportunities from verified NGOs worldwide. Designed for architects of social change."}
             </p>
