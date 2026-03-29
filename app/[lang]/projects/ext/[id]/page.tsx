@@ -365,22 +365,6 @@ export default async function ExternalOpportunityDetailPage({
                 </CardContent>
               </Card>
 
-              {/* Partner Info Card */}
-              <Card className="bg-muted/30">
-                <CardContent className="p-6">
-                  <div className="flex items-center gap-3 mb-3">
-                    <Handshake className="h-5 w-5 text-primary" />
-                    <h3 className="font-semibold text-sm">Strategic Partner</h3>
-                  </div>
-                  <p className="text-xs text-muted-foreground leading-relaxed">
-                    This opportunity is sourced from our strategic partner network.
-                    We aggregate opportunities from leading platforms like ReliefWeb,
-                    Idealist, UN Jobs, and Impactpool to give you the widest range
-                    of impact opportunities in one place.
-                  </p>
-                </CardContent>
-              </Card>
-
               {/* Posted Info */}
               <Card>
                 <CardContent className="p-6 space-y-2 text-sm text-muted-foreground">
