@@ -1,7 +1,9 @@
 import Link from "next/link"
+import type { Metadata } from "next"
 import { notFound } from "next/navigation"
 import { getDictionary } from "@/app/[lang]/dictionaries"
-import type { Locale } from "@/lib/i18n-config"
+import { i18n, type Locale } from "@/lib/i18n-config"
+import { absoluteUrl } from "@/lib/seo"
 import { Navbar } from "@/components/navbar"
 import { Footer } from "@/components/footer"
 import { Button } from "@/components/ui/button"
@@ -24,6 +26,54 @@ function getSkillName(categoryId: string, subskillId: string): string {
   if (!category) return subskillId
   const subskill = category.subskills.find((s) => s.id === subskillId)
   return subskill?.name || subskillId
+}
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string; lang: string }>
+}): Promise<Metadata> {
+  const { id, lang } = await params
+  const volunteer = await getVolunteerProfileView(id)
+
+  if (!volunteer) {
+    return { title: "Impact Agent Not Found" }
+  }
+
+  const name = volunteer.name || "Impact Agent"
+  const title = (volunteer as any).title ? `${name} - ${(volunteer as any).title}` : name
+  const description = (volunteer.bio || `${name} is a skilled impact agent on JustBeCause Network`).slice(0, 160)
+  const skills = (volunteer.skills || [])
+    .slice(0, 5)
+    .map((s: any) => getSkillName(s.categoryId || s.category, s.subskillId || s.skill))
+    .filter(Boolean)
+
+  return {
+    title,
+    description: skills.length
+      ? `${description}. Skills: ${skills.join(", ")}`
+      : description,
+    openGraph: {
+      title: `${title} | JustBeCause Network`,
+      description,
+      url: absoluteUrl(`/${lang}/volunteers/${id}`),
+      type: "profile",
+      images: volunteer.avatar ? [{ url: volunteer.avatar, width: 400, height: 400, alt: name }] : undefined,
+    },
+    twitter: {
+      card: "summary",
+      title: `${title} | JustBeCause Network`,
+      description,
+      site: "@justbecausenet",
+      images: volunteer.avatar ? [volunteer.avatar] : undefined,
+    },
+    alternates: {
+      canonical: absoluteUrl(`/${lang}/volunteers/${id}`),
+      languages: Object.fromEntries(
+        i18n.locales.map((l) => [l, absoluteUrl(`/${l}/volunteers/${id}`)])
+      ),
+    },
+  }
 }
 
 export default async function VolunteerProfilePage({ params }: { params: Promise<{ id: string; lang: string }> }) {

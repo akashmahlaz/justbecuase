@@ -1,7 +1,9 @@
 import Link from "next/link"
+import type { Metadata } from "next"
 import { notFound } from "next/navigation"
 import { getDictionary } from "@/app/[lang]/dictionaries"
-import type { Locale } from "@/lib/i18n-config"
+import { i18n, type Locale } from "@/lib/i18n-config"
+import { absoluteUrl } from "@/lib/seo"
 import { Navbar } from "@/components/navbar"
 import { Footer } from "@/components/footer"
 import { Button } from "@/components/ui/button"
@@ -31,6 +33,47 @@ function getSkillName(categoryId: string, subskillId: string): string {
   if (!category) return subskillId
   const subskill = category.subskills.find((s) => s.id === subskillId)
   return subskill?.name || subskillId
+}
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string; lang: string }>
+}): Promise<Metadata> {
+  const { id, lang } = await params
+  const ngo = await getNGOById(id)
+
+  if (!ngo) {
+    return { title: "NGO Not Found" }
+  }
+
+  const title = ngo.orgName
+  const description = (ngo.description || `${ngo.orgName} on JustBeCause Network`).slice(0, 160)
+
+  return {
+    title,
+    description,
+    openGraph: {
+      title: `${title} | JustBeCause Network`,
+      description,
+      url: absoluteUrl(`/${lang}/ngos/${id}`),
+      type: "profile",
+      images: ngo.logo ? [{ url: ngo.logo, width: 400, height: 400, alt: ngo.orgName }] : undefined,
+    },
+    twitter: {
+      card: "summary",
+      title: `${title} | JustBeCause Network`,
+      description,
+      site: "@justbecausenet",
+      images: ngo.logo ? [ngo.logo] : undefined,
+    },
+    alternates: {
+      canonical: absoluteUrl(`/${lang}/ngos/${id}`),
+      languages: Object.fromEntries(
+        i18n.locales.map((l) => [l, absoluteUrl(`/${l}/ngos/${id}`)])
+      ),
+    },
+  }
 }
 
 export default async function NGOProfilePage({ params }: { params: Promise<{ id: string; lang: string }> }) {

@@ -1,3 +1,4 @@
+import type { Metadata } from "next"
 import Image from "next/image"
 import LocaleLink from "@/components/locale-link"
 import { Navbar } from "@/components/navbar"
@@ -11,6 +12,16 @@ import type { Locale } from "@/lib/i18n-config"
 // Render at request time (needs MongoDB connection)
 export const dynamic = "force-dynamic"
 import { Heart, Target, Users, Globe, Award, ArrowRight, Linkedin, Twitter, Clock, Sparkles, Code, Palette, BarChart3, BookOpen, Building2, Search, Handshake } from "lucide-react"
+
+export const metadata: Metadata = {
+  title: "About Us - Our Mission to Connect Skills with Purpose",
+  description: "Learn about JustBeCause Network — our mission to connect skilled professionals with NGOs and nonprofits worldwide. Meet our team and discover how we're creating lasting social impact.",
+  keywords: ["about JustBeCause", "social impact mission", "volunteer platform story", "nonprofit technology"],
+  openGraph: {
+    title: "About JustBeCause Network",
+    description: "Our mission to connect skilled professionals with NGOs making a difference worldwide.",
+  },
+}
 
 export default async function AboutPage({ params }: { params: Promise<{ lang: string }> }) {
   const { lang } = await params

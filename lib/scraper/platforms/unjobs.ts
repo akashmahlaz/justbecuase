@@ -93,6 +93,7 @@ export async function* scrapeUNJobs(
 
         // Extract location from container text
         const locationMatch = containerText.match(/(?:Duty Station|Location)[:\s]*([A-Z][\w\s,.-]+?)(?:\s{2,}|\n|$)/i)
+        // Note: [:\s]* is intentional — some sites use <dt>/<dd> where colons are CSS-generated
         const location = locationMatch ? locationMatch[1].trim() : ""
 
         // Extract organization using pattern matching

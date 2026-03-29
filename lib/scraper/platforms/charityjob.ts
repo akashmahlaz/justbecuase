@@ -84,8 +84,9 @@ export async function* scrapeCharityJob(
       const externalId = href.match(/\/(\d+)/)?.[1] || href.split("/").filter(Boolean).pop() || href
 
       // Get the containing card for metadata
-      // CharityJob cards show: "OrgName, Location (Remote|On-site|Hybrid) Salary Description PostedDate"
-      const $card = $el.closest('[class*="job"], [class*="listing"], li, div').first()
+      // CharityJob cards: <article class="job-card-wrapper"> > <div class="job-card">
+      // Contains: .organisation (org + location), .job-summary-item (salary), .posted-item
+      const $card = $el.closest('article, [class*="job-card"]').first()
       const cardText = $card.length ? $card.text() : ""
 
       // CRITICAL: Strong remote detection
@@ -101,8 +102,15 @@ export async function* scrapeCharityJob(
       }
 
       // Extract organization
-      const org = $card.find('[class*="company"], [class*="employer"], [class*="org"]').first().text().trim()
-        || extractOrgFromCardText(cardText, title)
+      // CharityJob uses <div class="organisation">OrgName, Remote</div>
+      let org = $card.find('.organisation').first().text().trim()
+      // Strip trailing location text like ", Remote" or ", London"
+      org = org.replace(/,\s*(Remote|Hybrid|On-?site|Home|London|UK|United Kingdom).*$/i, "").trim()
+      if (!org) {
+        org = $card.find('[class*="company"], [class*="employer"], [class*="org"]').first().text().trim()
+          .replace(/,\s*(Remote|Hybrid|On-?site).*$/i, "")
+      }
+      if (!org) org = extractOrgFromCardText(cardText, title)
 
       // Extract salary
       const salaryMatch = cardText.match(/(£\d[\d,.]+(?:\s*[-–]\s*£?\d[\d,.]+)?(?:\s*(?:per|pa|p\.a\.|FTE|\/)\s*(?:annum|year|month|hour|day)[^\n]*)?)/i)

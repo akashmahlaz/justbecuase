@@ -1,7 +1,17 @@
+import type { Metadata } from "next"
 import { Navbar } from "@/components/navbar"
 import { Footer } from "@/components/footer"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { FileText } from "lucide-react"
+
+export const metadata: Metadata = {
+  title: "Terms of Service",
+  description: "Read the Terms of Service for JustBeCause Network. Understand the rules, guidelines, and conditions for using our skills-based volunteering platform.",
+  openGraph: {
+    title: "Terms of Service | JustBeCause Network",
+    description: "Rules and guidelines for using JustBeCause Network.",
+  },
+}
 
 export default function TermsPage() {
   return (
