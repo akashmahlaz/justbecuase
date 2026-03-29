@@ -10,7 +10,8 @@ import type { ScrapedOpportunity } from "../types"
 import { mapSkillTags, mapCauseTags, detectWorkMode, detectExperienceLevel } from "../skill-mapper"
 
 const BASE_URL = "https://www.charityjob.co.uk"
-const SEARCH_URL = `${BASE_URL}/jobs`
+// Filter for remote/homeworking jobs only
+const SEARCH_URL = `${BASE_URL}/jobs?homeworking=1`
 
 const HEADERS = {
   "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
@@ -24,7 +25,7 @@ export async function* scrapeCharityJob(
   const maxPages = parseInt(settings.maxPages || "5", 10)
 
   for (let page = 1; page <= maxPages; page++) {
-    const url = page === 1 ? SEARCH_URL : `${SEARCH_URL}?page=${page}`
+    const url = page === 1 ? SEARCH_URL : `${SEARCH_URL}&page=${page}`
 
     let html: string
     try {
@@ -120,6 +121,10 @@ export async function* scrapeCharityJob(
       const isContract = /contract|temporary|fixed[- ]?term/i.test(cardText)
       const projectType = isContract ? "short-term" : "long-term"
 
+      // Skip non-remote jobs (safety filter)
+      const workMode = detectWorkMode(allText)
+      if (workMode !== "remote") continue
+
       yield {
         sourceplatform: "devex", // reuse platform key for registry compat
         sourceUrl: fullUrl,
@@ -131,8 +136,8 @@ export async function* scrapeCharityJob(
         causes,
         skillsRequired: skills,
         experienceLevel: detectExperienceLevel(allText),
-        workMode: detectWorkMode(allText),
-        location: location || "United Kingdom",
+        workMode: "remote",
+        location: location || "Remote",
         country: "United Kingdom",
         deadline,
         salary,

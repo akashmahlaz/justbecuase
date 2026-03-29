@@ -30,7 +30,8 @@ export async function* scrapeUNJobs(
   const maxPages = parseInt(settings.maxPages || "3", 10)
 
   for (let page = 1; page <= maxPages; page++) {
-    const url = page === 1 ? BASE_URL : `${BASE_URL}/?page=${page}`
+    // Filter for remote positions
+    const url = page === 1 ? `${BASE_URL}/?q=remote` : `${BASE_URL}/?q=remote&page=${page}`
 
     let html: string
     try {
@@ -108,6 +109,10 @@ export async function* scrapeUNJobs(
       const projectType = isConsultancy ? "consultation" : isTemporary ? "short-term" : "long-term"
       const compensationType = isInternship ? "stipend" : "paid"
 
+      // Skip non-remote jobs (safety filter)
+      const workMode = detectWorkMode(allText)
+      if (workMode !== "remote") continue
+
       yield {
         sourceplatform: "unjobs",
         sourceUrl: fullUrl,
@@ -119,8 +124,8 @@ export async function* scrapeUNJobs(
         causes,
         skillsRequired: skills,
         experienceLevel: detectExperienceLevel(allText),
-        workMode: detectWorkMode(allText),
-        location: location || undefined,
+        workMode: "remote",
+        location: location || "Remote",
         country: extractCountry(location),
         deadline,
         postedDate: new Date(),

@@ -69,6 +69,13 @@ export async function runScraper(
 
     for await (const item of generator) {
       try {
+        // REMOTE-ONLY FILTER: Skip any non-remote opportunities
+        const itemWorkMode = item.workMode || detectWorkMode([item.title, item.description, item.location || ""].join(" "))
+        if (itemWorkMode !== "remote") {
+          run.itemsSkipped++
+          continue
+        }
+
         // Transform scraped item to our external opportunity format
         const opportunity = transformToOpportunity(item)
         const { isNew } = await externalOpportunitiesDb.upsert(opportunity)

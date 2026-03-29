@@ -10,7 +10,8 @@ import type { ScrapedOpportunity } from "../types"
 import { mapSkillTags, mapCauseTags, detectWorkMode, detectExperienceLevel } from "../skill-mapper"
 
 const BASE_URL = "https://reliefweb.int"
-const SEARCH_URL = `${BASE_URL}/updates?list=Jobs&view=reports`
+// Filter for remote jobs using ReliefWeb's search facets
+const SEARCH_URL = `${BASE_URL}/updates?list=Jobs&view=reports&search=remote`
 
 const HEADERS = {
   "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
@@ -118,6 +119,9 @@ export async function* scrapeReliefWeb(
       const isShortTerm = /short[- ]?term|temporary/i.test(jobType + " " + title)
       const projectType = isConsultancy ? "consultation" : isShortTerm ? "short-term" : "long-term"
 
+      // Skip non-remote jobs (safety filter)
+      if (workMode !== "remote") continue
+
       yield {
         sourceplatform: "reliefweb",
         sourceUrl: fullUrl,
@@ -129,8 +133,8 @@ export async function* scrapeReliefWeb(
         causes,
         skillsRequired: skills,
         experienceLevel,
-        workMode,
-        location: country || undefined,
+        workMode: "remote",
+        location: country ? `Remote | ${country}` : "Remote",
         country: country || undefined,
         postedDate: postedDate || new Date(),
         deadline,

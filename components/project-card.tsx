@@ -9,7 +9,7 @@ import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/h
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { Progress } from "@/components/ui/progress"
 import { Separator } from "@/components/ui/separator"
-import { Clock, MapPin, Users, CheckCircle, ArrowRight, Star, Calendar } from "lucide-react"
+import { Clock, MapPin, Users, CheckCircle, ArrowRight, Star, Calendar, Briefcase, DollarSign, Globe, GraduationCap } from "lucide-react"
 import { useDictionary } from "@/components/dictionary-provider"
 
 interface Project {
@@ -31,6 +31,15 @@ interface Project {
   status?: string
   matchScore?: number
   matchReasons?: string[]
+  // Dynamic fields from scraped data
+  salary?: string
+  workMode?: string
+  duration?: string
+  experienceLevel?: string
+  compensationType?: string
+  externalUrl?: string
+  _source?: string
+  _platform?: string
 }
 
 export function ProjectCard({ project }: { project: Project }) {
@@ -125,6 +134,34 @@ export function ProjectCard({ project }: { project: Project }) {
         </h3>
         <p className="text-sm text-muted-foreground line-clamp-2 grow">{project.description}</p>
 
+        {/* Dynamic badges row — work mode, experience, salary */}
+        <div className="flex flex-wrap gap-1.5">
+          {project.workMode && (
+            <Badge variant="outline" className="text-xs capitalize">
+              <Globe className="h-3 w-3 mr-1" />
+              {project.workMode}
+            </Badge>
+          )}
+          {project.experienceLevel && (
+            <Badge variant="outline" className="text-xs capitalize">
+              <GraduationCap className="h-3 w-3 mr-1" />
+              {project.experienceLevel}
+            </Badge>
+          )}
+          {project.salary && (
+            <Badge variant="outline" className="text-xs">
+              <DollarSign className="h-3 w-3 mr-1" />
+              {project.salary.length > 25 ? project.salary.slice(0, 25) + "…" : project.salary}
+            </Badge>
+          )}
+          {project.compensationType && !project.salary && (
+            <Badge variant="outline" className="text-xs capitalize">
+              <DollarSign className="h-3 w-3 mr-1" />
+              {project.compensationType}
+            </Badge>
+          )}
+        </div>
+
         {/* Skills */}
         <div className="flex flex-wrap gap-1.5">
           {(project.skills || []).slice(0, 3).map((skill) => (
@@ -149,11 +186,17 @@ export function ProjectCard({ project }: { project: Project }) {
         </div>
 
         {/* Meta Info */}
-        <div className="flex items-center gap-4 text-sm text-muted-foreground">
+        <div className="flex items-center gap-4 text-sm text-muted-foreground flex-wrap">
           {project.timeCommitment && (
             <div className="flex items-center gap-1">
               <Clock className="h-4 w-4" />
               <span>{project.timeCommitment}</span>
+            </div>
+          )}
+          {project.duration && !project.timeCommitment && (
+            <div className="flex items-center gap-1">
+              <Clock className="h-4 w-4" />
+              <span>{project.duration}</span>
             </div>
           )}
           {project.location && (
@@ -178,6 +221,11 @@ export function ProjectCard({ project }: { project: Project }) {
           <Badge className={`text-xs ${projectTypeColors[project.projectType] || "bg-gray-100 text-gray-700"}`}>
             {project.projectType === "consultation" ? (t.oneHourCall || "1-hour call") : project.projectType}
           </Badge>
+          {project._platform && (
+            <Badge variant="outline" className="text-xs text-muted-foreground">
+              {project._platform}
+            </Badge>
+          )}
           {project.applicants > 0 ? (
             <span className="text-xs text-muted-foreground">
               <Users className="h-3 w-3 inline mr-1" />
@@ -188,7 +236,9 @@ export function ProjectCard({ project }: { project: Project }) {
           ) : null}
         </div>
         <Button asChild size="sm" variant="ghost" className="text-primary hover:text-primary hover:bg-primary/10">
-          <LocaleLink href={`/projects/${project.id}`}>{t.apply || "Apply"} <ArrowRight className="h-3 w-3 inline ml-1" /></LocaleLink>
+          <LocaleLink href={project._source === "external" ? `/projects/ext/${project.id.replace("ext-", "")}` : `/projects/${project.id}`}>
+            {t.apply || "Apply"} <ArrowRight className="h-3 w-3 inline ml-1" />
+          </LocaleLink>
         </Button>
       </CardFooter>
     </Card>

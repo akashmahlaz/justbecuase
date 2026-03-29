@@ -53,6 +53,11 @@ interface Project {
   externalUrl?: string
   _source?: "native" | "external"
   _platform?: string
+  // Dynamic fields from scraped data
+  salary?: string
+  duration?: string
+  experienceLevel?: string
+  compensationType?: string
 }
 
 export default function ProjectsPage() {
@@ -839,10 +844,19 @@ function ProjectsContent() {
                             applicants: project.applicantsCount || 0,
                             postedAt: project.createdAt ? new Date(project.createdAt).toLocaleDateString() : (dict.projectsListing?.recently || "Recently"),
                             projectType: project.projectType,
-                            deadline: project.deadline ? new Date(project.deadline).toLocaleDateString() : undefined,
+                            deadline: project.deadline ? (typeof project.deadline === "string" ? project.deadline : new Date(project.deadline).toLocaleDateString()) : undefined,
                             ngo: project.ngo || { name: "NGO", verified: false },
                             matchScore: scoreData?.score,
                             matchReasons: scoreData?.matchReasons,
+                            // Dynamic fields from scraped data
+                            salary: project.salary || undefined,
+                            workMode: project.workMode || undefined,
+                            duration: project.duration || undefined,
+                            experienceLevel: project.experienceLevel || undefined,
+                            compensationType: project.compensationType || undefined,
+                            externalUrl: project.externalUrl || undefined,
+                            _source: project._source || undefined,
+                            _platform: project._platform || undefined,
                           }} />
                         </BlurFade>
                       )

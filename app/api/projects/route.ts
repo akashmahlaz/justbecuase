@@ -100,6 +100,12 @@ function mapExternalToProject(opp: any) {
       ? opp.description.slice(0, 500)
       : opp.title
 
+  // Format deadline for display
+  const deadline = opp.deadline ? (() => {
+    const d = new Date(opp.deadline)
+    return isNaN(d.getTime()) ? null : d.toLocaleDateString("en-IN", { month: "short", day: "numeric", year: "numeric" })
+  })() : null
+
   return {
     _id: opp._id?.toString?.() || opp._id,
     id: `ext-${opp._id?.toString?.() || opp._id}`,
@@ -109,10 +115,14 @@ function mapExternalToProject(opp: any) {
     ngoId: "",
     status: "active",
     workMode: opp.workMode || "remote",
-    location: opp.location || opp.country || "",
+    location: opp.location || opp.country || "Remote",
     timeCommitment: opp.timeCommitment || opp.duration || "",
-    deadline: opp.deadline || null,
+    duration: opp.duration || "",
+    deadline,
     projectType: opp.compensationType || opp.projectType || "volunteer",
+    compensationType: opp.compensationType || "",
+    salary: opp.salary || "",
+    experienceLevel: opp.experienceLevel || "",
     applicantsCount: 0,
     createdAt: opp.postedDate || opp.scrapedAt || new Date(),
     ngo: {
