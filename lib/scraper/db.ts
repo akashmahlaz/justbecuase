@@ -107,6 +107,20 @@ export const externalOpportunitiesDb = {
     return collection.findOne({ _id: new ObjectId(id) } as any)
   },
 
+  /** Purge all non-remote opportunities (delete onsite & hybrid) */
+  async purgeNonRemote(): Promise<{ deleted: number; deactivated: number }> {
+    const db = await getDb()
+    const collection = db.collection<ExternalOpportunity>(COLLECTIONS.EXTERNAL_OPPORTUNITIES)
+    // Hard delete non-remote active records
+    const deleteResult = await collection.deleteMany({
+      $or: [
+        { workMode: { $ne: "remote" } },
+        { workMode: { $exists: false } },
+      ],
+    })
+    return { deleted: deleteResult.deletedCount, deactivated: 0 }
+  },
+
   async ensureIndexes() {
     const db = await getDb()
     const collection = db.collection(COLLECTIONS.EXTERNAL_OPPORTUNITIES)

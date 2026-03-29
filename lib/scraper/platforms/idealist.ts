@@ -24,7 +24,8 @@ export async function* scrapeIdealist(
   const maxPages = parseInt(settings.maxPages || "5", 10)
 
   for (let page = 1; page <= maxPages; page++) {
-    const url = `${SEARCH_URL}?page=${page}&q=&type=VOLOP`
+    // Filter for remote opportunities only
+    const url = `${SEARCH_URL}?page=${page}&q=&type=VOLOP&locationType=REMOTE`
 
     let html: string
     try {
@@ -99,6 +100,9 @@ export async function* scrapeIdealist(
       const skills = mapSkillTags(words)
       const experienceLevel = detectExperienceLevel(allText)
 
+      // Skip non-remote jobs (safety filter)
+      if (workMode !== "remote") continue
+
       yield {
         sourceplatform: "idealist",
         sourceUrl: fullUrl,
@@ -110,8 +114,8 @@ export async function* scrapeIdealist(
         causes,
         skillsRequired: skills,
         experienceLevel,
-        workMode,
-        location: location || undefined,
+        workMode: "remote",
+        location: location || "Remote",
         country: extractCountry(location),
         timeCommitment: timeCommitment || undefined,
         postedDate,
