@@ -221,11 +221,7 @@ export function ProjectCard({ project }: { project: Project }) {
           <Badge className={`text-xs ${projectTypeColors[project.projectType] || "bg-gray-100 text-gray-700"}`}>
             {project.projectType === "consultation" ? (t.oneHourCall || "1-hour call") : project.projectType}
           </Badge>
-          {project._platform && (
-            <Badge variant="outline" className="text-xs text-muted-foreground">
-              {project._platform}
-            </Badge>
-          )}
+
           {project.applicants > 0 ? (
             <span className="text-xs text-muted-foreground">
               <Users className="h-3 w-3 inline mr-1" />

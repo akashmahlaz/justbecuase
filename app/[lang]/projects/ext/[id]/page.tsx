@@ -21,7 +21,6 @@ import {
   Building2,
   FileText,
   Globe,
-  Shield,
   ArrowLeft,
   Tag,
   GraduationCap,
@@ -39,13 +38,6 @@ function formatDate(date?: Date | string, fallback = "Not specified"): string {
   return d.toLocaleDateString("en-IN", { month: "short", day: "numeric", year: "numeric" })
 }
 
-const PLATFORM_LABELS: Record<string, { name: string; color: string }> = {
-  reliefweb: { name: "ReliefWeb", color: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400" },
-  idealist: { name: "Idealist", color: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400" },
-  unjobs: { name: "UN Jobs", color: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400" },
-  impactpool: { name: "Impactpool", color: "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400" },
-  devex: { name: "Devex", color: "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400" },
-}
 
 export default async function ExternalOpportunityDetailPage({
   params,
@@ -62,11 +54,6 @@ export default async function ExternalOpportunityDetailPage({
 
   // On-demand enrichment: if the stored description is thin, fetch full content from source
   const opportunity = await enrichIfNeeded(raw)
-
-  const platform = PLATFORM_LABELS[opportunity.sourceplatform] || {
-    name: opportunity.sourceplatform,
-    color: "bg-muted text-muted-foreground",
-  }
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
@@ -146,13 +133,9 @@ export default async function ExternalOpportunityDetailPage({
                   <div>
                     <div className="flex items-center gap-2">
                       <span className="font-semibold text-foreground">{opportunity.organization}</span>
-                      <Badge variant="outline" className={`text-xs ${platform.color}`}>
-                        <Shield className="h-3 w-3 mr-1" />
-                        {platform.name}
-                      </Badge>
                     </div>
                     <p className="text-sm text-muted-foreground">
-                      Via Strategic Partner Network
+                      {dict.projectDetail?.organization || "Organization"}
                     </p>
                   </div>
                 </div>
@@ -202,7 +185,7 @@ export default async function ExternalOpportunityDetailPage({
               {opportunity.skillTags && opportunity.skillTags.length > 0 && (
                 <Card>
                   <CardHeader>
-                    <CardTitle className="text-base">Tags from Source</CardTitle>
+                    <CardTitle className="text-base">{dict.projectDetail?.tags || "Tags"}</CardTitle>
                   </CardHeader>
                   <CardContent>
                     <div className="flex flex-wrap gap-2">
@@ -333,15 +316,7 @@ export default async function ExternalOpportunityDetailPage({
                         </span>
                       </div>
                     )}
-                    <div className="flex items-center justify-between py-3">
-                      <div className="flex items-center gap-2 text-muted-foreground">
-                        <Globe className="h-4 w-4" />
-                        <span>Source</span>
-                      </div>
-                      <Badge variant="outline" className={`text-xs ${platform.color}`}>
-                        {platform.name}
-                      </Badge>
-                    </div>
+
                   </div>
 
                   {/* Apply Button — redirects to source */}
@@ -351,7 +326,7 @@ export default async function ExternalOpportunityDetailPage({
                       target="_blank"
                       rel="noopener noreferrer"
                     >
-                      Apply on {platform.name}
+                      {dict.projectDetail?.applyNow || "Apply Now"}
                     </a>
                   </Button>
 
