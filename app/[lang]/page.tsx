@@ -6,7 +6,6 @@ import { GlobalSearchSection } from "@/components/home/global-search-section"
 import { HowItWorks } from "@/components/home/how-it-works"
 import { FeaturedProjects } from "@/components/home/featured-projects"
 import { FeaturedCandidates } from "@/components/home/featured-candidates"
-import { Testimonials } from "@/components/home/testimonials"
 import { CTASection } from "@/components/home/cta-section"
 import { ScrollProgress } from "@/components/ui/scroll-progress"
 import { OrganizationJsonLd, WebSiteJsonLd } from "@/components/json-ld"
@@ -49,7 +48,6 @@ export default async function HomePage() {
         <FeaturedProjects />
         <FeaturedCandidates />
         <GlobalSearchSection />
-        <Testimonials />
         <CTASection />
       </main>
       <Footer />
