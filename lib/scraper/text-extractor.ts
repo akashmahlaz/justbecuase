@@ -95,8 +95,11 @@ export function extractPageContent(html: string, baseUrl: string): ExtractedCont
   // === Strategy 2: Open Graph & meta tags ===
   const ogData = extractOpenGraph($)
 
-  // === Strategy 3: DOM heuristics ===
+  // === Strategy 3: DOM heuristics (with platform-specific selectors) ===
   const domData = extractFromDom($, baseUrl)
+
+  // === Strategy 4: Platform-specific deep extraction ===
+  const platformData = extractPlatformSpecific($, baseUrl)
 
   // === Merge all strategies (priority: longest/richest for description, JSON-LD > OG > DOM for metadata) ===
   const title =
@@ -107,14 +110,14 @@ export function extractPageContent(html: string, baseUrl: string): ExtractedCont
   const description = candidates.sort((a, b) => (b?.length || 0) - (a?.length || 0))[0] || ""
 
   const organization =
-    jsonLd.organization || ogData.siteName || domData.organization || ""
+    jsonLd.organization || ogData.siteName || platformData.organization || domData.organization || ""
 
   return {
     title,
     description: cleanText(description),
     organization,
-    organizationUrl: jsonLd.organizationUrl || domData.organizationUrl,
-    location: jsonLd.location || domData.location,
+    organizationUrl: jsonLd.organizationUrl || platformData.organizationUrl || domData.organizationUrl,
+    location: jsonLd.location || platformData.location || domData.location,
     deadline: jsonLd.deadline || domData.deadline,
     postedDate: jsonLd.postedDate || ogData.publishedTime || domData.postedDate,
     salary: jsonLd.salary || domData.salary,
@@ -207,6 +210,78 @@ export function extractListings(
 // ============================================
 // INTERNAL HELPERS
 // ============================================
+
+/**
+ * Platform-specific deep extraction for known job board detail pages.
+ * Targets precise CSS selectors for Idealist, ReliefWeb, Impactpool, etc.
+ */
+function extractPlatformSpecific($: cheerio.CheerioAPI, baseUrl: string): {
+  organization?: string
+  organizationUrl?: string
+  location?: string
+  deadline?: string
+  duration?: string
+  causeAreas?: string[]
+  commitmentDetails?: string
+} {
+  const result: {
+    organization?: string
+    organizationUrl?: string
+    location?: string
+    deadline?: string
+    duration?: string
+    causeAreas?: string[]
+    commitmentDetails?: string
+  } = {}
+
+  // --- Idealist.org detail pages ---
+  // Org name appears as a link containing "/nonprofit/" or "/organization/"
+  const idealistOrgLink = $('a[href*="/nonprofit/"], a[href*="/organization/"]').first()
+  if (idealistOrgLink.length) {
+    result.organization = idealistOrgLink.text().trim()
+    const orgHref = idealistOrgLink.attr("href")
+    if (orgHref) {
+      result.organizationUrl = orgHref.startsWith("http") ? orgHref : new URL(orgHref, baseUrl).toString()
+    }
+  }
+
+  // Idealist "Details" section has Commitment, Recurrence, Cause Areas
+  const detailsSection = $('h2:contains("Details"), h3:contains("Details")').next()
+  if (detailsSection.length) {
+    const detailsText = detailsSection.text().trim()
+    // Extract commitment details
+    const commitMatch = detailsText.match(/(?:Commitment Details?|Available Times?)[:\s]+([^.]+)/i)
+    if (commitMatch) result.commitmentDetails = commitMatch[1].trim()
+    // Extract cause areas
+    const causeMatch = detailsText.match(/(?:Cause Areas?)[:\s]+(.+?)(?:\n|$)/i)
+    if (causeMatch) result.causeAreas = causeMatch[1].split(/[,&]/).map(s => s.trim()).filter(Boolean)
+  }
+
+  // --- ReliefWeb detail pages ---
+  // Org: .rw-entity-meta__tag--source or strong tag before org name
+  const rwOrg = $('.rw-entity-meta__tag--source a, .rw-entity-meta [class*="source"] a').first()
+  if (rwOrg.length && !result.organization) {
+    result.organization = rwOrg.text().trim()
+    const rwOrgHref = rwOrg.attr("href")
+    if (rwOrgHref) {
+      result.organizationUrl = rwOrgHref.startsWith("http") ? rwOrgHref : `${baseUrl}${rwOrgHref}`
+    }
+  }
+
+  // ReliefWeb closing date
+  const rwClosing = $('.rw-entity-meta__tag--closing-date, [class*="closing"]').first()
+  if (rwClosing.length && !result.deadline) {
+    result.deadline = rwClosing.text().replace(/Closing date[:\s]*/i, "").trim()
+  }
+
+  // --- Impactpool detail pages ---
+  const impactOrg = $('[class*="organization-name"], [class*="employer-name"]').first()
+  if (impactOrg.length && !result.organization) {
+    result.organization = impactOrg.text().trim()
+  }
+
+  return result
+}
 
 interface JsonLdData {
   title?: string
@@ -341,11 +416,14 @@ function extractFromDom($: cheerio.CheerioAPI, baseUrl: string): DomData {
     '.job-details', '[class*="job-details"]', '[class*="jobDetails"]',
     '.description-content', '[class*="description-content"]',
     '.posting-description', '[class*="posting"]',
+    // Idealist specific
+    '[class*="listing-body"]', '[class*="listing-description"]',
+    '[class*="opportunity-detail"]', '[class*="volop-description"]',
     // Impactpool / UN specific
     '[class*="vacancy"]', '[class*="announcement"]',
     '.field-body', '.field--body', '[class*="field-body"]',
     // ReliefWeb specific
-    '.rw-article__content', '.rw-report__content',
+    '.rw-article__content', '.rw-report__content', '.rw-entity__content',
     // Generic detail content
     '[class*="detail-content"]', '[class*="detailContent"]',
     '.details-body', '[class*="details-body"]',

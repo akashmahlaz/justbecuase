@@ -84,11 +84,15 @@ export async function runScraper(
         if (isNew) run.itemsNew++
         else run.itemsUpdated++
 
-        // Deep scrape: fetch detail page for NEW items or EXISTING items with thin descriptions
+        // Deep scrape: fetch detail page for:
+        // - All NEW items (listing data is usually thin)
+        // - Existing items with thin descriptions (<1000 chars)
+        // - Items with generic/missing organization names
+        const hasGenericOrg = /^(Organization|International Organization|United Nations|Charity Organization|Organization on ReliefWeb)$/i.test(opportunity.organization)
         const shouldDeepScrape = deepScrapeEnabled
           && deepScrapeCount < maxDeepScrapes
           && item.sourceUrl
-          && (isNew || opportunity.description.length < 500)
+          && (isNew || opportunity.description.length < 1000 || hasGenericOrg)
 
         if (shouldDeepScrape) {
           try {

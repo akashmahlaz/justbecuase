@@ -2,15 +2,16 @@
 // CharityJob Scraper — UK's largest charity job board
 // ============================================
 // Scrapes from charityjob.co.uk — thousands of charity/NGO jobs
-// Replaces the disabled Devex scraper with a working alternative.
+// Note: The ?homeworking=1 filter is weak — still shows on-site and hybrid posts.
+// We apply strong client-side filtering: only accept cards containing "(Remote)" in location.
 // Uses the same platform key "devex" in the registry for backward compat.
 
 import * as cheerio from "cheerio"
 import type { ScrapedOpportunity } from "../types"
-import { mapSkillTags, mapCauseTags, detectWorkMode, detectExperienceLevel } from "../skill-mapper"
+import { mapSkillTags, mapCauseTags, detectExperienceLevel } from "../skill-mapper"
 
 const BASE_URL = "https://www.charityjob.co.uk"
-// Filter for remote/homeworking jobs only
+// homeworking=1 is the best URL filter available, but weak
 const SEARCH_URL = `${BASE_URL}/jobs?homeworking=1`
 
 const HEADERS = {
@@ -55,28 +56,23 @@ export async function* scrapeCharityJob(
 
     const $ = cheerio.load(html)
 
-    // CharityJob listings: look for job links  
-    const jobLinks = $('a[href*="/job/"], a[href*="/jobs/"]').filter((_, el) => {
+    // CharityJob listings: look for job links with numeric IDs
+    const jobLinks = $('a[href*="/jobs/"]').filter((_, el) => {
       const href = $(el).attr("href") || ""
-      return /\/jobs?\/\d+/.test(href)
+      return /\/jobs\/[^/]+\/[^/]+\/\d+/.test(href) || /\/jobs?\/\d+/.test(href)
     })
 
     if (jobLinks.length === 0) {
-      // Try broader selectors
-      const altLinks = $('[class*="job"] a, [class*="listing"] a, [class*="vacancy"] a')
-      if (altLinks.length === 0) {
-        console.log(`[CharityJob] No job listings on page ${page}, stopping`)
-        break
-      }
+      console.log(`[CharityJob] No job listings on page ${page}, stopping`)
+      break
     }
 
     const processedUrls = new Set<string>()
-    const allJobElements = jobLinks.length > 0
-      ? jobLinks
-      : $('[class*="job"] a[href*="/job"]')
+    let pageYielded = 0
+    let pageSkippedNotRemote = 0
 
-    for (let i = 0; i < allJobElements.length; i++) {
-      const $el = $(allJobElements[i])
+    for (let i = 0; i < jobLinks.length; i++) {
+      const $el = $(jobLinks[i])
       const href = $el.attr("href")
       if (!href || processedUrls.has(href)) continue
       processedUrls.add(href)
@@ -87,29 +83,42 @@ export async function* scrapeCharityJob(
       const fullUrl = href.startsWith("http") ? href : `${BASE_URL}${href}`
       const externalId = href.match(/\/(\d+)/)?.[1] || href.split("/").filter(Boolean).pop() || href
 
-      // Get the containing card/row for metadata
+      // Get the containing card for metadata
+      // CharityJob cards show: "OrgName, Location (Remote|On-site|Hybrid) Salary Description PostedDate"
       const $card = $el.closest('[class*="job"], [class*="listing"], li, div').first()
       const cardText = $card.length ? $card.text() : ""
+
+      // CRITICAL: Strong remote detection
+      // CharityJob cards explicitly show "(Remote)" in the location line
+      // Reject anything showing "(On-site)" or "(Hybrid)" or no Remote indicator
+      const isRemote = /\(\s*Remote\s*\)/i.test(cardText) || /,\s*Remote\b/i.test(cardText)
+      const isOnsite = /\(\s*On-?site\s*\)/i.test(cardText)
+      const isHybrid = /\(\s*Hybrid\s*\)/i.test(cardText)
+
+      if (!isRemote || isOnsite || isHybrid) {
+        pageSkippedNotRemote++
+        continue
+      }
 
       // Extract organization
       const org = $card.find('[class*="company"], [class*="employer"], [class*="org"]').first().text().trim()
         || extractOrgFromCardText(cardText, title)
 
-      // Extract location
-      const location = $card.find('[class*="location"]').first().text().trim()
-        || extractLocationFromText(cardText)
-
       // Extract salary
-      const salaryEl = $card.find('[class*="salary"], [class*="pay"]').first().text().trim()
-      const salaryMatch = cardText.match(/(£\d[\d,.]+(?:\s*[-–]\s*£?\d[\d,.]+)?(?:\s*(?:per|pa|p\.a\.|\/)\s*(?:annum|year|month))?)/i)
-      const salary = salaryEl || (salaryMatch ? salaryMatch[1] : undefined)
+      const salaryMatch = cardText.match(/(£\d[\d,.]+(?:\s*[-–]\s*£?\d[\d,.]+)?(?:\s*(?:per|pa|p\.a\.|FTE|\/)\s*(?:annum|year|month|hour|day)[^\n]*)?)/i)
+      const salary = salaryMatch ? salaryMatch[1].trim() : undefined
 
       // Extract closing date
-      const closingMatch = cardText.match(/(?:closes?|closing|deadline|apply by)[:\s]*(\d{1,2}\s+\w+\s+\d{4}|\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4})/i)
-      const deadline = closingMatch ? tryParseDate(closingMatch[1]) : undefined
+      const closingMatch = cardText.match(/(?:Closing\s+in\s+)(\d+)\s*(days?|weeks?)/i)
+      let deadline: Date | undefined
+      if (closingMatch) {
+        const n = parseInt(closingMatch[1])
+        const unit = closingMatch[2].toLowerCase().startsWith("week") ? 7 : 1
+        deadline = new Date(Date.now() + n * unit * 86400000)
+      }
 
       // Build rich text for analysis
-      const allText = [title, org, location, cardText].join(" ")
+      const allText = [title, org, cardText].join(" ")
       const words = allText.split(/[\s,;:]+/).filter(w => w.length > 3)
       const causes = mapCauseTags(words)
       const skills = mapSkillTags(words)
@@ -121,12 +130,8 @@ export async function* scrapeCharityJob(
       const isContract = /contract|temporary|fixed[- ]?term/i.test(cardText)
       const projectType = isContract ? "short-term" : "long-term"
 
-      // Skip non-remote jobs (safety filter)
-      const workMode = detectWorkMode(allText)
-      if (workMode !== "remote") continue
-
       yield {
-        sourceplatform: "devex", // reuse platform key for registry compat
+        sourceplatform: "devex",
         sourceUrl: fullUrl,
         externalId: `charityjob_${externalId}`,
         title,
@@ -137,7 +142,7 @@ export async function* scrapeCharityJob(
         skillsRequired: skills,
         experienceLevel: detectExperienceLevel(allText),
         workMode: "remote",
-        location: location || "Remote",
+        location: "Remote, United Kingdom",
         country: "United Kingdom",
         deadline,
         salary,
@@ -146,30 +151,23 @@ export async function* scrapeCharityJob(
         projectType,
         timeCommitment: isPartTime ? "Part-time" : undefined,
       }
+      pageYielded++
     }
 
+    console.log(`[CharityJob] Page ${page}: yielded ${pageYielded}, skipped ${pageSkippedNotRemote} non-remote`)
     await sleep(2000)
   }
 }
 
 function extractOrgFromCardText(text: string, title: string): string {
-  const BADGE_LABELS = /^(new|featured|hot|promoted|urgent|closing soon|top pick)$/i
   const cleaned = text.replace(title, "").trim()
-  // Org name often appears right after title in card text — skip badge labels
-  const lines = cleaned.split(/\n/).map(s => s.trim()).filter(s => s.length > 2 && !BADGE_LABELS.test(s))
-  if (lines[0] && lines[0].length < 100) return lines[0]
+  const lines = cleaned.split(/\n/).map(s => s.trim()).filter(s => s.length > 2 && s.length < 100)
+  // Org name is typically the first non-badge line before the title
+  const BADGES = /^(new|featured|hot|promoted|urgent|closing|top|apply|posted)/i
+  for (const line of lines) {
+    if (!BADGES.test(line) && !/^£/.test(line) && !/^\d/.test(line)) return line
+  }
   return ""
-}
-
-function extractLocationFromText(text: string): string {
-  const match = text.match(/\b(London|Manchester|Birmingham|Edinburgh|Glasgow|Leeds|Bristol|Liverpool|Cardiff|Belfast|Remote|Home[- ]?based|Hybrid)(?:,\s*[A-Z][\w\s]+)?/i)
-  return match ? match[0] : ""
-}
-
-function tryParseDate(str: string): Date | undefined {
-  if (!str) return undefined
-  const d = new Date(str)
-  return isNaN(d.getTime()) ? undefined : d
 }
 
 function sleep(ms: number) {

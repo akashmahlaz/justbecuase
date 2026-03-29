@@ -1,8 +1,8 @@
 // ============================================
-// UN Jobs Scraper — HTML scraping with improved extraction
+// UN Jobs Scraper — HTML scraping with multiple search terms
 // ============================================
 // Scrapes from unjobs.org (independent UN job aggregator)
-// Extracts structured metadata and full descriptions from listings.
+// Uses multiple search terms for broader coverage: "remote", "home-based", "telecommute"
 // Deep scraping (via runner) enriches new items with detail page content.
 
 import * as cheerio from "cheerio"
@@ -17,124 +17,136 @@ const HEADERS = {
   "Accept-Language": "en-US,en;q=0.9",
 }
 
+// Multiple search terms to maximize remote job discovery
+const SEARCH_TERMS = ["remote", "home-based", "telecommute"]
+
 // Major UN/international organizations for name recognition
 const ORG_PATTERNS = [
-  /\b(UNDP|UNICEF|WHO|FAO|UNHCR|UNESCO|WFP|UNFPA|ILO|UNIDO|ITU|IAEA|IMF|UNODC|UN Women|UNOPS|OCHA|ECLAC|ESCAP|ECA|UNEP|UN-Habitat|UNCTAD|UNWTO|UPU|WIPO|WMO|IFAD)\b/,
+  /\b(UNDP|UNICEF|WHO|FAO|UNHCR|UNESCO|WFP|UNFPA|ILO|UNIDO|ITU|IAEA|IMF|UNODC|UN Women|UNOPS|OCHA|ECLAC|ESCAP|ECA|UNEP|UN-Habitat|UNCTAD|UNWTO|UPU|WIPO|WMO|IFAD|UNDSS|UNDRR|UNV|UNDPPA)\b/,
   /\b(World Bank|Red Cross|ICRC|MSF|Save the Children|Oxfam|CARE|World Vision|Mercy Corps|IRC|ACTED|NRC|DRC|Plan International|ActionAid|Amnesty International)\b/i,
-  /\b(African Development Bank|Asian Development Bank|Inter-American Development Bank|European Commission|OECD|NATO)\b/i,
+  /\b(African Development Bank|Asian Development Bank|Inter-American Development Bank|European Commission|OECD|NATO|IOM|IFC|MIGA|AfDB|ADB|EBRD|EIB)\b/i,
 ]
 
 export async function* scrapeUNJobs(
   settings: Record<string, string>
 ): AsyncGenerator<ScrapedOpportunity> {
   const maxPages = parseInt(settings.maxPages || "3", 10)
+  const globalSeen = new Set<string>()
 
-  for (let page = 1; page <= maxPages; page++) {
-    // Filter for remote positions
-    const url = page === 1 ? `${BASE_URL}/?q=remote` : `${BASE_URL}/?q=remote&page=${page}`
+  for (const term of SEARCH_TERMS) {
+    console.log(`[UNJobs] Searching: ${term}`)
 
-    let html: string
-    try {
-      const response = await fetch(url, {
-        headers: HEADERS,
-        signal: AbortSignal.timeout(30000),
-      })
+    for (let page = 1; page <= maxPages; page++) {
+      const url = page === 1 ? `${BASE_URL}/?q=${encodeURIComponent(term)}` : `${BASE_URL}/?q=${encodeURIComponent(term)}&page=${page}`
 
-      if (!response.ok) {
-        if (response.status === 429) {
-          console.warn("[UNJobs] Rate limited at page", page)
-          await sleep(10000)
-          continue
+      let html: string
+      try {
+        const response = await fetch(url, {
+          headers: HEADERS,
+          signal: AbortSignal.timeout(30000),
+        })
+
+        if (!response.ok) {
+          if (response.status === 429) {
+            console.warn("[UNJobs] Rate limited at page", page)
+            await sleep(10000)
+            continue
+          }
+          console.warn(`[UNJobs] HTTP ${response.status} at page ${page}`)
+          break
         }
-        console.warn(`[UNJobs] HTTP ${response.status} at page ${page}`)
+        html = await response.text()
+      } catch (err) {
+        console.warn(`[UNJobs] Fetch failed page ${page}:`, err)
         break
       }
-      html = await response.text()
-    } catch (err) {
-      console.warn(`[UNJobs] Fetch failed page ${page}:`, err)
-      break
-    }
 
-    const $ = cheerio.load(html)
+      const $ = cheerio.load(html)
 
-    const vacancyLinks = $('a[href*="/vacancies/"]')
-    if (vacancyLinks.length === 0) {
-      console.log(`[UNJobs] No vacancy links on page ${page}, stopping`)
-      break
-    }
-
-    const processedUrls = new Set<string>()
-
-    for (let i = 0; i < vacancyLinks.length; i++) {
-      const $link = $(vacancyLinks[i])
-      const href = $link.attr("href")
-      if (!href || processedUrls.has(href)) continue
-      processedUrls.add(href)
-
-      const title = $link.text().trim()
-      if (!title || title.length < 5) continue
-
-      const fullUrl = href.startsWith("http") ? href : `${BASE_URL}${href}`
-      const externalId = href.split("/").filter(Boolean).pop() || href
-
-      // The vacancy entry sits inside a container with metadata
-      const $container = $link.closest("div, tr, li, article")
-      const containerText = $container.length ? $container.text() : ""
-
-      // Extract deadline from ISO date or date patterns
-      const dateMatch = containerText.match(/\d{4}-\d{2}-\d{2}(?:T[\d:]+Z)?/)
-      const deadline = dateMatch ? tryParseDate(dateMatch[0]) : undefined
-
-      // Extract location from container text
-      const locationMatch = containerText.match(/(?:Duty Station|Location)[:\s]*([A-Z][\w\s,.-]+?)(?:\s{2,}|\n|$)/i)
-      const location = locationMatch ? locationMatch[1].trim() : ""
-
-      // Extract organization using pattern matching
-      const org = extractOrg(title + " " + containerText)
-
-      // Extract grade/level if present  
-      const gradeMatch = containerText.match(/\b([PGD]-\d|NO-[A-D]|UNV|SC-\d+|GS-\d+|P\d|D\d|ASG)\b/)
-      const grade = gradeMatch ? gradeMatch[1] : ""
-
-      // Build rich text for analysis
-      const allText = [title, containerText, org, location, grade].join(" ")
-      const words = allText.split(/[\s,;:]+/).filter(w => w.length > 3)
-      const causes = mapCauseTags(words)
-      const skills = mapSkillTags(words)
-
-      // Determine contract type from title/text
-      const isConsultancy = /consult/i.test(title)
-      const isInternship = /intern/i.test(title)
-      const isTemporary = /temporary|short[- ]term/i.test(title + " " + containerText)
-      const projectType = isConsultancy ? "consultation" : isTemporary ? "short-term" : "long-term"
-      const compensationType = isInternship ? "stipend" : "paid"
-
-      // Skip non-remote jobs (safety filter)
-      const workMode = detectWorkMode(allText)
-      if (workMode !== "remote") continue
-
-      yield {
-        sourceplatform: "unjobs",
-        sourceUrl: fullUrl,
-        externalId: `unjobs_${externalId}`,
-        title,
-        description: containerText.trim().slice(0, 5000) || title,
-        shortDescription: title + (grade ? ` (${grade})` : ""),
-        organization: org || "United Nations",
-        causes,
-        skillsRequired: skills,
-        experienceLevel: detectExperienceLevel(allText),
-        workMode: "remote",
-        location: location || "Remote",
-        country: extractCountry(location),
-        deadline,
-        postedDate: new Date(),
-        compensationType,
-        projectType,
+      const vacancyLinks = $('a[href*="/vacancies/"]')
+      if (vacancyLinks.length === 0) {
+        console.log(`[UNJobs] No vacancy links on page ${page}, stopping this term`)
+        break
       }
+
+      let pageYielded = 0
+
+      for (let i = 0; i < vacancyLinks.length; i++) {
+        const $link = $(vacancyLinks[i])
+        const href = $link.attr("href")
+        if (!href || globalSeen.has(href)) continue
+        globalSeen.add(href)
+
+        const title = $link.text().trim()
+        if (!title || title.length < 5) continue
+
+        const fullUrl = href.startsWith("http") ? href : `${BASE_URL}${href}`
+        const externalId = href.split("/").filter(Boolean).pop() || href
+
+        // The vacancy entry sits inside a container (table row, div, etc.)
+        const $container = $link.closest("div, tr, li, article, td")
+        const containerText = $container.length ? $container.text() : ""
+
+        // Extract deadline from ISO date or date patterns
+        const dateMatch = containerText.match(/\d{4}-\d{2}-\d{2}(?:T[\d:]+Z?)?/)
+        const deadline = dateMatch ? tryParseDate(dateMatch[0]) : undefined
+
+        // Extract location from container text
+        const locationMatch = containerText.match(/(?:Duty Station|Location)[:\s]*([A-Z][\w\s,.-]+?)(?:\s{2,}|\n|$)/i)
+        const location = locationMatch ? locationMatch[1].trim() : ""
+
+        // Extract organization using pattern matching
+        const org = extractOrg(title + " " + containerText)
+
+        // Extract grade/level if present
+        const gradeMatch = containerText.match(/\b([PGD]-\d|NO-[A-D]|UNV|SC-\d+|GS-\d+|P\d|D\d|ASG)\b/)
+        const grade = gradeMatch ? gradeMatch[1] : ""
+
+        // Build rich text for analysis
+        const allText = [title, containerText, org, location, grade].join(" ")
+
+        // Remote safety filter
+        const workMode = detectWorkMode(allText)
+        if (workMode !== "remote") continue
+
+        const words = allText.split(/[\s,;:]+/).filter(w => w.length > 3)
+        const causes = mapCauseTags(words)
+        const skills = mapSkillTags(words)
+
+        // Determine contract type
+        const isConsultancy = /consult/i.test(title)
+        const isInternship = /intern/i.test(title)
+        const isTemporary = /temporary|short[- ]term/i.test(title + " " + containerText)
+        const projectType = isConsultancy ? "consultation" : isTemporary ? "short-term" : "long-term"
+        const compensationType = isInternship ? "stipend" : "paid"
+
+        yield {
+          sourceplatform: "unjobs",
+          sourceUrl: fullUrl,
+          externalId: `unjobs_${externalId}`,
+          title,
+          description: containerText.trim().slice(0, 5000) || title,
+          shortDescription: title + (grade ? ` (${grade})` : ""),
+          organization: org || "United Nations",
+          causes,
+          skillsRequired: skills,
+          experienceLevel: detectExperienceLevel(allText),
+          workMode: "remote",
+          location: location || "Remote",
+          country: extractCountry(location),
+          deadline,
+          postedDate: new Date(),
+          compensationType,
+          projectType,
+        }
+        pageYielded++
+      }
+
+      console.log(`[UNJobs] Term "${term}" page ${page}: yielded ${pageYielded}`)
+      await sleep(3000)
     }
 
-    await sleep(3000)
+    await sleep(2000)
   }
 }
 
