@@ -23,7 +23,6 @@ import {
   Globe,
   Shield,
   ArrowLeft,
-  Handshake,
   Tag,
   GraduationCap,
   DollarSign,
@@ -92,25 +91,6 @@ export default async function ExternalOpportunityDetailPage({
                 </BreadcrumbItem>
               </BreadcrumbList>
             </Breadcrumb>
-          </div>
-        </div>
-
-        {/* Strategic Partner Banner */}
-        <div className="bg-gradient-to-r from-primary/5 via-primary/10 to-primary/5 border-b border-primary/20">
-          <div className="container mx-auto px-4 md:px-6 py-3">
-            <div className="flex items-center gap-3 text-sm">
-              <div className="flex items-center gap-2 text-primary font-medium">
-                <Handshake className="h-4 w-4" />
-                <span>Strategic Partner Opportunity</span>
-              </div>
-              <Separator orientation="vertical" className="h-4" />
-              <span className="text-muted-foreground">
-                Sourced from{" "}
-                <Badge variant="outline" className={`text-xs ${platform.color}`}>
-                  {platform.name}
-                </Badge>
-              </span>
-            </div>
           </div>
         </div>
 

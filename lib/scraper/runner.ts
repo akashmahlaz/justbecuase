@@ -86,13 +86,12 @@ export async function runScraper(
 
         // Deep scrape: fetch detail page for:
         // - All NEW items (listing data is usually thin)
+        // - Items with MISSING organization (was generic placeholder) — MUST enrich
         // - Existing items with thin descriptions (<1000 chars)
-        // - Items with generic/missing organization names
-        const hasGenericOrg = /^(Organization|International Organization|United Nations|Charity Organization|Organization on ReliefWeb)$/i.test(opportunity.organization)
         const shouldDeepScrape = deepScrapeEnabled
           && deepScrapeCount < maxDeepScrapes
           && item.sourceUrl
-          && (isNew || opportunity.description.length < 1000 || hasGenericOrg)
+          && (isNew || !opportunity.organization || opportunity.description.length < 1000)
 
         if (shouldDeepScrape) {
           try {
@@ -172,6 +171,11 @@ function transformToOpportunity(item: ScrapedOpportunity): Omit<ExternalOpportun
   // Combine all text for enrichment
   const allText = [item.title, item.description, item.location || ""].join(" ")
 
+  // FILTER OUT GENERIC ORG NAMES — these will be enriched via deep scraping
+  // If org is generic/placeholder, leave empty so detail page extraction fills it
+  const GENERIC_ORGS = /^(Organization|International Organization|Charity Organization|Organization on ReliefWeb|United Nations|Volunteer Organization)$/i
+  const orgName = GENERIC_ORGS.test(item.organization) ? "" : item.organization
+
   // Map skill tags from raw data + detected from description
   const rawSkillTags = item.skillsRequired.length > 0
     ? item.skillsRequired.map(s => s.subskillId)
@@ -221,11 +225,6 @@ function transformToOpportunity(item: ScrapedOpportunity): Omit<ExternalOpportun
   }
 }
 
-/**
- * Deep scrape a detail page to extract rich structured data.
- * Uses the text extractor (JSON-LD, OG, DOM heuristics) for any URL.
- * Returns partial fields to merge into the existing record.
- */
 async function deepScrapeDetailPage(
   url: string,
   platform: ScraperPlatform
@@ -235,19 +234,25 @@ async function deepScrapeDetailPage(
     const baseUrl = new URL(url).origin
     const content = extractPageContent(html, baseUrl)
 
-    if (!content.title && !content.description) return null
+    if (!content.title && !content.description && !content.organization) return null
 
     const allText = [content.title, content.description, content.location || "", ...content.tags].join(" ")
 
     const enriched: Partial<ExternalOpportunity> = {}
 
-    // Only override fields with richer data (longer description, non-empty values)
+    // PRIORITY 1: Organization name (critical for authentic look)
+    if (content.organization && content.organization.trim().length > 0) {
+      enriched.organization = content.organization.trim()
+    }
+    if (content.organizationUrl) enriched.organizationUrl = content.organizationUrl
+
+    // PRIORITY 2: Rich description (longer, better content)
     if (content.description && content.description.length > 100) {
       enriched.description = content.description.slice(0, 25000)
       enriched.shortDescription = content.description.slice(0, 280)
     }
-    if (content.organization) enriched.organization = content.organization
-    if (content.organizationUrl) enriched.organizationUrl = content.organizationUrl
+
+    // Other structured fields
     if (content.location) {
       enriched.location = content.location
       const parts = content.location.split(",").map(s => s.trim())
