@@ -623,11 +623,7 @@ function ExternalOpportunityView({ opportunity, lang, dict }: { opportunity: any
                   {opportunity.experienceLevel && (
                     <Badge variant="secondary" className="capitalize">{opportunity.experienceLevel}</Badge>
                   )}
-                  {/* Subtle partner indicator */}
-                  <Badge variant="outline" className="text-[10px] text-muted-foreground border-dashed">
-                    <Globe className="h-2.5 w-2.5 mr-1" />
-                    via {opportunity.sourceplatform}
-                  </Badge>
+
                 </div>
 
                 <h1 className="text-3xl font-bold text-foreground mb-4">{opportunity.title}</h1>
