@@ -126,7 +126,7 @@ function mapExternalToProject(opp: any) {
     applicantsCount: 0,
     createdAt: opp.postedDate || opp.scrapedAt || new Date(),
     ngo: {
-      name: opp.organization || "Organization",
+      name: opp.organization || "",
       logo: opp.organizationLogo || "",
       verified: false,
     },

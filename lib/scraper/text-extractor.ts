@@ -275,9 +275,49 @@ function extractPlatformSpecific($: cheerio.CheerioAPI, baseUrl: string): {
   }
 
   // --- Impactpool detail pages ---
-  const impactOrg = $('[class*="organization-name"], [class*="employer-name"]').first()
-  if (impactOrg.length && !result.organization) {
-    result.organization = impactOrg.text().trim()
+  // Detail page structure: #job-description contains:
+  //   h1[type="subHeading"]            → Title
+  //   span[type="bodyEmphasis"] #1C1B16 → Org name (first one)
+  //   span[type="body"] #1C1B16        → Location, level, languages
+  //   div[style*="#538F3E"]            → Deadline (green text)
+  //   div.main-content                 → Full job description with <h3> sections
+  //   div.company_logo a[href*="/organizations/"] → Org profile link
+  const jobDesc = $('#job-description')
+  if (jobDesc.length && !result.organization) {
+    // Org from first bodyEmphasis span
+    const orgSpan = jobDesc.find("span[type='bodyEmphasis']").first()
+    if (orgSpan.length) {
+      const orgText = orgSpan.clone().children().remove().end().text().trim()
+      if (orgText.length > 2) result.organization = orgText
+    }
+    // Org profile URL
+    const orgLink = jobDesc.find('.company_logo a[href*="/organizations/"]').first()
+    if (orgLink.length) {
+      const orgHref = orgLink.attr("href")
+      if (orgHref) {
+        result.organizationUrl = orgHref.startsWith("http") ? orgHref : `https://www.impactpool.org${orgHref}`
+      }
+    }
+    // Deadline from green text
+    const deadlineEl = jobDesc.find("[style*='#538F3E']").first()
+    if (deadlineEl.length && !result.deadline) {
+      const deadlineText = deadlineEl.text().replace(/Application deadline[:\s]*/i, "").trim()
+      // Extract date part: "April 06, 2026 (8 days)" → "April 06, 2026"
+      const dateMatch = deadlineText.match(/([A-Za-z]+ \d{1,2},?\s*\d{4})/)
+      if (dateMatch) result.deadline = dateMatch[1]
+    }
+    // Duration from <h3>Expected duration</h3> sibling
+    const durationH3 = jobDesc.find('h3:contains("Expected duration")').first()
+    if (durationH3.length && !result.duration) {
+      const durationText = durationH3.next().text().trim()
+      if (durationText.length > 3 && durationText.length < 100) result.duration = durationText
+    }
+    // Location from <h3>Work Location</h3> sibling
+    const locationH3 = jobDesc.find('h3:contains("Work Location")').first()
+    if (locationH3.length && !result.location) {
+      const locationText = locationH3.next().text().trim()
+      if (locationText.length > 1 && locationText.length < 200) result.location = locationText
+    }
   }
 
   return result
