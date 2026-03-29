@@ -718,7 +718,7 @@ function ProjectsContent() {
               </div>
 
               {loading ? (
-                <div className={viewMode === "grid" ? "grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6" : "space-y-4"}>
+                <div className={viewMode === "grid" ? "grid sm:grid-cols-2 lg:grid-cols-3 gap-5" : "space-y-4"}>
                   {Array.from({ length: 6 }).map((_, i) => (
                     <Card key={i}>
                       <CardContent className="p-6 space-y-4">
@@ -754,7 +754,7 @@ function ProjectsContent() {
                 </Alert>
               ) : (
                 <>
-                  <div className={viewMode === "grid" ? "grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6" : "flex flex-col gap-4"}>
+                  <div className={viewMode === "grid" ? "grid sm:grid-cols-2 lg:grid-cols-3 gap-5" : "flex flex-col gap-4"}>
                     {paginatedProjects.map((project, index) => {
                       const pid = project._id?.toString() || project.id || ""
                       const scoreData = matchScores.get(pid)
