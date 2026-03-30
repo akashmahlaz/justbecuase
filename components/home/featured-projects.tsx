@@ -3,7 +3,6 @@
 import { useState, useEffect, useRef } from "react"
 import LocaleLink from "@/components/locale-link"
 import { ProjectCard } from "@/components/project-card"
-import { browseProjects } from "@/lib/actions"
 import { ArrowRight, ChevronLeft, ChevronRight } from "lucide-react"
 import { resolveSkillName } from "@/lib/skills-data"
 import { useDictionary } from "@/components/dictionary-provider"
@@ -14,7 +13,7 @@ export function FeaturedProjects() {
   const dict = useDictionary()
   const locale = useLocale()
   const home = dict.home || {}
-  const [featuredProjects, setFeaturedProjects] = useState<Awaited<ReturnType<typeof browseProjects>>>([]);
+  const [featuredProjects, setFeaturedProjects] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -26,9 +25,14 @@ export function FeaturedProjects() {
     }
   };
 
+  function fetchFeatured() {
+    return fetch("/api/projects?page=1&limit=8")
+      .then(res => res.json())
+      .then(data => setFeaturedProjects(data.projects || []))
+  }
+
   useEffect(() => {
-    browseProjects()
-      .then(projects => setFeaturedProjects(projects.slice(0, 6)))
+    fetchFeatured()
       .catch(() => setError(true))
       .finally(() => setLoading(false));
   }, []);
@@ -38,7 +42,7 @@ export function FeaturedProjects() {
       <section className="relative py-24 bg-background overflow-hidden">
         <div className="container mx-auto px-4 md:px-6 text-center py-12">
           <p className="text-muted-foreground mb-4">{home.failedToLoad || "Failed to load featured opportunities."}</p>
-          <button onClick={() => { setError(false); setLoading(true); browseProjects().then(p => setFeaturedProjects(p.slice(0, 6))).catch(() => setError(true)).finally(() => setLoading(false)) }} className="text-sm text-primary hover:underline">
+          <button onClick={() => { setError(false); setLoading(true); fetchFeatured().catch(() => setError(true)).finally(() => setLoading(false)) }} className="text-sm text-primary hover:underline">
             {home.retry || "Retry"}
           </button>
         </div>
@@ -120,18 +124,21 @@ export function FeaturedProjects() {
             </button>
           <div ref={scrollRef} className="flex gap-6 overflow-x-auto pb-6 snap-x snap-mandatory scrollbar-hide -mx-4 px-4 md:-mx-6 md:px-6">
             {featuredProjects.map((project) => (
-              <div key={project._id?.toString()} className="min-w-[320px] max-w-[380px] flex-shrink-0 snap-start">
+              <div key={project._id?.toString() || project.id} className="min-w-[320px] max-w-[380px] flex-shrink-0 snap-start">
                 <ProjectCard project={{
-                  id: project._id?.toString() || "",
+                  id: project.id || project._id?.toString() || "",
                   title: project.title,
                   description: project.description,
-                  skills: project.skillsRequired?.map((s: any) => resolveSkillName(s.subskillId)) || [],
+                  skills: project.skills?.length
+                    ? project.skills.map((s: any) => typeof s === "string" ? s : resolveSkillName(s.subskillId))
+                    : project.skillsRequired?.map((s: any) => resolveSkillName(s.subskillId)) || [],
                   location: project.workMode === "remote" ? (dict.search?.remote || "Remote") : project.location || (dict.search?.onsite || "On-site"),
                   timeCommitment: project.timeCommitment,
                   applicants: project.applicantsCount || 0,
                   postedAt: project.createdAt ? new Date(project.createdAt).toLocaleDateString(locale) : (dict.common?.recently || "Recently"),
                   projectType: project.projectType,
-                  ngo: { name: (project as any).ngoName || (dict.common?.verifiedPartner || "Verified Partner"), verified: true }
+                  ngo: project.ngo || { name: (project as any).ngoName || (dict.common?.verifiedPartner || "Verified Partner"), verified: true },
+                  externalUrl: project.externalUrl,
                 }} />
               </div>
             ))}
