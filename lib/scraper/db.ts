@@ -215,7 +215,7 @@ export const scraperConfigsDb = {
     const defaults: Omit<ScraperConfig, "_id">[] = [
       {
         platform: "reliefweb",
-        enabled: true,
+        enabled: false,
         cronSchedule: "0 */2 * * *",
         totalItemsScraped: 0,
         settings: { maxPages: "500", deepScrape: "true", maxDetailPages: "200", jobTypes: "volunteer,internship,job" },
@@ -224,7 +224,7 @@ export const scraperConfigsDb = {
       },
       {
         platform: "idealist",
-        enabled: true,
+        enabled: false,
         cronSchedule: "20 */2 * * *",
         totalItemsScraped: 0,
         settings: { maxPages: "400", deepScrape: "true", maxDetailPages: "200" },
@@ -233,7 +233,7 @@ export const scraperConfigsDb = {
       },
       {
         platform: "unjobs",
-        enabled: true,
+        enabled: false,
         cronSchedule: "40 */2 * * *",
         totalItemsScraped: 0,
         settings: { maxPages: "400", deepScrape: "true", maxDetailPages: "200" },
@@ -242,7 +242,7 @@ export const scraperConfigsDb = {
       },
       {
         platform: "devex",
-        enabled: true,
+        enabled: false,
         cronSchedule: "10 */2 * * *",
         totalItemsScraped: 0,
         settings: { maxPages: "200", deepScrape: "true", maxDetailPages: "200" },
@@ -251,7 +251,7 @@ export const scraperConfigsDb = {
       },
       {
         platform: "impactpool",
-        enabled: true,
+        enabled: false,
         cronSchedule: "50 */2 * * *",
         totalItemsScraped: 0,
         settings: { maxPages: "300", deepScrape: "true", maxDetailPages: "200" },
@@ -260,7 +260,7 @@ export const scraperConfigsDb = {
       },
       {
         platform: "workforgood",
-        enabled: true,
+        enabled: false,
         cronSchedule: "30 */2 * * *",
         totalItemsScraped: 0,
         settings: { maxPages: "150", deepScrape: "true", maxDetailPages: "150" },

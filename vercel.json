@@ -19,30 +19,6 @@
     {
       "path": "/api/cron/weekly-team-digest",
       "schedule": "0 9 * * 1"
-    },
-    {
-      "path": "/api/cron/scraper?platform=reliefweb",
-      "schedule": "0 */2 * * *"
-    },
-    {
-      "path": "/api/cron/scraper?platform=idealist",
-      "schedule": "10 */2 * * *"
-    },
-    {
-      "path": "/api/cron/scraper?platform=devex",
-      "schedule": "20 */2 * * *"
-    },
-    {
-      "path": "/api/cron/scraper?platform=workforgood",
-      "schedule": "30 */2 * * *"
-    },
-    {
-      "path": "/api/cron/scraper?platform=impactpool",
-      "schedule": "40 */2 * * *"
-    },
-    {
-      "path": "/api/cron/scraper?platform=unjobs",
-      "schedule": "50 */2 * * *"
     }
   ]
 }
