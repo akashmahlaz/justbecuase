@@ -257,7 +257,11 @@ export default async function AboutPage({ params }: { params: Promise<{ lang: st
             </div>
             {teamMembers.length > 0 ? (
               <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-8">
-                {teamMembers.map((member) => (
+                {teamMembers.map((member) => {
+                  const shortBio = member.bio && member.bio.length > 120
+                    ? member.bio.substring(0, 120).trimEnd() + "..."
+                    : member.bio
+                  return (
                   <div key={member._id?.toString()} className="text-center">
                     <img
                       src={member.avatar || "/placeholder.svg"}
@@ -266,8 +270,16 @@ export default async function AboutPage({ params }: { params: Promise<{ lang: st
                     />
                     <h3 className="font-semibold text-foreground">{member.name}</h3>
                     <p className="text-sm text-primary mb-2">{member.role}</p>
-                    <p className="text-sm text-muted-foreground mb-3">{member.bio}</p>
-                    <div className="flex justify-center gap-2">
+                    <p className="text-sm text-muted-foreground mb-2">{shortBio}</p>
+                    {member.bio && member.bio.length > 120 && (
+                      <LocaleLink
+                        href={`/about/team/${member._id?.toString()}`}
+                        className="text-sm text-primary hover:underline font-medium"
+                      >
+                        Read More →
+                      </LocaleLink>
+                    )}
+                    <div className="flex justify-center gap-2 mt-3">
                       {member.linkedinUrl && (
                         <Button variant="ghost" size="icon" className="h-8 w-8" asChild>
                           <a href={member.linkedinUrl} target="_blank" rel="noopener noreferrer">
@@ -284,7 +296,8 @@ export default async function AboutPage({ params }: { params: Promise<{ lang: st
                       )}
                     </div>
                   </div>
-                ))}
+                  )
+                })}
               </div>
             ) : (
               <div className="text-center py-12 bg-muted/30 rounded-lg">
