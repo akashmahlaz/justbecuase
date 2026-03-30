@@ -4,15 +4,12 @@ import { Navbar } from "@/components/navbar"
 import { Footer } from "@/components/footer"
 import { Button } from "@/components/ui/button"
 import { getTeamMemberById } from "@/lib/actions"
-import { getDictionary } from "@/app/[lang]/dictionaries"
-import type { Locale } from "@/lib/i18n-config"
-import { ArrowLeft, Linkedin, Twitter, Mail } from "lucide-react"
+import { ArrowLeft, Linkedin, Twitter } from "lucide-react"
 
 export const dynamic = "force-dynamic"
 
 export default async function TeamMemberPage({ params }: { params: Promise<{ lang: string; id: string }> }) {
   const { lang, id } = await params
-  const dict = await getDictionary(lang as Locale)
 
   const result = await getTeamMemberById(id)
   if (!result.success || !result.data) notFound()
@@ -21,7 +18,7 @@ export default async function TeamMemberPage({ params }: { params: Promise<{ lan
 
   return (
     <div className="min-h-screen bg-background">
-      <Navbar dict={dict} />
+      <Navbar />
       <main className="pt-20">
         <div className="container mx-auto px-4 md:px-6 py-12">
           <LocaleLink href="/about" className="inline-flex items-center text-muted-foreground hover:text-foreground mb-8 transition-colors">
@@ -70,7 +67,7 @@ export default async function TeamMemberPage({ params }: { params: Promise<{ lan
           </div>
         </div>
       </main>
-      <Footer dict={dict} />
+      <Footer />
     </div>
   )
 }
