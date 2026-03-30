@@ -4,6 +4,7 @@
 
 export type ScraperPlatform =
   | "reliefweb"
+  | "reliefweb-api"
   | "idealist"
   | "unjobs"
   | "devex"
@@ -113,6 +114,10 @@ export interface ExternalOpportunity {
 
   compensationType?: string
   salary?: string
+
+  // Rich HTML content (from ReliefWeb API)
+  bodyHtml?: string
+  howToApplyHtml?: string
 
   // Sync status
   isActive: boolean

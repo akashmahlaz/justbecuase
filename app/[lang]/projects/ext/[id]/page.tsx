@@ -152,13 +152,38 @@ export default async function ExternalOpportunityDetailPage({
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="prose prose-slate dark:prose-invert max-w-none text-foreground leading-relaxed whitespace-pre-line text-[15px]">
-                    {opportunity.description && opportunity.description.length > 50
-                      ? opportunity.description
-                      : opportunity.shortDescription || opportunity.title}
-                  </div>
+                  {opportunity.bodyHtml ? (
+                    <div
+                      className="prose prose-slate dark:prose-invert max-w-none text-foreground leading-relaxed text-[15px]"
+                      dangerouslySetInnerHTML={{ __html: opportunity.bodyHtml }}
+                    />
+                  ) : (
+                    <div className="prose prose-slate dark:prose-invert max-w-none text-foreground leading-relaxed whitespace-pre-line text-[15px]">
+                      {opportunity.description && opportunity.description.length > 50
+                        ? opportunity.description
+                        : opportunity.shortDescription || opportunity.title}
+                    </div>
+                  )}
                 </CardContent>
               </Card>
+
+              {/* How to Apply (ReliefWeb API jobs) */}
+              {opportunity.howToApplyHtml && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Briefcase className="h-5 w-5 text-primary" />
+                      {dict.projectDetail?.howToApply || "How to Apply"}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div
+                      className="prose prose-slate dark:prose-invert max-w-none text-foreground leading-relaxed text-[15px]"
+                      dangerouslySetInnerHTML={{ __html: opportunity.howToApplyHtml }}
+                    />
+                  </CardContent>
+                </Card>
+              )}
 
               {/* Skills */}
               {opportunity.skillsRequired && opportunity.skillsRequired.length > 0 && (
@@ -370,6 +395,9 @@ export default async function ExternalOpportunityDetailPage({
  * fetch the actual source page, extract the full job description, update DB, and return enriched data.
  */
 async function enrichIfNeeded(opportunity: any): Promise<any> {
+  // ReliefWeb API jobs already have full content — skip enrichment
+  if (opportunity.sourceplatform === "reliefweb-api") return opportunity
+
   const desc = opportunity.description || ""
   const isThin = desc.length < 500 || desc === opportunity.title || desc === opportunity.shortDescription
 
