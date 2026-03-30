@@ -126,11 +126,6 @@ export function Footer() {
                 </LocaleLink>
               </li>
               <li>
-                <LocaleLink href="/changelog" className="text-muted-foreground hover:text-foreground transition-colors">
-                  {footer.changelog || "Changelog"}
-                </LocaleLink>
-              </li>
-              <li>
                 <LocaleLink href="/contact" className="text-muted-foreground hover:text-foreground transition-colors">
                   {footer.contactUs || "Contact"}
                 </LocaleLink>
