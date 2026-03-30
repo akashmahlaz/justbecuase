@@ -2527,6 +2527,17 @@ export async function getActiveTeamMembers(): Promise<ApiResponse<TeamMember[]>>
   }
 }
 
+export async function getTeamMemberById(id: string): Promise<ApiResponse<TeamMember>> {
+  try {
+    const member = await teamMembersDb.findById(id)
+    if (!member) return { success: false, error: "Team member not found" }
+    return { success: true, data: member }
+  } catch (error) {
+    console.error("Get team member by id error:", error)
+    return { success: false, error: "Failed to get team member" }
+  }
+}
+
 export async function reorderTeamMembers(orderedIds: string[]): Promise<ApiResponse<boolean>> {
   try {
     await requireRole(["admin"])
