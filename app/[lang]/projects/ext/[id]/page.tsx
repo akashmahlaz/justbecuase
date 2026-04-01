@@ -395,8 +395,8 @@ export default async function ExternalOpportunityDetailPage({
  * fetch the actual source page, extract the full job description, update DB, and return enriched data.
  */
 async function enrichIfNeeded(opportunity: any): Promise<any> {
-  // ReliefWeb API jobs already have full content — skip enrichment
-  if (opportunity.sourceplatform === "reliefweb-api") return opportunity
+  // API-sourced jobs already have full content — skip enrichment
+  if (opportunity.sourceplatform === "reliefweb-api" || opportunity.sourceplatform === "idealist-api") return opportunity
 
   const desc = opportunity.description || ""
   const isThin = desc.length < 500 || desc === opportunity.title || desc === opportunity.shortDescription
