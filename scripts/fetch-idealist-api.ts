@@ -197,7 +197,7 @@ async function main() {
         if (d.locationType !== "REMOTE") continue
 
         remoteJobs++
-        const description = stripHtml(d.description || "")
+        const plainDescription = stripHtml(d.description || "")
 
         // Build salary string
         let salary: string | undefined
@@ -218,8 +218,9 @@ async function main() {
           externalId: `idealist_${d.id}`,
           sourceUrl,
           title: d.name,
-          description: d.description || d.name,
-          shortDescription: description.slice(0, 280),
+          description: plainDescription,
+          shortDescription: plainDescription.slice(0, 280),
+          bodyHtml: d.description || undefined,
           organization: d.org?.name || "Organization on Idealist",
           organizationUrl: d.org?.url?.en || undefined,
           organizationLogo: d.org?.logo || undefined,
