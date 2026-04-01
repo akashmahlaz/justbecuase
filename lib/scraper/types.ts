@@ -6,6 +6,7 @@ export type ScraperPlatform =
   | "reliefweb"
   | "reliefweb-api"
   | "idealist"
+  | "idealist-api"
   | "unjobs"
   | "devex"
   | "impactpool"
