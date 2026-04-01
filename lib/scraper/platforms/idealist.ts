@@ -150,6 +150,8 @@ interface IdealistInternshipDetail {
 // ============================================
 type ListingType = "volops" | "jobs" | "internships"
 
+// NOTE: API key from Bradley only grants access to jobs endpoint.
+// Volops and internships return 403. If access is expanded later, add them back.
 const LISTING_CONFIGS: {
   type: ListingType
   listKey: string
@@ -157,9 +159,9 @@ const LISTING_CONFIGS: {
   compensationType: "volunteer" | "paid" | "stipend"
   projectType: "short-term" | "long-term" | "consultation" | "ongoing"
 }[] = [
-  { type: "volops", listKey: "volops", detailKey: "volop", compensationType: "volunteer", projectType: "short-term" },
   { type: "jobs", listKey: "jobs", detailKey: "job", compensationType: "paid", projectType: "long-term" },
-  { type: "internships", listKey: "internships", detailKey: "internship", compensationType: "stipend", projectType: "short-term" },
+  // { type: "volops", listKey: "volops", detailKey: "volop", compensationType: "volunteer", projectType: "short-term" },
+  // { type: "internships", listKey: "internships", detailKey: "internship", compensationType: "stipend", projectType: "short-term" },
 ]
 
 // ============================================
@@ -345,11 +347,15 @@ function mapDetailToOpportunity(
   if (type === "internships" && d.paid === true) finalCompensationType = "paid"
   if (type === "internships" && d.paid === false) finalCompensationType = "volunteer"
 
-  // Map areas of focus to our cause format
+  // Map Idealist areasOfFocus to our cause IDs
   const areasOfFocus = d.areasOfFocus || d.org?.areasOfFocus || []
-  const causes = areasOfFocus.length > 0
-    ? areasOfFocus.map(a => a.replace(/_/g, " ").toLowerCase().replace(/\b\w/g, c => c.toUpperCase()))
-    : mapCauseTags(allText.split(/[\s,;:]+/).filter(w => w.length > 3))
+  const mappedAreaKeywords = areasOfFocus.flatMap(a =>
+    a.replace(/_/g, " ").toLowerCase().split(/\s+/)
+  )
+  const causes = mapCauseTags([
+    ...mappedAreaKeywords,
+    ...allText.split(/[\s,;:]+/).filter(w => w.length > 3),
+  ])
 
   const skills = mapSkillTags(
     [...(d.functions || []), ...allText.split(/[\s,;:]+/)].filter(w => w.length > 3)
