@@ -121,7 +121,7 @@ export default async function AboutPage({ params }: { params: Promise<{ lang: st
                     </div>
                     <div>
                       <p className="text-lg md:text-xl text-foreground italic leading-relaxed">
-                        "{a.missionQuote || "To accelerate social impact by seamlessly connecting mission-driven NGOs with the specialized talent they need to change the world."}"
+                        "{a.missionQuote || " "}"
                       </p>
                     </div>
                   </div>
