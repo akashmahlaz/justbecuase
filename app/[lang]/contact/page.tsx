@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
-import { Mail, MapPin, Phone, Loader2, CheckCircle, MessageSquare, Clock, ArrowRight, Send } from "lucide-react"
+import { Mail, MapPin, Loader2, CheckCircle, MessageSquare, Clock, ArrowRight, Send } from "lucide-react"
 import { useDictionary } from "@/components/dictionary-provider"
 import { toast } from "sonner"
 import LocaleLink from "@/components/locale-link"
@@ -57,7 +57,13 @@ function ContactPageContent() {
       const res = await fetch("/api/contact", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ firstName: firstName.trim(), lastName: lastName.trim(), email: email.trim(), message: message.trim(), source }),
+        body: JSON.stringify({
+          firstName: firstName.trim(),
+          lastName: lastName.trim(),
+          email: email.trim(),
+          message: message.trim(),
+          source
+        }),
       })
 
       if (!res.ok) {
@@ -79,7 +85,7 @@ function ContactPageContent() {
       <Navbar />
 
       <main className="flex-1">
-        {/* Hero Section */}
+        {/* Hero */}
         <section className="py-20 bg-linear-to-b from-primary/5 to-background">
           <div className="container mx-auto px-4 md:px-6 text-center">
             <div className="inline-flex items-center gap-2 bg-primary/10 px-4 py-2 rounded-full mb-6">
@@ -90,14 +96,19 @@ function ContactPageContent() {
                   : (c.badge || "We're Here to Help")}
               </span>
             </div>
-            <h1 className="text-4xl md:text-5xl font-bold text-foreground mb-6">
-              {source === "pricing_contact_sales" ? (c.salesTitle || "Contact Sales") : (c.title || "Get in Touch")}
+
+            <h1 className="text-4xl md:text-5xl font-bold mb-6">
+              {source === "pricing_contact_sales"
+                ? (c.salesTitle || "Contact Sales")
+                : (c.title || "Get in Touch")}
             </h1>
+
             <p className="text-xl text-muted-foreground max-w-2xl mx-auto mb-4">
               {source === "pricing_contact_sales"
                 ? (c.salesSubtitle || "Tell us about your organization and we'll create a custom plan for you.")
-                : (c.subtitle || "Have questions about our platform? We'd love to hear from you and help connect skills with purpose.")}
+                : (c.subtitle || "Have questions? We'd love to help.")}
             </p>
+
             <div className="inline-flex items-center gap-2 text-sm text-muted-foreground">
               <Clock className="h-4 w-4" />
               <span>{c.responseTime || "We typically respond within 24 hours"}</span>
@@ -105,140 +116,80 @@ function ContactPageContent() {
           </div>
         </section>
 
-        {/* Contact Info Cards */}
+        {/* Contact Cards */}
         <section className="py-12 bg-muted/30">
           <div className="container mx-auto px-4 md:px-6">
-            <div className="max-w-5xl mx-auto grid sm:grid-cols-3 gap-6">
+            <div className="max-w-4xl mx-auto grid sm:grid-cols-2 gap-6">
+
+              {/* Email */}
               <Card className="group hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
                 <CardContent className="p-6 text-center">
-                  <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-4 group-hover:bg-primary/20 transition-colors">
+                  <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-4">
                     <Mail className="h-7 w-7 text-primary" />
                   </div>
-                  <h3 className="font-semibold text-foreground mb-1">{c.emailUs || "Email Us"}</h3>
+                  <h3 className="font-semibold mb-1">{c.emailUs || "Email Us"}</h3>
                   <p className="text-sm text-muted-foreground mb-3">
                     {c.emailUsDesc || "For general inquiries and support."}
                   </p>
-                  <a href="mailto:partner@justbecausenetwork.com" className="text-primary hover:underline font-medium text-sm">
-                    partner@justbecausenetwork.com
+                  <a href="mailto:partnerships@justbecausenetwork.com" className="text-primary hover:underline text-sm">
+                    partnerships@justbecausenetwork.com
                   </a>
                 </CardContent>
               </Card>
 
+              {/* Location */}
               <Card className="group hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
                 <CardContent className="p-6 text-center">
-                  <div className="w-14 h-14 rounded-2xl bg-secondary/10 flex items-center justify-center mx-auto mb-4 group-hover:bg-secondary/20 transition-colors">
+                  <div className="w-14 h-14 rounded-2xl bg-secondary/10 flex items-center justify-center mx-auto mb-4">
                     <MapPin className="h-7 w-7 text-secondary" />
                   </div>
-                  <h3 className="font-semibold text-foreground mb-1">{c.visitUs || "Visit Us"}</h3>
+                  <h3 className="font-semibold mb-1">{c.visitUs || "Visit Us"}</h3>
                   <p className="text-sm text-muted-foreground mb-3">
                     {c.visitUsDesc || "Our office location."}
                   </p>
-                  <p className="text-sm font-medium text-foreground">
-                    Mysore, Karnataka<br />India
+                  <p className="text-sm font-medium">
+                    Singapore
                   </p>
                 </CardContent>
               </Card>
 
-              <Card className="group hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
-                <CardContent className="p-6 text-center">
-                  <div className="w-14 h-14 rounded-2xl bg-success-light flex items-center justify-center mx-auto mb-4 group-hover:bg-success/20 transition-colors">
-                    <Phone className="h-7 w-7 text-success" />
-                  </div>
-                  <h3 className="font-semibold text-foreground mb-1">{c.callUs || "Call Us"}</h3>
-                  <p className="text-sm text-muted-foreground mb-3">
-                    {c.callUsHours || "Mon-Fri from 9am to 6pm IST."}
-                  </p>
-                  <a href="tel:+917814002784" className="text-primary hover:underline font-medium text-sm">
-                    +91 7814002784
-                  </a>
-                </CardContent>
-              </Card>
             </div>
           </div>
         </section>
 
-        {/* Contact Form Section */}
+        {/* Form */}
         <section className="py-16">
           <div className="container mx-auto px-4 md:px-6">
             <div className="max-w-3xl mx-auto">
-              <Card className="border-2 border-border/50 shadow-lg">
-                <CardHeader className="text-center pb-2">
-                  <CardTitle className="text-2xl">{c.sendAMessage || "Send a Message"}</CardTitle>
-                  <CardDescription className="text-base">
-                    {c.formDesc || "Fill out the form below and our team will get back to you."}
+              <Card className="border-2 shadow-lg">
+                <CardHeader className="text-center">
+                  <CardTitle>{c.sendAMessage || "Send a Message"}</CardTitle>
+                  <CardDescription>
+                    {c.formDesc || "Fill out the form and we’ll get back to you."}
                   </CardDescription>
                 </CardHeader>
-                <CardContent className="px-6 pb-8 pt-4 sm:px-8">
+
+                <CardContent>
                   {isSubmitted ? (
-                    <div className="text-center py-12 space-y-4">
-                      <div className="w-20 h-20 rounded-full bg-success-light flex items-center justify-center mx-auto">
-                        <CheckCircle className="h-10 w-10 text-success" />
-                      </div>
-                      <h3 className="text-2xl font-semibold">{c.thankYou || "Thank You!"}</h3>
-                      <p className="text-muted-foreground max-w-md mx-auto">
-                        {c.weWillGetBack || "We've received your message and will get back to you within 24 hours."}
-                      </p>
-                      <Button variant="outline" onClick={() => { setIsSubmitted(false); setFirstName(""); setLastName(""); setEmail(""); setMessage("") }}>
-                        {c.sendAnother || "Send Another Message"}
-                      </Button>
+                    <div className="text-center py-10">
+                      <CheckCircle className="mx-auto h-10 w-10 text-green-500" />
+                      <p className="mt-4">{c.thankYou || "Thank you! We'll respond soon."}</p>
                     </div>
                   ) : (
-                    <form onSubmit={handleSubmit} className="space-y-5">
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <label htmlFor="first-name" className="text-sm font-medium">{c.firstName || "First name"}</label>
-                          <Input id="first-name" placeholder="John" required maxLength={100} value={firstName} onChange={(e) => setFirstName(e.target.value)} disabled={isSubmitting} className="h-11" />
-                        </div>
-                        <div className="space-y-2">
-                          <label htmlFor="last-name" className="text-sm font-medium">{c.lastName || "Last name"}</label>
-                          <Input id="last-name" placeholder="Doe" required maxLength={100} value={lastName} onChange={(e) => setLastName(e.target.value)} disabled={isSubmitting} className="h-11" />
-                        </div>
-                      </div>
-                      <div className="space-y-2">
-                        <label htmlFor="email" className="text-sm font-medium">{c.emailLabel || "Email"}</label>
-                        <Input id="email" placeholder="john@example.com" type="email" required maxLength={254} value={email} onChange={(e) => setEmail(e.target.value)} disabled={isSubmitting} className="h-11" />
-                      </div>
-                      <div className="space-y-2">
-                        <label htmlFor="message" className="text-sm font-medium">{c.messageLabel || "Message"}</label>
-                        <Textarea id="message" placeholder={c.messagePlaceholder || "How can we help you?"} className="min-h-38 resize-none" required maxLength={5000} value={message} onChange={(e) => setMessage(e.target.value)} disabled={isSubmitting} />
-                      </div>
-                      <Button className="w-full h-11" type="submit" disabled={isSubmitting} size="lg">
-                        {isSubmitting ? (
-                          <><Loader2 className="h-4 w-4 mr-2 animate-spin" />{c.sending || "Sending..."}</>
-                        ) : (
-                          <><Send className="h-4 w-4 mr-2" />{c.sendButton || "Send Message"}</>
-                        )}
+                    <form onSubmit={handleSubmit} className="space-y-4">
+                      <Input placeholder="First name" value={firstName} onChange={(e) => setFirstName(e.target.value)} />
+                      <Input placeholder="Last name" value={lastName} onChange={(e) => setLastName(e.target.value)} />
+                      <Input type="email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} />
+                      <Textarea placeholder="Message" value={message} onChange={(e) => setMessage(e.target.value)} />
+
+                      <Button className="w-full" disabled={isSubmitting}>
+                        {isSubmitting ? <Loader2 className="animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
+                        Send Message
                       </Button>
                     </form>
                   )}
                 </CardContent>
               </Card>
-            </div>
-          </div>
-        </section>
-
-        {/* CTA Section */}
-        <section className="py-16 bg-primary text-primary-foreground">
-          <div className="container mx-auto px-4 md:px-6 text-center">
-            <h2 className="text-3xl font-bold mb-4">{c.ctaHeading || "Ready to Make an Impact?"}</h2>
-            <p className="text-lg opacity-90 max-w-2xl mx-auto mb-8">
-              {c.ctaPara || "Whether you're a skilled professional or an NGO, join our platform and start connecting skills with purpose."}
-            </p>
-            <div className="flex flex-wrap justify-center gap-4">
-              <Button asChild size="lg" variant="secondary">
-                <LocaleLink href="/auth/signup">
-                  {c.ctaGetStarted || "Get Started"}
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </LocaleLink>
-              </Button>
-              <Button
-                asChild
-                size="lg"
-                variant="outline"
-                className="bg-transparent border-primary-foreground text-primary-foreground hover:bg-primary-foreground/10"
-              >
-                <LocaleLink href="/projects">{c.ctaBrowse || "Browse Opportunities"}</LocaleLink>
-              </Button>
             </div>
           </div>
         </section>
