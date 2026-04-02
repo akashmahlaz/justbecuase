@@ -134,7 +134,7 @@ export function DashboardContentHeader({ userType, userName, userAvatar }: Dashb
             <DropdownMenuItem
               onClick={async () => {
                 await signOut()
-                window.location.href = "/auth/signin"
+                window.location.href = localePath("/auth/signin", locale)
               }}
               className="text-destructive cursor-pointer"
             >
