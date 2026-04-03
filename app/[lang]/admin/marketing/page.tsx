@@ -6,5 +6,5 @@ export default async function MarketingPage({
   params: Promise<{ lang: string }>
 }) {
   const { lang } = await params
-  redirect(`/${lang}/admin/marketing/prospecting`)
+  redirect(`/${lang}/marketing`)
 }
