@@ -72,7 +72,7 @@ const navGroups = [
     items: [
       { title: "Reports", href: "/admin/reports", icon: BarChart3 },
       { title: "Search Analytics", href: "/admin/search-analytics", icon: Search },
-      { title: "Marketing Intel", href: "/admin/marketing", icon: Megaphone },
+      { title: "Marketing Intel", href: "/marketing", icon: Megaphone },
     ],
   },
   {
