@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { fetchAllJobs, mapApiJobToOpportunity } from "@/lib/reliefweb-api"
 import { externalOpportunitiesDb } from "@/lib/scraper"
+import { sendEmail, getCronSyncEmailHtml } from "@/lib/email"
 
 export const maxDuration = 300
 
@@ -74,17 +75,30 @@ export async function GET(request: Request) {
       `[ReliefWeb Sync] ${totalProcessed} processed (${totalNew} new, ${totalUpdated} updated, ${staleCount} deactivated) in ${elapsed}s`
     )
 
-    return NextResponse.json({
-      success: true,
-      stats: {
-        apiTotal: total,
-        processed: totalProcessed,
-        new: totalNew,
-        updated: totalUpdated,
-        deactivated: staleCount,
-        elapsedSeconds: parseFloat(elapsed),
-      },
-    })
+    const syncStats = {
+      apiTotal: total,
+      processed: totalProcessed,
+      new: totalNew,
+      updated: totalUpdated,
+      deactivated: staleCount,
+      elapsedSeconds: parseFloat(elapsed),
+    }
+
+    // Send notification email
+    try {
+      const notifyEmail = process.env.CRON_NOTIFY_EMAIL
+      if (notifyEmail) {
+        await sendEmail({
+          to: notifyEmail,
+          subject: `[Cron] ReliefWeb Sync — ${totalNew} new, ${totalUpdated} updated`,
+          html: getCronSyncEmailHtml("ReliefWeb", syncStats),
+        })
+      }
+    } catch (emailErr) {
+      console.error("[ReliefWeb Sync] Notification email failed:", emailErr)
+    }
+
+    return NextResponse.json({ success: true, stats: syncStats })
   } catch (error) {
     console.error("[ReliefWeb Sync] Fatal error:", error)
     return NextResponse.json(

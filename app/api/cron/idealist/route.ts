@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { fetchAllRemoteJobs, mapJobToOpportunity } from "@/lib/idealist-api"
 import { externalOpportunitiesDb } from "@/lib/scraper"
+import { sendEmail, getCronSyncEmailHtml } from "@/lib/email"
 
 export const maxDuration = 300
 
@@ -29,13 +30,9 @@ export async function GET(request: Request) {
     // Fetch all remote jobs
     const jobs = await fetchAllRemoteJobs(500)
 
-    // Track which IDs we see (to mark stale ones inactive)
-    const seenIds = new Set<string>()
-
     for (const job of jobs) {
       try {
         const opportunity = mapJobToOpportunity(job)
-        seenIds.add(opportunity.externalId)
 
         const { isNew } = await externalOpportunitiesDb.upsert(opportunity)
         if (isNew) totalNew++
@@ -46,8 +43,8 @@ export async function GET(request: Request) {
       }
     }
 
-    // Mark jobs no longer in the API as inactive
-    const staleCount = await markStaleInactive(seenIds)
+    // Mark expired jobs as inactive (based on listing expiry date, not run coverage)
+    const staleCount = await markExpiredInactive()
 
     const elapsed = ((Date.now() - startTime) / 1000).toFixed(1)
 
@@ -55,17 +52,30 @@ export async function GET(request: Request) {
       `[Idealist Sync] ${totalProcessed} processed (${totalNew} new, ${totalUpdated} updated, ${staleCount} deactivated) in ${elapsed}s`
     )
 
-    return NextResponse.json({
-      success: true,
-      stats: {
-        apiTotal: jobs.length,
-        processed: totalProcessed,
-        new: totalNew,
-        updated: totalUpdated,
-        deactivated: staleCount,
-        elapsedSeconds: parseFloat(elapsed),
-      },
-    })
+    const syncStats = {
+      apiTotal: jobs.length,
+      processed: totalProcessed,
+      new: totalNew,
+      updated: totalUpdated,
+      deactivated: staleCount,
+      elapsedSeconds: parseFloat(elapsed),
+    }
+
+    // Send notification email
+    try {
+      const notifyEmail = process.env.CRON_NOTIFY_EMAIL
+      if (notifyEmail) {
+        await sendEmail({
+          to: notifyEmail,
+          subject: `[Cron] Idealist Sync — ${totalNew} new, ${totalUpdated} updated`,
+          html: getCronSyncEmailHtml("Idealist", syncStats),
+        })
+      }
+    } catch (emailErr) {
+      console.error("[Idealist Sync] Notification email failed:", emailErr)
+    }
+
+    return NextResponse.json({ success: true, stats: syncStats })
   } catch (error) {
     console.error("[Idealist Sync] Fatal error:", error)
     return NextResponse.json(
@@ -76,9 +86,11 @@ export async function GET(request: Request) {
 }
 
 /**
- * Mark idealist-api opportunities that were NOT in the latest sync as inactive.
+ * Mark idealist-api opportunities whose listing has expired as inactive.
+ * Unlike seen-based marking, this is safe for partial cron runs that
+ * only scan a subset of the 3,000+ total Idealist listings.
  */
-async function markStaleInactive(seenIds: Set<string>): Promise<number> {
+async function markExpiredInactive(): Promise<number> {
   const { getDb } = await import("@/lib/database")
   const db = await getDb()
   const collection = db.collection("externalOpportunities")
@@ -87,7 +99,7 @@ async function markStaleInactive(seenIds: Set<string>): Promise<number> {
     {
       sourceplatform: "idealist-api",
       isActive: true,
-      externalId: { $nin: Array.from(seenIds) },
+      deadline: { $lt: new Date() },
     },
     { $set: { isActive: false, updatedAt: new Date() } }
   )
