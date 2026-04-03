@@ -62,20 +62,25 @@ export async function GET(request: Request) {
     }
 
     // Send notification email
+    let emailStatus = "skipped"
     try {
       const notifyEmail = process.env.CRON_NOTIFY_EMAIL
       if (notifyEmail) {
-        await sendEmail({
+        const sent = await sendEmail({
           to: notifyEmail,
           subject: `[Cron] Idealist Sync — ${totalNew} new, ${totalUpdated} updated`,
           html: getCronSyncEmailHtml("Idealist", syncStats),
         })
+        emailStatus = sent ? "sent" : "failed"
+      } else {
+        emailStatus = "no_CRON_NOTIFY_EMAIL"
       }
     } catch (emailErr) {
+      emailStatus = `error: ${String(emailErr)}`
       console.error("[Idealist Sync] Notification email failed:", emailErr)
     }
 
-    return NextResponse.json({ success: true, stats: syncStats })
+    return NextResponse.json({ success: true, stats: syncStats, emailStatus })
   } catch (error) {
     console.error("[Idealist Sync] Fatal error:", error)
     return NextResponse.json(
