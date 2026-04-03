@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { contactInquiriesDb, teamMembersDb, getDb } from "@/lib/database"
-import { sendEmail, getContactInquiryEmailHtml } from "@/lib/email"
+import { sendEmail, getContactInquiryEmailHtml, getContactAcknowledgementEmailHtml } from "@/lib/email"
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
@@ -94,6 +94,18 @@ export async function POST(req: NextRequest) {
 
     if (failedCount > 0) {
       console.warn(`[Contact API] ${failedCount}/${teamEmails.size} notification emails failed`)
+    }
+
+    // Send acknowledgement email to the person who submitted the form
+    try {
+      const ackHtml = getContactAcknowledgementEmailHtml(firstName.trim())
+      await sendEmail({
+        to: email.trim().toLowerCase(),
+        subject: "We've received your message — JustBeCause Network",
+        html: ackHtml,
+      })
+    } catch (ackErr) {
+      console.error("[Contact API] Acknowledgement email failed:", ackErr)
     }
 
     return NextResponse.json({ success: true, id })

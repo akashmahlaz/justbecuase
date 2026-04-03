@@ -1305,3 +1305,75 @@ export function getContactInquiryEmailHtml(inquiry: {
     </html>
   `
 }
+
+/**
+ * Acknowledgement email sent to the person who submitted a contact form.
+ */
+export function getContactAcknowledgementEmailHtml(firstName: string): string {
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://justbecausenetwork.com"
+  return `
+    <!DOCTYPE html>
+    <html>
+    <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
+    <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+      <div style="border: 1px solid #e5e7eb; border-radius: 12px; overflow: hidden;">
+        <div style="background: linear-gradient(135deg, #10b981, #059669); padding: 24px; text-align: center;">
+          <h1 style="color: white; margin: 0; font-size: 22px;">Thank You for Reaching Out!</h1>
+        </div>
+        <div style="padding: 24px;">
+          <p>Hi ${firstName},</p>
+          <p>We've received your message and our team will get back to you as soon as possible, typically within 1-2 business days.</p>
+          <p>In the meantime, feel free to explore our platform:</p>
+          <div style="margin: 24px 0; text-align: center;">
+            <a href="${appUrl}/en/projects" style="display: inline-block; background: #10b981; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 500;">Browse Opportunities</a>
+          </div>
+          <p style="color: #6b7280; font-size: 14px;">If you have any urgent questions, you can reply directly to this email.</p>
+        </div>
+        <div style="background: #f9fafb; padding: 16px; text-align: center; border-top: 1px solid #e5e7eb;">
+          <p style="color: #9ca3af; font-size: 12px; margin: 0;">&copy; ${new Date().getFullYear()} JustBeCause Network</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `
+}
+
+/**
+ * Email template for cron sync notifications.
+ */
+export function getCronSyncEmailHtml(platform: string, stats: {
+  apiTotal: number
+  processed: number
+  new: number
+  updated: number
+  deactivated: number
+  elapsedSeconds: number
+}): string {
+  return `
+    <!DOCTYPE html>
+    <html>
+    <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
+    <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+      <div style="border: 1px solid #e5e7eb; border-radius: 12px; overflow: hidden;">
+        <div style="background: linear-gradient(135deg, #3b82f6, #1d4ed8); padding: 24px; text-align: center;">
+          <h1 style="color: white; margin: 0; font-size: 22px;">${platform} Sync Complete</h1>
+          <p style="color: rgba(255,255,255,0.85); margin: 8px 0 0 0; font-size: 14px;">${new Date().toUTCString()}</p>
+        </div>
+        <div style="padding: 24px;">
+          <table style="width: 100%; border-collapse: collapse;">
+            <tr><td style="padding: 10px 0; color: #6b7280; border-bottom: 1px solid #f3f4f6;">API Total</td><td style="padding: 10px 0; font-weight: 600; text-align: right; border-bottom: 1px solid #f3f4f6;">${stats.apiTotal}</td></tr>
+            <tr><td style="padding: 10px 0; color: #6b7280; border-bottom: 1px solid #f3f4f6;">Processed</td><td style="padding: 10px 0; font-weight: 600; text-align: right; border-bottom: 1px solid #f3f4f6;">${stats.processed}</td></tr>
+            <tr><td style="padding: 10px 0; color: #10b981; border-bottom: 1px solid #f3f4f6;">New</td><td style="padding: 10px 0; font-weight: 600; text-align: right; color: #10b981; border-bottom: 1px solid #f3f4f6;">${stats.new}</td></tr>
+            <tr><td style="padding: 10px 0; color: #3b82f6; border-bottom: 1px solid #f3f4f6;">Updated</td><td style="padding: 10px 0; font-weight: 600; text-align: right; color: #3b82f6; border-bottom: 1px solid #f3f4f6;">${stats.updated}</td></tr>
+            <tr><td style="padding: 10px 0; color: #ef4444; border-bottom: 1px solid #f3f4f6;">Deactivated</td><td style="padding: 10px 0; font-weight: 600; text-align: right; color: #ef4444; border-bottom: 1px solid #f3f4f6;">${stats.deactivated}</td></tr>
+            <tr><td style="padding: 10px 0; color: #6b7280;">Duration</td><td style="padding: 10px 0; font-weight: 600; text-align: right;">${stats.elapsedSeconds}s</td></tr>
+          </table>
+        </div>
+        <div style="background: #f9fafb; padding: 16px; text-align: center; border-top: 1px solid #e5e7eb;">
+          <p style="color: #9ca3af; font-size: 12px; margin: 0;">&copy; ${new Date().getFullYear()} JustBeCause Network — Automated Sync</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `
+}
