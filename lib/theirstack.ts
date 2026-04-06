@@ -108,9 +108,13 @@ export interface JobSearchParams {
   // Job filters
   job_title_or?: string[]
   job_title_not?: string[]
+  job_title_pattern_or?: string[]
   job_description_contains_or?: string[]
   job_description_contains_not?: string[]
+  job_description_pattern_or?: string[]
   job_country_code_or?: string[]
+  job_country_code_not?: string[]
+  job_location_pattern_or?: string[]
   remote?: boolean | null
   posted_at_max_age_days?: number
   posted_at_gte?: string
@@ -127,6 +131,10 @@ export interface JobSearchParams {
   min_employee_count?: number
   max_employee_count?: number
   company_country_code_or?: string[]
+  company_tags_or?: string[]
+  // Existence filters (ensures fields are populated)
+  property_exists_or?: string[]
+  property_exists_and?: string[]
   // Control
   include_total_results?: boolean
   blur_company_data?: boolean
