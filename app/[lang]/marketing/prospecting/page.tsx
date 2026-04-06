@@ -106,12 +106,29 @@ const IMPACT_JOB_TITLES = [
 const VOLUNTEER_DESC_KEYWORDS = [
   "volunteer",
   "volunteering",
+  "volunteer management",
+  "volunteer coordination",
+  "volunteer program",
+  "community outreach",
   "community engagement",
   "social impact",
   "humanitarian",
   "community service",
   "civic engagement",
-  "outreach program",
+  "community development",
+  "civil society",
+]
+
+// Patterns to EXCLUDE — research institutes, labs, government agencies, universities
+const EXCLUDE_PATTERNS = [
+  "research institute",
+  "laboratory",
+  "university",
+  "college",
+  "hospital",
+  "government agency",
+  "agency for science",
+  "defense",
 ]
 
 const URGENT_HIRING_KEYWORDS = [
@@ -153,86 +170,93 @@ interface SearchPreset {
 
 const SEARCH_PRESETS: SearchPreset[] = [
   {
+    name: "🎯 Best Results (Recommended)",
+    description: "NGOs posting volunteer-related jobs — proven high-relevance query",
+    icon: <Star className="size-4 text-yellow-500" />,
+    filters: {
+      mode: "jobs",
+      descriptionPatterns: [...NGO_PATTERNS],
+      industryIds: [],
+      jobDescriptionKeywords: [...VOLUNTEER_DESC_KEYWORDS],
+      excludePatterns: [...EXCLUDE_PATTERNS],
+      countryCodes: [],
+      remoteOnly: false,
+      maxAgeDays: 30,
+      companyType: "direct_employer",
+      limit: 15,
+      onlyWithContacts: false,
+    },
+  },
+  {
     name: "India NGOs Hiring Now",
-    description: "NGOs in India with jobs posted in last 14 days",
+    description: "NGOs in India posting volunteer/community roles — last 14 days",
     icon: <Zap className="size-4 text-orange-500" />,
     filters: {
       mode: "jobs",
       descriptionPatterns: [...NGO_PATTERNS],
-      industryIds: [70, 74, 81, 78],
+      industryIds: [],
+      jobDescriptionKeywords: [...VOLUNTEER_DESC_KEYWORDS],
+      excludePatterns: [...EXCLUDE_PATTERNS],
       countryCodes: ["IN"],
       remoteOnly: false,
       maxAgeDays: 14,
       companyType: "direct_employer",
-      limit: 10,
+      limit: 15,
       onlyWithContacts: false,
-    },
-  },
-  {
-    name: "Global Remote NGOs",
-    description: "Remote positions at NGOs worldwide — any country",
-    icon: <Globe className="size-4 text-blue-500" />,
-    filters: {
-      mode: "jobs",
-      descriptionPatterns: [...NGO_PATTERNS],
-      industryIds: [70, 74, 81, 101, 99],
-      countryCodes: [],
-      remoteOnly: true,
-      maxAgeDays: 30,
-      companyType: "direct_employer",
-      limit: 10,
-      onlyWithContacts: false,
-    },
-  },
-  {
-    name: "Volunteer-Mentioning Jobs",
-    description: "Any company whose job descriptions mention volunteering",
-    icon: <Users className="size-4 text-emerald-500" />,
-    filters: {
-      mode: "jobs",
-      descriptionPatterns: [],
-      industryIds: [],
-      jobDescriptionKeywords: ["volunteer", "volunteering", "community engagement"],
-      jobTitles: [],
-      countryCodes: [],
-      remoteOnly: false,
-      maxAgeDays: 30,
-      companyType: "direct_employer",
-      onlyWithContacts: true,
-      limit: 10,
     },
   },
   {
     name: "NGOs With Contacts",
-    description: "Only results with hiring-team data attached",
+    description: "Volunteer-related roles at NGOs — only results with hiring contacts",
     icon: <Building2 className="size-4 text-purple-500" />,
     filters: {
       mode: "jobs",
       descriptionPatterns: [...NGO_PATTERNS],
-      industryIds: [70, 74, 81, 101],
+      industryIds: [],
+      jobDescriptionKeywords: [...VOLUNTEER_DESC_KEYWORDS],
+      excludePatterns: [...EXCLUDE_PATTERNS],
       countryCodes: [],
       remoteOnly: false,
       maxAgeDays: 30,
       companyType: "direct_employer",
       onlyWithContacts: true,
-      limit: 10,
+      limit: 15,
     },
   },
   {
     name: "Urgently Hiring NGOs",
-    description: "Recent NGO roles with urgent/immediate hiring language",
+    description: "NGOs with urgent hiring language — reach out immediately",
     icon: <AlertTriangle className="size-4 text-red-500" />,
     filters: {
       mode: "jobs",
       descriptionPatterns: [...NGO_PATTERNS],
-      industryIds: [70, 74, 81, 78, 101],
+      industryIds: [],
+      jobDescriptionKeywords: [...URGENT_HIRING_KEYWORDS, "volunteer", "volunteering", "community outreach"],
+      excludePatterns: [...EXCLUDE_PATTERNS],
       countryCodes: [],
       remoteOnly: false,
       maxAgeDays: 14,
       companyType: "direct_employer",
       onlyWithContacts: true,
-      jobDescriptionKeywords: [...URGENT_HIRING_KEYWORDS],
-      limit: 10,
+      limit: 15,
+    },
+  },
+  {
+    name: "Global Remote NGOs",
+    description: "Remote volunteer/community roles at NGOs worldwide",
+    icon: <Globe className="size-4 text-blue-500" />,
+    filters: {
+      mode: "jobs",
+      descriptionPatterns: [...NGO_PATTERNS],
+      industryIds: [],
+      jobDescriptionKeywords: [...VOLUNTEER_DESC_KEYWORDS],
+      excludePatterns: [...EXCLUDE_PATTERNS],
+      countryCodes: [],
+      remoteOnly: true,
+      maxAgeDays: 30,
+      companyType: "direct_employer",
+      limit: 15,
+      onlyWithContacts: false,
     },
   },
 ]
@@ -267,6 +291,15 @@ function calculatePartnershipScore(job: TheirStackJob): {
   let score = 0
   const reasons: string[] = []
 
+  // Penalize research institutes, government agencies, universities
+  const companyLower = (job.company || "").toLowerCase()
+  const descLower = (job.description || "").toLowerCase()
+  const noisePatterns = ["research institute", "laboratory", "university", "college", "hospital", "government agency", "agency for science", "defense"]
+  if (noisePatterns.some(p => companyLower.includes(p) || descLower.includes(p))) {
+    score -= 20
+    reasons.push("⚠ Likely research/government org — low relevance")
+  }
+
   if (job.hiring_team?.length) {
     score += 30
     reasons.push(`${job.hiring_team.length} hiring contact${job.hiring_team.length > 1 ? "s" : ""} available`)
@@ -298,7 +331,7 @@ function calculatePartnershipScore(job: TheirStackJob): {
   }
 
   const title = (job.job_title || "").toLowerCase()
-  const volunteerKeywords = ["volunteer", "community", "outreach", "partnership", "impact", "engagement"]
+  const volunteerKeywords = ["volunteer", "community", "outreach", "partnership", "impact", "engagement", "mentor", "tutor", "ambassador"]
   if (volunteerKeywords.some(kw => title.includes(kw))) {
     score += 15
     reasons.push("Volunteer/community role — directly relevant")
@@ -414,6 +447,7 @@ interface SearchFilters {
   customPattern: string
   jobDescriptionKeywords: string[]
   customDescKeyword: string
+  excludePatterns: string[]
   industryIds: number[]
   jobTitles: string[]
   customJobTitle: string
@@ -443,9 +477,10 @@ const DEFAULT_FILTERS: SearchFilters = {
   mode: "jobs",
   descriptionPatterns: [...NGO_PATTERNS],
   customPattern: "",
-  jobDescriptionKeywords: [],
+  jobDescriptionKeywords: [...VOLUNTEER_DESC_KEYWORDS],
   customDescKeyword: "",
-  industryIds: [70, 74, 81],
+  excludePatterns: [...EXCLUDE_PATTERNS],
+  industryIds: [],
   jobTitles: [],
   customJobTitle: "",
   remoteOnly: false,
@@ -457,7 +492,7 @@ const DEFAULT_FILTERS: SearchFilters = {
   companyType: "direct_employer",
   minEmployees: "",
   maxEmployees: "",
-  limit: 10,
+  limit: 15,
 }
 
 export default function ProspectingPage() {
@@ -539,6 +574,7 @@ export default function ProspectingPage() {
       blur_company_data: filters.previewMode,
     }
     if (filters.descriptionPatterns.length > 0) params.company_description_pattern_or = filters.descriptionPatterns
+    if (filters.excludePatterns.length > 0) params.company_description_pattern_not = filters.excludePatterns
     if (filters.industryIds.length > 0) params.industry_id_or = filters.industryIds
     if (filters.companyType !== "all") params.company_type = filters.companyType
     if (filters.minEmployees) params.min_employee_count = parseInt(filters.minEmployees)

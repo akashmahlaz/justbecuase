@@ -79,6 +79,7 @@ export function Navbar() {
   // ⭐ Role-based nav
   const baseLinks = [
     { href: "/projects", label: dict.nav.browseOpportunities },
+    { href: "/jobs", label: (dict.nav as any).jobBoard || "Job Board" },
     { href: "/for-volunteers", label: dict.nav.forImpactAgents },
     { href: "/for-ngos", label: dict.nav.forNGOs },
     { href: "/about", label: dict.nav.aboutUs },
