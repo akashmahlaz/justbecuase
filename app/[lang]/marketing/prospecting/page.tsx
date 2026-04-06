@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useCallback } from "react"
+import { useState, useCallback, useEffect, useMemo } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch"
 import { Separator } from "@/components/ui/separator"
 import { Skeleton } from "@/components/ui/skeleton"
+import { Progress } from "@/components/ui/progress"
 import {
   Table,
   TableBody,
@@ -24,6 +25,12 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion"
 import {
   Target,
   AlertTriangle,
@@ -41,6 +48,17 @@ import {
   X,
   ChevronDown,
   ChevronUp,
+  Star,
+  BookmarkPlus,
+  BookmarkCheck,
+  RotateCcw,
+  Zap,
+  Info,
+  CheckCircle2,
+  XCircle,
+  Mail,
+  Lightbulb,
+  ArrowRight,
 } from "lucide-react"
 import type { TheirStackJob, CreditBalance } from "@/lib/theirstack"
 
@@ -84,6 +102,113 @@ const IMPACT_JOB_TITLES = [
   "Outreach",
 ]
 
+// Volunteer-related job description keywords
+const VOLUNTEER_DESC_KEYWORDS = [
+  "volunteer",
+  "volunteering",
+  "community engagement",
+  "social impact",
+  "humanitarian",
+  "community service",
+  "civic engagement",
+  "outreach program",
+]
+
+// Popular country presets
+const COUNTRY_PRESETS = [
+  { code: "IN", label: "India" },
+  { code: "US", label: "USA" },
+  { code: "GB", label: "UK" },
+  { code: "KE", label: "Kenya" },
+  { code: "NG", label: "Nigeria" },
+  { code: "ZA", label: "South Africa" },
+  { code: "DE", label: "Germany" },
+  { code: "NL", label: "Netherlands" },
+  { code: "CH", label: "Switzerland" },
+  { code: "CA", label: "Canada" },
+  { code: "AU", label: "Australia" },
+  { code: "BD", label: "Bangladesh" },
+]
+
+// ============================================
+// Quick-Start Presets
+// ============================================
+interface SearchPreset {
+  name: string
+  description: string
+  icon: React.ReactNode
+  filters: Partial<SearchFilters>
+}
+
+const SEARCH_PRESETS: SearchPreset[] = [
+  {
+    name: "India NGOs Hiring Now",
+    description: "NGOs in India with jobs posted in last 14 days",
+    icon: <Zap className="size-4 text-orange-500" />,
+    filters: {
+      mode: "jobs",
+      descriptionPatterns: [...NGO_PATTERNS],
+      industryIds: [70, 74, 81, 78],
+      countryCodes: ["IN"],
+      remoteOnly: false,
+      maxAgeDays: 14,
+      companyType: "direct_employer",
+      limit: 10,
+      onlyWithContacts: false,
+    },
+  },
+  {
+    name: "Global Remote NGOs",
+    description: "Remote positions at NGOs worldwide — any country",
+    icon: <Globe className="size-4 text-blue-500" />,
+    filters: {
+      mode: "jobs",
+      descriptionPatterns: [...NGO_PATTERNS],
+      industryIds: [70, 74, 81, 101, 99],
+      countryCodes: [],
+      remoteOnly: true,
+      maxAgeDays: 30,
+      companyType: "direct_employer",
+      limit: 10,
+      onlyWithContacts: false,
+    },
+  },
+  {
+    name: "Volunteer-Mentioning Jobs",
+    description: "Any company whose job descriptions mention volunteering",
+    icon: <Users className="size-4 text-emerald-500" />,
+    filters: {
+      mode: "jobs",
+      descriptionPatterns: [],
+      industryIds: [],
+      jobDescriptionKeywords: ["volunteer", "volunteering", "community engagement"],
+      jobTitles: [],
+      countryCodes: [],
+      remoteOnly: false,
+      maxAgeDays: 30,
+      companyType: "direct_employer",
+      onlyWithContacts: true,
+      limit: 10,
+    },
+  },
+  {
+    name: "NGOs With Contacts",
+    description: "Only results with hiring team + LinkedIn (high value)",
+    icon: <Building2 className="size-4 text-purple-500" />,
+    filters: {
+      mode: "jobs",
+      descriptionPatterns: [...NGO_PATTERNS],
+      industryIds: [70, 74, 81, 101],
+      countryCodes: [],
+      remoteOnly: false,
+      maxAgeDays: 30,
+      companyType: "direct_employer",
+      onlyWithContacts: true,
+      limit: 10,
+    },
+  },
+]
+
 // ============================================
 // Fetch helpers (via server proxy)
 // ============================================
@@ -102,6 +227,84 @@ async function apiCall(action: string, params?: Record<string, unknown>) {
 }
 
 // ============================================
+// Partnership Score Calculator
+// ============================================
+function calculatePartnershipScore(job: TheirStackJob): {
+  score: number
+  reasons: string[]
+} {
+  let score = 0
+  const reasons: string[] = []
+
+  if (job.hiring_team?.length) {
+    score += 30
+    reasons.push(`${job.hiring_team.length} hiring contact${job.hiring_team.length > 1 ? "s" : ""} available`)
+  }
+
+  const linkedinContacts = (job.hiring_team || []).filter(h => h.linkedin_url)
+  if (linkedinContacts.length > 0) {
+    score += 20
+    reasons.push(`${linkedinContacts.length} LinkedIn profile${linkedinContacts.length > 1 ? "s" : ""} found`)
+  }
+
+  if (job.company_domain) {
+    score += 10
+    reasons.push("Has company website")
+  }
+
+  if (job.date_posted) {
+    const daysAgo = Math.floor((Date.now() - new Date(job.date_posted).getTime()) / 86400000)
+    if (daysAgo <= 7) {
+      score += 15
+      reasons.push("Posted in last 7 days — actively hiring")
+    } else if (daysAgo <= 14) {
+      score += 10
+      reasons.push("Posted in last 2 weeks")
+    } else {
+      score += 5
+      reasons.push(`Posted ${daysAgo} days ago`)
+    }
+  }
+
+  const title = (job.job_title || "").toLowerCase()
+  const volunteerKeywords = ["volunteer", "community", "outreach", "partnership", "impact", "engagement"]
+  if (volunteerKeywords.some(kw => title.includes(kw))) {
+    score += 15
+    reasons.push("Volunteer/community role — directly relevant")
+  }
+
+  if (job.remote) {
+    score += 5
+    reasons.push("Remote-friendly")
+  }
+
+  if (job.description && job.description.length > 100) {
+    score += 5
+    reasons.push("Detailed job description")
+  }
+
+  return { score: Math.min(score, 100), reasons }
+}
+
+function getScoreColor(score: number): string {
+  if (score >= 70) return "text-emerald-600"
+  if (score >= 40) return "text-amber-600"
+  return "text-red-500"
+}
+
+function getScoreLabel(score: number): string {
+  if (score >= 70) return "High"
+  if (score >= 40) return "Medium"
+  return "Low"
+}
+
+function getScoreBg(score: number): string {
+  if (score >= 70) return "bg-emerald-50 border-emerald-200 dark:bg-emerald-950/30 dark:border-emerald-800"
+  if (score >= 40) return "bg-amber-50 border-amber-200 dark:bg-amber-950/30 dark:border-amber-800"
+  return "bg-red-50 border-red-200 dark:bg-red-950/30 dark:border-red-800"
+}
+
+// ============================================
 // Component
 // ============================================
 
@@ -109,10 +312,14 @@ interface SearchFilters {
   mode: "jobs" | "companies"
   descriptionPatterns: string[]
   customPattern: string
+  jobDescriptionKeywords: string[]
+  customDescKeyword: string
   industryIds: number[]
   jobTitles: string[]
   customJobTitle: string
   remoteOnly: boolean
+  onlyWithContacts: boolean
+  previewMode: boolean
   countryCodes: string[]
   customCountry: string
   maxAgeDays: number
@@ -136,10 +343,14 @@ const DEFAULT_FILTERS: SearchFilters = {
   mode: "jobs",
   descriptionPatterns: [...NGO_PATTERNS],
   customPattern: "",
+  jobDescriptionKeywords: [],
+  customDescKeyword: "",
   industryIds: [70, 74, 81],
   jobTitles: [],
   customJobTitle: "",
-  remoteOnly: true,
+  remoteOnly: false,
+  onlyWithContacts: false,
+  previewMode: false,
   countryCodes: [],
   customCountry: "",
   maxAgeDays: 30,
@@ -152,143 +363,161 @@ const DEFAULT_FILTERS: SearchFilters = {
 export default function ProspectingPage() {
   const [credits, setCredits] = useState<CreditBalance | null>(null)
   const [creditsLoading, setCreditsLoading] = useState(false)
+  const [creditsError, setCreditsError] = useState<string | null>(null)
   const [filters, setFilters] = useState<SearchFilters>({ ...DEFAULT_FILTERS })
   const [results, setResults] = useState<SearchResult | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [showConfirm, setShowConfirm] = useState(false)
   const [expandedRows, setExpandedRows] = useState<Set<number>>(new Set())
+  const [savedLeads, setSavedLeads] = useState<Set<number>>(new Set())
+  const [showGuide, setShowGuide] = useState(false)
 
-  // Credit balance fetch
+  // Auto-load credits on mount
   const fetchCredits = useCallback(async () => {
     setCreditsLoading(true)
+    setCreditsError(null)
     try {
       const data = await apiCall("creditBalance")
       setCredits(data)
     } catch (err: unknown) {
-      console.error("Failed to fetch credits", err)
+      const msg = err instanceof Error ? err.message : "Failed to connect"
+      setCreditsError(msg)
     } finally {
       setCreditsLoading(false)
     }
   }, [])
 
-  // Estimated cost
-  const estimatedCost =
-    filters.mode === "jobs" ? filters.limit : filters.limit * 3
+  useEffect(() => {
+    fetchCredits()
+  }, [fetchCredits])
 
-  const remainingCredits = credits
-    ? credits.api_credits - credits.used_api_credits
-    : null
+  // Load saved leads from localStorage
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("jbc-prospecting-leads")
+      if (saved) setSavedLeads(new Set(JSON.parse(saved)))
+    } catch { /* ignore */ }
+  }, [])
 
-  const canAfford =
-    remainingCredits !== null ? remainingCredits >= estimatedCost : true
+  function toggleSavedLead(jobId: number) {
+    setSavedLeads(prev => {
+      const next = new Set(prev)
+      if (next.has(jobId)) next.delete(jobId)
+      else next.add(jobId)
+      localStorage.setItem("jbc-prospecting-leads", JSON.stringify([...next]))
+      return next
+    })
+  }
 
-  // Build search params
+  const estimatedCost = filters.previewMode ? 0 : (filters.mode === "jobs" ? filters.limit : filters.limit * 3)
+  const remainingCredits = credits ? credits.api_credits - credits.used_api_credits : null
+  const canAfford = filters.previewMode || (remainingCredits !== null ? remainingCredits >= estimatedCost : true)
+
+  // Results stats
+  const resultStats = useMemo(() => {
+    if (!results?.data?.length) return null
+    const jobs = results.data
+    const withContacts = jobs.filter(j => j.hiring_team?.length).length
+    const withLinkedin = jobs.filter(j => j.hiring_team?.some(h => h.linkedin_url)).length
+    const remoteJobs = jobs.filter(j => j.remote).length
+    const avgScore = Math.round(jobs.reduce((sum, j) => sum + calculatePartnershipScore(j).score, 0) / jobs.length)
+    const highScoreCount = jobs.filter(j => calculatePartnershipScore(j).score >= 70).length
+    return { total: jobs.length, withContacts, withLinkedin, remoteJobs, avgScore, highScoreCount }
+  }, [results])
+
   function buildParams(): Record<string, unknown> {
     const params: Record<string, unknown> = {
       page: 0,
       limit: filters.limit,
-      include_total_results: false,
-      blur_company_data: false,
+      include_total_results: true,
+      blur_company_data: filters.previewMode,
     }
-
-    if (filters.descriptionPatterns.length > 0) {
-      params.company_description_pattern_or = filters.descriptionPatterns
-    }
-    if (filters.industryIds.length > 0) {
-      params.industry_id_or = filters.industryIds
-    }
-    if (filters.companyType !== "all") {
-      params.company_type = filters.companyType
-    }
-    if (filters.minEmployees) {
-      params.min_employee_count = parseInt(filters.minEmployees)
-    }
-    if (filters.maxEmployees) {
-      params.max_employee_count = parseInt(filters.maxEmployees)
-    }
+    if (filters.descriptionPatterns.length > 0) params.company_description_pattern_or = filters.descriptionPatterns
+    if (filters.industryIds.length > 0) params.industry_id_or = filters.industryIds
+    if (filters.companyType !== "all") params.company_type = filters.companyType
+    if (filters.minEmployees) params.min_employee_count = parseInt(filters.minEmployees)
+    if (filters.maxEmployees) params.max_employee_count = parseInt(filters.maxEmployees)
+    // Use both company HQ country AND job location country for better results
     if (filters.countryCodes.length > 0) {
       params.company_country_code_or = filters.countryCodes
+      if (filters.mode === "jobs") params.job_country_code_or = filters.countryCodes
     }
+    // Only return results with hiring contacts
+    if (filters.onlyWithContacts) params.property_exists_or = ["hiring_team"]
 
     if (filters.mode === "jobs") {
       if (filters.remoteOnly) params.remote = true
-      if (filters.maxAgeDays > 0)
-        params.posted_at_max_age_days = filters.maxAgeDays
-      if (filters.jobTitles.length > 0)
-        params.job_title_or = filters.jobTitles
+      if (filters.maxAgeDays > 0) params.posted_at_max_age_days = filters.maxAgeDays
+      if (filters.jobTitles.length > 0) params.job_title_or = filters.jobTitles
+      // Search within job descriptions for volunteer-related keywords
+      if (filters.jobDescriptionKeywords.length > 0) params.job_description_contains_or = filters.jobDescriptionKeywords
     } else {
-      // Company search with job filters
       if (filters.jobTitles.length > 0 || filters.remoteOnly) {
         const jobFilters: Record<string, unknown> = {}
         if (filters.jobTitles.length > 0) jobFilters.job_title_or = filters.jobTitles
         if (filters.remoteOnly) jobFilters.remote = true
-        if (filters.maxAgeDays > 0)
-          jobFilters.posted_at_max_age_days = filters.maxAgeDays
+        if (filters.maxAgeDays > 0) jobFilters.posted_at_max_age_days = filters.maxAgeDays
         params.job_filters = jobFilters
       }
     }
-
     return params
   }
 
-  // Execute search
   async function executeSearch() {
     setShowConfirm(false)
     setLoading(true)
     setError(null)
     setExpandedRows(new Set())
-
     try {
-      const action =
-        filters.mode === "jobs" ? "searchJobs" : "searchCompanies"
+      const action = filters.mode === "jobs" ? "searchJobs" : "searchCompanies"
       const data = await apiCall(action, buildParams())
       setResults(data)
-      // Refresh credit balance after search
       fetchCredits()
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Search failed"
-      setError(msg)
+      setError(err instanceof Error ? err.message : "Search failed")
     } finally {
       setLoading(false)
     }
   }
 
-  // CSV export
+  function applyPreset(preset: SearchPreset) {
+    setFilters(f => ({ ...f, ...preset.filters, customPattern: "", customJobTitle: "", customCountry: "", customDescKeyword: "" }))
+    setResults(null)
+    setError(null)
+  }
+
+  function resetFilters() {
+    setFilters({ ...DEFAULT_FILTERS })
+    setResults(null)
+    setError(null)
+  }
+
   function exportCSV() {
     if (!results?.data?.length) return
-
-    const rows = results.data.map((job: TheirStackJob) => ({
-      company: job.company || "",
-      job_title: job.job_title || "",
-      location: job.location || "",
-      remote: job.remote ? "Yes" : "No",
-      salary: job.salary_string || "",
-      url: job.final_url || job.url || "",
-      posted: job.date_posted || "",
-      company_domain: job.company_domain || "",
-      hiring_contact: (job.hiring_team || [])
-        .map((h) => `${h.full_name}${h.role ? ` (${h.role})` : ""}`)
-        .join("; "),
-      hiring_linkedin: (job.hiring_team || [])
-        .map((h) => h.linkedin_url || "")
-        .filter(Boolean)
-        .join("; "),
-    }))
-
-    const headers = Object.keys(rows[0])
+    const rows = results.data.map((job: TheirStackJob) => {
+      const { score } = calculatePartnershipScore(job)
+      return {
+        partnership_score: score,
+        company: job.company || "",
+        job_title: job.job_title || "",
+        location: job.location || "",
+        remote: job.remote ? "Yes" : "No",
+        salary: job.salary_string || "",
+        url: job.final_url || job.url || "",
+        posted: job.date_posted || "",
+        company_website: job.company_domain ? `https://${job.company_domain}` : "",
+        hiring_contact: (job.hiring_team || []).map((h) => `${h.full_name}${h.role ? ` (${h.role})` : ""}`).join("; "),
+        hiring_linkedin: (job.hiring_team || []).map((h) => h.linkedin_url || "").filter(Boolean).join("; "),
+        saved: savedLeads.has(job.id) ? "Yes" : "",
+      }
+    })
+    rows.sort((a, b) => b.partnership_score - a.partnership_score)
+    const csvHeaders = Object.keys(rows[0])
     const csv = [
-      headers.join(","),
-      ...rows.map((r) =>
-        headers
-          .map((h) => {
-            const val = String(r[h as keyof typeof r]).replace(/"/g, '""')
-            return `"${val}"`
-          })
-          .join(",")
-      ),
+      csvHeaders.join(","),
+      ...rows.map((r) => csvHeaders.map((h) => `"${String(r[h as keyof typeof r]).replace(/"/g, '""')}"`).join(","))
     ].join("\n")
-
     const blob = new Blob([csv], { type: "text/csv" })
     const url = URL.createObjectURL(blob)
     const a = document.createElement("a")
@@ -298,7 +527,6 @@ export default function ProspectingPage() {
     URL.revokeObjectURL(url)
   }
 
-  // Toggle tag helper
   function toggleTag<T>(arr: T[], item: T): T[] {
     return arr.includes(item) ? arr.filter((x) => x !== item) : [...arr, item]
   }
@@ -306,40 +534,30 @@ export default function ProspectingPage() {
   function addCustomPattern() {
     const v = filters.customPattern.trim()
     if (v && !filters.descriptionPatterns.includes(v)) {
-      setFilters((f) => ({
-        ...f,
-        descriptionPatterns: [...f.descriptionPatterns, v],
-        customPattern: "",
-      }))
+      setFilters((f) => ({ ...f, descriptionPatterns: [...f.descriptionPatterns, v], customPattern: "" }))
     }
   }
 
   function addCustomJobTitle() {
     const v = filters.customJobTitle.trim()
     if (v && !filters.jobTitles.includes(v)) {
-      setFilters((f) => ({
-        ...f,
-        jobTitles: [...f.jobTitles, v],
-        customJobTitle: "",
-      }))
+      setFilters((f) => ({ ...f, jobTitles: [...f.jobTitles, v], customJobTitle: "" }))
     }
   }
 
   function addCustomCountry() {
     const v = filters.customCountry.trim().toUpperCase()
     if (v && v.length === 2 && !filters.countryCodes.includes(v)) {
-      setFilters((f) => ({
-        ...f,
-        countryCodes: [...f.countryCodes, v],
-        customCountry: "",
-      }))
+      setFilters((f) => ({ ...f, countryCodes: [...f.countryCodes, v], customCountry: "" }))
     }
   }
+
+  const isApiKeyMissing = creditsError?.includes("THEIRSTACK_API_KEY not set")
 
   return (
     <TooltipProvider>
       <div className="space-y-6">
-        {/* Header + Credits */}
+        {/* HEADER + CREDITS */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
@@ -347,69 +565,175 @@ export default function ProspectingPage() {
               NGO Prospecting Pipeline
             </h1>
             <p className="text-sm text-muted-foreground mt-1">
-              Find NGOs with open positions to partner with JustBeCause
+              Find NGOs actively hiring → reach out to partner with JustBeCause
             </p>
           </div>
-
-          <Card className="w-fit">
-            <CardContent className="p-3 flex items-center gap-3">
-              <Coins className="size-4 text-amber-500" />
-              {credits ? (
-                <div className="text-sm">
-                  <span className="font-semibold">
-                    {credits.api_credits - credits.used_api_credits}
-                  </span>{" "}
-                  / {credits.api_credits} API credits
-                </div>
-              ) : (
-                <span className="text-sm text-muted-foreground">
-                  Credits unknown
-                </span>
-              )}
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={fetchCredits}
-                disabled={creditsLoading}
-              >
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={() => setShowGuide(!showGuide)} className="gap-1.5">
+              <Lightbulb className="size-3.5" />
+              {showGuide ? "Hide Guide" : "How to Use"}
+            </Button>
+            <Card className="w-fit">
+              <CardContent className="p-3 flex items-center gap-3">
+                <Coins className="size-4 text-amber-500" />
                 {creditsLoading ? (
-                  <Loader2 className="size-3 animate-spin" />
+                  <Skeleton className="h-4 w-24" />
+                ) : credits ? (
+                  <div className="text-sm">
+                    <span className="font-semibold">{credits.api_credits - credits.used_api_credits}</span> / {credits.api_credits} credits
+                  </div>
                 ) : (
-                  <RefreshCw className="size-3" />
+                  <span className="text-sm text-muted-foreground">{creditsError ? "Connection failed" : "Loading..."}</span>
                 )}
-              </Button>
-            </CardContent>
-          </Card>
+                <Button variant="ghost" size="sm" onClick={fetchCredits} disabled={creditsLoading}>
+                  {creditsLoading ? <Loader2 className="size-3 animate-spin" /> : <RefreshCw className="size-3" />}
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
         </div>
 
-        {/* Search Filters */}
+        {/* API KEY NOT SET */}
+        {isApiKeyMissing && (
+          <Card className="border-amber-300 bg-amber-50 dark:bg-amber-950/20 dark:border-amber-800">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-lg flex items-center gap-2 text-amber-800 dark:text-amber-200">
+                <AlertTriangle className="size-5" />
+                TheirStack API Key Required
+              </CardTitle>
+              <CardDescription className="text-amber-700 dark:text-amber-300">
+                Add your API key to start searching for NGOs.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3 text-sm">
+              <div className="space-y-2">
+                <div className="flex items-start gap-2">
+                  <Badge variant="outline" className="mt-0.5 shrink-0">1</Badge>
+                  <span>Go to <strong>theirstack.com</strong> → Sign up (free = 200 API credits)</span>
+                </div>
+                <div className="flex items-start gap-2">
+                  <Badge variant="outline" className="mt-0.5 shrink-0">2</Badge>
+                  <span>Go to <strong>Settings → API</strong> → Copy your API key</span>
+                </div>
+                <div className="flex items-start gap-2">
+                  <Badge variant="outline" className="mt-0.5 shrink-0">3</Badge>
+                  <span>Open <code className="px-1.5 py-0.5 rounded bg-amber-100 dark:bg-amber-900 font-mono text-xs">.env.local</code> and set: <code className="px-1.5 py-0.5 rounded bg-amber-100 dark:bg-amber-900 font-mono text-xs">THEIRSTACK_API_KEY=your_key_here</code></span>
+                </div>
+                <div className="flex items-start gap-2">
+                  <Badge variant="outline" className="mt-0.5 shrink-0">4</Badge>
+                  <span>Restart dev server → Refresh this page</span>
+                </div>
+              </div>
+              <p className="text-xs text-amber-600 dark:text-amber-400 pt-1">
+                For Vercel: Add THEIRSTACK_API_KEY in Project Settings → Environment Variables
+              </p>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* HOW TO USE GUIDE */}
+        {showGuide && (
+          <Card className="border-blue-200 bg-blue-50/50 dark:bg-blue-950/20 dark:border-blue-800">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base flex items-center gap-2">
+                <Lightbulb className="size-4 text-blue-600" />
+                How This Works — Step by Step
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4 text-sm">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="space-y-1.5 p-3 rounded-lg bg-white dark:bg-background border">
+                  <div className="font-medium flex items-center gap-1.5">
+                    <Badge className="bg-blue-600">1</Badge> Search
+                  </div>
+                  <p className="text-muted-foreground text-xs">
+                    Pick a <strong>Quick Start preset</strong> or customize filters. Click &quot;Search NGOs&quot; → confirm credit spend → results appear.
+                  </p>
+                </div>
+                <div className="space-y-1.5 p-3 rounded-lg bg-white dark:bg-background border">
+                  <div className="font-medium flex items-center gap-1.5">
+                    <Badge className="bg-blue-600">2</Badge> Evaluate
+                  </div>
+                  <p className="text-muted-foreground text-xs">
+                    Each result has a <strong>Partnership Score</strong> (0-100). Focus on <span className="text-emerald-600 font-medium">High (70+)</span> — they have contacts, LinkedIn, recent posts.
+                  </p>
+                </div>
+                <div className="space-y-1.5 p-3 rounded-lg bg-white dark:bg-background border">
+                  <div className="font-medium flex items-center gap-1.5">
+                    <Badge className="bg-blue-600">3</Badge> Act
+                  </div>
+                  <p className="text-muted-foreground text-xs">
+                    <strong>Bookmark</strong> leads → <strong>Export CSV</strong> (sorted by score) → reach out via LinkedIn using hiring team contacts.
+                  </p>
+                </div>
+              </div>
+              <div className="p-3 rounded-lg bg-white dark:bg-background border">
+                <p className="font-medium text-xs mb-2">What to Do With Results:</p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-muted-foreground">
+                  <div className="flex items-start gap-1.5">
+                    <ArrowRight className="size-3 mt-0.5 text-blue-500 shrink-0" />
+                    <span><strong>Hiring Volunteer Coordinator?</strong> → They need volunteers → pitch JustBeCause</span>
+                  </div>
+                  <div className="flex items-start gap-1.5">
+                    <ArrowRight className="size-3 mt-0.5 text-blue-500 shrink-0" />
+                    <span><strong>50+ employees?</strong> → Established org → higher partnership value</span>
+                  </div>
+                  <div className="flex items-start gap-1.5">
+                    <ArrowRight className="size-3 mt-0.5 text-blue-500 shrink-0" />
+                    <span><strong>LinkedIn available?</strong> → Send connection request mentioning their open role</span>
+                  </div>
+                  <div className="flex items-start gap-1.5">
+                    <ArrowRight className="size-3 mt-0.5 text-blue-500 shrink-0" />
+                    <span><strong>Posted in last 7 days?</strong> → Urgently hiring → reach out fast</span>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* QUICK START PRESETS */}
+        <div>
+          <Label className="text-sm font-medium mb-2 block">Quick Start — Pick a preset or customize below</Label>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            {SEARCH_PRESETS.map((preset) => (
+              <button
+                key={preset.name}
+                onClick={() => applyPreset(preset)}
+                className="group text-left p-3 rounded-lg border bg-card hover:border-orange-300 hover:bg-orange-50/50 dark:hover:bg-orange-950/20 transition-all"
+              >
+                <div className="flex items-center gap-2 font-medium text-sm">
+                  {preset.icon}
+                  {preset.name}
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">{preset.description}</p>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* SEARCH FILTERS */}
         <Card>
           <CardHeader className="pb-4">
-            <CardTitle className="text-lg">Search Filters</CardTitle>
-            <CardDescription>
-              Configure your prospecting query. Review the credit cost before executing.
-            </CardDescription>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="text-lg">Search Filters</CardTitle>
+                <CardDescription>Configure your query. Review credit cost before searching.</CardDescription>
+              </div>
+              <Button variant="ghost" size="sm" onClick={resetFilters} className="gap-1.5 text-muted-foreground">
+                <RotateCcw className="size-3" /> Reset
+              </Button>
+            </div>
           </CardHeader>
           <CardContent className="space-y-6">
             {/* Search mode */}
             <div className="flex items-center gap-4">
               <Label className="text-sm font-medium">Search Mode</Label>
-              <Select
-                value={filters.mode}
-                onValueChange={(v) =>
-                  setFilters((f) => ({ ...f, mode: v as "jobs" | "companies" }))
-                }
-              >
-                <SelectTrigger className="w-48">
-                  <SelectValue />
-                </SelectTrigger>
+              <Select value={filters.mode} onValueChange={(v) => setFilters((f) => ({ ...f, mode: v as "jobs" | "companies" }))}>
+                <SelectTrigger className="w-48"><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="jobs">
-                    Job Search (1 credit/result)
-                  </SelectItem>
-                  <SelectItem value="companies">
-                    Company Search (3 credits/result)
-                  </SelectItem>
+                  <SelectItem value="jobs">Job Search (1 credit/result)</SelectItem>
+                  <SelectItem value="companies">Company Search (3 credits/result)</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -418,71 +742,27 @@ export default function ProspectingPage() {
 
             {/* Description patterns */}
             <div className="space-y-2">
-              <Label className="text-sm font-medium">
-                NGO Description Patterns
-              </Label>
-              <p className="text-xs text-muted-foreground">
-                Company descriptions matching any of these terms
-              </p>
+              <Label className="text-sm font-medium">NGO Description Patterns</Label>
+              <p className="text-xs text-muted-foreground">Matches companies whose description includes any of these</p>
               <div className="flex flex-wrap gap-1.5">
                 {NGO_PATTERNS.map((p) => (
-                  <Badge
-                    key={p}
-                    variant={
-                      filters.descriptionPatterns.includes(p)
-                        ? "default"
-                        : "outline"
-                    }
-                    className="cursor-pointer select-none"
-                    onClick={() =>
-                      setFilters((f) => ({
-                        ...f,
-                        descriptionPatterns: toggleTag(
-                          f.descriptionPatterns,
-                          p
-                        ),
-                      }))
-                    }
-                  >
+                  <Badge key={p} variant={filters.descriptionPatterns.includes(p) ? "default" : "outline"} className="cursor-pointer select-none"
+                    onClick={() => setFilters((f) => ({ ...f, descriptionPatterns: toggleTag(f.descriptionPatterns, p) }))}>
                     {p}
                   </Badge>
                 ))}
-                {filters.descriptionPatterns
-                  .filter((p) => !NGO_PATTERNS.includes(p))
-                  .map((p) => (
-                    <Badge key={p} variant="default" className="gap-1">
-                      {p}
-                      <X
-                        className="size-3 cursor-pointer"
-                        onClick={() =>
-                          setFilters((f) => ({
-                            ...f,
-                            descriptionPatterns: f.descriptionPatterns.filter(
-                              (x) => x !== p
-                            ),
-                          }))
-                        }
-                      />
-                    </Badge>
-                  ))}
+                {filters.descriptionPatterns.filter((p) => !NGO_PATTERNS.includes(p)).map((p) => (
+                  <Badge key={p} variant="default" className="gap-1">
+                    {p}
+                    <X className="size-3 cursor-pointer" onClick={() => setFilters((f) => ({ ...f, descriptionPatterns: f.descriptionPatterns.filter((x) => x !== p) }))} />
+                  </Badge>
+                ))}
               </div>
               <div className="flex gap-2">
-                <Input
-                  placeholder="Add custom pattern..."
-                  value={filters.customPattern}
-                  onChange={(e) =>
-                    setFilters((f) => ({ ...f, customPattern: e.target.value }))
-                  }
-                  onKeyDown={(e) => e.key === "Enter" && addCustomPattern()}
-                  className="max-w-xs"
-                />
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={addCustomPattern}
-                >
-                  Add
-                </Button>
+                <Input placeholder="Add custom pattern..." value={filters.customPattern}
+                  onChange={(e) => setFilters((f) => ({ ...f, customPattern: e.target.value }))}
+                  onKeyDown={(e) => e.key === "Enter" && addCustomPattern()} className="max-w-xs" />
+                <Button variant="outline" size="sm" onClick={addCustomPattern}>Add</Button>
               </div>
             </div>
 
@@ -491,21 +771,9 @@ export default function ProspectingPage() {
               <Label className="text-sm font-medium">Industries</Label>
               <div className="flex flex-wrap gap-1.5">
                 {NGO_INDUSTRY_IDS.map((ind) => (
-                  <Badge
-                    key={ind.id}
-                    variant={
-                      filters.industryIds.includes(ind.id)
-                        ? "default"
-                        : "outline"
-                    }
+                  <Badge key={ind.id} variant={filters.industryIds.includes(ind.id) ? "default" : "outline"}
                     className="cursor-pointer select-none text-xs"
-                    onClick={() =>
-                      setFilters((f) => ({
-                        ...f,
-                        industryIds: toggleTag(f.industryIds, ind.id),
-                      }))
-                    }
-                  >
+                    onClick={() => setFilters((f) => ({ ...f, industryIds: toggleTag(f.industryIds, ind.id) }))}>
                     {ind.label}
                   </Badge>
                 ))}
@@ -514,294 +782,222 @@ export default function ProspectingPage() {
 
             <Separator />
 
-            {/* Job title filters */}
+            {/* Job Description Keywords — NEW: most powerful filter per docs */}
             <div className="space-y-2">
-              <Label className="text-sm font-medium">
-                Job Title Keywords (optional)
+              <Label className="text-sm font-medium flex items-center gap-1.5">
+                Job Description Keywords
+                <Tooltip>
+                  <TooltipTrigger><Info className="size-3 text-muted-foreground" /></TooltipTrigger>
+                  <TooltipContent className="max-w-xs">Search inside job descriptions for volunteer-related words. This finds 3-5x more results than company description alone.</TooltipContent>
+                </Tooltip>
               </Label>
-              <p className="text-xs text-muted-foreground">
-                Filter for specific role types
-              </p>
+              <p className="text-xs text-muted-foreground">Matches jobs whose description mentions any of these words (word-boundary match)</p>
               <div className="flex flex-wrap gap-1.5">
-                {IMPACT_JOB_TITLES.map((t) => (
-                  <Badge
-                    key={t}
-                    variant={
-                      filters.jobTitles.includes(t) ? "default" : "outline"
-                    }
-                    className="cursor-pointer select-none text-xs"
-                    onClick={() =>
-                      setFilters((f) => ({
-                        ...f,
-                        jobTitles: toggleTag(f.jobTitles, t),
-                      }))
-                    }
-                  >
-                    {t}
+                {VOLUNTEER_DESC_KEYWORDS.map((kw) => (
+                  <Badge key={kw} variant={filters.jobDescriptionKeywords.includes(kw) ? "default" : "outline"} className="cursor-pointer select-none text-xs"
+                    onClick={() => setFilters((f) => ({ ...f, jobDescriptionKeywords: toggleTag(f.jobDescriptionKeywords, kw) }))}>
+                    {kw}
                   </Badge>
                 ))}
-                {filters.jobTitles
-                  .filter((t) => !IMPACT_JOB_TITLES.includes(t))
-                  .map((t) => (
-                    <Badge key={t} variant="default" className="gap-1 text-xs">
-                      {t}
-                      <X
-                        className="size-3 cursor-pointer"
-                        onClick={() =>
-                          setFilters((f) => ({
-                            ...f,
-                            jobTitles: f.jobTitles.filter((x) => x !== t),
-                          }))
-                        }
-                      />
-                    </Badge>
-                  ))}
+                {filters.jobDescriptionKeywords.filter((kw) => !VOLUNTEER_DESC_KEYWORDS.includes(kw)).map((kw) => (
+                  <Badge key={kw} variant="default" className="gap-1 text-xs">
+                    {kw}
+                    <X className="size-3 cursor-pointer" onClick={() => setFilters((f) => ({ ...f, jobDescriptionKeywords: f.jobDescriptionKeywords.filter((x) => x !== kw) }))} />
+                  </Badge>
+                ))}
               </div>
               <div className="flex gap-2">
-                <Input
-                  placeholder="Add custom job title..."
-                  value={filters.customJobTitle}
-                  onChange={(e) =>
-                    setFilters((f) => ({
-                      ...f,
-                      customJobTitle: e.target.value,
-                    }))
-                  }
-                  onKeyDown={(e) => e.key === "Enter" && addCustomJobTitle()}
-                  className="max-w-xs"
-                />
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={addCustomJobTitle}
-                >
-                  Add
-                </Button>
+                <Input placeholder="Add custom keyword..." value={filters.customDescKeyword}
+                  onChange={(e) => setFilters((f) => ({ ...f, customDescKeyword: e.target.value }))}
+                  onKeyDown={(e) => { if (e.key === "Enter") { const v = filters.customDescKeyword.trim(); if (v && !filters.jobDescriptionKeywords.includes(v)) setFilters(f => ({...f, jobDescriptionKeywords: [...f.jobDescriptionKeywords, v], customDescKeyword: ""})) }}}
+                  className="max-w-xs" />
+                <Button variant="outline" size="sm" onClick={() => { const v = filters.customDescKeyword.trim(); if (v && !filters.jobDescriptionKeywords.includes(v)) setFilters(f => ({...f, jobDescriptionKeywords: [...f.jobDescriptionKeywords, v], customDescKeyword: ""})) }}>Add</Button>
               </div>
             </div>
 
             <Separator />
 
-            {/* Row of controls */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              {/* Remote toggle */}
+            {/* Quality toggles */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 p-3 rounded-lg bg-muted/30 border">
               <div className="flex items-center gap-2">
-                <Switch
-                  checked={filters.remoteOnly}
-                  onCheckedChange={(v) =>
-                    setFilters((f) => ({ ...f, remoteOnly: v }))
-                  }
-                />
-                <Label className="text-sm">Remote only</Label>
+                <Switch checked={filters.onlyWithContacts} onCheckedChange={(v) => setFilters((f) => ({ ...f, onlyWithContacts: v }))} />
+                <div>
+                  <Label className="text-sm font-medium">Only with contacts</Label>
+                  <p className="text-xs text-muted-foreground">Results must have hiring team + LinkedIn</p>
+                </div>
               </div>
-
-              {/* Max age */}
-              <div className="space-y-1">
-                <Label className="text-xs">Posted within (days)</Label>
-                <Select
-                  value={String(filters.maxAgeDays)}
-                  onValueChange={(v) =>
-                    setFilters((f) => ({ ...f, maxAgeDays: parseInt(v) }))
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="7">7 days</SelectItem>
-                    <SelectItem value="14">14 days</SelectItem>
-                    <SelectItem value="30">30 days</SelectItem>
-                    <SelectItem value="60">60 days</SelectItem>
-                    <SelectItem value="90">90 days</SelectItem>
-                  </SelectContent>
-                </Select>
+              <div className="flex items-center gap-2">
+                <Switch checked={filters.previewMode} onCheckedChange={(v) => setFilters((f) => ({ ...f, previewMode: v }))} />
+                <div>
+                  <Label className="text-sm font-medium">Preview mode (free)</Label>
+                  <p className="text-xs text-muted-foreground">See counts without spending credits (data blurred)</p>
+                </div>
               </div>
-
-              {/* Company type */}
-              <div className="space-y-1">
-                <Label className="text-xs">Employer type</Label>
-                <Select
-                  value={filters.companyType}
-                  onValueChange={(v) =>
-                    setFilters((f) => ({
-                      ...f,
-                      companyType: v as "direct_employer" | "all",
-                    }))
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="direct_employer">
-                      Direct employers only
-                    </SelectItem>
-                    <SelectItem value="all">All (incl. agencies)</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Result limit */}
-              <div className="space-y-1">
-                <Label className="text-xs">Results limit</Label>
-                <Select
-                  value={String(filters.limit)}
-                  onValueChange={(v) =>
-                    setFilters((f) => ({ ...f, limit: parseInt(v) }))
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="5">5 results</SelectItem>
-                    <SelectItem value="10">10 results</SelectItem>
-                    <SelectItem value="25">25 results</SelectItem>
-                    <SelectItem value="50">50 results</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            {/* Employee count + Country code */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div className="space-y-1">
-                <Label className="text-xs">Min employees</Label>
-                <Input
-                  type="number"
-                  placeholder="e.g. 10"
-                  value={filters.minEmployees}
-                  onChange={(e) =>
-                    setFilters((f) => ({
-                      ...f,
-                      minEmployees: e.target.value,
-                    }))
-                  }
-                />
-              </div>
-              <div className="space-y-1">
-                <Label className="text-xs">Max employees</Label>
-                <Input
-                  type="number"
-                  placeholder="e.g. 500"
-                  value={filters.maxEmployees}
-                  onChange={(e) =>
-                    setFilters((f) => ({
-                      ...f,
-                      maxEmployees: e.target.value,
-                    }))
-                  }
-                />
-              </div>
-              <div className="space-y-1">
-                <Label className="text-xs">Country codes (2-letter)</Label>
-                <div className="flex gap-2">
-                  <Input
-                    placeholder="e.g. US"
-                    value={filters.customCountry}
-                    onChange={(e) =>
-                      setFilters((f) => ({
-                        ...f,
-                        customCountry: e.target.value,
-                      }))
-                    }
-                    onKeyDown={(e) => e.key === "Enter" && addCustomCountry()}
-                    maxLength={2}
-                    className="w-24"
-                  />
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={addCustomCountry}
-                  >
-                    Add
-                  </Button>
-                  {filters.countryCodes.map((c) => (
-                    <Badge key={c} variant="default" className="gap-1">
-                      {c}
-                      <X
-                        className="size-3 cursor-pointer"
-                        onClick={() =>
-                          setFilters((f) => ({
-                            ...f,
-                            countryCodes: f.countryCodes.filter(
-                              (x) => x !== c
-                            ),
-                          }))
-                        }
-                      />
-                    </Badge>
-                  ))}
+              <div className="flex items-center gap-2">
+                <Switch checked={filters.remoteOnly} onCheckedChange={(v) => setFilters((f) => ({ ...f, remoteOnly: v }))} />
+                <div>
+                  <Label className="text-sm font-medium">Remote only</Label>
+                  <p className="text-xs text-muted-foreground">Only show remote-friendly positions</p>
                 </div>
               </div>
             </div>
 
             <Separator />
 
-            {/* Cost preview + Execute */}
+            {/* Country filter */}
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Country Filter</Label>
+              <p className="text-xs text-muted-foreground">Click to add/remove. Empty = worldwide.</p>
+              <div className="flex flex-wrap gap-1.5">
+                {COUNTRY_PRESETS.map((c) => (
+                  <Badge key={c.code} variant={filters.countryCodes.includes(c.code) ? "default" : "outline"}
+                    className="cursor-pointer select-none text-xs"
+                    onClick={() => setFilters((f) => ({ ...f, countryCodes: toggleTag(f.countryCodes, c.code) }))}>
+                    {c.label} ({c.code})
+                  </Badge>
+                ))}
+                {filters.countryCodes.filter(c => !COUNTRY_PRESETS.some(p => p.code === c)).map((c) => (
+                  <Badge key={c} variant="default" className="gap-1 text-xs">
+                    {c}
+                    <X className="size-3 cursor-pointer" onClick={() => setFilters((f) => ({ ...f, countryCodes: f.countryCodes.filter((x) => x !== c) }))} />
+                  </Badge>
+                ))}
+              </div>
+              <div className="flex gap-2">
+                <Input placeholder="Other (e.g. BR)" value={filters.customCountry}
+                  onChange={(e) => setFilters((f) => ({ ...f, customCountry: e.target.value }))}
+                  onKeyDown={(e) => e.key === "Enter" && addCustomCountry()}
+                  maxLength={2} className="w-32" />
+                <Button variant="outline" size="sm" onClick={addCustomCountry}>Add</Button>
+              </div>
+            </div>
+
+            <Separator />
+
+            {/* Advanced filters */}
+            <Accordion type="single" collapsible>
+              <AccordionItem value="advanced" className="border-none">
+                <AccordionTrigger className="text-sm font-medium py-0 hover:no-underline">Advanced Filters</AccordionTrigger>
+                <AccordionContent className="space-y-4 pt-4">
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium">Job Title Keywords (optional)</Label>
+                    <div className="flex flex-wrap gap-1.5">
+                      {IMPACT_JOB_TITLES.map((t) => (
+                        <Badge key={t} variant={filters.jobTitles.includes(t) ? "default" : "outline"}
+                          className="cursor-pointer select-none text-xs"
+                          onClick={() => setFilters((f) => ({ ...f, jobTitles: toggleTag(f.jobTitles, t) }))}>
+                          {t}
+                        </Badge>
+                      ))}
+                      {filters.jobTitles.filter((t) => !IMPACT_JOB_TITLES.includes(t)).map((t) => (
+                        <Badge key={t} variant="default" className="gap-1 text-xs">
+                          {t}
+                          <X className="size-3 cursor-pointer" onClick={() => setFilters((f) => ({ ...f, jobTitles: f.jobTitles.filter((x) => x !== t) }))} />
+                        </Badge>
+                      ))}
+                    </div>
+                    <div className="flex gap-2">
+                      <Input placeholder="Add custom job title..." value={filters.customJobTitle}
+                        onChange={(e) => setFilters((f) => ({ ...f, customJobTitle: e.target.value }))}
+                        onKeyDown={(e) => e.key === "Enter" && addCustomJobTitle()} className="max-w-xs" />
+                      <Button variant="outline" size="sm" onClick={addCustomJobTitle}>Add</Button>
+                    </div>
+                  </div>
+                  <Separator />
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <div className="space-y-1">
+                      <Label className="text-xs">Posted within (days)</Label>
+                      <Select value={String(filters.maxAgeDays)} onValueChange={(v) => setFilters((f) => ({ ...f, maxAgeDays: parseInt(v) }))}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="7">7 days</SelectItem>
+                          <SelectItem value="14">14 days</SelectItem>
+                          <SelectItem value="30">30 days</SelectItem>
+                          <SelectItem value="60">60 days</SelectItem>
+                          <SelectItem value="90">90 days</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs">Employer type</Label>
+                      <Select value={filters.companyType} onValueChange={(v) => setFilters((f) => ({ ...f, companyType: v as "direct_employer" | "all" }))}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="direct_employer">Direct employers only</SelectItem>
+                          <SelectItem value="all">All (incl. agencies)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs">Results limit</Label>
+                      <Select value={String(filters.limit)} onValueChange={(v) => setFilters((f) => ({ ...f, limit: parseInt(v) }))}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="5">5 results</SelectItem>
+                          <SelectItem value="10">10 results</SelectItem>
+                          <SelectItem value="25">25 results</SelectItem>
+                          <SelectItem value="50">50 results</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                      <Label className="text-xs">Min employees</Label>
+                      <Input type="number" placeholder="e.g. 10" value={filters.minEmployees}
+                        onChange={(e) => setFilters((f) => ({ ...f, minEmployees: e.target.value }))} />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs">Max employees</Label>
+                      <Input type="number" placeholder="e.g. 500" value={filters.maxEmployees}
+                        onChange={(e) => setFilters((f) => ({ ...f, maxEmployees: e.target.value }))} />
+                    </div>
+                  </div>
+                </AccordionContent>
+              </AccordionItem>
+            </Accordion>
+
+            <Separator />
+
+            {/* Cost + Execute */}
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 p-4 rounded-lg bg-muted/50 border">
               <div className="space-y-1">
                 <div className="flex items-center gap-2 text-sm font-medium">
                   <Coins className="size-4 text-amber-500" />
                   Estimated cost:{" "}
-                  <span
-                    className={
-                      !canAfford
-                        ? "text-destructive font-bold"
-                        : "text-amber-600 font-bold"
-                    }
-                  >
-                    {estimatedCost} credits
+                  <span className={filters.previewMode ? "text-emerald-600 font-bold" : (!canAfford ? "text-destructive font-bold" : "text-amber-600 font-bold")}>
+                    {filters.previewMode ? "0 credits (preview)" : `${estimatedCost} credits`}
                   </span>
-                  <span className="text-muted-foreground font-normal">
-                    ({filters.limit} ×{" "}
-                    {filters.mode === "jobs" ? "1" : "3"} per{" "}
-                    {filters.mode === "jobs" ? "job" : "company"})
-                  </span>
+                  {!filters.previewMode && (
+                    <span className="text-muted-foreground font-normal">
+                      ({filters.limit} × {filters.mode === "jobs" ? "1" : "3"} per {filters.mode === "jobs" ? "job" : "company"})
+                    </span>
+                  )}
                 </div>
-                {!canAfford && (
+                {filters.previewMode && (
+                  <div className="flex items-center gap-1.5 text-xs text-emerald-600">
+                    <Info className="size-3" />
+                    Preview mode: company names and details will be blurred. Use to check result count before spending credits.
+                  </div>
+                )}
+                {!canAfford && !filters.previewMode && (
                   <div className="flex items-center gap-1.5 text-xs text-destructive">
                     <AlertTriangle className="size-3" />
                     Insufficient credits! You have {remainingCredits} remaining.
                   </div>
                 )}
               </div>
-
               {!showConfirm ? (
-                <Button
-                  onClick={() => setShowConfirm(true)}
-                  disabled={!canAfford || loading}
-                  className="gap-2"
-                >
-                  <Search className="size-4" />
-                  Preview & Search
+                <Button onClick={() => setShowConfirm(true)} disabled={!canAfford || loading || isApiKeyMissing} className="gap-2">
+                  <Search className="size-4" /> Search NGOs
                 </Button>
               ) : (
                 <div className="flex items-center gap-2">
-                  <span className="text-sm text-amber-600 font-medium">
-                    Spend {estimatedCost} credits?
-                  </span>
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    onClick={executeSearch}
-                    disabled={loading}
-                    className="gap-1"
-                  >
-                    {loading ? (
-                      <Loader2 className="size-3 animate-spin" />
-                    ) : (
-                      <Coins className="size-3" />
-                    )}
-                    Confirm
+                  <span className="text-sm text-amber-600 font-medium">Spend {estimatedCost} credits?</span>
+                  <Button variant="destructive" size="sm" onClick={executeSearch} disabled={loading} className="gap-1">
+                    {loading ? <Loader2 className="size-3 animate-spin" /> : <Coins className="size-3" />} Confirm
                   </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setShowConfirm(false)}
-                  >
-                    Cancel
-                  </Button>
+                  <Button variant="outline" size="sm" onClick={() => setShowConfirm(false)}>Cancel</Button>
                 </div>
               )}
             </div>
@@ -812,8 +1008,7 @@ export default function ProspectingPage() {
         {error && (
           <Card className="border-destructive">
             <CardContent className="p-4 flex items-center gap-2 text-destructive text-sm">
-              <AlertTriangle className="size-4" />
-              {error}
+              <AlertTriangle className="size-4" /> {error}
             </CardContent>
           </Card>
         )}
@@ -822,45 +1017,73 @@ export default function ProspectingPage() {
         {loading && (
           <Card>
             <CardContent className="p-6 space-y-3">
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Loader2 className="size-4 animate-spin" />
+                Searching TheirStack for NGOs matching your filters...
+              </div>
               <Skeleton className="h-4 w-48" />
-              <Skeleton className="h-32 w-full" />
               <Skeleton className="h-32 w-full" />
             </CardContent>
           </Card>
         )}
 
-        {/* Results */}
+        {/* RESULTS SUMMARY STATS */}
+        {results && !loading && (
+          <div className="space-y-3">
+            {/* Total pool size from API */}
+            {results.metadata?.total_results != null && (
+              <div className="p-3 rounded-lg bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 flex items-center gap-2">
+                <Info className="size-4 text-blue-600 shrink-0" />
+                <span className="text-sm">
+                  <strong className="text-blue-700 dark:text-blue-300">{results.metadata.total_results.toLocaleString()}</strong> total matching jobs
+                  {results.metadata.total_companies != null && (
+                    <> from <strong className="text-blue-700 dark:text-blue-300">{results.metadata.total_companies.toLocaleString()}</strong> companies</>
+                  )} — showing {results.data?.length || 0} results
+                  {results.data?.[0]?.has_blurred_data && <Badge variant="outline" className="ml-2 text-xs">Preview Mode</Badge>}
+                </span>
+              </div>
+            )}
+            {resultStats && (
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+                <Card><CardContent className="p-3 text-center"><div className="text-2xl font-bold">{resultStats.total}</div><p className="text-xs text-muted-foreground">Returned</p></CardContent></Card>
+                <Card className={resultStats.highScoreCount > 0 ? "border-emerald-200 dark:border-emerald-800" : ""}>
+                  <CardContent className="p-3 text-center"><div className="text-2xl font-bold text-emerald-600">{resultStats.highScoreCount}</div><p className="text-xs text-muted-foreground">High Score (70+)</p></CardContent>
+                </Card>
+                <Card><CardContent className="p-3 text-center"><div className="text-2xl font-bold">{resultStats.withContacts}</div><p className="text-xs text-muted-foreground">With Contacts</p></CardContent></Card>
+                <Card><CardContent className="p-3 text-center"><div className="text-2xl font-bold text-blue-600">{resultStats.withLinkedin}</div><p className="text-xs text-muted-foreground">With LinkedIn</p></CardContent></Card>
+                <Card><CardContent className="p-3 text-center"><div className="text-2xl font-bold">{resultStats.remoteJobs}</div><p className="text-xs text-muted-foreground">Remote</p></CardContent></Card>
+                <Card><CardContent className="p-3 text-center"><div className="text-2xl font-bold">{resultStats.avgScore}</div><p className="text-xs text-muted-foreground">Avg Score</p></CardContent></Card>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* RESULTS TABLE */}
         {results && !loading && (
           <Card>
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
                 <div>
-                  <CardTitle className="text-lg">
-                    Results ({results.data?.length || 0} returned)
-                  </CardTitle>
+                  <CardTitle className="text-lg">Results ({results.data?.length || 0} returned)</CardTitle>
                   {results.metadata?.total_results != null && (
-                    <CardDescription>
-                      {results.metadata.total_results.toLocaleString()} total
-                      matches found
-                    </CardDescription>
+                    <CardDescription>{results.metadata.total_results.toLocaleString()} total matches</CardDescription>
                   )}
                 </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={exportCSV}
-                  disabled={!results.data?.length}
-                  className="gap-1.5"
-                >
-                  <Download className="size-3.5" />
-                  Export CSV
-                </Button>
+                <div className="flex items-center gap-2">
+                  {savedLeads.size > 0 && (
+                    <Badge variant="secondary" className="gap-1"><BookmarkCheck className="size-3" />{savedLeads.size} saved</Badge>
+                  )}
+                  <Button variant="outline" size="sm" onClick={exportCSV} disabled={!results.data?.length} className="gap-1.5">
+                    <Download className="size-3.5" /> Export CSV
+                  </Button>
+                </div>
               </div>
             </CardHeader>
             <CardContent className="p-0">
               {results.data?.length === 0 ? (
                 <div className="p-8 text-center text-muted-foreground">
-                  No results found. Try broadening your search filters.
+                  <XCircle className="size-8 mx-auto mb-2 text-muted-foreground/50" />
+                  No results found. Try broadening your filters.
                 </div>
               ) : (
                 <div className="overflow-x-auto">
@@ -868,243 +1091,195 @@ export default function ProspectingPage() {
                     <TableHeader>
                       <TableRow>
                         <TableHead className="w-8" />
+                        <TableHead className="w-20">
+                          <Tooltip>
+                            <TooltipTrigger className="flex items-center gap-1">Score <Info className="size-3" /></TooltipTrigger>
+                            <TooltipContent className="max-w-xs">Partnership Score (0-100): contacts, LinkedIn, recency, relevance, website</TooltipContent>
+                          </Tooltip>
+                        </TableHead>
                         <TableHead>Company</TableHead>
                         <TableHead>Job Title</TableHead>
                         <TableHead>Location</TableHead>
-                        <TableHead>Salary</TableHead>
                         <TableHead>Posted</TableHead>
-                        <TableHead>Hiring Team</TableHead>
-                        <TableHead className="w-16">Links</TableHead>
+                        <TableHead>Contacts</TableHead>
+                        <TableHead className="w-24">Actions</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {(results.data as TheirStackJob[]).map(
-                        (job, idx) => {
-                          const isExpanded = expandedRows.has(idx)
-                          return (
-                            <>
-                              <TableRow
-                                key={job.id || idx}
-                                className="cursor-pointer hover:bg-muted/50"
-                                onClick={() =>
-                                  setExpandedRows((prev) => {
-                                    const next = new Set(prev)
-                                    if (next.has(idx)) next.delete(idx)
-                                    else next.add(idx)
-                                    return next
-                                  })
-                                }
-                              >
-                                <TableCell>
-                                  {isExpanded ? (
-                                    <ChevronUp className="size-4 text-muted-foreground" />
-                                  ) : (
-                                    <ChevronDown className="size-4 text-muted-foreground" />
+                      {(results.data as TheirStackJob[]).map((job, idx) => {
+                        const isExpanded = expandedRows.has(idx)
+                        const { score, reasons } = calculatePartnershipScore(job)
+                        const isSaved = savedLeads.has(job.id)
+                        return (
+                          <>
+                            <TableRow key={job.id || idx} className="cursor-pointer hover:bg-muted/50"
+                              onClick={() => setExpandedRows((prev) => { const next = new Set(prev); if (next.has(idx)) next.delete(idx); else next.add(idx); return next })}>
+                              <TableCell>{isExpanded ? <ChevronUp className="size-4 text-muted-foreground" /> : <ChevronDown className="size-4 text-muted-foreground" />}</TableCell>
+                              <TableCell>
+                                <Tooltip>
+                                  <TooltipTrigger>
+                                    <div className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-bold border ${getScoreBg(score)} ${getScoreColor(score)}`}>
+                                      <Star className="size-3" />{score}
+                                    </div>
+                                  </TooltipTrigger>
+                                  <TooltipContent side="right" className="max-w-xs">
+                                    <p className="font-medium mb-1">{getScoreLabel(score)} Partnership Potential</p>
+                                    <ul className="text-xs space-y-0.5">
+                                      {reasons.map((r, i) => (<li key={i} className="flex items-start gap-1"><CheckCircle2 className="size-3 mt-0.5 text-emerald-500 shrink-0" />{r}</li>))}
+                                    </ul>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TableCell>
+                              <TableCell>
+                                <div className="flex items-center gap-2">
+                                  <Building2 className="size-4 text-muted-foreground shrink-0" />
+                                  <div>
+                                    <div className="font-medium text-sm">{job.company || "Unknown"}</div>
+                                    {job.company_domain && <div className="text-xs text-muted-foreground">{job.company_domain}</div>}
+                                  </div>
+                                </div>
+                              </TableCell>
+                              <TableCell className="text-sm">{job.job_title}</TableCell>
+                              <TableCell>
+                                <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                                  <MapPin className="size-3" />{job.location || "N/A"}
+                                  {job.remote && <Badge variant="secondary" className="ml-1 text-xs">Remote</Badge>}
+                                </div>
+                              </TableCell>
+                              <TableCell className="text-sm text-muted-foreground">
+                                {job.date_posted ? new Date(job.date_posted).toLocaleDateString() : "—"}
+                              </TableCell>
+                              <TableCell>
+                                {job.hiring_team?.length ? (
+                                  <div className="flex items-center gap-1">
+                                    <Users className="size-3 text-muted-foreground" />
+                                    <span className="text-xs font-medium">{job.hiring_team.length}</span>
+                                    {job.hiring_team.some(h => h.linkedin_url) && <Linkedin className="size-3 text-blue-600" />}
+                                  </div>
+                                ) : <span className="text-xs text-muted-foreground">—</span>}
+                              </TableCell>
+                              <TableCell>
+                                <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <button onClick={() => toggleSavedLead(job.id)}
+                                        className={`p-1 rounded hover:bg-muted ${isSaved ? "text-amber-500" : "text-muted-foreground"}`}>
+                                        {isSaved ? <BookmarkCheck className="size-3.5" /> : <BookmarkPlus className="size-3.5" />}
+                                      </button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>{isSaved ? "Remove bookmark" : "Bookmark lead"}</TooltipContent>
+                                  </Tooltip>
+                                  {(job.final_url || job.url) && (
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <a href={job.final_url || job.url || "#"} target="_blank" rel="noopener noreferrer" className="p-1 rounded hover:bg-muted"><ExternalLink className="size-3.5" /></a>
+                                      </TooltipTrigger>
+                                      <TooltipContent>View job posting</TooltipContent>
+                                    </Tooltip>
                                   )}
-                                </TableCell>
-                                <TableCell>
-                                  <div className="flex items-center gap-2">
-                                    <Building2 className="size-4 text-muted-foreground shrink-0" />
-                                    <div>
-                                      <div className="font-medium text-sm">
-                                        {job.company || "Unknown"}
+                                  {job.company_domain && (
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <a href={`https://${job.company_domain}`} target="_blank" rel="noopener noreferrer" className="p-1 rounded hover:bg-muted"><Globe className="size-3.5" /></a>
+                                      </TooltipTrigger>
+                                      <TooltipContent>Company website</TooltipContent>
+                                    </Tooltip>
+                                  )}
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                            {isExpanded && (
+                              <TableRow key={`${job.id || idx}-detail`}>
+                                <TableCell colSpan={8} className="bg-muted/30 p-4">
+                                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                                    {/* Score Breakdown */}
+                                    <div className={`p-3 rounded-lg border ${getScoreBg(score)}`}>
+                                      <Label className="text-xs font-medium text-muted-foreground">Partnership Score</Label>
+                                      <div className="flex items-center gap-2 mt-1 mb-2">
+                                        <span className={`text-2xl font-bold ${getScoreColor(score)}`}>{score}</span>
+                                        <span className="text-xs text-muted-foreground">/ 100</span>
+                                        <Badge variant={score >= 70 ? "default" : "secondary"} className="text-xs">{getScoreLabel(score)}</Badge>
                                       </div>
-                                      {job.company_domain && (
-                                        <div className="text-xs text-muted-foreground">
-                                          {job.company_domain}
+                                      <Progress value={score} className="h-2 mb-2" />
+                                      <ul className="space-y-1">
+                                        {reasons.map((r, i) => (
+                                          <li key={i} className="flex items-start gap-1.5 text-xs">
+                                            <CheckCircle2 className="size-3 mt-0.5 text-emerald-500 shrink-0" />{r}
+                                          </li>
+                                        ))}
+                                      </ul>
+                                    </div>
+
+                                    {/* Hiring team */}
+                                    <div>
+                                      <Label className="text-xs font-medium text-muted-foreground">Hiring Team</Label>
+                                      {job.hiring_team?.length ? (
+                                        <div className="mt-1 space-y-2">
+                                          {job.hiring_team.map((h, i) => (
+                                            <div key={i} className="flex items-center gap-2 p-2 rounded bg-background border">
+                                              <div className="w-8 h-8 rounded-full bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center text-xs font-bold text-orange-600">
+                                                {h.full_name.charAt(0)}
+                                              </div>
+                                              <div className="flex-1 min-w-0">
+                                                <div className="font-medium text-sm truncate">{h.full_name}</div>
+                                                {h.role && <div className="text-xs text-muted-foreground truncate">{h.role}</div>}
+                                              </div>
+                                              {h.linkedin_url && (
+                                                <a href={h.linkedin_url} target="_blank" rel="noopener noreferrer"
+                                                  className="shrink-0 p-1.5 rounded bg-blue-50 dark:bg-blue-950/30 text-blue-600 hover:bg-blue-100">
+                                                  <Linkedin className="size-3.5" />
+                                                </a>
+                                              )}
+                                            </div>
+                                          ))}
                                         </div>
-                                      )}
+                                      ) : <p className="mt-1 text-xs text-muted-foreground">No hiring contacts available</p>}
                                     </div>
-                                  </div>
-                                </TableCell>
-                                <TableCell className="text-sm">
-                                  {job.job_title}
-                                </TableCell>
-                                <TableCell>
-                                  <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                                    <MapPin className="size-3" />
-                                    {job.location || "N/A"}
-                                    {job.remote && (
-                                      <Badge
-                                        variant="secondary"
-                                        className="ml-1 text-xs"
-                                      >
-                                        Remote
-                                      </Badge>
-                                    )}
-                                  </div>
-                                </TableCell>
-                                <TableCell className="text-sm text-muted-foreground">
-                                  {job.salary_string || "—"}
-                                </TableCell>
-                                <TableCell className="text-sm text-muted-foreground">
-                                  {job.date_posted
-                                    ? new Date(
-                                        job.date_posted
-                                      ).toLocaleDateString()
-                                    : "—"}
-                                </TableCell>
-                                <TableCell>
-                                  {job.hiring_team?.length ? (
-                                    <div className="flex items-center gap-1">
-                                      <Users className="size-3 text-muted-foreground" />
-                                      <span className="text-xs">
-                                        {job.hiring_team.length} contact
-                                        {job.hiring_team.length > 1
-                                          ? "s"
-                                          : ""}
-                                      </span>
+
+                                    {/* Details + Next Step */}
+                                    <div className="space-y-3">
+                                      <div>
+                                        <Label className="text-xs font-medium text-muted-foreground">Job Details</Label>
+                                        <div className="mt-1 space-y-1 text-xs">
+                                          {job.salary_string && <div><span className="text-muted-foreground">Salary: </span>{job.salary_string}</div>}
+                                          {job.seniority && <div><span className="text-muted-foreground">Seniority: </span>{job.seniority}</div>}
+                                          {job.employment_statuses?.length ? <div><span className="text-muted-foreground">Type: </span>{job.employment_statuses.join(", ")}</div> : null}
+                                        </div>
+                                      </div>
+                                      <div className="p-2 rounded bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800">
+                                        <Label className="text-xs font-medium text-blue-700 dark:text-blue-300 flex items-center gap-1">
+                                          <Mail className="size-3" /> Suggested Next Step
+                                        </Label>
+                                        <p className="text-xs text-blue-600 dark:text-blue-400 mt-0.5">
+                                          {job.hiring_team?.some(h => h.linkedin_url)
+                                            ? `Connect with ${job.hiring_team.find(h => h.linkedin_url)?.full_name} on LinkedIn. Mention their ${job.job_title} role and how JustBeCause can supply pre-vetted volunteers.`
+                                            : job.company_domain
+                                            ? `Visit ${job.company_domain} → find contact/partnerships page → introduce JustBeCause as a volunteer pipeline.`
+                                            : `Search "${job.company}" on LinkedIn → find HR/Partnerships team → send connection request.`}
+                                        </p>
+                                      </div>
+                                      {job.technology_slugs?.length ? (
+                                        <div className="flex flex-wrap gap-1">
+                                          {job.technology_slugs.slice(0, 8).map((t) => (
+                                            <Badge key={t} variant="outline" className="text-xs">{t}</Badge>
+                                          ))}
+                                        </div>
+                                      ) : null}
                                     </div>
-                                  ) : (
-                                    <span className="text-xs text-muted-foreground">
-                                      —
-                                    </span>
-                                  )}
-                                </TableCell>
-                                <TableCell>
-                                  <div
-                                    className="flex items-center gap-1"
-                                    onClick={(e) => e.stopPropagation()}
-                                  >
-                                    {(job.final_url || job.url) && (
-                                      <Tooltip>
-                                        <TooltipTrigger asChild>
-                                          <a
-                                            href={
-                                              job.final_url || job.url || "#"
-                                            }
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="p-1 rounded hover:bg-muted"
-                                          >
-                                            <ExternalLink className="size-3.5" />
-                                          </a>
-                                        </TooltipTrigger>
-                                        <TooltipContent>
-                                          View job posting
-                                        </TooltipContent>
-                                      </Tooltip>
-                                    )}
-                                    {job.company_domain && (
-                                      <Tooltip>
-                                        <TooltipTrigger asChild>
-                                          <a
-                                            href={`https://${job.company_domain}`}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="p-1 rounded hover:bg-muted"
-                                          >
-                                            <Globe className="size-3.5" />
-                                          </a>
-                                        </TooltipTrigger>
-                                        <TooltipContent>
-                                          Company website
-                                        </TooltipContent>
-                                      </Tooltip>
+
+                                    {job.description && (
+                                      <div className="md:col-span-3">
+                                        <Label className="text-xs font-medium text-muted-foreground">Job Description</Label>
+                                        <p className="mt-1 text-sm line-clamp-4 text-muted-foreground">{job.description}</p>
+                                      </div>
                                     )}
                                   </div>
                                 </TableCell>
                               </TableRow>
-                              {/* Expanded row detail */}
-                              {isExpanded && (
-                                <TableRow key={`${job.id || idx}-detail`}>
-                                  <TableCell
-                                    colSpan={8}
-                                    className="bg-muted/30 p-4"
-                                  >
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                                      {/* Description */}
-                                      {job.description && (
-                                        <div className="md:col-span-2">
-                                          <Label className="text-xs font-medium text-muted-foreground">
-                                            Job Description
-                                          </Label>
-                                          <p className="mt-1 text-sm line-clamp-4">
-                                            {job.description}
-                                          </p>
-                                        </div>
-                                      )}
-
-                                      {/* Hiring team */}
-                                      {job.hiring_team?.length ? (
-                                        <div>
-                                          <Label className="text-xs font-medium text-muted-foreground">
-                                            Hiring Team
-                                          </Label>
-                                          <div className="mt-1 space-y-1">
-                                            {job.hiring_team.map((h, i) => (
-                                              <div
-                                                key={i}
-                                                className="flex items-center gap-2"
-                                              >
-                                                <span className="font-medium">
-                                                  {h.full_name}
-                                                </span>
-                                                {h.role && (
-                                                  <span className="text-muted-foreground">
-                                                    ({h.role})
-                                                  </span>
-                                                )}
-                                                {h.linkedin_url && (
-                                                  <a
-                                                    href={h.linkedin_url}
-                                                    target="_blank"
-                                                    rel="noopener noreferrer"
-                                                    className="text-blue-600 hover:text-blue-800"
-                                                  >
-                                                    <Linkedin className="size-3.5" />
-                                                  </a>
-                                                )}
-                                              </div>
-                                            ))}
-                                          </div>
-                                        </div>
-                                      ) : null}
-
-                                      {/* Meta */}
-                                      <div className="space-y-1">
-                                        {job.seniority && (
-                                          <div>
-                                            <span className="text-muted-foreground">
-                                              Seniority:{" "}
-                                            </span>
-                                            {job.seniority}
-                                          </div>
-                                        )}
-                                        {job.employment_statuses?.length ? (
-                                          <div>
-                                            <span className="text-muted-foreground">
-                                              Type:{" "}
-                                            </span>
-                                            {job.employment_statuses.join(
-                                              ", "
-                                            )}
-                                          </div>
-                                        ) : null}
-                                        {job.technology_slugs?.length ? (
-                                          <div className="flex flex-wrap gap-1 mt-1">
-                                            {job.technology_slugs
-                                              .slice(0, 10)
-                                              .map((t) => (
-                                                <Badge
-                                                  key={t}
-                                                  variant="outline"
-                                                  className="text-xs"
-                                                >
-                                                  {t}
-                                                </Badge>
-                                              ))}
-                                          </div>
-                                        ) : null}
-                                      </div>
-                                    </div>
-                                  </TableCell>
-                                </TableRow>
-                              )}
-                            </>
-                          )
-                        }
-                      )}
+                            )}
+                          </>
+                        )
+                      })}
                     </TableBody>
                   </Table>
                 </div>
