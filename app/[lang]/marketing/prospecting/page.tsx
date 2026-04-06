@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useCallback, useEffect, useMemo } from "react"
+import { Fragment, useState, useCallback, useEffect, useMemo } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -114,6 +114,17 @@ const VOLUNTEER_DESC_KEYWORDS = [
   "outreach program",
 ]
 
+const URGENT_HIRING_KEYWORDS = [
+  "urgent",
+  "urgently hiring",
+  "asap",
+  "immediate",
+  "immediately",
+  "hiring now",
+  "join immediately",
+  "start immediately",
+]
+
 // Popular country presets
 const COUNTRY_PRESETS = [
   { code: "IN", label: "India" },
@@ -193,7 +204,7 @@ const SEARCH_PRESETS: SearchPreset[] = [
   },
   {
     name: "NGOs With Contacts",
-    description: "Only results with hiring team + LinkedIn (high value)",
+    description: "Only results with hiring-team data attached",
     icon: <Building2 className="size-4 text-purple-500" />,
     filters: {
       mode: "jobs",
@@ -204,6 +215,23 @@ const SEARCH_PRESETS: SearchPreset[] = [
       maxAgeDays: 30,
       companyType: "direct_employer",
       onlyWithContacts: true,
+      limit: 10,
+    },
+  },
+  {
+    name: "Urgently Hiring NGOs",
+    description: "Recent NGO roles with urgent/immediate hiring language",
+    icon: <AlertTriangle className="size-4 text-red-500" />,
+    filters: {
+      mode: "jobs",
+      descriptionPatterns: [...NGO_PATTERNS],
+      industryIds: [70, 74, 81, 78, 101],
+      countryCodes: [],
+      remoteOnly: false,
+      maxAgeDays: 14,
+      companyType: "direct_employer",
+      onlyWithContacts: true,
+      jobDescriptionKeywords: [...URGENT_HIRING_KEYWORDS],
       limit: 10,
     },
   },
@@ -221,6 +249,9 @@ async function apiCall(action: string, params?: Record<string, unknown>) {
   })
   if (!res.ok) {
     const err = await res.json().catch(() => ({}))
+    if (res.status === 401) {
+      throw new Error("This page requires an admin session. Sign in as an admin to use TheirStack.")
+    }
     throw new Error(err.error || `API error ${res.status}`)
   }
   return res.json()
@@ -302,6 +333,75 @@ function getScoreBg(score: number): string {
   if (score >= 70) return "bg-emerald-50 border-emerald-200 dark:bg-emerald-950/30 dark:border-emerald-800"
   if (score >= 40) return "bg-amber-50 border-amber-200 dark:bg-amber-950/30 dark:border-amber-800"
   return "bg-red-50 border-red-200 dark:bg-red-950/30 dark:border-red-800"
+}
+
+function getHiringSignal(job: TheirStackJob): {
+  label: "Urgent" | "Active" | "Warm" | "Cold"
+  className: string
+  reasons: string[]
+} {
+  const reasons: string[] = []
+  let score = 0
+
+  const haystack = `${job.job_title || ""} ${job.description || ""}`.toLowerCase()
+  const matchedUrgentKeywords = URGENT_HIRING_KEYWORDS.filter((keyword) => haystack.includes(keyword))
+  if (matchedUrgentKeywords.length > 0) {
+    score += 4
+    reasons.push(`Urgent wording found: ${matchedUrgentKeywords.slice(0, 3).join(", ")}`)
+  }
+
+  if (job.date_posted) {
+    const daysAgo = Math.floor((Date.now() - new Date(job.date_posted).getTime()) / 86400000)
+    if (daysAgo <= 7) {
+      score += 3
+      reasons.push("Posted in the last 7 days")
+    } else if (daysAgo <= 14) {
+      score += 2
+      reasons.push("Posted in the last 14 days")
+    } else if (daysAgo <= 30) {
+      score += 1
+      reasons.push("Posted in the last 30 days")
+    }
+  }
+
+  if (job.hiring_team?.length) {
+    score += 2
+    reasons.push("Hiring-team contacts available")
+  }
+
+  if (job.remote) {
+    reasons.push("Remote-friendly")
+  }
+
+  if (score >= 6) {
+    return {
+      label: "Urgent",
+      className: "bg-red-50 text-red-700 border-red-200 dark:bg-red-950/30 dark:text-red-300 dark:border-red-800",
+      reasons,
+    }
+  }
+
+  if (score >= 4) {
+    return {
+      label: "Active",
+      className: "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-300 dark:border-emerald-800",
+      reasons,
+    }
+  }
+
+  if (score >= 2) {
+    return {
+      label: "Warm",
+      className: "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/30 dark:text-amber-300 dark:border-amber-800",
+      reasons,
+    }
+  }
+
+  return {
+    label: "Cold",
+    className: "bg-slate-50 text-slate-700 border-slate-200 dark:bg-slate-950/30 dark:text-slate-300 dark:border-slate-800",
+    reasons: reasons.length ? reasons : ["Older post or weak urgency signals"],
+  }
 }
 
 // ============================================
@@ -423,7 +523,12 @@ export default function ProspectingPage() {
     const remoteJobs = jobs.filter(j => j.remote).length
     const avgScore = Math.round(jobs.reduce((sum, j) => sum + calculatePartnershipScore(j).score, 0) / jobs.length)
     const highScoreCount = jobs.filter(j => calculatePartnershipScore(j).score >= 70).length
-    return { total: jobs.length, withContacts, withLinkedin, remoteJobs, avgScore, highScoreCount }
+    const urgentCount = jobs.filter(j => getHiringSignal(j).label === "Urgent").length
+    const activeCount = jobs.filter(j => {
+      const label = getHiringSignal(j).label
+      return label === "Urgent" || label === "Active"
+    }).length
+    return { total: jobs.length, withContacts, withLinkedin, remoteJobs, avgScore, highScoreCount, urgentCount, activeCount }
   }, [results])
 
   function buildParams(): Record<string, unknown> {
@@ -507,6 +612,7 @@ export default function ProspectingPage() {
         url: job.final_url || job.url || "",
         posted: job.date_posted || "",
         company_website: job.company_domain ? `https://${job.company_domain}` : "",
+        hiring_signal: getHiringSignal(job).label,
         hiring_contact: (job.hiring_team || []).map((h) => `${h.full_name}${h.role ? ` (${h.role})` : ""}`).join("; "),
         hiring_linkedin: (job.hiring_team || []).map((h) => h.linkedin_url || "").filter(Boolean).join("; "),
         saved: savedLeads.has(job.id) ? "Yes" : "",
@@ -733,7 +839,7 @@ export default function ProspectingPage() {
                 <SelectTrigger className="w-48"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="jobs">Job Search (1 credit/result)</SelectItem>
-                  <SelectItem value="companies">Company Search (3 credits/result)</SelectItem>
+                  <SelectItem value="companies" disabled>Company Search (coming soon)</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -822,8 +928,8 @@ export default function ProspectingPage() {
               <div className="flex items-center gap-2">
                 <Switch checked={filters.onlyWithContacts} onCheckedChange={(v) => setFilters((f) => ({ ...f, onlyWithContacts: v }))} />
                 <div>
-                  <Label className="text-sm font-medium">Only with contacts</Label>
-                  <p className="text-xs text-muted-foreground">Results must have hiring team + LinkedIn</p>
+                  <Label className="text-sm font-medium">Only with hiring team</Label>
+                  <p className="text-xs text-muted-foreground">Results must include at least one hiring-team contact</p>
                 </div>
               </div>
               <div className="flex items-center gap-2">
@@ -1044,12 +1150,14 @@ export default function ProspectingPage() {
               </div>
             )}
             {resultStats && (
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+              <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3">
                 <Card><CardContent className="p-3 text-center"><div className="text-2xl font-bold">{resultStats.total}</div><p className="text-xs text-muted-foreground">Returned</p></CardContent></Card>
+                <Card><CardContent className="p-3 text-center"><div className="text-2xl font-bold text-red-600">{resultStats.urgentCount}</div><p className="text-xs text-muted-foreground">Urgent</p></CardContent></Card>
+                <Card><CardContent className="p-3 text-center"><div className="text-2xl font-bold text-emerald-600">{resultStats.activeCount}</div><p className="text-xs text-muted-foreground">Active/Urgent</p></CardContent></Card>
                 <Card className={resultStats.highScoreCount > 0 ? "border-emerald-200 dark:border-emerald-800" : ""}>
                   <CardContent className="p-3 text-center"><div className="text-2xl font-bold text-emerald-600">{resultStats.highScoreCount}</div><p className="text-xs text-muted-foreground">High Score (70+)</p></CardContent>
                 </Card>
-                <Card><CardContent className="p-3 text-center"><div className="text-2xl font-bold">{resultStats.withContacts}</div><p className="text-xs text-muted-foreground">With Contacts</p></CardContent></Card>
+                <Card><CardContent className="p-3 text-center"><div className="text-2xl font-bold">{resultStats.withContacts}</div><p className="text-xs text-muted-foreground">With Hiring Team</p></CardContent></Card>
                 <Card><CardContent className="p-3 text-center"><div className="text-2xl font-bold text-blue-600">{resultStats.withLinkedin}</div><p className="text-xs text-muted-foreground">With LinkedIn</p></CardContent></Card>
                 <Card><CardContent className="p-3 text-center"><div className="text-2xl font-bold">{resultStats.remoteJobs}</div><p className="text-xs text-muted-foreground">Remote</p></CardContent></Card>
                 <Card><CardContent className="p-3 text-center"><div className="text-2xl font-bold">{resultStats.avgScore}</div><p className="text-xs text-muted-foreground">Avg Score</p></CardContent></Card>
@@ -1099,6 +1207,7 @@ export default function ProspectingPage() {
                         </TableHead>
                         <TableHead>Company</TableHead>
                         <TableHead>Job Title</TableHead>
+                        <TableHead>Hiring Signal</TableHead>
                         <TableHead>Location</TableHead>
                         <TableHead>Posted</TableHead>
                         <TableHead>Contacts</TableHead>
@@ -1109,10 +1218,11 @@ export default function ProspectingPage() {
                       {(results.data as TheirStackJob[]).map((job, idx) => {
                         const isExpanded = expandedRows.has(idx)
                         const { score, reasons } = calculatePartnershipScore(job)
+                        const hiringSignal = getHiringSignal(job)
                         const isSaved = savedLeads.has(job.id)
                         return (
-                          <>
-                            <TableRow key={job.id || idx} className="cursor-pointer hover:bg-muted/50"
+                          <Fragment key={job.id || idx}>
+                            <TableRow className="cursor-pointer hover:bg-muted/50"
                               onClick={() => setExpandedRows((prev) => { const next = new Set(prev); if (next.has(idx)) next.delete(idx); else next.add(idx); return next })}>
                               <TableCell>{isExpanded ? <ChevronUp className="size-4 text-muted-foreground" /> : <ChevronDown className="size-4 text-muted-foreground" />}</TableCell>
                               <TableCell>
@@ -1140,6 +1250,20 @@ export default function ProspectingPage() {
                                 </div>
                               </TableCell>
                               <TableCell className="text-sm">{job.job_title}</TableCell>
+                              <TableCell>
+                                <Tooltip>
+                                  <TooltipTrigger>
+                                    <Badge variant="outline" className={hiringSignal.className}>{hiringSignal.label}</Badge>
+                                  </TooltipTrigger>
+                                  <TooltipContent side="right" className="max-w-xs">
+                                    <ul className="text-xs space-y-0.5">
+                                      {hiringSignal.reasons.map((reason, reasonIdx) => (
+                                        <li key={reasonIdx} className="flex items-start gap-1"><CheckCircle2 className="size-3 mt-0.5 text-emerald-500 shrink-0" />{reason}</li>
+                                      ))}
+                                    </ul>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TableCell>
                               <TableCell>
                                 <div className="flex items-center gap-1 text-sm text-muted-foreground">
                                   <MapPin className="size-3" />{job.location || "N/A"}
@@ -1189,8 +1313,8 @@ export default function ProspectingPage() {
                               </TableCell>
                             </TableRow>
                             {isExpanded && (
-                              <TableRow key={`${job.id || idx}-detail`}>
-                                <TableCell colSpan={8} className="bg-muted/30 p-4">
+                              <TableRow>
+                                <TableCell colSpan={9} className="bg-muted/30 p-4">
                                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
                                     {/* Score Breakdown */}
                                     <div className={`p-3 rounded-lg border ${getScoreBg(score)}`}>
@@ -1246,6 +1370,19 @@ export default function ProspectingPage() {
                                           {job.employment_statuses?.length ? <div><span className="text-muted-foreground">Type: </span>{job.employment_statuses.join(", ")}</div> : null}
                                         </div>
                                       </div>
+                                      <div>
+                                        <Label className="text-xs font-medium text-muted-foreground">Hiring Signal</Label>
+                                        <div className="mt-1 flex items-center gap-2">
+                                          <Badge variant="outline" className={hiringSignal.className}>{hiringSignal.label}</Badge>
+                                        </div>
+                                        <ul className="mt-2 space-y-1">
+                                          {hiringSignal.reasons.map((reason, reasonIdx) => (
+                                            <li key={reasonIdx} className="flex items-start gap-1.5 text-xs text-muted-foreground">
+                                              <CheckCircle2 className="size-3 mt-0.5 text-emerald-500 shrink-0" />{reason}
+                                            </li>
+                                          ))}
+                                        </ul>
+                                      </div>
                                       <div className="p-2 rounded bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800">
                                         <Label className="text-xs font-medium text-blue-700 dark:text-blue-300 flex items-center gap-1">
                                           <Mail className="size-3" /> Suggested Next Step
@@ -1277,7 +1414,7 @@ export default function ProspectingPage() {
                                 </TableCell>
                               </TableRow>
                             )}
-                          </>
+                          </Fragment>
                         )
                       })}
                     </TableBody>
