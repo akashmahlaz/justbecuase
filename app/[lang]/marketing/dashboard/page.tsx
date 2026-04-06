@@ -82,9 +82,12 @@ export default function MarketingDashboardPage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ action: "creditBalance" }),
     })
-      .then((res) => res.json())
+      .then(async (res) => {
+        if (!res.ok) return null
+        return res.json()
+      })
       .then((data) => {
-        if (data.success) setCredits(data.data)
+        if (data) setCredits(data)
       })
       .catch(() => {})
       .finally(() => setLoadingCredits(false))
