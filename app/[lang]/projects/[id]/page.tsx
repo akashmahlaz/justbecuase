@@ -18,7 +18,7 @@ import { Progress } from "@/components/ui/progress"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { ScrollProgress } from "@/components/ui/scroll-progress"
 import { getProject, getNGOById, getActiveProjects, hasAppliedToProject, isProjectSaved, getVolunteerProfile } from "@/lib/actions"
-import { searchJobs } from "@/lib/theirstack"
+import { theirstackJobsDb } from "@/lib/theirstack-jobs"
 import { externalOpportunitiesDb } from "@/lib/scraper"
 import { fetchPage, extractPageContent } from "@/lib/scraper/text-extractor"
 import { skillCategories } from "@/lib/skills-data"
@@ -165,16 +165,11 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
     )
     .slice(0, 3)
 
-  // Fetch TheirStack jobs for sidebar
+  // Fetch TheirStack jobs for sidebar from MongoDB (populated by daily cron)
   let theirstackJobs: any[] = []
   try {
-    const { data } = await searchJobs({
-      limit: 5,
-      job_country_code_or: ["IN"],
-      posted_at_max_age_days: 30,
-      blur_company_data: false,
-    })
-    theirstackJobs = data ?? []
+    const dbJobs = await theirstackJobsDb.findAll({ country: "IN", limit: 5 })
+    theirstackJobs = dbJobs
   } catch (e) {
     // Silently fail — job board is supplementary
   }
