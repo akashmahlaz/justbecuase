@@ -25,6 +25,10 @@
       "schedule": "0 6 * * *"
     },
     {
+      "path": "/api/cron/theirstack",
+      "schedule": "0 6 * * *"
+    },
+    {
       "path": "/api/cron/idealist",
       "schedule": "0 7 * * *"
     }
