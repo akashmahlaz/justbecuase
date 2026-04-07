@@ -95,6 +95,9 @@ function ProjectsContent() {
   const [loadingMore, setLoadingMore] = useState(false)
   // Map of projectId → { score, matchReasons }
   const [matchScores, setMatchScores] = useState<Map<string, { score: number; matchReasons: string[] }>>(new Map())
+  // TheirStack job board
+  const [theirstackJobs, setTheirstackJobs] = useState<any[]>([])
+  const [jobsLoading, setJobsLoading] = useState(false)
 
   // ==========================================
   // UNIFIED SEARCH API — drives project filtering
@@ -215,6 +218,25 @@ function ProjectsContent() {
     }
     fetchProjects()
   }, [currentPage])
+
+  // Fetch TheirStack jobs (shown in a separate "Job Board" section)
+  useEffect(() => {
+    async function fetchTheirstackJobs() {
+      setJobsLoading(true)
+      try {
+        const res = await fetch("/api/jobs?limit=9&country=IN")
+        if (res.ok) {
+          const data = await res.json()
+          setTheirstackJobs(data.jobs || [])
+        }
+      } catch (err) {
+        console.error("TheirStack jobs fetch failed:", err)
+      } finally {
+        setJobsLoading(false)
+      }
+    }
+    fetchTheirstackJobs()
+  }, [])
 
   const timeCommitments = ["1-2 hours", "5-10 hours", "10-15 hours", "15-25 hours", "25-40 hours", "40+ hours"]
   const locations = ["Remote", "On-site", "Hybrid"]
@@ -838,6 +860,68 @@ function ProjectsContent() {
           </div>
         </div>
       </main>
+
+        {/* TheirStack Job Board Section */}
+        {theirstackJobs.length > 0 && (
+          <div className="container mx-auto px-4 md:px-6 pb-12">
+            <div className="border-t border-border pt-12">
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h2 className="text-2xl font-bold text-foreground">Job Board</h2>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Paid opportunities from our job board partner
+                  </p>
+                </div>
+              </div>
+              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {theirstackJobs.map((job: any) => (
+                  <a
+                    key={job.id}
+                    href={job.url || "#"}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="block p-5 rounded-lg border border-border hover:border-primary/50 hover:bg-muted/50 transition-all group"
+                  >
+                    <div className="flex items-start justify-between gap-2 mb-2">
+                      <p className="font-semibold text-foreground group-hover:text-primary transition-colors line-clamp-2 text-sm">
+                        {job.job_title}
+                      </p>
+                      {job.remote && (
+                        <Badge variant="secondary" className="shrink-0 text-xs">Remote</Badge>
+                      )}
+                    </div>
+                    <p className="text-sm text-muted-foreground mb-2">{job.company}</p>
+                    {job.location && (
+                      <p className="text-xs text-muted-foreground flex items-center gap-1 mb-2">
+                        <MapPin className="h-3 w-3" />
+                        {job.location}
+                      </p>
+                    )}
+                    {job.salary_string && (
+                      <p className="text-xs font-medium text-green-600 dark:text-green-400 mb-2">
+                        {job.salary_string}
+                      </p>
+                    )}
+                    {job.technology_slugs?.length > 0 && (
+                      <div className="flex flex-wrap gap-1 mt-2">
+                        {job.technology_slugs.slice(0, 3).map((tech: string) => (
+                          <Badge key={tech} variant="outline" className="text-xs py-0 px-1.5">
+                            {tech}
+                          </Badge>
+                        ))}
+                      </div>
+                    )}
+                    {job.date_posted && (
+                      <p className="text-xs text-muted-foreground mt-3">
+                        Posted {new Date(job.date_posted).toLocaleDateString("en-IN", { month: "short", day: "numeric" })}
+                      </p>
+                    )}
+                  </a>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
 
       <Footer />
     </div>
