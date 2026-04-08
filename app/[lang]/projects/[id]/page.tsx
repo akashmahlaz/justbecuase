@@ -18,7 +18,6 @@ import { Progress } from "@/components/ui/progress"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { ScrollProgress } from "@/components/ui/scroll-progress"
 import { getProject, getNGOById, getActiveProjects, hasAppliedToProject, isProjectSaved, getVolunteerProfile } from "@/lib/actions"
-import { theirstackJobsDb } from "@/lib/theirstack-jobs"
 import { externalOpportunitiesDb } from "@/lib/scraper"
 import { fetchPage, extractPageContent } from "@/lib/scraper/text-extractor"
 import { skillCategories } from "@/lib/skills-data"
@@ -164,15 +163,6 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
       )
     )
     .slice(0, 3)
-
-  // Fetch TheirStack jobs for sidebar from MongoDB (populated by daily cron)
-  let theirstackJobs: any[] = []
-  try {
-    const dbJobs = await theirstackJobsDb.findAll({ country: "IN", limit: 5 })
-    theirstackJobs = dbJobs
-  } catch (e) {
-    // Silently fail — job board is supplementary
-  }
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
@@ -589,39 +579,6 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
                           <span className="text-xs text-muted-foreground">{p.timeCommitment}</span>
                         </div>
                       </Link>
-                    ))}
-                  </CardContent>
-                </Card>
-              )}
-
-              {/* TheirStack Job Board */}
-              {theirstackJobs.length > 0 && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-lg flex items-center gap-2">
-                      <Briefcase className="h-4 w-4" />
-                      Job Board
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    {theirstackJobs.map((job) => (
-                      <a
-                        key={job.id}
-                        href={job.final_url || job.url || "#"}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="block p-3 rounded-lg border border-border hover:border-primary/50 hover:bg-muted/50 transition-colors"
-                      >
-                        <p className="font-medium text-foreground text-sm line-clamp-2 mb-1">{job.job_title}</p>
-                        <p className="text-xs text-muted-foreground">{job.company}</p>
-                        <div className="flex items-center gap-2 mt-1.5 flex-wrap">
-                          {job.remote && <Badge variant="secondary" className="text-xs py-0">Remote</Badge>}
-                          {job.location && <span className="text-xs text-muted-foreground flex items-center gap-0.5"><MapPin className="h-3 w-3" />{job.location}</span>}
-                        </div>
-                        {job.salary_string && (
-                          <p className="text-xs font-medium text-green-600 dark:text-green-400 mt-1">{job.salary_string}</p>
-                        )}
-                      </a>
                     ))}
                   </CardContent>
                 </Card>
