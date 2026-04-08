@@ -1,16 +1,16 @@
 import { NextResponse } from "next/server"
-import { fetchAllRemoteJobs, mapJobToOpportunity } from "@/lib/idealist-api"
+import { fetchAllNonprofitJobs, mapJobToOpportunity } from "@/lib/idealist-api"
 import { externalOpportunitiesDb } from "@/lib/scraper"
 import { sendEmail, getCronSyncEmailHtml } from "@/lib/email"
 
-export const maxDuration = 300
+export const maxDuration = 800 // Vercel Pro max is 800s
 
 // ============================================
 // GET /api/cron/idealist — Daily Idealist API sync
 // ============================================
-// Fetches all remote jobs from the Idealist Listings API
+// Fetches ALL published nonprofit jobs from the Idealist Listings API
 // and upserts them into the externalOpportunities collection.
-// Secured via CRON_SECRET header on Vercel.
+// Idealist is exclusively a nonprofit job board — every listing is NGO-relevant.
 export async function GET(request: Request) {
   try {
     // Verify cron secret in production
@@ -27,8 +27,9 @@ export async function GET(request: Request) {
     let totalUpdated = 0
     let totalProcessed = 0
 
-    // Fetch all remote jobs
-    const jobs = await fetchAllRemoteJobs(500)
+    // Fetch ALL published nonprofit jobs (all location types, not just remote)
+    // Idealist has ~3,200 active listings — all are NGO/nonprofit relevant
+    const jobs = await fetchAllNonprofitJobs(5000)
 
     for (const job of jobs) {
       try {
