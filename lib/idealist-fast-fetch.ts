@@ -195,7 +195,7 @@ function mapJobToOpp(d: IdealistJobDetail | IdealistListItem, detail?: IdealistJ
 }
 
 // ============================================
-// Main: fetch all listings, then details in parallel
+// Main: fetch all listings, then details in parallel — REMOTE ONLY
 // ============================================
 export async function fetchAllIdealistJobs(maxDetails = 3000): Promise<Omit<ExternalOpportunity, "_id">[]> {
   console.log("[Idealist] Phase 1: fetching all listing IDs...")
@@ -206,9 +206,8 @@ export async function fetchAllIdealistJobs(maxDetails = 3000): Promise<Omit<Exte
   listings.sort((a, b) => new Date(b.updated).getTime() - new Date(a.updated).getTime())
 
   const detailsToFetch = listings.slice(0, maxDetails)
-  const listingsWithoutDetails = listings.slice(maxDetails)
 
-  console.log(`[Idealist] Phase 2: fetching details for ${detailsToFetch.length} recent jobs (parallel)...`)
+  console.log(`[Idealist] Phase 2: fetching details for ${detailsToFetch.length} recent jobs (parallel, REMOTE only)...`)
   const startTime = Date.now()
 
   const detailResults = await fetchDetailsBatch(detailsToFetch.map(l => l.id), 25)
@@ -217,21 +216,21 @@ export async function fetchAllIdealistJobs(maxDetails = 3000): Promise<Omit<Exte
   console.log(`[Idealist] Details fetched in ${elapsed}s`)
 
   const opportunities: Omit<ExternalOpportunity, "_id">[] = []
+  let remoteCount = 0
 
-  // Add jobs WITH details
+  // Only include jobs that are REMOTE
   for (let i = 0; i < detailsToFetch.length; i++) {
     const detail = detailResults[i]
     if (detail) {
-      opportunities.push(mapJobToOpp(listings[i], detail))
+      // Only save REMOTE jobs
+      if (detail.locationType === "REMOTE") {
+        opportunities.push(mapJobToOpp(listings[i], detail))
+        remoteCount++
+      }
     }
   }
 
-  // Add remaining jobs WITHOUT details (basic listing data)
-  for (const listing of listingsWithoutDetails) {
-    opportunities.push(mapJobToOpp(listing))
-  }
-
-  console.log(`[Idealist] Total opportunities: ${opportunities.length} (${detailsToFetch.length - (detailResults.filter(Boolean).length)} detail fetches failed, filled with listing data)`)
+  console.log(`[Idealist] Total remote opportunities: ${remoteCount} (${detailsToFetch.length - (detailResults.filter(Boolean).length)} detail fetches failed)`)
   return opportunities
 }
 

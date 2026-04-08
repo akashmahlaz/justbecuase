@@ -37,6 +37,8 @@ export async function GET(request: Request) {
     for (const job of rwJobs) {
       try {
         const opp = mapApiJobToOpportunity(job)
+        // Only save REMOTE jobs
+        if (opp.workMode !== "remote") continue
         opp.scrapedAt = new Date()
         opp.updatedAt = new Date()
         const { isNew } = await externalOpportunitiesDb.upsert(opp)
@@ -45,7 +47,7 @@ export async function GET(request: Request) {
         stats.reliefweb.errors++
       }
     }
-    console.log(`[fetch-5k] ReliefWeb: ${stats.reliefweb.total} processed (${stats.reliefweb.new} new, ${stats.reliefweb.updated} updated)`)
+    console.log(`[fetch-5k] ReliefWeb: ${stats.reliefweb.total} total listed (remote only saved)`)
   } catch (e: any) {
     console.error("[fetch-5k] ReliefWeb fatal:", e.message)
   }
