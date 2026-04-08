@@ -247,7 +247,7 @@ function mapLocationType(lt?: string): "remote" | "onsite" | "hybrid" {
   }
 }
 
-function mapExperienceLevel(pl?: string): string | undefined {
+function mapExperienceLevel(pl?: string | null): string | undefined {
   if (!pl) return undefined
   const u = pl.toUpperCase()
   if (u.includes("ENTRY") || u.includes("INTERN") || u.includes("ASSOCIATE")) return "beginner"
