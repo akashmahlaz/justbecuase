@@ -1,0 +1,342 @@
+// ============================================
+// Fast Idealist fetcher — parallel detail fetching
+// ============================================
+// Fetches all Idealist listings first (fast, cursor pagination),
+// then details in parallel batches with controlled concurrency.
+// Result: 3000-5000 jobs with full details in ~5-8 minutes.
+
+import type { ExternalOpportunity } from "@/lib/scraper/types"
+
+const API_BASE = "https://www.idealist.org"
+const API_KEY = process.env.IDEALIST_API_KEY || ""
+
+function getHeaders() {
+  return {
+    Accept: "application/json",
+    Authorization: `Basic ${Buffer.from(`${API_KEY}:`).toString("base64")}`,
+  }
+}
+
+interface IdealistListItem {
+  id: string
+  firstPublished: string
+  updated: string
+  name: string
+  url: { en: string | null }
+  isPublished?: boolean
+}
+
+interface IdealistJobDetail {
+  id: string
+  firstPublished: string
+  updated: string
+  name: string
+  description: string
+  expires: string
+  org: {
+    id: string | null
+    name: string | null
+    url?: { en: string | null } | null
+    logo?: string | null
+    areasOfFocus?: string[] | null
+  }
+  address: { full?: string; city?: string | null; country?: string }
+  locationType?: string
+  salaryMinimum?: string | null
+  salaryMaximum?: string | null
+  salaryCurrency?: string | null
+  salaryPeriod?: string | null
+  professionalLevel?: string | null
+  applicationDeadline?: string | null
+  startDate?: string | null
+  endDate?: string | null
+  isFullTime?: boolean
+  isTemporary?: boolean
+  isContract?: boolean
+  functions?: string[]
+  areasOfFocus?: string[]
+  applyUrl?: string | null
+  url: { en: string | null }
+}
+
+// ============================================
+// Fetch ALL listings (IDs + basic info, fast)
+// ============================================
+export async function fetchAllIdealistListings(maxPages = 500): Promise<IdealistListItem[]> {
+  if (!API_KEY) throw new Error("IDEALIST_API_KEY not set")
+
+  const listings: IdealistListItem[] = []
+  let since = ""
+  let hasMore = true
+  let page = 0
+
+  while (hasMore && page < maxPages) {
+    page++
+    const url = since
+      ? `${API_BASE}/api/v1/listings/jobs?since=${encodeURIComponent(since)}`
+      : `${API_BASE}/api/v1/listings/jobs`
+
+    const res = await fetch(url, {
+      headers: getHeaders(),
+      signal: AbortSignal.timeout(20000),
+    })
+
+    if (!res.ok) {
+      console.warn(`[Idealist List] HTTP ${res.status} at page ${page}`)
+      break
+    }
+
+    const data = (await res.json()) as { jobs: IdealistListItem[]; hasMore: boolean }
+    const items = data.jobs || []
+    hasMore = data.hasMore ?? false
+
+    if (items.length === 0) break
+
+    for (const item of items) {
+      if (item.isPublished === false) continue
+      since = item.updated
+      listings.push(item)
+    }
+
+    await sleep(150)
+  }
+
+  console.log(`[Idealist] Listed ${listings.length} jobs across ${page} pages`)
+  return listings
+}
+
+// ============================================
+// Fetch details for a batch of IDs in parallel
+// ============================================
+async function fetchDetailsBatch(
+  ids: string[],
+  concurrency = 20
+): Promise<(IdealistJobDetail | null)[]> {
+  const results: (IdealistJobDetail | null)[] = []
+  for (let i = 0; i < ids.length; i += concurrency) {
+    const batch = ids.slice(i, i + concurrency)
+    const batchResults = await Promise.all(batch.map(id => fetchJobDetail(id)))
+    results.push(...batchResults)
+    if (i + concurrency < ids.length) await sleep(80)
+  }
+  return results
+}
+
+async function fetchJobDetail(id: string): Promise<IdealistJobDetail | null> {
+  try {
+    const res = await fetch(`${API_BASE}/api/v1/listings/jobs/${id}`, {
+      headers: getHeaders(),
+      signal: AbortSignal.timeout(15000),
+    })
+    if (res.status === 404) return null
+    if (!res.ok) return null
+    const data = await res.json() as { job: IdealistJobDetail }
+    return data.job || null
+  } catch {
+    return null
+  }
+}
+
+// ============================================
+// Map Idealist job → ExternalOpportunity
+// ============================================
+function mapJobToOpp(d: IdealistJobDetail | IdealistListItem, detail?: IdealistJobDetail): Omit<ExternalOpportunity, "_id"> {
+  const isDetail = !!detail
+  const name = isDetail ? detail.name : d.name
+  const desc = isDetail ? stripHtml(detail.description || "") : d.name
+  const org = isDetail ? detail.org?.name || "Organization on Idealist" : "Organization on Idealist"
+  const locationType = isDetail ? detail.locationType : undefined
+  const city = isDetail ? detail.address?.city : undefined
+  const country = isDetail ? detail.address?.country : undefined
+  const salary = isDetail && (detail.salaryMinimum || detail.salaryMaximum)
+    ? `${detail.salaryMinimum || ""}${detail.salaryMaximum ? ` - ${detail.salaryMaximum}` : ""} ${detail.salaryCurrency || ""}`.trim()
+    : undefined
+  const functions = isDetail ? detail.functions || [] : []
+  const areasOfFocus = isDetail ? (detail.areasOfFocus || detail.org?.areasOfFocus || []) : []
+  const applicationDeadline = isDetail ? detail.applicationDeadline : undefined
+  const startDate = isDetail ? detail.startDate : undefined
+  const endDate = isDetail ? detail.endDate : undefined
+  const professionalLevel = isDetail ? detail.professionalLevel : undefined
+
+  const { skillTags, skillsRequired } = mapSkills(functions)
+  const causes = mapCauses(areasOfFocus)
+  const workMode = mapLocationType(locationType)
+  const experienceLevel = mapExperienceLevel(professionalLevel)
+
+  return {
+    sourceplatform: "idealist-api",
+    externalId: `idealist_${d.id}`,
+    sourceUrl: d.url?.en || `https://www.idealist.org/en/nonprofit-job/${d.id}`,
+    title: name,
+    description: desc,
+    shortDescription: desc.slice(0, 280),
+    organization: org,
+    organizationUrl: isDetail ? detail?.org?.url?.en || undefined : undefined,
+    organizationLogo: isDetail ? detail?.org?.logo || undefined : undefined,
+    causes,
+    skillTags,
+    skillsRequired,
+    experienceLevel,
+    workMode,
+    location: workMode === "remote" ? "Remote" : (isDetail ? detail.address?.full : undefined),
+    city,
+    country,
+    timeCommitment: isDetail && detail.isFullTime ? "Full time" : undefined,
+    duration: startDate && endDate ? `${startDate} to ${endDate}` : undefined,
+    projectType: isDetail && detail.isContract ? "consultation" : isDetail && detail.isTemporary ? "short-term" : "long-term",
+    deadline: applicationDeadline ? new Date(applicationDeadline) : undefined,
+    postedDate: new Date(d.firstPublished),
+    compensationType: "paid",
+    salary,
+    isActive: true,
+    scrapedAt: new Date(),
+    updatedAt: new Date(),
+  }
+}
+
+// ============================================
+// Main: fetch all listings, then details in parallel
+// ============================================
+export async function fetchAllIdealistJobs(maxDetails = 3000): Promise<Omit<ExternalOpportunity, "_id">[]> {
+  console.log("[Idealist] Phase 1: fetching all listing IDs...")
+  const listings = await fetchAllIdealistListings(500)
+  console.log(`[Idealist] Got ${listings.length} listings`)
+
+  // Sort by updated desc — fetch details for most recent first
+  listings.sort((a, b) => new Date(b.updated).getTime() - new Date(a.updated).getTime())
+
+  const detailsToFetch = listings.slice(0, maxDetails)
+  const listingsWithoutDetails = listings.slice(maxDetails)
+
+  console.log(`[Idealist] Phase 2: fetching details for ${detailsToFetch.length} recent jobs (parallel)...`)
+  const startTime = Date.now()
+
+  const detailResults = await fetchDetailsBatch(detailsToFetch.map(l => l.id), 25)
+
+  const elapsed = ((Date.now() - startTime) / 1000).toFixed(1)
+  console.log(`[Idealist] Details fetched in ${elapsed}s`)
+
+  const opportunities: Omit<ExternalOpportunity, "_id">[] = []
+
+  // Add jobs WITH details
+  for (let i = 0; i < detailsToFetch.length; i++) {
+    const detail = detailResults[i]
+    if (detail) {
+      opportunities.push(mapJobToOpp(listings[i], detail))
+    }
+  }
+
+  // Add remaining jobs WITHOUT details (basic listing data)
+  for (const listing of listingsWithoutDetails) {
+    opportunities.push(mapJobToOpp(listing))
+  }
+
+  console.log(`[Idealist] Total opportunities: ${opportunities.length} (${detailsToFetch.length - (detailResults.filter(Boolean).length)} detail fetches failed, filled with listing data)`)
+  return opportunities
+}
+
+// ============================================
+// Helpers
+// ============================================
+function mapLocationType(lt?: string): "remote" | "onsite" | "hybrid" {
+  switch (lt) {
+    case "REMOTE": return "remote"
+    case "ONSITE": return "onsite"
+    case "HYBRID": return "hybrid"
+    default: return "remote"
+  }
+}
+
+function mapExperienceLevel(pl?: string): string | undefined {
+  if (!pl) return undefined
+  const u = pl.toUpperCase()
+  if (u.includes("ENTRY") || u.includes("INTERN") || u.includes("ASSOCIATE")) return "beginner"
+  if (u.includes("MID") || u.includes("PROFESSIONAL")) return "intermediate"
+  if (u.includes("SENIOR") || u.includes("MANAGER") || u.includes("DIRECTOR")) return "advanced"
+  if (u.includes("EXECUTIVE") || u.includes("VP")) return "expert"
+  return undefined
+}
+
+function mapSkills(functions: string[]): {
+  skillTags: string[]
+  skillsRequired: { categoryId: string; subskillId: string; priority: "must-have" | "nice-to-have" }[]
+} {
+  const FUNCTION_TO_SKILL: Record<string, string> = {
+    ACCOUNTING: "finance", ADMIN: "planning-support", ADVOCACY: "communication",
+    BOARD_MEMBER: "planning-support", COMMUNICATIONS: "communication",
+    COMPUTERS_TECHNOLOGY: "data-technology", COUNSELING: "communication",
+    CURRICULUM_DESIGN: "content-creation", DATA_MANAGEMENT: "data-technology",
+    DEVELOPMENT_FUNDRAISING: "fundraising", EDUCATION: "planning-support",
+    ENGINEERING: "website", EVENTS: "planning-support", FINANCE: "finance",
+    GENERAL: "planning-support", GRANT_WRITING: "fundraising",
+    GRAPHIC_DESIGN: "content-creation", HEALTH: "planning-support",
+    HR: "planning-support", IT: "website", LEGAL: "legal",
+    MANAGEMENT: "planning-support", MARKETING: "digital-marketing",
+    MEDIA: "content-creation", OTHER: "planning-support", PR: "communication",
+    PROGRAM: "planning-support", PROJECT_MGMT: "planning-support",
+    RESEARCH: "data-technology", SOCIAL_MEDIA: "digital-marketing",
+    SOCIAL_WORK: "planning-support", TRANSLATION: "communication",
+    VOLUNTEER_MGMT: "planning-support", WRITING_EDITING: "communication",
+  }
+  const FUNCTION_TO_SUBSKILL: Record<string, string> = {
+    ACCOUNTING: "bookkeeping", ADMIN: "data-entry", ADVOCACY: "press-release",
+    BOARD_MEMBER: "project-management", COMMUNICATIONS: "donor-communications",
+    COMMUNITY_OUTREACH: "community-management",
+    COMPUTERS_TECHNOLOGY: "it-support", COUNSELING: "public-speaking",
+    CURRICULUM_DESIGN: "presentation-design", DATA_MANAGEMENT: "data-analysis",
+    DEVELOPMENT_FUNDRAISING: "grant-writing", EDUCATION: "training-facilitation",
+    ENGINEERING: "react-nextjs", EVENTS: "event-planning", FINANCE: "financial-reporting",
+    GENERAL: "data-entry", GRANT_WRITING: "grant-writing",
+    GRAPHIC_DESIGN: "graphic-design", HEALTH: "research-surveys", HR: "hr-recruitment",
+    IT: "react-nextjs", LEGAL: "legal-advisory", MANAGEMENT: "project-management",
+    MARKETING: "social-media-strategy", MEDIA: "video-editing", OTHER: "data-entry",
+    PR: "press-release", PROGRAM: "project-management", PROJECT_MGMT: "project-management",
+    RESEARCH: "data-analysis", SOCIAL_MEDIA: "social-media-strategy",
+    SOCIAL_WORK: "volunteer-recruitment", TRANSLATION: "translation-localization",
+    VOLUNTEER_MGMT: "volunteer-recruitment", WRITING_EDITING: "blog-article-writing",
+  }
+  const seen = new Set<string>()
+  const skillsRequired: { categoryId: string; subskillId: string; priority: "must-have" | "nice-to-have" }[] = []
+  const skillTags: string[] = []
+  for (const fn of functions) {
+    const cat = FUNCTION_TO_SKILL[fn]
+    const sub = FUNCTION_TO_SUBSKILL[fn]
+    if (cat && sub && !seen.has(sub)) {
+      seen.add(sub)
+      skillsRequired.push({ categoryId: cat, subskillId: sub, priority: "nice-to-have" })
+    }
+    const tag = fn.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase())
+    if (!skillTags.includes(tag)) skillTags.push(tag)
+  }
+  return { skillTags, skillsRequired }
+}
+
+function mapCauses(areas: string[]): string[] {
+  const AREA_TO_CAUSE: Record<string, string> = {
+    ANIMALS: "animal-welfare", ARTS: "arts-culture", CHILDREN_YOUTH: "child-welfare",
+    COMMUNITY_DEVELOPMENT: "poverty-alleviation", CRISIS_SUPPORT: "disaster-relief",
+    DISABILITY: "disability-support", EDUCATION: "education", ELDERLY: "senior-citizens",
+    ENVIRONMENT: "environment", HEALTH_MEDICINE: "healthcare",
+    HOUSING_HOMELESS: "poverty-alleviation", HUMAN_RIGHTS: "human-rights",
+    HUNGER: "poverty-alleviation", IMMIGRANTS_REFUGEES: "human-rights",
+    LGBTQ: "human-rights", MEDIA: "arts-culture", MICROFINANCE: "poverty-alleviation",
+    PHILANTHROPY: "poverty-alleviation", POVERTY: "poverty-alleviation",
+    RACE_ETHNICITY: "human-rights", RELIGION: "arts-culture",
+    SCIENCE_TECHNOLOGY: "education", SPORTS_RECREATION: "arts-culture",
+    VETERANS: "human-rights", WOMEN: "women-empowerment",
+  }
+  const causeSet = new Set<string>()
+  for (const area of areas) {
+    const mapped = AREA_TO_CAUSE[area]
+    if (mapped) causeSet.add(mapped)
+  }
+  return Array.from(causeSet)
+}
+
+function stripHtml(html: string): string {
+  return html.replace(/<[^>]+>/g, " ").replace(/&nbsp;/g, " ").replace(/\s+/g, " ").trim()
+}
+
+function sleep(ms: number) {
+  return new Promise(resolve => setTimeout(resolve, ms))
+}
