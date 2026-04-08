@@ -4,7 +4,7 @@ import { searchJobs, type TheirStackJob } from "@/lib/theirstack"
 import { externalOpportunitiesDb } from "@/lib/scraper"
 import type { ExternalOpportunity } from "@/lib/scraper/types"
 
-export const maxDuration = 900 // 15 minutes — fetching 5000+ jobs takes time
+export const maxDuration = 800 // Vercel Pro max is 800s
 
 // ============================================
 // GET /api/cron/theirstack — Daily TheirStack sync
