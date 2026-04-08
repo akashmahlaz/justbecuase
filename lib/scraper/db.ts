@@ -20,25 +20,37 @@ export const externalOpportunitiesDb = {
     const db = await getDb()
     const collection = db.collection<ExternalOpportunity>(COLLECTIONS.EXTERNAL_OPPORTUNITIES)
 
-    const existing = await collection.findOne({
-      sourceplatform: opp.sourceplatform,
-      externalId: opp.externalId,
-    })
+    // Single round-trip upsert using MongoDB's native upsert
+    const result = await collection.updateOne(
+      { sourceplatform: opp.sourceplatform, externalId: opp.externalId },
+      {
+        $set: { ...opp, updatedAt: new Date() },
+        $setOnInsert: { scrapedAt: new Date() },
+      },
+      { upsert: true }
+    )
+    return { isNew: result.upsertedCount > 0 }
+  },
 
-    if (existing) {
-      await collection.updateOne(
-        { _id: existing._id },
-        { $set: { ...opp, updatedAt: new Date() } }
-      )
-      return { isNew: false }
-    }
+  /** Bulk upsert — single round trip per item, much faster for high-volume syncs */
+  async bulkUpsert(opps: Omit<ExternalOpportunity, "_id">[]): Promise<{ inserted: number; updated: number }> {
+    if (opps.length === 0) return { inserted: 0, updated: 0 }
+    const db = await getDb()
+    const collection = db.collection<ExternalOpportunity>(COLLECTIONS.EXTERNAL_OPPORTUNITIES)
 
-    await collection.insertOne({
-      ...opp,
-      scrapedAt: new Date(),
-      updatedAt: new Date(),
-    } as ExternalOpportunity)
-    return { isNew: true }
+    const ops = opps.map(opp => ({
+      updateOne: {
+        filter: { sourceplatform: opp.sourceplatform, externalId: opp.externalId },
+        update: {
+          $set: { ...opp, updatedAt: new Date() },
+          $setOnInsert: { scrapedAt: new Date() },
+        },
+        upsert: true,
+      },
+    }))
+
+    const result = await collection.bulkWrite(ops, { ordered: false })
+    return { inserted: result.upsertedCount || 0, updated: result.modifiedCount || 0 }
   },
 
   /** Update an existing opportunity with enriched detail-page data */
