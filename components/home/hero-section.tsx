@@ -62,18 +62,18 @@ export function HeroSection() {
           </div>
 
           {/* Right — Hero Image */}
-          <div className="hidden lg:flex justify-center items-center relative">
+          <div className="flex justify-center items-center relative mt-8 lg:mt-0">
             {/* Glow behind image */}
             <div className="absolute inset-0 bg-primary/10 rounded-full blur-3xl scale-75" />
 
-            {/* Main image card */}
-            <div className="relative w-96 h-96 rounded-3xl overflow-hidden shadow-2xl ring-1 ring-border/50">
+            {/* Main image card — responsive sizing */}
+            <div className="relative w-64 h-64 sm:w-80 sm:h-80 lg:w-96 lg:h-96 rounded-3xl overflow-hidden shadow-2xl ring-1 ring-border/50">
               <Image
                 src="/hero-img01.jpg"
                 alt="Hero"
                 fill
                 className="object-cover"
-                sizes="384px"
+                sizes="(max-width: 640px) 256px, (max-width: 1024px) 320px, 384px"
                 priority
               />
               {/* Subtle gradient overlay */}
@@ -81,15 +81,15 @@ export function HeroSection() {
             </div>
 
             {/* Floating accent badge — bottom left */}
-            <div className="absolute -bottom-4 -left-4 px-5 py-3 rounded-2xl bg-background/80 backdrop-blur-md border border-border shadow-lg">
-              <div className="text-sm font-semibold text-foreground">Driving</div>
-              <div className="text-xs text-muted-foreground">Meaningful Change</div>
+            <div className="absolute -bottom-3 -left-2 sm:-bottom-4 sm:-left-4 px-4 py-2 sm:px-5 sm:py-3 rounded-2xl bg-background/80 backdrop-blur-md border border-border shadow-lg">
+              <div className="text-xs sm:text-sm font-semibold text-foreground">Driving</div>
+              <div className="text-[10px] sm:text-xs text-muted-foreground">Meaningful Change</div>
             </div>
 
             {/* Floating accent badge — top right */}
-            <div className="absolute -top-4 -right-4 px-5 py-3 rounded-2xl bg-primary/10 backdrop-blur-md border border-primary/20 shadow-lg">
-              <div className="text-sm font-semibold text-primary">Build Impact</div>
-              <div className="text-xs text-primary/70">Together</div>
+            <div className="absolute -top-3 -right-2 sm:-top-4 sm:-right-4 px-4 py-2 sm:px-5 sm:py-3 rounded-2xl bg-primary/10 backdrop-blur-md border border-primary/20 shadow-lg">
+              <div className="text-xs sm:text-sm font-semibold text-primary">Build Impact</div>
+              <div className="text-[10px] sm:text-xs text-primary/70">Together</div>
             </div>
           </div>
 

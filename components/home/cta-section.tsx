@@ -61,42 +61,42 @@ export function CTASection() {
             </div>
 
             {/* Right — Image with floating stats */}
-            <div className="hidden md:flex justify-center items-center relative">
-              {/* Main image */}
-              <div className="relative w-72 h-80 rounded-3xl overflow-hidden shadow-2xl ring-1 ring-white/20">
+            <div className="flex justify-center items-center relative mt-8 md:mt-0">
+              {/* Main image — responsive sizing */}
+              <div className="relative w-56 h-64 sm:w-64 sm:h-72 md:w-72 md:h-80 rounded-3xl overflow-hidden shadow-2xl ring-1 ring-white/20">
                 <Image
                   src="/cta-img01.jpg"
                   alt="Join the movement"
                   fill
                   className="object-cover"
-                  sizes="288px"
+                  sizes="(max-width: 640px) 224px, (max-width: 768px) 256px, 288px"
                 />
                 {/* Gradient overlay for text readability */}
                 <div className="absolute inset-0 bg-linear-to-t from-primary/60 to-transparent" />
               </div>
 
               {/* Floating stats — top-right */}
-              <div className="absolute -top-4 -right-4 p-4 rounded-2xl bg-white/15 backdrop-blur-md border border-white/20 shadow-xl text-center min-w-28">
-                <div className="text-2xl font-bold text-primary-foreground">{stats[0].value}</div>
-                <div className="text-xs text-primary-foreground/70 mt-0.5">{stats[0].label}</div>
+              <div className="absolute -top-3 -right-2 sm:-top-4 sm:-right-4 p-3 sm:p-4 rounded-2xl bg-white/15 backdrop-blur-md border border-white/20 shadow-xl text-center min-w-20 sm:min-w-28">
+                <div className="text-lg sm:text-2xl font-bold text-primary-foreground">{stats[0].value}</div>
+                <div className="text-[10px] sm:text-xs text-primary-foreground/70 mt-0.5">{stats[0].label}</div>
               </div>
 
               {/* Floating stats — bottom-left */}
-              <div className="absolute -bottom-4 -left-4 p-4 rounded-2xl bg-white/15 backdrop-blur-md border border-white/20 shadow-xl text-center min-w-28">
-                <div className="text-2xl font-bold text-primary-foreground">{stats[1].value}</div>
-                <div className="text-xs text-primary-foreground/70 mt-0.5">{stats[1].label}</div>
+              <div className="absolute -bottom-3 -left-2 sm:-bottom-4 sm:-left-4 p-3 sm:p-4 rounded-2xl bg-white/15 backdrop-blur-md border border-white/20 shadow-xl text-center min-w-20 sm:min-w-28">
+                <div className="text-lg sm:text-2xl font-bold text-primary-foreground">{stats[1].value}</div>
+                <div className="text-[10px] sm:text-xs text-primary-foreground/70 mt-0.5">{stats[1].label}</div>
               </div>
 
               {/* Floating stats — bottom-right */}
-              <div className="absolute -bottom-4 right-12 p-4 rounded-2xl bg-white/15 backdrop-blur-md border border-white/20 shadow-xl text-center min-w-28">
-                <div className="text-2xl font-bold text-primary-foreground">{stats[2].value}</div>
-                <div className="text-xs text-primary-foreground/70 mt-0.5">{stats[2].label}</div>
+              <div className="absolute -bottom-3 right-8 sm:-bottom-4 sm:right-12 p-3 sm:p-4 rounded-2xl bg-white/15 backdrop-blur-md border border-white/20 shadow-xl text-center min-w-20 sm:min-w-28">
+                <div className="text-lg sm:text-2xl font-bold text-primary-foreground">{stats[2].value}</div>
+                <div className="text-[10px] sm:text-xs text-primary-foreground/70 mt-0.5">{stats[2].label}</div>
               </div>
 
               {/* Floating stat — top-left */}
-              <div className="absolute -top-4 left-8 p-4 rounded-2xl bg-white/15 backdrop-blur-md border border-white/20 shadow-xl text-center min-w-28">
-                <div className="text-2xl font-bold text-primary-foreground">{stats[3].value}</div>
-                <div className="text-xs text-primary-foreground/70 mt-0.5">{stats[3].label}</div>
+              <div className="absolute -top-3 left-4 sm:-top-4 sm:left-8 p-3 sm:p-4 rounded-2xl bg-white/15 backdrop-blur-md border border-white/20 shadow-xl text-center min-w-20 sm:min-w-28">
+                <div className="text-lg sm:text-2xl font-bold text-primary-foreground">{stats[3].value}</div>
+                <div className="text-[10px] sm:text-xs text-primary-foreground/70 mt-0.5">{stats[3].label}</div>
               </div>
             </div>
           </div>
