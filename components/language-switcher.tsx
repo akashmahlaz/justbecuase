@@ -26,12 +26,12 @@ const localeFlags: Record<Locale, string> = {
   en: "🇬🇧",
   hi: "🇮🇳",
   pa: "🇮🇳",
-  ur: "🇵🇰",
+  ur: "🇮🇳",
   fr: "🇫🇷",
   ta: "🇮🇳",
 }
 
-export function LanguageSwitcher({ hidePk = false }: { hidePk?: boolean }) {
+export function LanguageSwitcher() {
   const pathname = usePathname()
   const router = useRouter()
   const currentLocale = useLocale()
@@ -56,7 +56,7 @@ export function LanguageSwitcher({ hidePk = false }: { hidePk?: boolean }) {
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
-        {i18n.locales.filter((locale) => !(hidePk && locale === "ur")).map((locale) => (
+        {i18n.locales.map((locale) => (
           <DropdownMenuItem
             key={locale}
             onClick={() => switchLocale(locale)}
