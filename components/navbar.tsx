@@ -269,7 +269,7 @@ export function Navbar() {
               </LocaleLink>
             </Button>
           )}
-          <LanguageSwitcher hidePk />
+          <LanguageSwitcher />
           <button
             onClick={() => setIsOpen(!isOpen)}
             className="relative z-60 flex h-10 w-10 items-center justify-center rounded-lg text-foreground transition-colors hover:bg-muted"
