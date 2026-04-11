@@ -11,8 +11,8 @@ export function CTASection() {
   const home = dict.home || {}
 
   const stats = [
-    { value: "Global", label: "worldwide" },
-    { value: "0%", label: home.ctaStat2Label || "Registration Fees" },
+    { value: "Global", label:"Worldwide Operating" },
+    { value: "No", label: home.ctaStat2Label || "Registration Fees" },
     { value: "24/7", label: home.ctaStat3Label || "Support available" },
     { value: "5 min", label: home.ctaStat1Label || "To sign up" },
   ]
