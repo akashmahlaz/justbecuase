@@ -288,6 +288,81 @@ export async function fetchAllRemoteJobs(maxDetails = 500): Promise<IdealistJobD
 }
 
 // ============================================
+// Fetch ALL published nonprofit jobs (all location types)
+// ============================================
+// Idealist is exclusively a nonprofit job board — every listing is NGO-relevant.
+// This fetches all published listings regardless of location type for maximum coverage.
+export async function fetchAllNonprofitJobs(maxDetails = 5000): Promise<IdealistJobDetail[]> {
+  if (!API_KEY) {
+    throw new Error("IDEALIST_API_KEY not set in environment")
+  }
+
+  const allJobs: IdealistJobDetail[] = []
+  let since = ""
+  let hasMore = true
+  let pageCount = 0
+  let detailsFetched = 0
+  let detailsFailed = 0
+  const maxPages = 500
+
+  while (hasMore && pageCount < maxPages && detailsFetched < maxDetails) {
+    pageCount++
+    const url = since
+      ? `${API_BASE}/api/v1/listings/jobs?since=${encodeURIComponent(since)}`
+      : `${API_BASE}/api/v1/listings/jobs`
+
+    const response = await fetch(url, {
+      headers: getHeaders(),
+      signal: AbortSignal.timeout(30000),
+    })
+
+    if (response.status === 401) {
+      throw new Error("Idealist API 401 — check API key")
+    }
+    if (response.status === 403) {
+      throw new Error("Idealist API 403 — API key may not have production access")
+    }
+    if (!response.ok) {
+      console.warn(`[Idealist API] HTTP ${response.status} on page ${pageCount}`)
+      break
+    }
+
+    const data = (await response.json()) as { jobs: IdealistListItem[]; hasMore: boolean }
+    const items = data.jobs || []
+    hasMore = data.hasMore ?? false
+
+    if (items.length === 0) break
+
+    for (const item of items) {
+      since = item.updated // cursor update
+
+      if (item.isPublished === false) continue
+      if (detailsFetched >= maxDetails) continue
+
+      await sleep(200) // Politeness — required by Idealist
+      const detail = await fetchJobDetail(item.id)
+      detailsFetched++
+
+      if (!detail) {
+        detailsFailed++
+        continue
+      }
+
+      allJobs.push(detail)
+    }
+
+    if (pageCount % 5 === 0) {
+      console.log(`[Idealist API] Progress: page ${pageCount}, ${detailsFetched} fetched, ${detailsFailed} failed, ${allJobs.length} stored`)
+    }
+
+    await sleep(200)
+  }
+
+  console.log(`[Idealist API] Done: ${detailsFetched} details across ${pageCount} pages → ${allJobs.length} stored, ${detailsFailed} failed`)
+  return allJobs
+}
+
+// ============================================
 // Fetch a single job detail
 // ============================================
 async function fetchJobDetail(id: string): Promise<IdealistJobDetail | null> {
@@ -298,7 +373,10 @@ async function fetchJobDetail(id: string): Promise<IdealistJobDetail | null> {
     })
 
     if (response.status === 404) return null
-    if (!response.ok) return null
+    if (!response.ok) {
+      console.warn(`[Idealist API] Detail fetch ${id} failed: HTTP ${response.status}`)
+      return null
+    }
 
     const data = (await response.json()) as { job: IdealistJobDetail }
     return data.job || null
@@ -342,6 +420,11 @@ export function mapJobToOpportunity(d: IdealistJobDetail): Omit<ExternalOpportun
   if (d.isContract) projectType = "consultation"
   if (d.isTemporary) projectType = "short-term"
 
+  // Detect work mode from Idealist locationType field
+  const workMode: "remote" | "onsite" | "hybrid" =
+    d.locationType === "REMOTE" ? "remote" :
+    d.locationType === "HYBRID" ? "hybrid" : "onsite"
+
   return {
     sourceplatform: "idealist-api",
     externalId: `idealist_${d.id}`,
@@ -357,8 +440,8 @@ export function mapJobToOpportunity(d: IdealistJobDetail): Omit<ExternalOpportun
     skillTags,
     skillsRequired,
     experienceLevel,
-    workMode: "remote",
-    location: d.address?.full || "Remote",
+    workMode,
+    location: d.address?.full || (workMode === "remote" ? "Remote" : undefined),
     city: d.address?.city || undefined,
     country: d.address?.country || undefined,
     timeCommitment: d.isFullTime ? "Full time" : "Part time",

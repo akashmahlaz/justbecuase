@@ -27,13 +27,20 @@ export async function GET(request: Request) {
     let totalUpdated = 0
     let totalProcessed = 0
 
-    // Fetch ALL published nonprofit jobs (all location types, not just remote)
+    // Fetch ALL published nonprofit jobs from Idealist
     // Idealist has ~3,200 active listings — all are NGO/nonprofit relevant
     const jobs = await fetchAllNonprofitJobs(5000)
+    let skippedNonRemote = 0
 
     for (const job of jobs) {
       try {
         const opportunity = mapJobToOpportunity(job)
+
+        // Only sync remote jobs — skip onsite/hybrid
+        if (opportunity.workMode !== "remote") {
+          skippedNonRemote++
+          continue
+        }
 
         const { isNew } = await externalOpportunitiesDb.upsert(opportunity)
         if (isNew) totalNew++
@@ -50,7 +57,7 @@ export async function GET(request: Request) {
     const elapsed = ((Date.now() - startTime) / 1000).toFixed(1)
 
     console.log(
-      `[Idealist Sync] ${totalProcessed} processed (${totalNew} new, ${totalUpdated} updated, ${staleCount} deactivated) in ${elapsed}s`
+      `[Idealist Sync] ${totalProcessed} processed (${totalNew} new, ${totalUpdated} updated, ${staleCount} deactivated, ${skippedNonRemote} skipped non-remote) in ${elapsed}s`
     )
 
     const syncStats = {
@@ -59,6 +66,7 @@ export async function GET(request: Request) {
       new: totalNew,
       updated: totalUpdated,
       deactivated: staleCount,
+      skippedNonRemote,
       elapsedSeconds: parseFloat(elapsed),
     }
 
