@@ -248,58 +248,131 @@ export function Navbar() {
         </div>
 
         {/* MOBILE */}
-        <Sheet open={isOpen} onOpenChange={setIsOpen}>
-          <SheetTrigger asChild className="md:hidden">
-            <Button size="icon" variant="ghost">
-              <Menu className="h-5 w-5" />
+        <div className="flex md:hidden items-center gap-2">
+          {user && (
+            <Button variant="ghost" size="icon" asChild>
+              <LocaleLink href={user?.role === "ngo" ? "/ngo/notifications" : "/volunteer/notifications"}>
+                <Bell className="h-5 w-5" />
+              </LocaleLink>
             </Button>
-          </SheetTrigger>
+          )}
+          <LanguageSwitcher />
+          <Sheet open={isOpen} onOpenChange={setIsOpen}>
+            <SheetTrigger asChild>
+              <Button size="icon" variant="ghost">
+                <Menu className="h-5 w-5" />
+              </Button>
+            </SheetTrigger>
 
-          <SheetContent side="right" className="w-[300px]">
-            <div className="flex flex-col gap-6 pt-8">
+            <SheetContent side="right" className="w-75 p-0">
+              <div className="flex flex-col h-full">
 
-              {/* MOBILE LINKS */}
-              {[...baseLinks, ...roleLinks].map((link) => (
-                <LocaleLink
-                  key={link.href}
-                  href={link.href}
-                  onClick={() => setIsOpen(false)}
-                  className={`text-lg ${pathname.endsWith(link.href) || pathname.includes(link.href + "/")
-                      ? "text-primary font-semibold"
-                      : "text-foreground"
-                    }`}
-                >
-                  {link.label}
-                </LocaleLink>
-              ))}
+                {/* User info header */}
+                {user && (
+                  <div className="flex items-center gap-3 p-5 border-b bg-muted/30">
+                    <Avatar className="h-10 w-10">
+                      <AvatarImage src={user.image ?? ""} />
+                      <AvatarFallback>{initials}</AvatarFallback>
+                    </Avatar>
+                    <div className="min-w-0">
+                      <p className="font-semibold text-sm truncate">{user.name}</p>
+                      <p className="text-xs text-muted-foreground truncate">{user.email}</p>
+                    </div>
+                    {isPro && (
+                      <Badge variant="secondary" className="ml-auto text-xs shrink-0">
+                        <Zap className="h-3 w-3 mr-1" />
+                        {dict.common.pro}
+                      </Badge>
+                    )}
+                  </div>
+                )}
 
-              <div className="pt-6 border-t flex flex-col gap-3">
-                {!user ? (
-                  <>
-                    <Button asChild variant="outline">
-                      <LocaleLink href="/auth/signin">{dict.common.signin}</LocaleLink>
-                    </Button>
-                    <Button asChild>
-                      <LocaleLink href="/auth/signup">{dict.common.getStarted}</LocaleLink>
-                    </Button>
-                  </>
-                ) : (
-                  <>
-                    <Button asChild variant="outline">
-                      <LocaleLink href={user?.role === "admin" ? "/admin" : user?.role === "ngo" ? "/ngo/dashboard" : "/volunteer/dashboard"}>{dict.common.dashboard}</LocaleLink>
-                    </Button>
+                {/* Nav links */}
+                <nav className="flex-1 overflow-y-auto py-4 px-3">
+                  <div className="space-y-1">
+                    {[...baseLinks, ...roleLinks].map((link) => {
+                      const isActive = pathname.endsWith(link.href) || pathname.includes(link.href + "/")
+                      return (
+                        <LocaleLink
+                          key={link.href}
+                          href={link.href}
+                          onClick={() => setIsOpen(false)}
+                          className={`flex items-center px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+                            isActive
+                              ? "bg-primary/10 text-primary"
+                              : "text-foreground hover:bg-muted"
+                          }`}
+                        >
+                          {link.label}
+                        </LocaleLink>
+                      )
+                    })}
+                  </div>
+
+                  {/* Quick actions for logged-in users */}
+                  {user && (
+                    <div className="mt-4 pt-4 border-t space-y-1">
+                      <LocaleLink
+                        href={user?.role === "admin" ? "/admin" : user?.role === "ngo" ? "/ngo/dashboard" : "/volunteer/dashboard"}
+                        onClick={() => setIsOpen(false)}
+                        className="flex items-center px-3 py-2.5 rounded-lg text-sm font-medium text-foreground hover:bg-muted"
+                      >
+                        {dict.nav.myDashboard}
+                      </LocaleLink>
+                      {(user?.role === "ngo" || user?.role === "volunteer") && (
+                        <LocaleLink
+                          href={user?.role === "ngo" ? "/ngo/settings?tab=billing" : "/volunteer/settings?tab=billing"}
+                          onClick={() => setIsOpen(false)}
+                          className="flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-medium text-foreground hover:bg-muted"
+                        >
+                          <CreditCard className="h-4 w-4" />
+                          {dict.nav?.billingPayments || dict.nav?.billing || "Billing"}
+                        </LocaleLink>
+                      )}
+                      {!isPro && (user?.role === "ngo" || user?.role === "volunteer") && (
+                        <LocaleLink
+                          href="/pricing"
+                          onClick={() => setIsOpen(false)}
+                          className="flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-medium text-primary hover:bg-primary/10"
+                        >
+                          <Sparkles className="h-4 w-4" />
+                          {dict.common.upgrade}
+                        </LocaleLink>
+                      )}
+                    </div>
+                  )}
+                </nav>
+
+                {/* Bottom actions */}
+                <div className="p-4 border-t space-y-2">
+                  {!user ? (
+                    <>
+                      <Button asChild className="w-full">
+                        <LocaleLink href="/auth/signup" onClick={() => setIsOpen(false)}>
+                          {dict.common.getStarted}
+                        </LocaleLink>
+                      </Button>
+                      <Button asChild variant="outline" className="w-full">
+                        <LocaleLink href="/auth/signin" onClick={() => setIsOpen(false)}>
+                          {dict.common.signin}
+                        </LocaleLink>
+                      </Button>
+                    </>
+                  ) : (
                     <Button
-                      onClick={() => client.signOut()}
-                      className="bg-red-600 text-white hover:bg-red-700"
+                      onClick={() => { client.signOut(); setIsOpen(false) }}
+                      variant="outline"
+                      className="w-full text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700"
                     >
                       {dict.common.signout}
                     </Button>
-                  </>
-                )}
+                  )}
+                </div>
+
               </div>
-            </div>
-          </SheetContent>
-        </Sheet>
+            </SheetContent>
+          </Sheet>
+        </div>
       </div>
     </header>
   )
