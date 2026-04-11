@@ -80,17 +80,7 @@ export function HeroSection() {
               <div className="absolute inset-0 bg-linear-to-t from-background/20 to-transparent" />
             </div>
 
-            {/* Floating accent badge — bottom left */}
-            {/* <div className="absolute -bottom-3 -left-2 sm:-bottom-4 sm:-left-4 px-4 py-2 sm:px-5 sm:py-3 rounded-2xl bg-background/80 backdrop-blur-md border border-border shadow-lg">
-              <div className="text-xs sm:text-sm font-semibold text-foreground">Driving</div>
-              <div className="text-[10px] sm:text-xs text-muted-foreground">Meaningful Change</div>
-            </div> */}
 
-            {/* Floating accent badge — top right */}
-            {/* <div className="absolute -top-3 -right-2 sm:-top-4 sm:-right-4 px-4 py-2 sm:px-5 sm:py-3 rounded-2xl bg-primary/10 backdrop-blur-md border border-primary/20 shadow-lg">
-              <div className="text-xs sm:text-sm font-semibold text-primary">Build Impact</div>
-              <div className="text-[10px] sm:text-xs text-primary/70">Together</div>
-            </div> */}
           </div>
 
         </div>

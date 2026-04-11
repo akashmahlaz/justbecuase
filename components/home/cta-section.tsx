@@ -10,12 +10,12 @@ export function CTASection() {
   const dict = useDictionary()
   const home = dict.home || {}
 
-  const stats = [
-    { value: "Global", label:"Worldwide Operating" },
-    { value: "No", label: home.ctaStat2Label || "Registration Fees" },
-    { value: "24/7", label: home.ctaStat3Label || "Support available" },
-    { value: "5 min", label: home.ctaStat1Label || "To sign up" },
-  ]
+  // const stats = [
+  //   { value: "Global", label:"Worldwide Operating" },
+  //   { value: "No", label: home.ctaStat2Label || "Registration Fees" },
+  //   { value: "24/7", label: home.ctaStat3Label || "Support available" },
+  //   { value: "5 min", label: home.ctaStat1Label || "To sign up" },
+  // ]
 
   return (
     <section className="py-16 md:py-24">
@@ -76,28 +76,28 @@ export function CTASection() {
               </div>
 
               {/* Floating stats — top-right */}
-              <div className="absolute -top-3 -right-2 sm:-top-4 sm:-right-4 p-3 sm:p-4 rounded-2xl bg-white shadow-xl text-center min-w-20 sm:min-w-28">
+              {/* <div className="absolute -top-3 -right-2 sm:-top-4 sm:-right-4 p-3 sm:p-4 rounded-2xl bg-white shadow-xl text-center min-w-20 sm:min-w-28">
                 <div className="text-lg sm:text-2xl font-bold text-primary">{stats[0].value}</div>
                 <div className="text-[10px] sm:text-xs text-muted-foreground mt-0.5">{stats[0].label}</div>
-              </div>
+              </div> */}
 
               {/* Floating stats — bottom-left */}
-              <div className="absolute -bottom-3 -left-2 sm:-bottom-4 sm:-left-4 p-3 sm:p-4 rounded-2xl bg-white shadow-xl text-center min-w-20 sm:min-w-28">
+              {/* <div className="absolute -bottom-3 -left-2 sm:-bottom-4 sm:-left-4 p-3 sm:p-4 rounded-2xl bg-white shadow-xl text-center min-w-20 sm:min-w-28">
                 <div className="text-lg sm:text-2xl font-bold text-primary">{stats[1].value}</div>
                 <div className="text-[10px] sm:text-xs text-muted-foreground mt-0.5">{stats[1].label}</div>
-              </div>
+              </div> */}
 
               {/* Floating stats — bottom-right */}
-              <div className="absolute -bottom-3 right-8 sm:-bottom-4 sm:right-12 p-3 sm:p-4 rounded-2xl bg-white shadow-xl text-center min-w-20 sm:min-w-28">
+              {/* <div className="absolute -bottom-3 right-8 sm:-bottom-4 sm:right-12 p-3 sm:p-4 rounded-2xl bg-white shadow-xl text-center min-w-20 sm:min-w-28">
                 <div className="text-lg sm:text-2xl font-bold text-primary">{stats[2].value}</div>
                 <div className="text-[10px] sm:text-xs text-muted-foreground mt-0.5">{stats[2].label}</div>
-              </div>
+              </div> */}
 
               {/* Floating stat — top-left */}
-              <div className="absolute -top-3 left-4 sm:-top-4 sm:left-8 p-3 sm:p-4 rounded-2xl bg-white shadow-xl text-center min-w-20 sm:min-w-28">
+              {/* <div className="absolute -top-3 left-4 sm:-top-4 sm:left-8 p-3 sm:p-4 rounded-2xl bg-white shadow-xl text-center min-w-20 sm:min-w-28">
                 <div className="text-lg sm:text-2xl font-bold text-primary">{stats[3].value}</div>
                 <div className="text-[10px] sm:text-xs text-muted-foreground mt-0.5">{stats[3].label}</div>
-              </div>
+              </div> */}
             </div>
           </div>
         </div>
