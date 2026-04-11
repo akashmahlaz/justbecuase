@@ -82,14 +82,14 @@ export function HeroSection() {
 
             {/* Floating accent badge — bottom left */}
             <div className="absolute -bottom-4 -left-4 px-5 py-3 rounded-2xl bg-background/80 backdrop-blur-md border border-border shadow-lg">
-              <div className="text-sm font-semibold text-foreground">Impact Agents</div>
-              <div className="text-xs text-muted-foreground">Making a difference</div>
+              <div className="text-sm font-semibold text-foreground">Driving</div>
+              <div className="text-xs text-muted-foreground">Meaningful Change</div>
             </div>
 
             {/* Floating accent badge — top right */}
             <div className="absolute -top-4 -right-4 px-5 py-3 rounded-2xl bg-primary/10 backdrop-blur-md border border-primary/20 shadow-lg">
-              <div className="text-sm font-semibold text-primary">NGOs</div>
-              <div className="text-xs text-primary/70">Actively hiring</div>
+              <div className="text-sm font-semibold text-primary">Build Impact</div>
+              <div className="text-xs text-primary/70">Together</div>
             </div>
           </div>
 
