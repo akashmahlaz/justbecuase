@@ -1,5 +1,6 @@
 "use client"
 
+import Image from "next/image"
 import { ArrowRight, Heart } from "lucide-react"
 import { useDictionary } from "@/components/dictionary-provider"
 import LocaleLink from "@/components/locale-link"
@@ -10,7 +11,7 @@ export function CTASection() {
   const home = dict.home || {}
 
   const stats = [
-    { value: "120+", label: home.ctaStat4Label || "Partner NGOs" },
+    { value: "Global", label: "worldwide" },
     { value: "0%", label: home.ctaStat2Label || "Registration Fees" },
     { value: "24/7", label: home.ctaStat3Label || "Support available" },
     { value: "5 min", label: home.ctaStat1Label || "To sign up" },
@@ -20,7 +21,12 @@ export function CTASection() {
     <section className="py-16 md:py-24">
       <div className="container mx-auto px-4 md:px-6">
         <div className="relative overflow-hidden rounded-3xl bg-primary p-8 md:p-12 lg:p-16">
-          <div className="relative grid md:grid-cols-2 gap-8 items-center">
+          {/* Decorative background glow */}
+          <div className="absolute -top-24 -right-24 h-64 w-64 rounded-full bg-white/5 blur-3xl" />
+          <div className="absolute -bottom-24 -left-24 h-64 w-64 rounded-full bg-white/5 blur-3xl" />
+
+          <div className="relative grid md:grid-cols-2 gap-12 items-center">
+            {/* Left — Text & Buttons */}
             <div>
               <div className="inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 text-sm font-medium text-primary-foreground mb-6">
                 <Heart className="h-4 w-4" fill="currentColor" />
@@ -54,16 +60,43 @@ export function CTASection() {
               </div>
             </div>
 
-            <div className="hidden md:flex justify-center">
-              <div className="grid grid-cols-2 gap-4">
-                {stats.map((stat) => (
-                  <div key={stat.label} className="p-6 rounded-2xl bg-white/10 text-center">
-                    <div className="text-2xl font-bold text-primary-foreground">
-                      {stat.value}
-                    </div>
-                    <div className="text-sm text-primary-foreground/70">{stat.label}</div>
-                  </div>
-                ))}
+            {/* Right — Image with floating stats */}
+            <div className="hidden md:flex justify-center items-center relative">
+              {/* Main image */}
+              <div className="relative w-72 h-80 rounded-3xl overflow-hidden shadow-2xl ring-1 ring-white/20">
+                <Image
+                  src="/cta-img01.jpg"
+                  alt="Join the movement"
+                  fill
+                  className="object-cover"
+                  sizes="288px"
+                />
+                {/* Gradient overlay for text readability */}
+                <div className="absolute inset-0 bg-linear-to-t from-primary/60 to-transparent" />
+              </div>
+
+              {/* Floating stats — top-right */}
+              <div className="absolute -top-4 -right-4 p-4 rounded-2xl bg-white/15 backdrop-blur-md border border-white/20 shadow-xl text-center min-w-28">
+                <div className="text-2xl font-bold text-primary-foreground">{stats[0].value}</div>
+                <div className="text-xs text-primary-foreground/70 mt-0.5">{stats[0].label}</div>
+              </div>
+
+              {/* Floating stats — bottom-left */}
+              <div className="absolute -bottom-4 -left-4 p-4 rounded-2xl bg-white/15 backdrop-blur-md border border-white/20 shadow-xl text-center min-w-28">
+                <div className="text-2xl font-bold text-primary-foreground">{stats[1].value}</div>
+                <div className="text-xs text-primary-foreground/70 mt-0.5">{stats[1].label}</div>
+              </div>
+
+              {/* Floating stats — bottom-right */}
+              <div className="absolute -bottom-4 right-12 p-4 rounded-2xl bg-white/15 backdrop-blur-md border border-white/20 shadow-xl text-center min-w-28">
+                <div className="text-2xl font-bold text-primary-foreground">{stats[2].value}</div>
+                <div className="text-xs text-primary-foreground/70 mt-0.5">{stats[2].label}</div>
+              </div>
+
+              {/* Floating stat — top-left */}
+              <div className="absolute -top-4 left-8 p-4 rounded-2xl bg-white/15 backdrop-blur-md border border-white/20 shadow-xl text-center min-w-28">
+                <div className="text-2xl font-bold text-primary-foreground">{stats[3].value}</div>
+                <div className="text-xs text-primary-foreground/70 mt-0.5">{stats[3].label}</div>
               </div>
             </div>
           </div>
