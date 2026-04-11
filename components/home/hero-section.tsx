@@ -72,7 +72,7 @@ export function HeroSection() {
                 src="/hero-img01.jpg"
                 alt="Hero"
                 fill
-                className="object-cover"
+                className="object-cover object-top"
                 sizes="(max-width: 640px) 256px, (max-width: 1024px) 320px, 384px"
                 priority
               />
@@ -81,16 +81,16 @@ export function HeroSection() {
             </div>
 
             {/* Floating accent badge — bottom left */}
-            <div className="absolute -bottom-3 -left-2 sm:-bottom-4 sm:-left-4 px-4 py-2 sm:px-5 sm:py-3 rounded-2xl bg-background/80 backdrop-blur-md border border-border shadow-lg">
+            {/* <div className="absolute -bottom-3 -left-2 sm:-bottom-4 sm:-left-4 px-4 py-2 sm:px-5 sm:py-3 rounded-2xl bg-background/80 backdrop-blur-md border border-border shadow-lg">
               <div className="text-xs sm:text-sm font-semibold text-foreground">Driving</div>
               <div className="text-[10px] sm:text-xs text-muted-foreground">Meaningful Change</div>
-            </div>
+            </div> */}
 
             {/* Floating accent badge — top right */}
-            <div className="absolute -top-3 -right-2 sm:-top-4 sm:-right-4 px-4 py-2 sm:px-5 sm:py-3 rounded-2xl bg-primary/10 backdrop-blur-md border border-primary/20 shadow-lg">
+            {/* <div className="absolute -top-3 -right-2 sm:-top-4 sm:-right-4 px-4 py-2 sm:px-5 sm:py-3 rounded-2xl bg-primary/10 backdrop-blur-md border border-primary/20 shadow-lg">
               <div className="text-xs sm:text-sm font-semibold text-primary">Build Impact</div>
               <div className="text-[10px] sm:text-xs text-primary/70">Together</div>
-            </div>
+            </div> */}
           </div>
 
         </div>
