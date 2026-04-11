@@ -195,6 +195,48 @@ export async function fetchAllJobs(limit = 1000, offset = 0): Promise<{ jobs: Rw
   return { jobs: filtered, total: filtered.length }
 }
 
+// ============================================
+// Fetch ALL published humanitarian/NGO jobs (no remote filter)
+// ============================================
+// ReliefWeb only lists humanitarian/NGO jobs, so ALL jobs are NGO-relevant.
+// This fetches every active listing for maximum coverage.
+export async function fetchAllJobsUnfiltered(): Promise<{ jobs: RwApiItem[]; total: number }> {
+  const allJobs: RwApiItem[] = []
+  let offset = 0
+  const limit = 1000 // API max per call
+
+  // ReliefWeb has ~900 active jobs; 1 call is usually enough but loop for safety
+  while (true) {
+    const payload = {
+      preset: "latest",
+      limit,
+      offset,
+      slim: "1",
+      fields: { include: LIST_FIELDS },
+    }
+
+    const res = await fetch(`${API_BASE}/jobs?appname=${APP_NAME}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+      next: { revalidate: 0 },
+    })
+
+    if (!res.ok) {
+      throw new Error(`ReliefWeb API error: ${res.status} ${res.statusText}`)
+    }
+
+    const data: RwApiResponse = await res.json()
+    allJobs.push(...data.data)
+
+    // If fewer than limit returned, we've reached the end
+    if (data.data.length < limit) break
+    offset += limit
+  }
+
+  return { jobs: allJobs, total: allJobs.length }
+}
+
 /**
  * Check if a job is genuinely remote vs. "remote areas" false positive.
  * Returns true if the job is likely a remote/home-based work position.
@@ -258,8 +300,8 @@ export function mapApiJobToOpportunity(item: RwApiItem): Omit<ExternalOpportunit
   // Map type → projectType + compensationType
   const { projectType, compensationType } = mapJobType(type?.name)
 
-  // Work mode — all jobs from this sync are pre-filtered as remote
-  const workMode: "remote" | "onsite" | "hybrid" = "remote"
+  // Detect work mode from title/body keywords
+  const workMode: "remote" | "onsite" | "hybrid" = isLikelyRemote(f) ? "remote" : "onsite"
 
   // Short description from body (strip markdown)
   const plainBody = f.body || ""

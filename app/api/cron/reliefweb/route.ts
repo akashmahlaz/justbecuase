@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server"
-import { fetchAllJobs, mapApiJobToOpportunity } from "@/lib/reliefweb-api"
+import { fetchAllJobsUnfiltered, mapApiJobToOpportunity } from "@/lib/reliefweb-api"
 import { externalOpportunitiesDb } from "@/lib/scraper"
 import { sendEmail, getCronSyncEmailHtml } from "@/lib/email"
 
@@ -27,17 +27,20 @@ export async function GET(request: Request) {
     let totalUpdated = 0
     let totalProcessed = 0
 
-    // Fetch all published jobs (API returns max 1000 per call)
-    // With ~1000 active jobs, one call is enough
-    const { jobs, total } = await fetchAllJobs(1000, 0)
-
-    // Track which IDs we see from the API (to mark stale ones inactive)
-    const seenIds = new Set<string>()
+    // Fetch ALL published humanitarian/NGO jobs from ReliefWeb
+    // Then filter to only keep remote jobs
+    const { jobs, total } = await fetchAllJobsUnfiltered()
+    let skippedNonRemote = 0
 
     for (const job of jobs) {
       try {
         const opportunity = mapApiJobToOpportunity(job)
-        seenIds.add(opportunity.externalId)
+
+        // Only sync remote jobs — skip onsite/hybrid
+        if (opportunity.workMode !== "remote") {
+          skippedNonRemote++
+          continue
+        }
 
         const { isNew } = await externalOpportunitiesDb.upsert(opportunity)
         if (isNew) totalNew++
@@ -48,31 +51,13 @@ export async function GET(request: Request) {
       }
     }
 
-    // If API returned more than 1000, fetch next page
-    if (total > 1000) {
-      const { jobs: moreJobs } = await fetchAllJobs(1000, 1000)
-      for (const job of moreJobs) {
-        try {
-          const opportunity = mapApiJobToOpportunity(job)
-          seenIds.add(opportunity.externalId)
-          const { isNew } = await externalOpportunitiesDb.upsert(opportunity)
-          if (isNew) totalNew++
-          else totalUpdated++
-          totalProcessed++
-        } catch (err) {
-          console.error(`Failed to process job ${job.id}:`, err)
-        }
-      }
-    }
-
-    // Mark jobs no longer in the API as inactive
-    // (jobs that were "reliefweb-api" but weren't in this sync)
-    const staleCount = await markStaleInactive(seenIds)
+    // Mark expired jobs as inactive (deadline-based, safe for partial runs)
+    const staleCount = await markExpiredInactive()
 
     const elapsed = ((Date.now() - startTime) / 1000).toFixed(1)
 
     console.log(
-      `[ReliefWeb Sync] ${totalProcessed} processed (${totalNew} new, ${totalUpdated} updated, ${staleCount} deactivated) in ${elapsed}s`
+      `[ReliefWeb Sync] ${totalProcessed} processed (${totalNew} new, ${totalUpdated} updated, ${staleCount} deactivated, ${skippedNonRemote} skipped non-remote) in ${elapsed}s`
     )
 
     const syncStats = {
@@ -81,6 +66,7 @@ export async function GET(request: Request) {
       new: totalNew,
       updated: totalUpdated,
       deactivated: staleCount,
+      skippedNonRemote,
       elapsedSeconds: parseFloat(elapsed),
     }
 
@@ -114,10 +100,11 @@ export async function GET(request: Request) {
 }
 
 /**
- * Mark reliefweb-api opportunities that were NOT in the latest sync as inactive.
- * This handles expired/removed jobs.
+ * Mark reliefweb-api opportunities whose deadline has passed as inactive.
+ * Deadline-based deactivation is safe regardless of how many jobs the API returns,
+ * unlike the old seen-based approach which could incorrectly deactivate valid jobs.
  */
-async function markStaleInactive(seenIds: Set<string>): Promise<number> {
+async function markExpiredInactive(): Promise<number> {
   const { getDb } = await import("@/lib/database")
   const db = await getDb()
   const collection = db.collection("externalOpportunities")
@@ -126,7 +113,7 @@ async function markStaleInactive(seenIds: Set<string>): Promise<number> {
     {
       sourceplatform: "reliefweb-api",
       isActive: true,
-      externalId: { $nin: Array.from(seenIds) },
+      deadline: { $lt: new Date() },
     },
     { $set: { isActive: false, updatedAt: new Date() } }
   )
