@@ -5,6 +5,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "t":"bunx tsc --noemit",
     "build": "next build",
     "git": "git add . ; git commit -m 'akash commit' ; git push && vercel --prod",
     "start": "next start",
