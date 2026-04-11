@@ -27,7 +27,7 @@ export function CTASection() {
 
           <div className="relative grid md:grid-cols-2 gap-12 items-center">
             {/* Left — Text & Buttons */}
-            <div>
+            <div className="order-2 md:order-1">
               <div className="inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 text-sm font-medium text-primary-foreground mb-6">
                 <Heart className="h-4 w-4" fill="currentColor" />
                 <span>{home.ctaReadyBadge || "Ready to make a difference?"}</span>
@@ -61,7 +61,7 @@ export function CTASection() {
             </div>
 
             {/* Right — Image with floating stats */}
-            <div className="flex justify-center items-center relative mt-8 md:mt-0">
+            <div className="order-1 md:order-2 flex justify-center items-center relative mb-4 md:mb-0">
               {/* Main image — responsive sizing */}
               <div className="relative w-56 h-64 sm:w-64 sm:h-72 md:w-72 md:h-80 rounded-3xl overflow-hidden shadow-2xl ring-1 ring-white/20">
                 <Image

@@ -22,7 +22,7 @@ export function HeroSection() {
         <div className="grid lg:grid-cols-2 gap-12 items-center">
 
           {/* Left — Text Content */}
-          <div className="text-center lg:text-left">
+          <div className="order-2 lg:order-1 text-center lg:text-left">
 
             {/* Main Headline - MISSION IMPOSSIBLE */}
             <h1 className="mb-6 text-4xl font-bold tracking-tight text-foreground sm:text-5xl md:text-6xl">
@@ -62,7 +62,7 @@ export function HeroSection() {
           </div>
 
           {/* Right — Hero Image */}
-          <div className="flex justify-center items-center relative mt-8 lg:mt-0">
+          <div className="order-1 lg:order-2 flex justify-center items-center relative mb-4 lg:mb-0">
             {/* Glow behind image */}
             <div className="absolute inset-0 bg-primary/10 rounded-full blur-3xl scale-75" />
 
