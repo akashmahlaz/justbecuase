@@ -3,10 +3,12 @@ import { fetchAllJobsUnfiltered, mapApiJobToOpportunity } from "@/lib/reliefweb-
 import { fetchAllIdealistJobs } from "@/lib/idealist-fast-fetch"
 import { externalOpportunitiesDb } from "@/lib/scraper"
 import { sendEmail } from "@/lib/email"
+import { runTheirStackSync } from "@/lib/theirstack-sync"
 
 export const maxDuration = 580 // ~10 min — Vercel Pro limit
 
 const BATCH_SIZE = 200 // Bulk upsert batch size
+const MAX_IDEALIST_FETCH = Number(process.env.IDEALIST_MAX_DETAIL_FETCH || 5000)
 
 // ============================================
 // GET /api/cron/fetch-5k — High-volume sync
@@ -28,9 +30,25 @@ export async function GET(request: Request) {
   }
 
   const startTime = Date.now()
+  const { searchParams } = new URL(request.url)
+  const includeTheirStack =
+    searchParams.get("includeTheirStack") === "true" ||
+    process.env.THEIRSTACK_SYNC_ENABLED === "true"
+  const theirStackMaxJobs = Number(
+    searchParams.get("theirStackMaxJobs") ||
+      process.env.THEIRSTACK_SYNC_MAX_JOBS ||
+      "50"
+  )
   const stats = {
     reliefweb: { total: 0, remoteOnly: 0, new: 0, updated: 0, errors: 0 },
     idealist: { total: 0, new: 0, updated: 0, errors: 0 },
+    theirstack: {
+      total: 0,
+      new: 0,
+      updated: 0,
+      errors: 0,
+      skippedReason: includeTheirStack ? null as string | null : "Disabled",
+    },
   }
 
   // ── ReliefWeb ────────────────────────────────────────────────
@@ -73,7 +91,7 @@ export async function GET(request: Request) {
   try {
     console.log("[fetch-5k] Fetching Idealist (parallel detail fetching)...")
     const istStart = Date.now()
-    const opportunities = await fetchAllIdealistJobs(3000) // max 3000 with full details
+    const opportunities = await fetchAllIdealistJobs(MAX_IDEALIST_FETCH)
     stats.idealist.total = opportunities.length
     console.log(`[fetch-5k] Idealist: ${stats.idealist.total} remote opportunities with details`)
 
@@ -94,10 +112,36 @@ export async function GET(request: Request) {
     console.error("[fetch-5k] Idealist fatal:", e.message)
   }
 
+  // ── TheirStack ──────────────────────────────────────────────
+  if (includeTheirStack && theirStackMaxJobs > 0) {
+    try {
+      console.log(`[fetch-5k] Fetching TheirStack (up to ${theirStackMaxJobs} jobs)...`)
+      const result = await runTheirStackSync({
+        preview: false,
+        remoteOnly: true,
+        onlyWithContacts: true,
+        maxAgeDays: 30,
+        maxJobs: theirStackMaxJobs,
+        maxPages: Math.max(1, Math.ceil(theirStackMaxJobs / BATCH_SIZE)),
+        pageSize: Math.min(25, theirStackMaxJobs),
+      })
+      stats.theirstack.total = result.stats.uniqueJobs
+      stats.theirstack.new = result.stats.inserted
+      stats.theirstack.updated = result.stats.updated
+      stats.theirstack.skippedReason = result.stats.skippedReason ?? null
+      console.log(
+        `[fetch-5k] TheirStack: ${result.stats.uniqueJobs} fetched | ${result.stats.inserted} new | ${result.stats.updated} updated`
+      )
+    } catch (e: any) {
+      console.error("[fetch-5k] TheirStack fatal:", e.message)
+      stats.theirstack.errors += 1
+    }
+  }
+
   const totalElapsed = ((Date.now() - startTime) / 1000).toFixed(1)
-  const grandNew = stats.reliefweb.new + stats.idealist.new
-  const grandUpdated = stats.reliefweb.updated + stats.idealist.updated
-  const grandTotal = stats.reliefweb.remoteOnly + stats.idealist.total
+  const grandNew = stats.reliefweb.new + stats.idealist.new + stats.theirstack.new
+  const grandUpdated = stats.reliefweb.updated + stats.idealist.updated + stats.theirstack.updated
+  const grandTotal = stats.reliefweb.remoteOnly + stats.idealist.total + stats.theirstack.total
 
   // Email notification
   try {
@@ -112,6 +156,7 @@ export async function GET(request: Request) {
             <table style="width:100%;border-collapse:collapse;font-size:14px">
               <tr style="border-bottom:1px solid #e2e8f0"><td style="padding:8px">ReliefWeb</td><td style="padding:8px">${stats.reliefweb.total} total | ${stats.reliefweb.remoteOnly} remote | ${stats.reliefweb.new} new | ${stats.reliefweb.errors} errors</td></tr>
               <tr style="border-bottom:1px solid #e2e8f0"><td style="padding:8px">Idealist</td><td style="padding:8px">${stats.idealist.total} remote | ${stats.idealist.new} new | ${stats.idealist.errors} errors</td></tr>
+              <tr style="border-bottom:1px solid #e2e8f0"><td style="padding:8px">TheirStack</td><td style="padding:8px">${stats.theirstack.total} total | ${stats.theirstack.new} new | ${stats.theirstack.errors} errors${stats.theirstack.skippedReason ? ` | ${stats.theirstack.skippedReason}` : ""}</td></tr>
               <tr><td style="padding:8px;font-weight:bold">Grand Total</td><td style="padding:8px">${grandTotal} | ${grandNew} new | ${grandUpdated} updated</td></tr>
             </table>
             <p style="color:#64748b;font-size:12px;margin-top:16px">Duration: ${totalElapsed}s</p>

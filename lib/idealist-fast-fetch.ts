@@ -9,6 +9,9 @@ import type { ExternalOpportunity } from "@/lib/scraper/types"
 
 const API_BASE = "https://www.idealist.org"
 const API_KEY = process.env.IDEALIST_API_KEY || ""
+const DEFAULT_MAX_PAGES = Number(process.env.IDEALIST_MAX_LISTING_PAGES || 800)
+const DEFAULT_MAX_DETAILS = Number(process.env.IDEALIST_MAX_DETAIL_FETCH || 5000)
+const DEFAULT_DETAIL_CONCURRENCY = Math.max(5, Math.min(50, Number(process.env.IDEALIST_DETAIL_CONCURRENCY || 40)))
 
 function getHeaders() {
   return {
@@ -42,6 +45,8 @@ interface IdealistJobDetail {
   }
   address: { full?: string; city?: string | null; country?: string }
   locationType?: string
+  remoteZone?: string | null
+  remoteCountry?: string | null
   salaryMinimum?: string | null
   salaryMaximum?: string | null
   salaryCurrency?: string | null
@@ -62,7 +67,7 @@ interface IdealistJobDetail {
 // ============================================
 // Fetch ALL listings (IDs + basic info, fast)
 // ============================================
-export async function fetchAllIdealistListings(maxPages = 500): Promise<IdealistListItem[]> {
+export async function fetchAllIdealistListings(maxPages = DEFAULT_MAX_PAGES): Promise<IdealistListItem[]> {
   if (!API_KEY) throw new Error("IDEALIST_API_KEY not set")
 
   const listings: IdealistListItem[] = []
@@ -110,7 +115,7 @@ export async function fetchAllIdealistListings(maxPages = 500): Promise<Idealist
 // ============================================
 async function fetchDetailsBatch(
   ids: string[],
-  concurrency = 20
+  concurrency = DEFAULT_DETAIL_CONCURRENCY
 ): Promise<(IdealistJobDetail | null)[]> {
   const results: (IdealistJobDetail | null)[] = []
   for (let i = 0; i < ids.length; i += concurrency) {
@@ -197,20 +202,25 @@ function mapJobToOpp(d: IdealistJobDetail | IdealistListItem, detail?: IdealistJ
 // ============================================
 // Main: fetch all listings, then details in parallel — REMOTE ONLY
 // ============================================
-export async function fetchAllIdealistJobs(maxDetails = 3000): Promise<Omit<ExternalOpportunity, "_id">[]> {
+export async function fetchAllIdealistJobs(maxDetails = DEFAULT_MAX_DETAILS): Promise<Omit<ExternalOpportunity, "_id">[]> {
   console.log("[Idealist] Phase 1: fetching all listing IDs...")
-  const listings = await fetchAllIdealistListings(500)
+  const listings = await fetchAllIdealistListings()
   console.log(`[Idealist] Got ${listings.length} listings`)
 
   // Sort by updated desc — fetch details for most recent first
   listings.sort((a, b) => new Date(b.updated).getTime() - new Date(a.updated).getTime())
 
-  const detailsToFetch = listings.slice(0, maxDetails)
+  const seenIds = new Set<string>()
+  const detailsToFetch = listings.filter((listing) => {
+    if (seenIds.has(listing.id)) return false
+    seenIds.add(listing.id)
+    return true
+  }).slice(0, maxDetails)
 
   console.log(`[Idealist] Phase 2: fetching details for ${detailsToFetch.length} recent jobs (parallel, REMOTE only)...`)
   const startTime = Date.now()
 
-  const detailResults = await fetchDetailsBatch(detailsToFetch.map(l => l.id), 25)
+  const detailResults = await fetchDetailsBatch(detailsToFetch.map(l => l.id))
 
   const elapsed = ((Date.now() - startTime) / 1000).toFixed(1)
   console.log(`[Idealist] Details fetched in ${elapsed}s`)
@@ -222,9 +232,8 @@ export async function fetchAllIdealistJobs(maxDetails = 3000): Promise<Omit<Exte
   for (let i = 0; i < detailsToFetch.length; i++) {
     const detail = detailResults[i]
     if (detail) {
-      // Only save REMOTE jobs
-      if (detail.locationType === "REMOTE") {
-        opportunities.push(mapJobToOpp(listings[i], detail))
+      if (isRemoteIdealistJob(detail)) {
+        opportunities.push(mapJobToOpp(detailsToFetch[i], detail))
         remoteCount++
       }
     }
@@ -244,6 +253,25 @@ function mapLocationType(lt?: string): "remote" | "onsite" | "hybrid" {
     case "HYBRID": return "hybrid"
     default: return "remote"
   }
+}
+
+function isRemoteIdealistJob(detail: IdealistJobDetail): boolean {
+  const locationType = detail.locationType?.toUpperCase()
+  if (locationType === "REMOTE") return true
+  if (locationType === "ONSITE" || locationType === "HYBRID") return false
+
+  const text = [
+    detail.name,
+    detail.description,
+    detail.address?.full,
+    detail.remoteZone,
+    detail.remoteCountry,
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase()
+
+  return /\b(remote|home[- ]based|home based|work from home|telecommut|telework|virtual)\b/i.test(text)
 }
 
 function mapExperienceLevel(pl?: string | null): string | undefined {

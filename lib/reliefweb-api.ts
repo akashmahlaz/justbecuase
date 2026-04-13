@@ -66,6 +66,21 @@ const REMOTE_FALSE_POSITIVE_PATTERNS = [
   /\b(hard[- ]to[- ]reach|difficult[- ]to[- ]access)\b.*\bremote\b/i,
 ]
 
+const REMOTE_POSITIVE_PATTERNS = [
+  /\bremote\b/i,
+  /\bhome[- ]based\b/i,
+  /\bhome based\b/i,
+  /\bwork from home\b/i,
+  /\bwfh\b/i,
+  /\btelework\b/i,
+  /\btelecommut\w*\b/i,
+  /\bvirtual (role|position|assignment|consultancy)\b/i,
+  /\bwork(?:ing)? remotely\b/i,
+  /\bfully remote\b/i,
+  /\b100% remote\b/i,
+  /\blocation independent\b/i,
+]
+
 // ============================================
 // Category Mapping: ReliefWeb → JustBeCause platform
 // ============================================
@@ -242,21 +257,22 @@ export async function fetchAllJobsUnfiltered(): Promise<{ jobs: RwApiItem[]; tot
  * Returns true if the job is likely a remote/home-based work position.
  */
 function isLikelyRemote(f: RwJobFields): boolean {
-  const title = (f.title || "").toLowerCase()
-  const bodySnippet = (f.body || "").slice(0, 5000).toLowerCase()
-  const text = `${title} ${bodySnippet}`
+  const text = [
+    f.title || "",
+    f.body || "",
+    f["body-html"] || "",
+    f.how_to_apply || "",
+    f["how_to_apply-html"] || "",
+  ]
+    .join(" ")
+    .slice(0, 12000)
 
-  // Strong positive signals in the TITLE → always accept
-  if (/\b(remote|home[- ]based|telework|virtual)\b/i.test(f.title || "")) {
-    return true
-  }
+  const hasPositiveSignal = REMOTE_POSITIVE_PATTERNS.some((pattern) => pattern.test(text))
+  if (!hasPositiveSignal) return false
 
-  // Check for false-positive patterns in body
   for (const pattern of REMOTE_FALSE_POSITIVE_PATTERNS) {
     if (pattern.test(text)) {
-      // If the ONLY remote mention is a false-positive pattern, skip it
-      // But if there are other clear remote indicators, keep it
-      const hasStrongSignal = /\b(work\s+remotely|working\s+remotely|home[- ]based|telework|fully\s+remote|100%\s+remote)\b/i.test(text)
+      const hasStrongSignal = /\b(work\s+remotely|working\s+remotely|home[- ]based|home based|telework|telecommut\w*|fully\s+remote|100%\s+remote|location\s+independent|work\s+from\s+home)\b/i.test(text)
       if (!hasStrongSignal) return false
     }
   }

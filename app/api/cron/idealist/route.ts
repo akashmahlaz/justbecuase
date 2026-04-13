@@ -1,16 +1,17 @@
 import { NextResponse } from "next/server"
-import { fetchAllNonprofitJobs, mapJobToOpportunity } from "@/lib/idealist-api"
+import { fetchAllIdealistJobs } from "@/lib/idealist-fast-fetch"
 import { externalOpportunitiesDb } from "@/lib/scraper"
 import { sendEmail, getCronSyncEmailHtml } from "@/lib/email"
 
 export const maxDuration = 800 // Vercel Pro max is 800s
+const BATCH_SIZE = 200
+const MAX_IDEALIST_FETCH = Number(process.env.IDEALIST_MAX_DETAIL_FETCH || 5000)
 
 // ============================================
 // GET /api/cron/idealist — Daily Idealist API sync
 // ============================================
-// Fetches ALL published nonprofit jobs from the Idealist Listings API
-// and upserts them into the externalOpportunities collection.
-// Idealist is exclusively a nonprofit job board — every listing is NGO-relevant.
+// Fetches remote nonprofit jobs from the Idealist Listings API at high volume
+// and bulk-upserts them into the externalOpportunities collection.
 export async function GET(request: Request) {
   try {
     // Verify cron secret in production
@@ -26,28 +27,19 @@ export async function GET(request: Request) {
     let totalNew = 0
     let totalUpdated = 0
     let totalProcessed = 0
+    const skippedNonRemote = 0
 
-    // Fetch ALL published nonprofit jobs from Idealist
-    // Idealist has ~3,200 active listings — all are NGO/nonprofit relevant
-    const jobs = await fetchAllNonprofitJobs(5000)
-    let skippedNonRemote = 0
+    const opportunities = await fetchAllIdealistJobs(MAX_IDEALIST_FETCH)
 
-    for (const job of jobs) {
+    for (let index = 0; index < opportunities.length; index += BATCH_SIZE) {
+      const batch = opportunities.slice(index, index + BATCH_SIZE)
       try {
-        const opportunity = mapJobToOpportunity(job)
-
-        // Only sync remote jobs — skip onsite/hybrid
-        if (opportunity.workMode !== "remote") {
-          skippedNonRemote++
-          continue
-        }
-
-        const { isNew } = await externalOpportunitiesDb.upsert(opportunity)
-        if (isNew) totalNew++
-        else totalUpdated++
-        totalProcessed++
+        const { inserted, updated } = await externalOpportunitiesDb.bulkUpsert(batch)
+        totalNew += inserted
+        totalUpdated += updated
+        totalProcessed += batch.length
       } catch (err) {
-        console.error(`[Idealist Sync] Failed to process job ${job.id}:`, err)
+        console.error(`[Idealist Sync] Failed to upsert batch ${index / BATCH_SIZE + 1}:`, err)
       }
     }
 
@@ -61,7 +53,7 @@ export async function GET(request: Request) {
     )
 
     const syncStats = {
-      apiTotal: jobs.length,
+      apiTotal: opportunities.length,
       processed: totalProcessed,
       new: totalNew,
       updated: totalUpdated,

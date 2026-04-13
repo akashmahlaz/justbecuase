@@ -12,6 +12,51 @@ const COLLECTIONS = {
   SCRAPER_CONFIGS: "scraperConfigs",
 } as const
 
+function escapeRegex(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+}
+
+function scoreExternalOpportunity(opp: ExternalOpportunity, query: string, terms: string[]): number {
+  const title = opp.title || ""
+  const organization = opp.organization || ""
+  const shortDescription = opp.shortDescription || ""
+  const description = opp.description || ""
+  const skills = (opp.skillTags || []).join(" ")
+  const location = [opp.location, opp.city, opp.country].filter(Boolean).join(" ")
+
+  const titleLower = title.toLowerCase()
+  const organizationLower = organization.toLowerCase()
+  const shortLower = shortDescription.toLowerCase()
+  const descriptionLower = description.toLowerCase()
+  const skillsLower = skills.toLowerCase()
+  const locationLower = location.toLowerCase()
+  const queryLower = query.toLowerCase()
+
+  let score = 0
+  if (titleLower.includes(queryLower)) score += 120
+  if (organizationLower.includes(queryLower)) score += 70
+  if (shortLower.includes(queryLower)) score += 55
+  if (descriptionLower.includes(queryLower)) score += 35
+
+  for (const term of terms) {
+    if (titleLower.includes(term)) score += 18
+    if (organizationLower.includes(term)) score += 10
+    if (shortLower.includes(term)) score += 8
+    if (descriptionLower.includes(term)) score += 4
+    if (skillsLower.includes(term)) score += 12
+    if (locationLower.includes(term)) score += 6
+  }
+
+  if (opp.workMode === "remote") score += 10
+
+  const postedDate = opp.postedDate ? new Date(opp.postedDate).getTime() : 0
+  const ageInDays = postedDate > 0 ? (Date.now() - postedDate) / 86_400_000 : 365
+  if (ageInDays <= 7) score += 10
+  else if (ageInDays <= 30) score += 5
+
+  return score
+}
+
 // ============================================
 // EXTERNAL OPPORTUNITIES
 // ============================================
@@ -83,6 +128,55 @@ export const externalOpportunitiesDb = {
       .skip(skip)
       .limit(limit)
       .toArray()
+  },
+
+  async search(query: string, limit = 10) {
+    const db = await getDb()
+    const collection = db.collection<ExternalOpportunity>(COLLECTIONS.EXTERNAL_OPPORTUNITIES)
+    const trimmed = query.trim()
+
+    if (!trimmed) {
+      return collection
+        .find({ isActive: true, workMode: "remote" })
+        .sort({ postedDate: -1, scrapedAt: -1 })
+        .limit(limit)
+        .toArray()
+    }
+
+    const terms = trimmed
+      .toLowerCase()
+      .split(/\s+/)
+      .map((term) => term.trim())
+      .filter(Boolean)
+      .slice(0, 8)
+
+    const phraseRegex = new RegExp(escapeRegex(trimmed), "i")
+    const termRegexes = terms.map((term) => new RegExp(escapeRegex(term), "i"))
+
+    const fields = ["title", "organization", "shortDescription", "description", "skillTags", "location", "city", "country"]
+    const orConditions: Filter<ExternalOpportunity>[] = fields.map((field) => ({ [field]: phraseRegex } as Filter<ExternalOpportunity>))
+    for (const regex of termRegexes) {
+      for (const field of fields) {
+        orConditions.push({ [field]: regex } as Filter<ExternalOpportunity>)
+      }
+    }
+
+    const candidates = await collection
+      .find({
+        isActive: true,
+        workMode: "remote",
+        $or: orConditions,
+      })
+      .sort({ postedDate: -1, scrapedAt: -1 })
+      .limit(Math.max(limit * 8, 40))
+      .toArray()
+
+    return candidates
+      .map((opp) => ({ opp, score: scoreExternalOpportunity(opp, trimmed, terms) }))
+      .filter((entry) => entry.score > 0)
+      .sort((left, right) => right.score - left.score)
+      .slice(0, limit)
+      .map((entry) => entry.opp)
   },
 
   async count(filter: Filter<ExternalOpportunity> = {}) {
