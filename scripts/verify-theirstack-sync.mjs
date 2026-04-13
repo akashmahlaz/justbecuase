@@ -1,10 +1,10 @@
 import { MongoClient } from "mongodb"
 
-const apiKey = process.env.THEIRSTACK_API_KEY
+const apiKey = process.env.THEIRSTACK_API_KEY2 || process.env.THEIRSTACK_API_KEY
 const mongoUri = process.env.MONGODB_URI
-const maxJobs = Number(process.env.THEIRSTACK_VERIFY_MAX_JOBS || "2")
+const maxJobs = Number(process.env.THEIRSTACK_VERIFY_MAX_JOBS || "3")
 
-if (!apiKey) throw new Error("THEIRSTACK_API_KEY not set")
+if (!apiKey) throw new Error("THEIRSTACK_API_KEY2 or THEIRSTACK_API_KEY not set")
 if (!mongoUri) throw new Error("MONGODB_URI not set")
 
 const query = {
