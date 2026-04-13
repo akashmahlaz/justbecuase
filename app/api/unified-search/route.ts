@@ -996,15 +996,7 @@ async function getTeamEmails(): Promise<string[]> {
 /** Search external opportunities and map to unified result format (looks like native) */
 async function searchExternalOpportunities(query: string, limit: number = 10): Promise<any[]> {
   try {
-    const filter: Record<string, unknown> = {}
-    if (query) {
-      filter.$or = [
-        { title: { $regex: query, $options: "i" } },
-        { organization: { $regex: query, $options: "i" } },
-        { shortDescription: { $regex: query, $options: "i" } },
-      ]
-    }
-    const results = await externalOpportunitiesDb.findAll(filter as any, limit, 0)
+    const results = await externalOpportunitiesDb.search(query, limit)
     return results.map((opp: any) => ({
       id: `ext-${opp._id?.toString() || opp.externalId}`,
       mongoId: `ext-${opp._id?.toString() || opp.externalId}`,
@@ -1013,21 +1005,56 @@ async function searchExternalOpportunities(query: string, limit: number = 10): P
       subtitle: opp.organization || "",
       description: opp.shortDescription || opp.title || "",
       url: opp.sourceUrl || "",
-      score: 0.7,
+      score: 80,
       highlights: [],
       location: opp.location || undefined,
-      skills: opp.skillsRequired || undefined,
+      skills: opp.skillTags || undefined,
       causes: opp.causes || undefined,
       workMode: opp.workMode || undefined,
       ngoName: opp.organization || undefined,
       experienceLevel: opp.experienceLevel || undefined,
       verified: false,
       isExternal: true,
+      sourceplatform: opp.sourceplatform || undefined,
     }))
   } catch (err) {
     console.error("[Search] External opportunities search failed:", err)
     return []
   }
+}
+
+function mergeExternalIntoResults(baseResults: any[], externalResults: any[], limit: number): any[] {
+  if (externalResults.length === 0) return baseResults.slice(0, limit)
+
+  const merged: any[] = []
+  const seen = new Set(baseResults.map((result: any) => `${result.type}:${result.id}`))
+  const dedupedExternal = externalResults.filter((result: any) => {
+    const key = `${result.type}:${result.id}`
+    if (seen.has(key)) return false
+    seen.add(key)
+    return true
+  })
+
+  let baseIndex = 0
+  let externalIndex = 0
+
+  while (merged.length < limit && (baseIndex < baseResults.length || externalIndex < dedupedExternal.length)) {
+    for (let count = 0; count < 3 && merged.length < limit && baseIndex < baseResults.length; count++) {
+      merged.push(baseResults[baseIndex++])
+    }
+
+    if (merged.length < limit && externalIndex < dedupedExternal.length) {
+      merged.push(dedupedExternal[externalIndex++])
+    }
+
+    if (baseIndex >= baseResults.length) {
+      while (merged.length < limit && externalIndex < dedupedExternal.length) {
+        merged.push(dedupedExternal[externalIndex++])
+      }
+    }
+  }
+
+  return merged.slice(0, limit)
 }
 
 export async function GET(request: NextRequest) {
@@ -1614,12 +1641,7 @@ export async function GET(request: NextRequest) {
         // Merge external opportunities into results (look like native)
         if (!rawTypes || rawTypes.includes("opportunity")) {
           const externalResults = await searchExternalOpportunities(query, 10)
-          const existingIds = new Set(finalResults.map((r: any) => r.id))
-          for (const ext of externalResults) {
-            if (!existingIds.has(ext.id)) {
-              finalResults.push(ext)
-            }
-          }
+          finalResults = mergeExternalIntoResults(finalResults, externalResults, limit)
         }
 
         return NextResponse.json({
@@ -1782,6 +1804,11 @@ export async function GET(request: NextRequest) {
         }
       }
 
+      if (!rawTypes || rawTypes.includes("opportunity")) {
+        const externalResults = await searchExternalOpportunities(query, 10)
+        finalResults = mergeExternalIntoResults(finalResults, externalResults, limit)
+      }
+
       return NextResponse.json({
         success: true,
         results: finalResults,
@@ -1860,12 +1887,7 @@ export async function GET(request: NextRequest) {
     // Merge external opportunities (look like native)
     if (!rawTypes || rawTypes.includes("opportunity")) {
       const externalResults = await searchExternalOpportunities(query, 10)
-      const existingIds = new Set(results.map((r: any) => r.id))
-      for (const ext of externalResults) {
-        if (!existingIds.has(ext.id)) {
-          results.push(ext)
-        }
-      }
+      results = mergeExternalIntoResults(results, externalResults, limit)
     }
 
     return NextResponse.json({
