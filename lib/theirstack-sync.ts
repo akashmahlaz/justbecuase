@@ -10,16 +10,16 @@ import type { ExternalOpportunity } from "@/lib/scraper/types"
 const NGO_INDUSTRY_IDS = [70, 74, 78, 81, 84, 99, 101, 139, 141]
 
 const NGO_PATTERNS = [
-  "nonprofit",
-  "non-profit",
-  "ngo",
-  "charity",
-  "foundation",
-  "humanitarian",
-  "social impact",
-  "community development",
-  "civil society",
+  "nonprofit organization",
+  "non-profit organization",
+  "nongovernmental",
+  "non-governmental",
+  "humanitarian aid",
+  "humanitarian organization",
+  "charitable organization",
+  "international development",
   "social enterprise",
+  "civil society organization",
 ]
 
 const VOLUNTEER_DESC_KEYWORDS = [
@@ -95,24 +95,25 @@ export function buildTheirStackSyncQuery(options: TheirStackSyncOptions = {}): J
   const {
     preview = false,
     remoteOnly = false,
-    onlyWithContacts = false,
     maxAgeDays = 30,
     pageSize = 25,
   } = options
 
+  // Per Xoel (TheirStack co-founder, Apr 13 2026):
+  // - Do NOT stack industry_id_or + company_description_pattern_or + job_description_contains_or
+  //   — they AND together and return almost nothing.
+  // - Use company_description_pattern_or alone (broadest NGO net).
+  // - Removed property_exists_or: ["hiring_team"] — too restrictive, filters out most results.
   return {
     page: 0,
     limit: pageSize,
     posted_at_max_age_days: maxAgeDays,
     company_type: "direct_employer",
-    industry_id_or: NGO_INDUSTRY_IDS,
     company_description_pattern_or: NGO_PATTERNS,
     company_description_pattern_not: EXCLUDE_PATTERNS,
-    job_description_contains_or: VOLUNTEER_DESC_KEYWORDS,
     include_total_results: true,
     blur_company_data: preview,
     ...(remoteOnly ? { remote: true } : {}),
-    ...(onlyWithContacts ? { property_exists_or: ["hiring_team"] } : {}),
   }
 }
 
