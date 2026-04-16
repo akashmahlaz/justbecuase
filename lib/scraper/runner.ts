@@ -17,6 +17,7 @@ import { scrapeCharityJob } from "./platforms/charityjob"
 import { scrapeImpactpool } from "./platforms/impactpool"
 import { scrapeGoAbroad } from "./platforms/goabroad"
 import { scrapeDevNetJobs } from "./platforms/devnetjobs"
+import { scrapeCatchafire } from "./platforms/catchafire"
 
 type PlatformScraper = (settings: Record<string, string>) => AsyncGenerator<ScrapedOpportunity>
 
@@ -28,6 +29,7 @@ const SCRAPERS: Record<string, PlatformScraper> = {
   impactpool: scrapeImpactpool,
   workforgood: scrapeGoAbroad,
   devnetjobs: scrapeDevNetJobs,
+  catchafire: scrapeCatchafire,
 }
 
 /**

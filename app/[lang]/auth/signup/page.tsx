@@ -616,7 +616,7 @@ function SignUpPageInner() {
   return (
     <div className="min-h-screen flex bg-muted/30">
       {/* Left Side - Form */}
-      <div className="flex-1 flex items-center justify-center p-6">
+      <div className="w-full lg:w-1/2 min-h-screen flex items-center justify-center p-6 overflow-y-auto">
         <div className="w-full max-w-md">
           <LocaleLink href="/" className="flex items-center gap-2 mb-8">
             <Image src="/logo-main.png" alt="JBC Logo" width={240} height={117} className="h-20 w-auto" />
@@ -745,32 +745,17 @@ function SignUpPageInner() {
         </div>
       </div>
 
-      {/* Right Side - Image/Info */}
-      <div className="hidden lg:flex flex-1 bg-gradient-to-br from-primary to-primary/80 items-center justify-center p-12">
-        <div className="max-w-md text-primary-foreground">
-          <h2 className="text-3xl font-bold mb-4">{a.skillsIntoImpact || "Turn Your Skills Into Impact"}</h2>
-          <p className="text-primary-foreground/90 mb-8">
-            {a.skillsIntoImpactDesc || "Whether you're a skilled professional looking to give back or an NGO seeking expert help, JustBeCause Network connects you with opportunities that matter."}
-          </p>
-          <div className="grid grid-cols-2 gap-6">
-            <div className="text-center">
-              <p className="text-4xl font-bold mb-1">2,847</p>
-              <p className="text-sm text-primary-foreground/80">{a.statImpactAgents || "Impact Agents"}</p>
-            </div>
-            <div className="text-center">
-              <p className="text-4xl font-bold mb-1">456</p>
-              <p className="text-sm text-primary-foreground/80">{a.statCompleted || "Opportunities Completed"}</p>
-            </div>
-            <div className="text-center">
-              <p className="text-4xl font-bold mb-1">128</p>
-              <p className="text-sm text-primary-foreground/80">{a.statNGOs || "NGOs Supported"}</p>
-            </div>
-            <div className="text-center">
-              <p className="text-4xl font-bold mb-1">$2.4M</p>
-              <p className="text-sm text-primary-foreground/80">{a.statValue || "Value Created"}</p>
-            </div>
-          </div>
-        </div>
+      {/* Right Side - Image */}
+      <div className="hidden lg:block w-1/2 fixed top-0 right-0 h-screen">
+        <Image
+          src="/hero-img01.jpg"
+          alt="Making a difference together"
+          fill
+          className="object-cover object-top"
+          sizes="50vw"
+          priority
+        />
+        <div className="absolute inset-0 bg-primary/20" />
       </div>
     </div>
   )

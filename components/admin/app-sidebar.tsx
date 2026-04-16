@@ -83,6 +83,7 @@ const navGroups = [
       { title: "Admin Accounts", href: "/admin/admins", icon: Shield },
       { title: "Search Index", href: "/admin/search", icon: Database },
       { title: "Scrapers", href: "/admin/scraper", icon: Globe },
+      { title: "Catchafire", href: "/admin/catchafire", icon: Heart },
       { title: "Settings", href: "/admin/settings", icon: Settings },
     ],
   },
