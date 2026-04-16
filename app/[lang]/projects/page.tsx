@@ -130,7 +130,11 @@ function ProjectsContent() {
         const data = await res.json()
         if (data.success && !controller.signal.aborted) {
           // Use mongoId for reliable cross-referencing with local project list
-          const ids = (data.results || []).map((r: any) => r.mongoId || r.id)
+          // Strip 'ext-' prefix for external opportunities to match raw _id format in projects list
+          const ids = (data.results || []).map((r: any) => {
+            const id = r.mongoId || r.id
+            return id?.startsWith('ext-') ? id.slice(4) : id
+          })
           setUnifiedMatchedIds(ids)
           const orderMap = new Map<string, number>()
           ids.forEach((id: string, idx: number) => orderMap.set(id, ids.length - idx))

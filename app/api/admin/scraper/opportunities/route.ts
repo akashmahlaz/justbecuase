@@ -20,6 +20,17 @@ export async function GET(request: NextRequest) {
 
   const filter: Record<string, unknown> = {}
   if (platform) filter.sourceplatform = platform
+  if (searchParams.get("isActive") === "true") filter.isActive = true
+  if (searchParams.get("isActive") === "false") filter.isActive = false
+
+  const searchQuery = searchParams.get("search")
+  if (searchQuery) {
+    filter.$or = [
+      { title: { $regex: searchQuery, $options: "i" } },
+      { organization: { $regex: searchQuery, $options: "i" } },
+      { description: { $regex: searchQuery, $options: "i" } },
+    ]
+  }
 
   const [opportunities, total] = await Promise.all([
     externalOpportunitiesDb.findAll(filter as any, limit, skip),

@@ -8,6 +8,7 @@ export type ScraperPlatform =
   | "idealist"
   | "idealist-api"
   | "theirstack"
+  | "catchafire"
   | "unjobs"
   | "devex"
   | "impactpool"
