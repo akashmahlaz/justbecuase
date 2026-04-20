@@ -4,7 +4,7 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useState, useEffect, useCallback } from "react"
 import { Button } from "@/components/ui/button"
-import { Menu, X, Bell, Sun, Moon, Sparkles, CreditCard, Zap, Search, Users, Building2, Info, LayoutDashboard, LogOut, UserPlus, LogIn, Home } from "lucide-react"
+import { Menu, X, Bell, Sun, Moon, Sparkles, CreditCard, Zap, Search, Users, Building2, Info, LayoutDashboard, LogOut, UserPlus, LogIn,  } from "lucide-react"
 import Image from "next/image"
 import { client } from "@/lib/auth-client" // Better Auth
 import { useTheme } from "next-themes"
@@ -90,10 +90,10 @@ export function Navbar() {
 
   // â­ Role-based nav
   const baseLinks = [
-    { href: "/", label: dict.nav?.home || "Home", icon: Home },
     { href: "/projects", label: dict.nav.browseOpportunities, icon: Search },
     { href: "/for-volunteers", label: dict.nav.forImpactAgents, icon: Users },
     { href: "/for-ngos", label: dict.nav.forNGOs, icon: Building2 },
+    { href: "/impact-agents", label: dict.nav?.impactAgents || "Impact Agents", icon: Users },
     { href: "/about", label: dict.nav.aboutUs, icon: Info },
   ]
 
