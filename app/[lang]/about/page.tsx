@@ -5,7 +5,7 @@ import { Navbar } from "@/components/navbar"
 import { Footer } from "@/components/footer"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
-import { getActiveTeamMembers, getImpactMetrics } from "@/lib/actions"
+import { getActiveTeamMembers } from "@/lib/actions"
 import { getDictionary } from "@/app/[lang]/dictionaries"
 import type { Locale } from "@/lib/i18n-config"
 
@@ -29,10 +29,7 @@ export default async function AboutPage({ params }: { params: Promise<{ lang: st
   const a = (dict as any).about || {}
 
   // Fetch team members and real impact metrics from database
-  const [teamResult, impactMetrics] = await Promise.all([
-    getActiveTeamMembers(),
-    getImpactMetrics(),
-  ])
+  const teamResult = await getActiveTeamMembers()
   const teamMembers = teamResult.success && teamResult.data ? teamResult.data : []
 
   const values = [
@@ -190,32 +187,6 @@ export default async function AboutPage({ params }: { params: Promise<{ lang: st
                     </CardContent>
                   </Card>
                 </div>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* Impact Stats */}
-        <section className="py-16">
-          <div className="container mx-auto px-4 md:px-6">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6">
-              <div className="p-4 sm:p-6 rounded-2xl bg-primary/10 text-center">
-                <p className="text-2xl sm:text-4xl font-bold text-primary mb-2">{impactMetrics.volunteers.toLocaleString()}</p>
-                <p className="text-xs sm:text-sm text-muted-foreground">{a.statAgents || "Active Impact Agents"}</p>
-              </div>
-              <div className="p-4 sm:p-6 rounded-2xl bg-secondary/10 text-center">
-                <p className="text-2xl sm:text-4xl font-bold text-secondary mb-2">{impactMetrics.projectsCompleted}</p>
-                <p className="text-xs sm:text-sm text-muted-foreground">{a.statCompleted || "Opportunities Completed"}</p>
-              </div>
-              <div className="p-4 sm:p-6 rounded-2xl bg-success-light text-center">
-                <p className="text-2xl sm:text-4xl font-bold text-success mb-2">{impactMetrics.ngosSupported}</p>
-                <p className="text-xs sm:text-sm text-muted-foreground">{a.statNGOs || "NGOs Supported"}</p>
-              </div>
-              <div className="p-4 sm:p-6 rounded-2xl bg-accent text-center">
-                <p className="text-2xl sm:text-4xl font-bold text-accent-foreground mb-2">
-                  ${(impactMetrics.valueGenerated / 1000000).toFixed(1)}M
-                </p>
-                <p className="text-xs sm:text-sm text-muted-foreground">{a.statValue || "Value Created"}</p>
               </div>
             </div>
           </div>
