@@ -5,7 +5,7 @@ import LocaleLink from "@/components/locale-link"
 import {
   Users, Building2, Briefcase, ArrowRight,
   CheckCircle, Loader2, Sparkles,
-  Send, RotateCcw, ChevronRight, MapPin,
+  Send, RotateCcw, ChevronRight, MapPin, Search,
 } from "lucide-react"
 import { useAutoResizeTextarea } from "@/hooks/use-auto-resize-textarea"
 import { cn } from "@/lib/utils"
@@ -271,6 +271,71 @@ function CyclingLoader({ texts, interval = 1400 }: { texts: string[]; interval?:
 }
 
 // ============================================
+// AI THINKING TRAIL — shows what tools the agent used
+// ============================================
+
+const TOOL_LABELS: Record<string, { label: string; icon: typeof Sparkles }> = {
+  searchVolunteers: { label: "Searched volunteers", icon: Search },
+  searchNGOs: { label: "Searched NGOs", icon: Search },
+  searchOpportunities: { label: "Searched opportunities", icon: Search },
+  getVolunteerProfile: { label: "Read profile", icon: CheckCircle },
+  getNGOProfile: { label: "Read NGO", icon: CheckCircle },
+  getOpportunity: { label: "Read opportunity", icon: CheckCircle },
+  listSkillCatalog: { label: "Browsed skill catalog", icon: Sparkles },
+  matchCandidates: { label: "Ranked candidates", icon: Sparkles },
+}
+
+function ToolTrail({ toolCalls, elapsedMs }: { toolCalls?: string[]; elapsedMs?: number }) {
+  if (!toolCalls || toolCalls.length === 0) return null
+  // Group consecutive identical tool calls (e.g. 2x getVolunteerProfile)
+  const groups: { name: string; count: number }[] = []
+  for (const t of toolCalls) {
+    const last = groups[groups.length - 1]
+    if (last && last.name === t) last.count++
+    else groups.push({ name: t, count: 1 })
+  }
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: -2 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.2 }}
+      className="flex flex-wrap items-center gap-1.5 text-[10px] text-muted-foreground"
+    >
+      {groups.map((g, i) => {
+        const meta = TOOL_LABELS[g.name] || { label: g.name, icon: Sparkles }
+        const Icon = meta.icon
+        return (
+          <span
+            key={`${g.name}-${i}`}
+            className="inline-flex items-center gap-1 rounded-full bg-muted/60 px-1.5 py-0.5"
+          >
+            <Icon className="h-2.5 w-2.5 text-primary/70" />
+            <span>{meta.label}{g.count > 1 ? ` ×${g.count}` : ""}</span>
+          </span>
+        )
+      })}
+      {typeof elapsedMs === "number" && (
+        <span className="text-muted-foreground/50">· {(elapsedMs / 1000).toFixed(1)}s</span>
+      )}
+    </motion.div>
+  )
+}
+
+// ============================================
+// CYCLING PLACEHOLDER (for the input)
+// ============================================
+
+function useCyclingPlaceholder(prompts: string[], intervalMs = 2800, paused = false) {
+  const [idx, setIdx] = useState(0)
+  useEffect(() => {
+    if (paused) return
+    const t = setInterval(() => setIdx((v) => (v + 1) % prompts.length), intervalMs)
+    return () => clearInterval(t)
+  }, [prompts.length, intervalMs, paused])
+  return prompts[idx]
+}
+
+// ============================================
 // CHAT TYPES
 // ============================================
 
@@ -300,6 +365,16 @@ const SUGGESTIONS = [
   "What can JBCerta help me with?",
 ]
 
+const PLACEHOLDER_PROMPTS = [
+  "Search for NGOs working on climate\u2026",
+  "Find a React developer in Madrid\u2026",
+  "Recommend a fundraising expert\u2026",
+  "Who can help me with grant writing?",
+  "Show remote volunteer opportunities\u2026",
+  "Compare two designers for my project\u2026",
+  "Best match for an education project?",
+]
+
 export function GlobalSearchSection() {
   const dict = useDictionary()
   const s = (dict as { search?: Record<string, string> }).search || {}
@@ -312,6 +387,13 @@ export function GlobalSearchSection() {
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const abortRef = useRef<AbortController | null>(null)
   const { textareaRef, adjustHeight } = useAutoResizeTextarea({ minHeight: 56, maxHeight: 200 })
+
+  // Rotating placeholder — pauses while user is typing or focused
+  const cyclingPlaceholder = useCyclingPlaceholder(
+    PLACEHOLDER_PROMPTS,
+    2800,
+    isFocused || inputValue.length > 0
+  )
 
   useEffect(() => {
     if (messages.length > 0) {
@@ -470,7 +552,7 @@ export function GlobalSearchSection() {
           {/* Single unified chat surface — Kokonut-inspired */}
           <div
             className={cn(
-              "relative rounded-2xl bg-background shadow-sm transition-all duration-200",
+              "relative overflow-hidden rounded-2xl bg-background shadow-sm transition-all duration-200",
               "ring-1 ring-border",
               isFocused && "ring-2 ring-primary/40 shadow-lg shadow-primary/5"
             )}
@@ -519,10 +601,11 @@ export function GlobalSearchSection() {
                                 <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" />
                                 <CyclingLoader
                                   texts={[
-                                    "Thinking\u2026",
-                                    "Understanding your request\u2026",
-                                    "Looking through the platform\u2026",
-                                    "Almost ready\u2026",
+                                    "Reading your request\u2026",
+                                    "Browsing the platform data\u2026",
+                                    "Cross-checking profiles\u2026",
+                                    "Reasoning about the best matches\u2026",
+                                    "Almost there\u2026",
                                   ]}
                                 />
                               </div>
@@ -534,6 +617,9 @@ export function GlobalSearchSection() {
 
                             {msg.status === "done" && (
                               <>
+                                {msg.meta?.toolCalls && msg.meta.toolCalls.length > 0 && (
+                                  <ToolTrail toolCalls={msg.meta.toolCalls} elapsedMs={msg.meta.elapsedMs} />
+                                )}
                                 {msg.content && (
                                   <p className="text-sm text-foreground leading-relaxed whitespace-pre-wrap">
                                     {msg.content}
@@ -589,82 +675,103 @@ export function GlobalSearchSection() {
               )}
             </AnimatePresence>
 
-            {/* Input row — seamlessly part of the same surface, no divider */}
-            <div className="relative" onClick={() => textareaRef.current?.focus()}>
-              <textarea
-                ref={textareaRef}
-                value={inputValue}
-                onChange={(e) => {
-                  setInputValue(e.target.value)
-                  adjustHeight()
-                }}
-                onFocus={() => setIsFocused(true)}
-                onBlur={() => setIsFocused(false)}
-                onKeyDown={handleKeyDown}
-                placeholder={s.jbcertaPlaceholder || "Ask JBCerta anything\u2026"}
-                aria-label="Ask JBCerta"
-                rows={1}
-                maxLength={2000}
-                className={cn(
-                  "w-full resize-none border-none bg-transparent px-5 pt-5 pb-14 text-sm leading-normal outline-none placeholder:text-muted-foreground/60",
-                  hasMessages ? "rounded-b-2xl" : "rounded-2xl"
-                )}
-              />
-
-              {/* Bottom-bar inside the same input box */}
-              <div className="absolute bottom-3 left-4 flex items-center gap-2 pointer-events-none">
-                <div className="group/pill relative flex h-7 items-center gap-1 overflow-hidden rounded-full border border-primary/30 bg-primary/10 px-2 text-primary pointer-events-auto">
-                  <Sparkles className="h-3 w-3" />
-                  <span className="text-[11px] font-semibold">JBCerta</span>
-                  <span className="text-[10px] text-primary/60 font-mono ml-1">M2.7</span>
-                  {/* shimmer */}
-                  <span className="pointer-events-none absolute inset-0 -translate-x-full bg-linear-to-r from-transparent via-white/30 to-transparent group-hover/pill:translate-x-full transition-transform duration-700" />
-                </div>
-                <span className="hidden sm:inline text-[11px] text-muted-foreground">
-                  {s.enterToSend || "Enter to send · Shift+Enter for new line"}
-                </span>
+            {/* Input row — seamless continuation of the same surface */}
+            <div
+              role="textbox"
+              tabIndex={-1}
+              aria-label="Ask JBCerta"
+              onClick={() => textareaRef.current?.focus()}
+              className="relative flex w-full cursor-text flex-col text-left"
+            >
+              {/* Soft separator — only when there are messages above */}
+              {hasMessages && (
+                <div className="pointer-events-none mx-4 h-px bg-linear-to-r from-transparent via-border to-transparent" />
+              )}
+              {/* TOP: textarea region */}
+              <div className="max-h-50 overflow-y-auto">
+                <textarea
+                  ref={textareaRef}
+                  value={inputValue}
+                  onChange={(e) => {
+                    setInputValue(e.target.value)
+                    adjustHeight()
+                  }}
+                  onFocus={() => setIsFocused(true)}
+                  onBlur={() => setIsFocused(false)}
+                  onKeyDown={handleKeyDown}
+                  placeholder={cyclingPlaceholder}
+                  aria-label="Ask JBCerta"
+                  rows={1}
+                  maxLength={2000}
+                  className="w-full resize-none border-none bg-transparent px-4 py-3.5 text-sm leading-snug outline-none placeholder:text-muted-foreground/60"
+                />
               </div>
 
-              <div className="absolute bottom-3 right-3 flex items-center gap-1.5">
-                {inputValue.length > 0 && (
-                  <span className={cn(
-                    "text-[10px] font-mono tabular-nums px-1.5",
-                    inputValue.length > 1800 ? "text-destructive" : "text-muted-foreground/60"
-                  )}>
-                    {inputValue.length}/2000
+              {/* BOTTOM: control bar (subtle tint distinguishes the action row) */}
+              <div className="relative h-12 bg-muted/40">
+                {/* Left: brand pill (no paperclip) */}
+                <div className="absolute bottom-2 left-2 flex items-center gap-2">
+                  <div
+                    className={cn(
+                      "group/pill relative flex h-8 items-center gap-1.5 overflow-hidden rounded-full border px-2.5 transition-colors",
+                      "border-primary/30 bg-primary/10 text-primary"
+                    )}
+                  >
+                    <Sparkles className="h-3.5 w-3.5" />
+                    <span className="text-[12px] font-semibold leading-none">JBCerta</span>
+                    <span className="text-[9px] font-mono text-primary/60 leading-none ml-0.5">M2.7</span>
+                    {/* shimmer */}
+                    <span className="pointer-events-none absolute inset-0 -translate-x-full bg-linear-to-r from-transparent via-white/30 to-transparent group-hover/pill:translate-x-full transition-transform duration-700" />
+                  </div>
+                  <span className="hidden sm:inline text-[10px] text-muted-foreground/70">
+                    {s.enterToSend || "Enter to send · Shift+Enter newline"}
                   </span>
-                )}
-                {hasMessages && (
+                </div>
+
+                {/* Right: counter, reset, send */}
+                <div className="absolute bottom-2 right-2 flex items-center gap-1.5">
+                  {inputValue.length > 0 && (
+                    <span
+                      className={cn(
+                        "text-[10px] font-mono tabular-nums px-1.5",
+                        inputValue.length > 1800 ? "text-destructive" : "text-muted-foreground/60"
+                      )}
+                    >
+                      {inputValue.length}/2000
+                    </span>
+                  )}
+                  {hasMessages && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handleResetChat()
+                      }}
+                      className="rounded-lg p-2 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                      aria-label="Reset chat"
+                      title={s.resetChat || "Reset chat"}
+                      type="button"
+                    >
+                      <RotateCcw className="h-4 w-4" />
+                    </button>
+                  )}
                   <button
                     onClick={(e) => {
                       e.stopPropagation()
-                      handleResetChat()
+                      handleSubmit()
                     }}
-                    className="rounded-lg p-2 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-                    aria-label="Reset chat"
-                    title={s.resetChat || "Reset chat"}
+                    disabled={!inputValue.trim()}
+                    className={cn(
+                      "rounded-lg p-2 transition-all duration-200",
+                      inputValue.trim()
+                        ? "bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm shadow-primary/30 scale-100"
+                        : "bg-muted text-muted-foreground/40 cursor-not-allowed scale-95"
+                    )}
+                    aria-label="Send"
                     type="button"
                   >
-                    <RotateCcw className="h-4 w-4" />
+                    <Send className="h-4 w-4" />
                   </button>
-                )}
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    handleSubmit()
-                  }}
-                  disabled={!inputValue.trim()}
-                  className={cn(
-                    "rounded-lg p-2 transition-all duration-200",
-                    inputValue.trim()
-                      ? "bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm shadow-primary/30 scale-100"
-                      : "bg-muted text-muted-foreground/40 cursor-not-allowed scale-95"
-                  )}
-                  aria-label="Send"
-                  type="button"
-                >
-                  <Send className="h-4 w-4" />
-                </button>
+                </div>
               </div>
             </div>
           </div>
