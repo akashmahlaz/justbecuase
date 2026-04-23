@@ -98,14 +98,47 @@ function ProjectsContent() {
 
   // ==========================================
   // UNIFIED SEARCH API — drives project filtering
-  // When user types, calls the powerful unified search API
-  // (synonyms, multi-strategy, fuzzy, 30+ fields)
-  // and uses returned IDs to filter the local project list.
+  // When user types, calls the powerful unified search API (synonyms,
+  // multi-strategy, fuzzy, 30+ fields) and renders the FULL SEARCH RESULTS
+  // (global DB coverage) instead of filtering only the current paginated page.
   // ==========================================
   const [unifiedMatchedIds, setUnifiedMatchedIds] = useState<string[] | null>(null)
   const [unifiedRelevanceOrder, setUnifiedRelevanceOrder] = useState<Map<string, number>>(new Map())
+  const [searchResultProjects, setSearchResultProjects] = useState<Project[] | null>(null)
   const [isUnifiedSearching, setIsUnifiedSearching] = useState(false)
   const unifiedAbortRef = useRef<AbortController | null>(null)
+
+  // Map a unified-search result row into the local Project shape so the
+  // existing ProjectCard renders without changes. External opportunities
+  // come back with `ext-` prefixed IDs and `isExternal: true`.
+  const mapSearchResultToProject = (r: any): Project => {
+    const rawId = r.mongoId || r.id || ""
+    const isExternal = !!r.isExternal || (typeof rawId === "string" && rawId.startsWith("ext-"))
+    const cleanId = isExternal && rawId.startsWith("ext-") ? rawId.slice(4) : rawId
+    const skillNames: string[] = Array.isArray(r.skills) ? r.skills : []
+    return {
+      _id: { toString: () => cleanId },
+      id: cleanId,
+      title: r.title || "",
+      description: r.description || r.subtitle || "",
+      skillsRequired: skillNames.map((name: string) => ({ categoryId: "", subskillId: name })),
+      ngoId: "",
+      status: r.status || "active",
+      workMode: r.workMode || "",
+      location: r.location || "",
+      timeCommitment: r.timeCommitment || "",
+      deadline: undefined,
+      projectType: r.projectType || (isExternal ? "external" : "short-term"),
+      applicantsCount: 0,
+      createdAt: new Date(),
+      ngo: { name: r.ngoName || "Organization", verified: r.verified || false },
+      skills: skillNames,
+      externalUrl: r.url && isExternal ? r.url : undefined,
+      _source: isExternal ? "external" : "native",
+      _platform: r.sourceplatform || undefined,
+      experienceLevel: r.experienceLevel,
+    }
+  }
 
   // Debounced unified search
   useEffect(() => {
@@ -113,6 +146,7 @@ function ProjectsContent() {
     if (trimmed.length < 2) {
       setUnifiedMatchedIds(null)
       setUnifiedRelevanceOrder(new Map())
+      setSearchResultProjects(null)
       return
     }
 
@@ -129,16 +163,18 @@ function ProjectsContent() {
         )
         const data = await res.json()
         if (data.success && !controller.signal.aborted) {
-          // Use mongoId for reliable cross-referencing with local project list
-          // Strip 'ext-' prefix for external opportunities to match raw _id format in projects list
-          const ids = (data.results || []).map((r: any) => {
+          const rawResults = Array.isArray(data.results) ? data.results : []
+          const ids = rawResults.map((r: any) => {
             const id = r.mongoId || r.id
-            return id?.startsWith('ext-') ? id.slice(4) : id
+            return id?.startsWith("ext-") ? id.slice(4) : id
           })
           setUnifiedMatchedIds(ids)
           const orderMap = new Map<string, number>()
           ids.forEach((id: string, idx: number) => orderMap.set(id, ids.length - idx))
           setUnifiedRelevanceOrder(orderMap)
+          // Render search results directly so global DB matches show even
+          // when the matching project is not on the current paginated page.
+          setSearchResultProjects(rawResults.map(mapSearchResultToProject))
         }
       } catch (err: any) {
         if (err.name !== "AbortError") {
@@ -269,7 +305,14 @@ function ProjectsContent() {
 
   // Filter and sort projects
   const filteredProjects = useMemo(() => {
-    let result = [...projects]
+    // When a search query is active and the unified-search API has returned
+    // results, use those as the source list (covers the entire DB + external
+    // scraped opportunities). Otherwise use the locally-paginated list.
+    const hasActiveSearch = searchQuery.trim().length >= 2
+    const sourceList: Project[] = hasActiveSearch && searchResultProjects !== null
+      ? searchResultProjects
+      : projects
+    let result = [...sourceList]
 
     // Tab filter
     if (activeTab === "recommended" && isPersonalized && matchScores.size > 0) {
@@ -284,27 +327,21 @@ function ProjectsContent() {
     }
     
     // Search filter — powered by unified search API
-    if (searchQuery.trim().length >= 2) {
-      if (unifiedMatchedIds !== null) {
-        // API results ready — filter by matched IDs
-        result = result.filter((project) => {
-          const projectId = project._id?.toString() || project.id || ""
-          return unifiedMatchedIds.includes(projectId)
-        })
-      } else {
-        // API loading — basic client-side fallback (title + skills only, not description)
-        const queryTerms = searchQuery.toLowerCase().split(/\s+/).filter(t => t.length >= 2)
-        result = result.filter((project) => {
-          const title = project.title?.toLowerCase() || ""
-          const ngoName = project.ngo?.name?.toLowerCase() || ""
-          const skillTexts = project.skillsRequired?.map(s => 
-            `${s.categoryId} ${s.subskillId}`.toLowerCase()
-          ).join(" ") || ""
-          const searchable = `${title} ${ngoName} ${skillTexts}`
-          return queryTerms.some(term => searchable.includes(term))
-        })
-      }
+    if (hasActiveSearch && searchResultProjects === null) {
+      // API still loading — basic client-side fallback (title + skills only)
+      const queryTerms = searchQuery.toLowerCase().split(/\s+/).filter(t => t.length >= 2)
+      result = result.filter((project) => {
+        const title = project.title?.toLowerCase() || ""
+        const ngoName = project.ngo?.name?.toLowerCase() || ""
+        const skillTexts = project.skillsRequired?.map(s => 
+          `${s.categoryId} ${s.subskillId}`.toLowerCase()
+        ).join(" ") || ""
+        const searchable = `${title} ${ngoName} ${skillTexts}`
+        return queryTerms.some(term => searchable.includes(term))
+      })
     }
+    // When search results are loaded we already filter by search relevance
+    // implicitly because sourceList === searchResultProjects.
     
     // Skills filter (by category)
     if (selectedSkills.length > 0) {
@@ -424,7 +461,7 @@ function ProjectsContent() {
     }
     
     return result
-  }, [projects, searchQuery, selectedSkills, selectedTimeCommitment, selectedLocation, selectedCompensation, selectedExperience, sortBy, unifiedMatchedIds, unifiedRelevanceOrder, isPersonalized, matchScores, activeTab])
+  }, [projects, searchResultProjects, searchQuery, selectedSkills, selectedTimeCommitment, selectedLocation, selectedCompensation, selectedExperience, sortBy, unifiedMatchedIds, unifiedRelevanceOrder, isPersonalized, matchScores, activeTab])
 
   const FilterPopoverButton = ({ label, icon: Icon, count, children }: { label: string; icon: React.ElementType; count: number; children: React.ReactNode }) => (
     <Popover>

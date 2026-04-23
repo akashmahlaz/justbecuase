@@ -90,8 +90,36 @@ function ImpactAgentsContent() {
   // Unified search state
   const [unifiedMatchedIds, setUnifiedMatchedIds] = useState<string[] | null>(null)
   const [unifiedRelevanceOrder, setUnifiedRelevanceOrder] = useState<Map<string, number>>(new Map())
+  const [searchResultAgents, setSearchResultAgents] = useState<VolunteerProfileView[] | null>(null)
   const [isUnifiedSearching, setIsUnifiedSearching] = useState(false)
   const unifiedAbortRef = useRef<AbortController | null>(null)
+
+  // Map a unified-search volunteer hit into the local VolunteerProfileView
+  // shape so existing VolunteerCard renders without changes. This lets us
+  // surface global DB matches even when the volunteer isn't in the locally
+  // pre-loaded list (e.g. when there are more volunteers than the API cap).
+  const mapSearchResultToAgent = (r: any): VolunteerProfileView => {
+    const id = r.userId || r.mongoId || r.id || ""
+    const skillNames: string[] = Array.isArray(r.skills) ? r.skills : []
+    return {
+      id,
+      location: r.location || "",
+      skills: skillNames.map((name: string) => ({ categoryId: "", subskillId: name, level: "intermediate" as any })),
+      causes: Array.isArray(r.causes) ? r.causes : [],
+      workMode: (r.workMode || "remote") as any,
+      hoursPerWeek: r.hoursPerWeek || "",
+      volunteerType: (r.volunteerType || "free") as any,
+      completedProjects: 0,
+      hoursContributed: 0,
+      rating: r.rating || 0,
+      isVerified: r.verified || false,
+      name: r.title || null,
+      avatar: r.avatar || null,
+      bio: r.description || r.subtitle || null,
+      isUnlocked: false,
+      canMessage: false,
+    }
+  }
 
   // Debounced unified search
   useEffect(() => {
@@ -99,6 +127,7 @@ function ImpactAgentsContent() {
     if (trimmed.length < 3) {
       setUnifiedMatchedIds(null)
       setUnifiedRelevanceOrder(new Map())
+      setSearchResultAgents(null)
       return
     }
     const timer = setTimeout(async () => {
@@ -113,11 +142,15 @@ function ImpactAgentsContent() {
         )
         const data = await res.json()
         if (data.success && !controller.signal.aborted) {
-          const ids = (data.results || []).map((r: any) => r.mongoId || r.id)
+          const rawResults = Array.isArray(data.results) ? data.results : []
+          const ids = rawResults.map((r: any) => r.userId || r.mongoId || r.id)
           setUnifiedMatchedIds(ids)
           const orderMap = new Map<string, number>()
           ids.forEach((id: string, idx: number) => orderMap.set(id, ids.length - idx))
           setUnifiedRelevanceOrder(orderMap)
+          // Hold the full search-result agent list so we can render globally
+          // matched volunteers that aren't in the pre-loaded `agents` array.
+          setSearchResultAgents(rawResults.map(mapSearchResultToAgent))
         }
       } catch (err: any) {
         if (err.name !== "AbortError") console.error("Unified search failed:", err)
@@ -171,7 +204,21 @@ function ImpactAgentsContent() {
 
   // Filter and sort
   const filteredAgents = useMemo(() => {
-    let result = [...agents]
+    // When a search query is active and the API has returned results, use
+    // the search results as the source list (covers entire DB). Merge in any
+    // pre-loaded agents with the same id so we keep enriched fields
+    // (avatar, bio, completedProjects, etc.) when available.
+    const hasActiveSearch = searchQuery.trim().length >= 3
+    let result: VolunteerProfileView[]
+    if (hasActiveSearch && searchResultAgents !== null) {
+      const localById = new Map(agents.map((a) => [a.id, a]))
+      result = searchResultAgents.map((sr) => {
+        const local = localById.get(sr.id)
+        return local ? { ...sr, ...local } : sr
+      })
+    } else {
+      result = [...agents]
+    }
 
     // Tab filter
     if (activeTab === "top-rated") {
@@ -180,18 +227,15 @@ function ImpactAgentsContent() {
       result = result.sort((a, b) => (b.completedProjects || 0) - (a.completedProjects || 0)).slice(0, 50)
     }
 
-    // Search
-    if (searchQuery.trim().length >= 3) {
-      if (unifiedMatchedIds !== null) {
-        result = result.filter((v) => unifiedMatchedIds.includes(v.id))
-      } else {
-        const query = searchQuery.toLowerCase()
-        result = result.filter((v) => {
-          const fields = [v.name, v.bio, v.location, ...(v.causes || [])].filter(Boolean).join(" ").toLowerCase()
-          const skillText = v.skills?.map((s) => `${s.categoryId} ${s.subskillId}`).join(" ").toLowerCase() || ""
-          return (fields + " " + skillText).includes(query)
-        })
-      }
+    // Search — when API results are loaded, we already used them as the
+    // source list above. Only run a local fallback while the API is in flight.
+    if (searchQuery.trim().length >= 3 && searchResultAgents === null) {
+      const query = searchQuery.toLowerCase()
+      result = result.filter((v) => {
+        const fields = [v.name, v.bio, v.location, ...(v.causes || [])].filter(Boolean).join(" ").toLowerCase()
+        const skillText = v.skills?.map((s) => `${s.categoryId} ${s.subskillId}`).join(" ").toLowerCase() || ""
+        return (fields + " " + skillText).includes(query)
+      })
     }
 
     // Skills
@@ -237,7 +281,7 @@ function ImpactAgentsContent() {
     }
 
     return result
-  }, [agents, searchQuery, selectedSkills, selectedCauses, selectedVolunteerType, selectedWorkMode, sortBy, activeTab, unifiedMatchedIds, unifiedRelevanceOrder])
+  }, [agents, searchResultAgents, searchQuery, selectedSkills, selectedCauses, selectedVolunteerType, selectedWorkMode, sortBy, activeTab, unifiedMatchedIds, unifiedRelevanceOrder])
 
   const FilterPopoverButton = ({
     label,
