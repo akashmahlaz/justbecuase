@@ -9,7 +9,7 @@
 
 import { tool, generateText } from "ai"
 import { z } from "zod"
-import { elasticSearch } from "@/lib/es-search"
+import { mongoSearch } from "@/lib/mongo-search"
 import {
   volunteerProfilesDb,
   ngoProfilesDb,
@@ -133,7 +133,7 @@ export function buildJBCertaTools(bag: AgentResultBag) {
         limit: z.number().int().min(1).max(20).optional().default(10),
       }),
       execute: async (args) => {
-        const { results, total } = await elasticSearch({
+        const { results, total } = await mongoSearch({
           query: args.query,
           types: ["volunteer"],
           filters: {
@@ -169,7 +169,7 @@ export function buildJBCertaTools(bag: AgentResultBag) {
         limit: z.number().int().min(1).max(20).optional().default(10),
       }),
       execute: async (args) => {
-        const { results, total } = await elasticSearch({
+        const { results, total } = await mongoSearch({
           query: args.query,
           types: ["ngo"],
           filters: {
@@ -199,7 +199,7 @@ export function buildJBCertaTools(bag: AgentResultBag) {
         limit: z.number().int().min(1).max(20).optional().default(10),
       }),
       execute: async (args) => {
-        const { results, total } = await elasticSearch({
+        const { results, total } = await mongoSearch({
           query: args.query,
           types: ["project"],
           filters: {
@@ -370,7 +370,7 @@ export function buildJBCertaTools(bag: AgentResultBag) {
               .filter(Boolean) as string[]
           : []
 
-        const { results } = await elasticSearch({
+        const { results } = await mongoSearch({
           query: project.title || requiredSkills.join(" ") || "volunteer",
           types: ["volunteer"],
           filters: {
