@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { Linkedin, Twitter, Instagram, Facebook } from "lucide-react"
+import { Linkedin, Twitter, Instagram, Facebook } from "@/components/ui/brand-icons"
 import Image from "next/image"
 import { NewsletterSubscribe } from "./newsletter-subscribe"
 import { usePlatformSettingsStore } from "@/lib/store"

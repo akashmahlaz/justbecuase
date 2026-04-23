@@ -41,7 +41,6 @@ import {
   MapPin,
   Users,
   ExternalLink,
-  Linkedin,
   Globe,
   RefreshCw,
   Loader2,
@@ -60,6 +59,7 @@ import {
   Lightbulb,
   ArrowRight,
 } from "lucide-react"
+import { Linkedin } from "@/components/ui/brand-icons"
 import type { TheirStackJob, CreditBalance } from "@/lib/theirstack"
 
 // ============================================

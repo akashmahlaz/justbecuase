@@ -2,6 +2,7 @@ import type { Metadata } from "next"
 import { Navbar } from "@/components/navbar"
 import { Footer } from "@/components/footer"
 import { HeroSection } from "@/components/home/hero-section"
+import { AiSearchHero } from "@/components/home/ai-search-hero"
 import { GlobalSearchSection } from "@/components/home/global-search-section"
 import { HowItWorks } from "@/components/home/how-it-works"
 import { FeaturedProjects } from "@/components/home/featured-projects"
@@ -44,6 +45,7 @@ export default async function HomePage() {
       <Navbar />
       <main className="flex-1">
         <HeroSection />
+        <AiSearchHero />
         <HowItWorks />
         <FeaturedProjects />
         <FeaturedCandidates />

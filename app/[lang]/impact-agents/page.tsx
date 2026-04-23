@@ -36,6 +36,7 @@ import { TextAnimate } from "@/components/ui/text-animate"
 import { ScrollProgress } from "@/components/ui/scroll-progress"
 import { Skeleton } from "@/components/ui/skeleton"
 import { UnifiedSearchBar } from "@/components/unified-search-bar"
+import { AIEmptyState } from "@/components/ui/ai-empty-state"
 import { skillCategories, causes, resolveSkillRefFromName, resolveCauseId } from "@/lib/skills-data"
 import { useDictionary } from "@/components/dictionary-provider"
 import { useLocale } from "@/hooks/use-locale"
@@ -581,20 +582,22 @@ function ImpactAgentsContent() {
               ))}
             </div>
           ) : filteredAgents.length === 0 ? (
-            <div className="text-center py-16">
-              <Users className="h-12 w-12 text-muted-foreground/50 mx-auto mb-4" />
-              <p className="font-medium text-foreground">{vl.noAgentsFound || "No impact agents found"}</p>
-              <p className="text-sm text-muted-foreground mt-1">
-                {hasActiveFilters || searchQuery
+            <AIEmptyState
+              mode="empty"
+              title={vl.noAgentsFound || "No impact agents found"}
+              description={
+                hasActiveFilters || searchQuery
                   ? (vl.tryAdjusting || "Try adjusting your filters or search terms")
-                  : (vl.checkBackLater || "Check back later for new impact agents")}
-              </p>
-              {(hasActiveFilters || searchQuery) && (
-                <Button variant="outline" className="mt-4" onClick={clearFilters}>
-                  Clear Filters
-                </Button>
-              )}
-            </div>
+                  : (vl.checkBackLater || "Check back later for new impact agents")
+              }
+              action={
+                (hasActiveFilters || searchQuery) ? (
+                  <Button variant="outline" onClick={clearFilters}>
+                    Clear Filters
+                  </Button>
+                ) : undefined
+              }
+            />
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
               {filteredAgents.map((agent, index) => (

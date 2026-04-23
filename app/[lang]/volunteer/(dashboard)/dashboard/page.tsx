@@ -14,6 +14,7 @@ import { Separator } from "@/components/ui/separator"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
+import { StatCard } from "@/components/ui/stat-card"
 import { getVolunteerProfile, getMyApplications, getMatchedOpportunitiesForVolunteer, getVolunteerSubscriptionStatus } from "@/lib/actions"
 import { Clock, CheckCircle2, FolderKanban, TrendingUp, Star, ArrowRight, Edit, Briefcase, CreditCard, Zap, AlertTriangle, ChevronDown, Sparkles, Target, Calendar, MapPin, ExternalLink, Heart } from "lucide-react"
 import { AIMatchExplanation } from "@/components/ai/match-explanation"
@@ -126,64 +127,31 @@ export default async function VolunteerDashboard({ params }: { params: Promise<{
 
         {/* Stats Cards */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <Card className="relative overflow-hidden">
-            <CardContent className="p-4 sm:p-6">
-              <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
-                  <FolderKanban className="h-5 w-5 text-primary" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold text-foreground">{applications.length}</p>
-                  <p className="text-xs text-muted-foreground">{dict.volunteer?.dashboard?.statsApplications || "Applications"}</p>
-                </div>
-              </div>
-              {pendingApplications.length > 0 && (
-                <Badge className="absolute top-3 right-3 bg-yellow-100 text-yellow-700 text-[10px]">{pendingApplications.length} pending</Badge>
-              )}
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-4 sm:p-6">
-              <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-xl bg-blue-100 dark:bg-blue-950/30 flex items-center justify-center shrink-0">
-                  <Target className="h-5 w-5 text-blue-600" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold text-foreground">{acceptedApplications.length}</p>
-                  <p className="text-xs text-muted-foreground">{dict.volunteer?.dashboard?.statsActiveOpportunities || "Active"}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-4 sm:p-6">
-              <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-xl bg-green-100 dark:bg-green-950/30 flex items-center justify-center shrink-0">
-                  <CheckCircle2 className="h-5 w-5 text-green-600" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold text-foreground">{completedProjects}</p>
-                  <p className="text-xs text-muted-foreground">{dict.volunteer?.dashboard?.statsCompleted || "Completed"}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-4 sm:p-6">
-              <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-xl bg-purple-100 dark:bg-purple-950/30 flex items-center justify-center shrink-0">
-                  <TrendingUp className="h-5 w-5 text-purple-600" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold text-foreground">{hoursContributed}h</p>
-                  <p className="text-xs text-muted-foreground">{dict.volunteer?.dashboard?.statsHoursGiven || "Hours Given"}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          <StatCard
+            icon={<FolderKanban className="h-5 w-5" />}
+            tone="primary"
+            value={applications.length}
+            label={dict.volunteer?.dashboard?.statsApplications || "Applications"}
+            badge={pendingApplications.length > 0 ? `${pendingApplications.length} pending` : undefined}
+          />
+          <StatCard
+            icon={<Target className="h-5 w-5" />}
+            tone="blue"
+            value={acceptedApplications.length}
+            label={dict.volunteer?.dashboard?.statsActiveOpportunities || "Active"}
+          />
+          <StatCard
+            icon={<CheckCircle2 className="h-5 w-5" />}
+            tone="emerald"
+            value={completedProjects}
+            label={dict.volunteer?.dashboard?.statsCompleted || "Completed"}
+          />
+          <StatCard
+            icon={<TrendingUp className="h-5 w-5" />}
+            tone="violet"
+            value={`${hoursContributed}h`}
+            label={dict.volunteer?.dashboard?.statsHoursGiven || "Hours Given"}
+          />
         </div>
 
         <div className="grid lg:grid-cols-3 gap-8">

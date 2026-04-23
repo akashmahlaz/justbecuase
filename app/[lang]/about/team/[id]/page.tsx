@@ -4,7 +4,8 @@ import { Navbar } from "@/components/navbar"
 import { Footer } from "@/components/footer"
 import { Button } from "@/components/ui/button"
 import { getTeamMemberById } from "@/lib/actions"
-import { ArrowLeft, Linkedin, Twitter } from "lucide-react"
+import { ArrowLeft } from "lucide-react"
+import { Linkedin, Twitter } from "@/components/ui/brand-icons"
 
 export const dynamic = "force-dynamic"
 

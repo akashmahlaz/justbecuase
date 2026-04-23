@@ -17,14 +17,12 @@ import {
 import { Input } from "@/components/ui/input"
 import { 
   Share2, 
-  Facebook, 
-  Twitter, 
-  Linkedin, 
   Mail, 
   Link2, 
   Check,
   MessageCircle,
 } from "lucide-react"
+import { Facebook, Twitter, Linkedin } from "@/components/ui/brand-icons"
 import { toast } from "sonner"
 import { useDictionary } from "@/components/dictionary-provider"
 

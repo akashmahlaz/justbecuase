@@ -42,13 +42,12 @@ import {
   Trash2,
   Loader2,
   GripVertical,
-  Linkedin,
-  Twitter,
   User,
   Upload,
   X,
   Mail,
 } from "lucide-react"
+import { Linkedin, Twitter } from "@/components/ui/brand-icons"
 import type { TeamMember } from "@/lib/types"
 
 export default function AdminTeamPage() {
