@@ -20,7 +20,7 @@ import { NumberTicker } from "@/components/ui/number-ticker"
 import { BlurFade } from "@/components/ui/blur-fade"
 import { TextAnimate } from "@/components/ui/text-animate"
 import { ScrollProgress } from "@/components/ui/scroll-progress"
-import { skillCategories, resolveSkillName } from "@/lib/skills-data"
+import { skillCategories, resolveSkillName, resolveSkillRefFromName } from "@/lib/skills-data"
 import { Skeleton } from "@/components/ui/skeleton"
 import { SlidersHorizontal, Grid3X3, List, X, Loader2, Search, Sparkles, TrendingUp, Info, Briefcase, ChevronDown, MapPin, Clock, Zap, Award } from "lucide-react"
 import { UnifiedSearchBar } from "@/components/unified-search-bar"
@@ -121,7 +121,10 @@ function ProjectsContent() {
       id: cleanId,
       title: r.title || "",
       description: r.description || r.subtitle || "",
-      skillsRequired: skillNames.map((name: string) => ({ categoryId: "", subskillId: name })),
+      skillsRequired: skillNames.map((name: string) => {
+        const ref = resolveSkillRefFromName(name)
+        return { categoryId: ref.categoryId, subskillId: ref.subskillId }
+      }),
       ngoId: "",
       status: r.status || "active",
       workMode: r.workMode || "",
@@ -129,6 +132,7 @@ function ProjectsContent() {
       timeCommitment: r.timeCommitment || "",
       deadline: undefined,
       projectType: r.projectType || (isExternal ? "external" : "short-term"),
+      compensationType: r.compensationType || (isExternal ? r.projectType : undefined),
       applicantsCount: 0,
       createdAt: new Date(),
       ngo: { name: r.ngoName || "Organization", verified: r.verified || false },
@@ -259,7 +263,10 @@ function ProjectsContent() {
   const timeCommitments = ["1-2 hours", "5-10 hours", "10-15 hours", "15-25 hours", "25-40 hours", "40+ hours"]
   const locations = ["Remote", "On-site", "Hybrid"]
   const compensationTypes = ["volunteer", "paid", "stipend"]
-  const experienceLevels = ["entry", "mid", "senior"]
+  // NOTE: values must match the actual `experienceLevel` strings stored
+  // on opportunity documents (see post-project / edit forms). Pills used
+  // to be ["entry","mid","senior"] which never matched anything.
+  const experienceLevels = ["beginner", "intermediate", "advanced", "expert"]
 
   const timeCommitmentLabels: Record<string, string> = {
     "1-2 hours": dict.projectsListing?.hours1to2 || "1-2 hours",
@@ -401,11 +408,13 @@ function ProjectsContent() {
       })
     }
 
-    // Compensation type filter
+    // Compensation type filter — checks `compensationType` first
+    // (the proper field), falling back to `projectType` for legacy /
+    // external rows that overload it.
     if (selectedCompensation.length > 0) {
       result = result.filter((project) => {
-        const pType = project.projectType?.toLowerCase() || ""
-        return selectedCompensation.some(c => pType.includes(c.toLowerCase()))
+        const compType = (project.compensationType || project.projectType || "").toLowerCase()
+        return selectedCompensation.some(c => compType.includes(c.toLowerCase()))
       })
     }
 

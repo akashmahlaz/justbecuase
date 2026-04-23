@@ -23,7 +23,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet"
-import { skillCategories, causes } from "@/lib/skills-data"
+import { skillCategories, causes, resolveSkillRefFromName, resolveCauseId } from "@/lib/skills-data"
 import { SlidersHorizontal, X, Loader2, Zap, Lock } from "lucide-react"
 import Link from "next/link"
 import { UnifiedSearchBar } from "@/components/unified-search-bar"
@@ -70,11 +70,22 @@ export default function VolunteersPage({ embed, subscriptionPlan }: VolunteersPa
    */
   function mapSearchResultToVolunteer(r: any): VolunteerProfileView {
     const skillsArr: any[] = Array.isArray(r.skills) ? r.skills : []
-    const skills = skillsArr.map((s: any) =>
-      typeof s === "string"
-        ? { categoryId: s, subskillId: s }
-        : { categoryId: s.categoryId || s.id || "", subskillId: s.subskillId || s.id || "" }
-    )
+    // Unified-search returns skill / cause NAMES, but local filters compare
+    // against IDs. Translate names back to ids so the filter pills work
+    // against search-result-only volunteers.
+    const skills = skillsArr.map((s: any) => {
+      if (typeof s === "string") {
+        const ref = resolveSkillRefFromName(s)
+        return { categoryId: ref.categoryId, subskillId: ref.subskillId, level: "intermediate" as any }
+      }
+      return {
+        categoryId: s.categoryId || s.id || "",
+        subskillId: s.subskillId || s.id || "",
+        level: (s.level || "intermediate") as any,
+      }
+    })
+    const causeNames: string[] = Array.isArray(r.causes) ? r.causes : []
+    const causeIds = causeNames.map((c) => (typeof c === "string" ? resolveCauseId(c) : c)).filter(Boolean)
     return {
       id: r.userId || r.mongoId || r.id,
       name: r.title || r.name || null,
@@ -82,7 +93,7 @@ export default function VolunteersPage({ embed, subscriptionPlan }: VolunteersPa
       bio: r.subtitle || r.description || null,
       location: r.location || "",
       skills,
-      causes: Array.isArray(r.causes) ? r.causes : [],
+      causes: causeIds,
       workMode: (r.workMode as any) || "flexible",
       hoursPerWeek: r.hoursPerWeek || "",
       volunteerType: (r.volunteerType as any) || "free",

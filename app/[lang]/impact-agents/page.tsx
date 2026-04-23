@@ -36,7 +36,7 @@ import { TextAnimate } from "@/components/ui/text-animate"
 import { ScrollProgress } from "@/components/ui/scroll-progress"
 import { Skeleton } from "@/components/ui/skeleton"
 import { UnifiedSearchBar } from "@/components/unified-search-bar"
-import { skillCategories, causes } from "@/lib/skills-data"
+import { skillCategories, causes, resolveSkillRefFromName, resolveCauseId } from "@/lib/skills-data"
 import { useDictionary } from "@/components/dictionary-provider"
 import { useLocale } from "@/hooks/use-locale"
 import type { VolunteerProfileView } from "@/lib/types"
@@ -101,11 +101,19 @@ function ImpactAgentsContent() {
   const mapSearchResultToAgent = (r: any): VolunteerProfileView => {
     const id = r.userId || r.mongoId || r.id || ""
     const skillNames: string[] = Array.isArray(r.skills) ? r.skills : []
+    // Search results expose human-readable skill / cause names. Convert
+    // back to ids so the on-page Skill / Cause filter pills still match.
+    const skills = skillNames.map((name: string) => {
+      const ref = resolveSkillRefFromName(name)
+      return { categoryId: ref.categoryId, subskillId: ref.subskillId, level: "intermediate" as any }
+    })
+    const causeNames: string[] = Array.isArray(r.causes) ? r.causes : []
+    const causeIds = causeNames.map(resolveCauseId).filter(Boolean)
     return {
       id,
       location: r.location || "",
-      skills: skillNames.map((name: string) => ({ categoryId: "", subskillId: name, level: "intermediate" as any })),
-      causes: Array.isArray(r.causes) ? r.causes : [],
+      skills,
+      causes: causeIds,
       workMode: (r.workMode || "remote") as any,
       hoursPerWeek: r.hoursPerWeek || "",
       volunteerType: (r.volunteerType || "free") as any,

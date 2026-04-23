@@ -235,3 +235,67 @@ for (const cat of skillCategories) {
 export function resolveSkillName(subskillId: string): string {
   return _skillNameMap.get(subskillId) || subskillId.replace(/-/g, " ").replace(/\b\w/g, c => c.toUpperCase())
 }
+
+// ============================================
+// UTILITY: Reverse resolvers (name → id) for search-result mapping
+// ============================================
+// Unified search returns volunteer/opportunity skills as human-readable
+// names (skillNames / causeNames). On-page filters operate on ids so
+// filters silently drop everything when the source list is the search
+// result list. These helpers translate names back to ids.
+
+const _normalize = (s: string) => s.toLowerCase().trim()
+
+const _subskillNameToId = new Map<string, { categoryId: string; subskillId: string }>()
+const _categoryNameToId = new Map<string, string>()
+for (const cat of skillCategories) {
+  _categoryNameToId.set(_normalize(cat.name), cat.id)
+  for (const sub of cat.subskills) {
+    _subskillNameToId.set(_normalize(sub.name), { categoryId: cat.id, subskillId: sub.id })
+  }
+}
+
+const _causeNameToId = new Map<string, string>()
+for (const c of causes) {
+  _causeNameToId.set(_normalize(c.name), c.id)
+}
+
+/**
+ * Resolve a free-form skill string (id, subskill name, or category name)
+ * into a `{ categoryId, subskillId }` pair. Falls back to using the
+ * input value directly so existing data shaped as ids still works.
+ */
+export function resolveSkillRefFromName(value: string): { categoryId: string; subskillId: string } {
+  if (!value) return { categoryId: "", subskillId: "" }
+  // Already a known subskill id?
+  if (_skillNameMap.has(value)) {
+    // find its category
+    for (const cat of skillCategories) {
+      if (cat.subskills.some((s) => s.id === value)) {
+        return { categoryId: cat.id, subskillId: value }
+      }
+    }
+  }
+  // Already a known category id?
+  for (const cat of skillCategories) {
+    if (cat.id === value) return { categoryId: cat.id, subskillId: "" }
+  }
+  // Try by name
+  const k = _normalize(value)
+  const sub = _subskillNameToId.get(k)
+  if (sub) return sub
+  const catId = _categoryNameToId.get(k)
+  if (catId) return { categoryId: catId, subskillId: "" }
+  // Unknown — keep original so text-search style matches still work
+  return { categoryId: value, subskillId: value }
+}
+
+/** Resolve a free-form cause string (id or name) to a known cause id. */
+export function resolveCauseId(value: string): string {
+  if (!value) return ""
+  for (const c of causes) {
+    if (c.id === value) return c.id
+  }
+  const found = _causeNameToId.get(_normalize(value))
+  return found || value
+}
