@@ -289,8 +289,45 @@ export function OpportunitiesBrowser() {
   // ---- UNIFIED SEARCH ----
   const [unifiedMatchedIds, setUnifiedMatchedIds] = useState<string[] | null>(null)
   const [unifiedRelevanceOrder, setUnifiedRelevanceOrder] = useState<Map<string, number>>(new Map())
+  const [searchResultProjects, setSearchResultProjects] = useState<Project[] | null>(null)
   const [isUnifiedSearching, setIsUnifiedSearching] = useState(false)
   const unifiedAbortRef = useRef<AbortController | null>(null)
+
+  /**
+   * Map a unified-search result row into the local Project shape so search
+   * hits beyond the locally-fetched personalized/fallback list still render
+   * (including external scraped opportunities prefixed with `ext-`).
+   */
+  function mapSearchResultToProject(r: any): Project {
+    const skillNames: string[] = Array.isArray(r.skills) ? r.skills : []
+    const skillsRequired = skillNames.map((name: string) => ({
+      categoryId: typeof name === "string" ? name : (name as any)?.categoryId || "",
+      subskillId: typeof name === "string" ? name : (name as any)?.subskillId || "",
+    }))
+    const id = r.mongoId || r.id
+    return {
+      id,
+      title: r.title || "",
+      description: r.description || r.subtitle || "",
+      skillsRequired,
+      ngoId: r.ngoId || "",
+      status: r.status || "active",
+      workMode: r.workMode || "remote",
+      location: r.location || "",
+      timeCommitment: r.timeCommitment || r.hoursPerWeek || "",
+      projectType: r.projectType || "",
+      applicantsCount: r.applicantsCount || 0,
+      createdAt: r.createdAt ? new Date(r.createdAt) : new Date(),
+      ngo: {
+        name: r.ngoName || r.subtitle || "",
+        logo: r.avatar || undefined,
+        verified: !!r.verified,
+      },
+      skills: skillNames,
+      causes: Array.isArray(r.causes) ? r.causes : [],
+      experienceLevel: r.experienceLevel,
+    }
+  }
 
   // Debounced unified search
   useEffect(() => {
@@ -298,6 +335,7 @@ export function OpportunitiesBrowser() {
     if (trimmed.length < 1) {
       setUnifiedMatchedIds(null)
       setUnifiedRelevanceOrder(new Map())
+      setSearchResultProjects(null)
       return
     }
 
@@ -319,6 +357,7 @@ export function OpportunitiesBrowser() {
           )
           const ids = opportunityResults.map((r: any) => r.mongoId || r.id)
           setUnifiedMatchedIds(ids)
+          setSearchResultProjects(opportunityResults.map(mapSearchResultToProject))
           const orderMap = new Map<string, number>()
           ids.forEach((id: string, idx: number) => orderMap.set(id, ids.length - idx))
           setUnifiedRelevanceOrder(orderMap)
@@ -456,6 +495,47 @@ export function OpportunitiesBrowser() {
 
   // ---- UNIFIED DATA SHAPE ----
   const allItems = useMemo(() => {
+    // When a search is active and the unified-search API has returned
+    // results, drive the source list from those results so we surface
+    // matches that aren't part of the locally-fetched personalized or
+    // fallback page (including external scraped opportunities). When a
+    // local entry exists for the same id we merge the richer local data
+    // (score, distance, breakdown) on top.
+    const hasActiveSearch = searchQuery.trim().length > 0
+    if (hasActiveSearch && searchResultProjects !== null) {
+      // Build lookup maps from existing local data so we keep scores etc.
+      const personalizedById = new Map(
+        personalizedData.map((p) => [p.projectId, p])
+      )
+      const fallbackById = new Map(
+        fallbackProjects.map((p) => [p._id?.toString() || p.id || "", p])
+      )
+      return searchResultProjects.map((p) => {
+        const id = p.id || ""
+        const personalized = personalizedById.get(id)
+        if (personalized) {
+          return {
+            project: { ...p, ...personalized.project } as Project,
+            score: personalized.score,
+            distanceKm: personalized.distanceKm,
+            breakdown: personalized.breakdown,
+            matchReasons: personalized.matchReasons,
+            projectId: personalized.projectId,
+          }
+        }
+        const localFallback = fallbackById.get(id)
+        const merged = localFallback ? ({ ...p, ...localFallback } as Project) : p
+        return {
+          project: merged,
+          score: 0,
+          distanceKm: null as number | null,
+          breakdown: null as PersonalizedOpportunity["breakdown"] | null,
+          matchReasons: [] as string[],
+          projectId: id,
+        }
+      })
+    }
+
     if (isPersonalized) {
       return personalizedData.map((p) => ({
         project: p.project,
@@ -479,7 +559,7 @@ export function OpportunitiesBrowser() {
         matchReasons: [] as string[],
         projectId: p._id?.toString() || p.id || "",
       }))
-  }, [isPersonalized, personalizedData, fallbackProjects])
+  }, [isPersonalized, personalizedData, fallbackProjects, searchQuery, searchResultProjects])
 
   // ---- FILTERED + SORTED ----
   const filteredItems = useMemo(() => {
