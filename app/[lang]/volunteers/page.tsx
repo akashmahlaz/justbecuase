@@ -27,6 +27,7 @@ import { skillCategories, causes, resolveSkillRefFromName, resolveCauseId } from
 import { SlidersHorizontal, X, Loader2, Zap, Lock } from "lucide-react"
 import Link from "next/link"
 import { UnifiedSearchBar } from "@/components/unified-search-bar"
+import { AIEmptyState } from "@/components/ui/ai-empty-state"
 import { BrowseGridSkeleton } from "@/components/ui/page-skeletons"
 import { useDictionary } from "@/components/dictionary-provider"
 import { useLocale } from "@/hooks/use-locale"
@@ -587,19 +588,22 @@ export default function VolunteersPage({ embed, subscriptionPlan }: VolunteersPa
               {loading ? (
                 <BrowseGridSkeleton columns={2} count={6} />
               ) : filteredVolunteers.length === 0 ? (
-                <div className="text-center py-12">
-                  <p className="text-muted-foreground">{dict.volunteersListing?.noAgentsFound || "No impact agents found"}</p>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    {hasActiveFilters || searchQuery
+                <AIEmptyState
+                  mode="empty"
+                  title={dict.volunteersListing?.noAgentsFound || "No impact agents found"}
+                  description={
+                    hasActiveFilters || searchQuery
                       ? (dict.volunteersListing?.tryAdjusting || "Try adjusting your filters or search terms")
-                      : (dict.volunteersListing?.checkBackLater || "Check back later for new impact agents")}
-                  </p>
-                  {(hasActiveFilters || searchQuery) && (
-                    <Button variant="outline" className="mt-4" onClick={clearFilters}>
-                      {dict.volunteersListing?.clearFilters || "Clear Filters"}
-                    </Button>
-                  )}
-                </div>
+                      : (dict.volunteersListing?.checkBackLater || "Check back later for new impact agents")
+                  }
+                  action={
+                    (hasActiveFilters || searchQuery) ? (
+                      <Button variant="outline" onClick={clearFilters}>
+                        {dict.volunteersListing?.clearFilters || "Clear Filters"}
+                      </Button>
+                    ) : undefined
+                  }
+                />
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {filteredVolunteers.map((volunteer) => (

@@ -15,6 +15,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card"
 import { Progress } from "@/components/ui/progress"
+import { StatCard } from "@/components/ui/stat-card"
 import { getNGOProfile, getMyProjectsAsNGO, getNGOApplicationsEnriched, getNGOSubscriptionStatus, getRecommendedVolunteersForNGO } from "@/lib/actions"
 import { PlusCircle, FolderKanban, Users, CheckCircle2, MessageSquare, Clock, CreditCard, Zap, Unlock, Sparkles, AlertTriangle, TrendingUp, Building2, MapPin, ChevronDown } from "lucide-react"
 import Link from "next/link"
@@ -125,88 +126,33 @@ export default async function NGODashboard({ params }: { params: Promise<{ lang:
           </div>
 
           {/* Stats Cards */}
-          <TooltipProvider>
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Card className="hover:shadow-md transition-shadow cursor-default">
-                    <CardContent className="p-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
-                          <FolderKanban className="h-5 w-5 text-primary" />
-                        </div>
-                        <div>
-                          <p className="text-2xl font-bold text-foreground">{activeProjects.length}</p>
-                          <p className="text-xs text-muted-foreground">{dict.ngo?.common?.activeOpportunities || "Active"}</p>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </TooltipTrigger>
-                <TooltipContent>Currently open and active opportunities</TooltipContent>
-              </Tooltip>
-
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Card className="hover:shadow-md transition-shadow cursor-default">
-                    <CardContent className="p-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-yellow-100 dark:bg-yellow-950/30 flex items-center justify-center">
-                          <Users className="h-5 w-5 text-yellow-600" />
-                        </div>
-                        <div>
-                          <p className="text-2xl font-bold text-foreground">{pendingApplications.length}</p>
-                          <p className="text-xs text-muted-foreground">{dict.ngo?.common?.pendingApplications || "Pending"}</p>
-                        </div>
-                        {pendingApplications.length > 0 && (
-                          <Badge className="ml-auto bg-yellow-100 text-yellow-700 text-[10px]">{pendingApplications.length} new</Badge>
-                        )}
-                      </div>
-                    </CardContent>
-                  </Card>
-                </TooltipTrigger>
-                <TooltipContent>Applications awaiting your review</TooltipContent>
-              </Tooltip>
-
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Card className="hover:shadow-md transition-shadow cursor-default">
-                    <CardContent className="p-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-green-100 dark:bg-green-950/30 flex items-center justify-center">
-                          <CheckCircle2 className="h-5 w-5 text-green-600" />
-                        </div>
-                        <div>
-                          <p className="text-2xl font-bold text-foreground">{completedProjects.length}</p>
-                          <p className="text-xs text-muted-foreground">{dict.ngo?.common?.completed || "Completed"}</p>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </TooltipTrigger>
-                <TooltipContent>Successfully completed opportunities</TooltipContent>
-              </Tooltip>
-
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Card className="hover:shadow-md transition-shadow cursor-default">
-                    <CardContent className="p-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-blue-100 dark:bg-blue-950/30 flex items-center justify-center">
-                          <TrendingUp className="h-5 w-5 text-blue-600" />
-                        </div>
-                        <div>
-                          <p className="text-2xl font-bold text-foreground">{shortlistedApplications.length}</p>
-                          <p className="text-xs text-muted-foreground">{dict.ngo?.common?.shortlisted || "Shortlisted"}</p>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </TooltipTrigger>
-                <TooltipContent>Candidates you&apos;ve shortlisted</TooltipContent>
-              </Tooltip>
-            </div>
-          </TooltipProvider>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+            <StatCard
+              icon={<FolderKanban className="h-5 w-5" />}
+              tone="primary"
+              value={activeProjects.length}
+              label={dict.ngo?.common?.activeOpportunities || "Active"}
+            />
+            <StatCard
+              icon={<Users className="h-5 w-5" />}
+              tone="amber"
+              value={pendingApplications.length}
+              label={dict.ngo?.common?.pendingApplications || "Pending"}
+              badge={pendingApplications.length > 0 ? `${pendingApplications.length} new` : undefined}
+            />
+            <StatCard
+              icon={<CheckCircle2 className="h-5 w-5" />}
+              tone="emerald"
+              value={completedProjects.length}
+              label={dict.ngo?.common?.completed || "Completed"}
+            />
+            <StatCard
+              icon={<TrendingUp className="h-5 w-5" />}
+              tone="blue"
+              value={shortlistedApplications.length}
+              label={dict.ngo?.common?.shortlisted || "Shortlisted"}
+            />
+          </div>
 
           <div className="grid lg:grid-cols-3 gap-6">
             {/* Main Content */}

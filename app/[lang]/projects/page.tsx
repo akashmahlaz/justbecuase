@@ -24,6 +24,7 @@ import { skillCategories, resolveSkillName, resolveSkillRefFromName } from "@/li
 import { Skeleton } from "@/components/ui/skeleton"
 import { SlidersHorizontal, Grid3X3, List, X, Loader2, Search, Sparkles, TrendingUp, Info, Briefcase, ChevronDown, MapPin, Clock, Zap, Award } from "lucide-react"
 import { UnifiedSearchBar } from "@/components/unified-search-bar"
+import { AIEmptyState } from "@/components/ui/ai-empty-state"
 import { useDictionary } from "@/components/dictionary-provider"
 import { useLocale } from "@/hooks/use-locale"
 
@@ -788,20 +789,22 @@ function ProjectsContent() {
                   ))}
                 </div>
               ) : filteredProjects.length === 0 ? (
-                <Alert className="max-w-md mx-auto">
-                  <Info className="h-4 w-4" />
-                  <AlertDescription className="text-center">
-                    <p className="font-medium">{dict.projectsListing?.noOpportunitiesFound || "No opportunities found"}</p>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      {hasActiveFilters ? (dict.projectsListing?.tryAdjustingFilters || "Try adjusting your filters") : (dict.projectsListing?.checkBackLater || "Check back later for new opportunities")}
-                    </p>
-                    {hasActiveFilters && (
-                      <Button variant="outline" className="mt-4" onClick={clearFilters}>
+                <AIEmptyState
+                  mode="empty"
+                  title={dict.projectsListing?.noOpportunitiesFound || "No opportunities found"}
+                  description={
+                    hasActiveFilters
+                      ? (dict.projectsListing?.tryAdjustingFilters || "Try adjusting your filters")
+                      : (dict.projectsListing?.checkBackLater || "Check back later for new opportunities")
+                  }
+                  action={
+                    hasActiveFilters ? (
+                      <Button variant="outline" onClick={clearFilters}>
                         {dict.projectsListing?.clearFilters || "Clear Filters"}
                       </Button>
-                    )}
-                  </AlertDescription>
-                </Alert>
+                    ) : undefined
+                  }
+                />
               ) : (
                 <>
                   <div className={viewMode === "grid" ? "grid sm:grid-cols-2 lg:grid-cols-3 gap-5" : "flex flex-col gap-4"}>

@@ -11,7 +11,8 @@ import type { Locale } from "@/lib/i18n-config"
 
 // Render at request time (needs MongoDB connection)
 export const dynamic = "force-dynamic"
-import { Heart, Target, Users, Globe, Award, ArrowRight, Linkedin, Twitter, Clock, Sparkles, Code, Palette, BarChart3, BookOpen, Building2, Search, Handshake } from "lucide-react"
+import { Heart, Target, Users, Globe, Award, ArrowRight, Clock, Sparkles, Code, Palette, BarChart3, BookOpen, Building2, Search, Handshake } from "lucide-react"
+import { Linkedin, Twitter } from "@/components/ui/brand-icons"
 
 export const metadata: Metadata = {
   title: "About Us - Our Mission to Connect Skills with Purpose",
