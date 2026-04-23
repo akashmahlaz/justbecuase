@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
 import { ApplyButton } from "@/app/[lang]/projects/[id]/apply-button"
 import LocaleLink from "@/components/locale-link"
+import { stripMarkdown } from "@/lib/strip-markdown"
 import {
   Tooltip,
   TooltipContent,
@@ -988,7 +989,7 @@ export function OpportunitiesBrowser() {
                       {project.title}
                     </h3>
                     <p className="text-sm text-muted-foreground line-clamp-2 mb-3">
-                      {project.description}
+                      {stripMarkdown(project.description)}
                     </p>
 
                     {/* Match reasons */}

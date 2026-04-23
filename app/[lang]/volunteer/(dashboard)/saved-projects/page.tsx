@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { skillCategories } from "@/lib/skills-data"
+import { stripMarkdown } from "@/lib/strip-markdown"
 import Link from "next/link"
 import {
   Bookmark,
@@ -122,7 +123,7 @@ export default async function SavedProjectsPage({ params }: { params: Promise<{ 
                     </div>
                     
                     <p className="text-muted-foreground line-clamp-2 mb-4">
-                      {project.description}
+                      {stripMarkdown(project.description)}
                     </p>
 
                     <div className="flex flex-wrap gap-2 mb-4">

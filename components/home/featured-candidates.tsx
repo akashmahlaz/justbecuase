@@ -27,14 +27,16 @@ export function FeaturedCandidates() {
   };
 
   useEffect(() => {
-    browseVolunteers({ limit: 15 })
+    // Fetch a wider pool, then keep only candidates with profile pictures.
+    browseVolunteers({ limit: 60 })
       .then((volunteers) => {
-        const sorted = [...volunteers].sort((a, b) => {
-          const scoreA = (a.rating || 0) * 2 + (a.completedProjects || 0) + (a.avatar ? 5 : 0)
-          const scoreB = (b.rating || 0) * 2 + (b.completedProjects || 0) + (b.avatar ? 5 : 0)
+        const withPhoto = volunteers.filter((v) => Boolean(v.avatar))
+        const sorted = [...withPhoto].sort((a, b) => {
+          const scoreA = (a.rating || 0) * 2 + (a.completedProjects || 0)
+          const scoreB = (b.rating || 0) * 2 + (b.completedProjects || 0)
           return scoreB - scoreA
         })
-        setCandidates(sorted)
+        setCandidates(sorted.slice(0, 15))
       })
       .catch(() => setError(true))
       .finally(() => setLoading(false))
@@ -63,10 +65,25 @@ export function FeaturedCandidates() {
     <section className="py-24 bg-background overflow-hidden">
       <div className="container mx-auto px-4 md:px-6">
         {/* Header */}
-        <header className="mb-12">
-          <h2 className="text-3xl md:text-4xl font-semibold text-foreground tracking-tight mb-2">
-            {home.browseFeaturedCandidates || "Browse our Featured Candidates"}
-          </h2>
+        <header className="flex flex-col md:flex-row md:items-end justify-between mb-12 border-b border-border pb-8">
+          <div className="max-w-2xl">
+            <h2 className="text-3xl md:text-4xl font-semibold text-foreground tracking-tight mb-4">
+              {home.browseFeaturedCandidates || "Browse our Featured Candidates"}
+            </h2>
+            <p className="text-muted-foreground leading-relaxed">
+              {home.featuredCandidatesDesc || "Hand-picked Impact Agents ready to contribute. Verified profiles, proven skills, real availability."}
+            </p>
+          </div>
+
+          <div className="mt-8 md:mt-0">
+            <LocaleLink
+              href="/volunteers"
+              className="group flex items-center gap-3 text-xs uppercase tracking-widest font-bold text-foreground transition-all"
+            >
+              {home.browseAllCandidates || "Browse All Candidates"}
+              <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-3" />
+            </LocaleLink>
+          </div>
         </header>
 
         {/* Card Carousel */}

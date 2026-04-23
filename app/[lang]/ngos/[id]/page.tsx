@@ -13,6 +13,7 @@ import { ShareButton } from "@/components/share-button"
 import { FollowButton } from "@/components/follow-button"
 import { FollowStatsDisplay } from "@/components/follow-stats-display"
 import { getNGOById, getActiveProjects, getFollowStats } from "@/lib/actions"
+import { stripMarkdown } from "@/lib/strip-markdown"
 import { skillCategories } from "@/lib/skills-data"
 import { 
   MapPin, 
@@ -225,7 +226,7 @@ export default async function NGOProfilePage({ params }: { params: Promise<{ id:
                             </div>
                             <h3 className="font-semibold text-foreground mb-2 line-clamp-2">{project.title}</h3>
                             <p className="text-sm text-muted-foreground line-clamp-2 mb-4">
-                              {project.description}
+                              {stripMarkdown(project.description)}
                             </p>
                             <div className="flex flex-wrap gap-1">
                               {project.skillsRequired.slice(0, 3).map((skill, index) => (
