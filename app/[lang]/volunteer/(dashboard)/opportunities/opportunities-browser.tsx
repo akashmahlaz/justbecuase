@@ -26,7 +26,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover"
-import { skillCategories, resolveSkillName } from "@/lib/skills-data"
+import { skillCategories, resolveSkillName, resolveSkillRefFromName } from "@/lib/skills-data"
 import {
   X,
   Loader2,
@@ -300,10 +300,14 @@ export function OpportunitiesBrowser() {
    */
   function mapSearchResultToProject(r: any): Project {
     const skillNames: string[] = Array.isArray(r.skills) ? r.skills : []
-    const skillsRequired = skillNames.map((name: string) => ({
-      categoryId: typeof name === "string" ? name : (name as any)?.categoryId || "",
-      subskillId: typeof name === "string" ? name : (name as any)?.subskillId || "",
-    }))
+    // Search results expose skill NAMES; the on-page Skills filter compares
+    // against category IDs so we resolve names back to ids here.
+    const skillsRequired = skillNames.map((name: string) => {
+      const ref = typeof name === "string"
+        ? resolveSkillRefFromName(name)
+        : { categoryId: (name as any)?.categoryId || "", subskillId: (name as any)?.subskillId || "" }
+      return { categoryId: ref.categoryId, subskillId: ref.subskillId }
+    })
     const id = r.mongoId || r.id
     return {
       id,

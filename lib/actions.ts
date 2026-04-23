@@ -2565,8 +2565,11 @@ export async function browseVolunteers(filters?: {
 }) {
   console.log('[browseVolunteers] Fetching volunteers with filters:', filters)
 
-  // Get all volunteers (arrays are now parsed by database helpers)
-  const volunteers = await volunteerProfilesDb.findMany({}, { limit: 100 } as any)
+  // Get all volunteers (arrays are now parsed by database helpers).
+  // Cap is honoured by the listing slice below; the underlying fetch needs
+  // to stay generous so the listing pages aren't truncated.
+  const fetchCap = Math.max(filters?.limit || 50, 500)
+  const volunteers = await volunteerProfilesDb.findMany({}, { limit: fetchCap } as any)
   console.log(`[browseVolunteers] Found ${volunteers.length} total volunteers`)
 
   // Filter in JavaScript since arrays are stored as JSON strings
