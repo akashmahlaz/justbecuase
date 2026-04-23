@@ -1585,26 +1585,30 @@ export async function getVolunteerProfileView(
   const db = await import("@/lib/database").then(m => m.getDb())
   const volunteerUser = await (await db).collection("user").findOne(userIdQuery(volunteerId))
 
-  // Determine if profile should be unlocked
-  let isUnlocked = false
+  // Determine if profile should be unlocked.
+  //
+  // We split visibility into two tiers:
+  //   - DISCOVERY (name, avatar, bio): public for ALL volunteer types so
+  //     Pro Bono / Both / Paid agents are equally findable. Hiding their
+  //     identity from clicks-from-search defeats the discovery loop.
+  //   - CONTACT (phone, linkedin, portfolio, resume, hourly rate): only
+  //     exposed to NGOs, admins, the volunteer themselves, or — as a
+  //     legacy carve-out — when the volunteer's type is "paid" since
+  //     paid pros opt-in to public contact for client outreach.
+  const isOwner = currentUser?.id === volunteerId
+  const isAdmin = currentUser?.role === "admin"
+  const isNgoViewer = currentUser?.role === "ngo"
 
-  // If volunteer is "paid" type, always show full profile
-  if (volunteerProfile.volunteerType === "paid") {
-    isUnlocked = true
-  }
-  // If viewing own profile
-  else if (currentUser?.id === volunteerId) {
-    isUnlocked = true
-  }
-  // If current user is admin
-  else if (currentUser?.role === "admin") {
-    isUnlocked = true
-  }
-  // NGO â†' can see free/both profiles (unlocked for all NGOs)
-  else if (currentUser && currentUser.role === "ngo") {
-    isUnlocked = true
-  }
-  // Everyone else (non-logged-in, volunteers) â†' locked for free/both
+  // Discovery is always on now.
+  const isUnlocked = true
+
+  // Contact info: keep the previous gating to avoid leaking PII to
+  // logged-out / non-NGO viewers for free / both volunteers.
+  const canSeeContact =
+    volunteerProfile.volunteerType === "paid" ||
+    isOwner ||
+    isAdmin ||
+    isNgoViewer
 
   // Get the best name available
   const displayName = volunteerProfile.name || volunteerUser?.name || "Impact Agent"
@@ -1624,19 +1628,21 @@ export async function getVolunteerProfileView(
     rating: volunteerProfile.rating,
     isVerified: volunteerProfile.isVerified,
     isUnlocked,
-    canMessage: isUnlocked,
+    canMessage: canSeeContact,
 
-    // Conditional fields (locked for free volunteers until unlocked)
-    name: isUnlocked ? displayName : null,
-    avatar: isUnlocked ? (volunteerProfile.avatar || volunteerUser?.image) : null,
-    bio: isUnlocked ? volunteerProfile.bio : null,
-    phone: isUnlocked ? volunteerProfile.phone : null,
-    linkedinUrl: isUnlocked ? volunteerProfile.linkedinUrl : null,
-    portfolioUrl: isUnlocked ? volunteerProfile.portfolioUrl : null,
-    resumeUrl: isUnlocked ? volunteerProfile.resumeUrl : null,
-    hourlyRate: isUnlocked && volunteerProfile.volunteerType !== "free" ? volunteerProfile.hourlyRate : null,
-    discountedRate: isUnlocked && volunteerProfile.volunteerType !== "free" ? volunteerProfile.discountedRate : null,
-    currency: isUnlocked && volunteerProfile.volunteerType !== "free" ? volunteerProfile.currency : null,
+    // Discovery fields — always visible
+    name: displayName,
+    avatar: volunteerProfile.avatar || volunteerUser?.image,
+    bio: volunteerProfile.bio,
+
+    // Contact fields — gated to NGO / admin / owner / paid pros
+    phone: canSeeContact ? volunteerProfile.phone : null,
+    linkedinUrl: canSeeContact ? volunteerProfile.linkedinUrl : null,
+    portfolioUrl: canSeeContact ? volunteerProfile.portfolioUrl : null,
+    resumeUrl: canSeeContact ? volunteerProfile.resumeUrl : null,
+    hourlyRate: canSeeContact && volunteerProfile.volunteerType !== "free" ? volunteerProfile.hourlyRate : null,
+    discountedRate: canSeeContact && volunteerProfile.volunteerType !== "free" ? volunteerProfile.discountedRate : null,
+    currency: canSeeContact && volunteerProfile.volunteerType !== "free" ? volunteerProfile.currency : null,
   }
 
   return view

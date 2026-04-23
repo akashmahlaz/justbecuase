@@ -5,7 +5,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "t":"bunx tsc --noemit",
+    "t": "bunx tsc --noemit",
     "build": "next build",
     "git": "git add . ; git commit -m 'akash commit' ; git push && vercel --prod",
     "start": "next start",
@@ -71,7 +71,7 @@
     "embla-carousel-react": "^8.6.0",
     "framer-motion": "^12.23.26",
     "input-otp": "1.4.1",
-    "lucide-react": "^0.574.0",
+    "lucide-react": "^1.8.0",
     "mongodb": "^6.21.0",
     "motion": "^12.38.0",
     "negotiator": "^1.0.0",
