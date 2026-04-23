@@ -1,20 +1,14 @@
 ﻿"use client"
 
-import { useState, useEffect, useCallback, useRef, useMemo } from "react"
+import { useState, useEffect, useCallback, useRef } from "react"
 import LocaleLink from "@/components/locale-link"
-import { useRouter } from "next/navigation"
-import { useLocale, localePath } from "@/hooks/use-locale"
 import {
-  Search, Users, Building2, Briefcase, ArrowRight, MapPin,
-  CheckCircle, Loader2, X, Clock, Sparkles,
-  Star, Globe, Lightbulb, Heart,
-  Send, Paperclip, RotateCcw,
+  Users, Building2, Briefcase, ArrowRight,
+  CheckCircle, Loader2, Sparkles,
+  Send, RotateCcw, ChevronRight, MapPin,
 } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
 import { useAutoResizeTextarea } from "@/hooks/use-auto-resize-textarea"
 import { cn } from "@/lib/utils"
-import { resolveSkillName } from "@/lib/skills-data"
 import { motion, AnimatePresence } from "motion/react"
 import { useDictionary } from "@/components/dictionary-provider"
 
@@ -66,6 +60,7 @@ const TYPE_CONFIG = {
     label: "Impact Agent",
     pluralLabel: "Impact Agents",
     badgeClass: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
+    accent: "text-blue-600 dark:text-blue-400",
     viewAllPath: "/volunteers",
   },
   ngo: {
@@ -73,6 +68,7 @@ const TYPE_CONFIG = {
     label: "NGO",
     pluralLabel: "NGOs",
     badgeClass: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
+    accent: "text-green-600 dark:text-green-400",
     viewAllPath: "/ngos",
   },
   opportunity: {
@@ -80,26 +76,10 @@ const TYPE_CONFIG = {
     label: "Opportunity",
     pluralLabel: "Opportunities",
     badgeClass: "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400",
-    viewAllPath: "/projects",
-  },
-  skill: {
-    icon: Lightbulb,
-    label: "Skill",
-    pluralLabel: "Skills",
-    badgeClass: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
-    viewAllPath: "/volunteers",
-  },
-  cause: {
-    icon: Heart,
-    label: "Cause",
-    pluralLabel: "Causes",
-    badgeClass: "bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400",
+    accent: "text-purple-600 dark:text-purple-400",
     viewAllPath: "/projects",
   },
 } as const
-
-// Only these types are shown on the home page search
-const ALLOWED_TYPES = "volunteer,ngo,opportunity"
 
 // ============================================
 // HELPER HOOKS
@@ -137,156 +117,69 @@ function useRecentSearches() {
 }
 
 // ============================================
-// TEXT HIGHLIGHTING
+// COMPACT INLINE RESULT ROW (chat citation style)
 // ============================================
 
-function HighlightedText({ text, query }: { text: string; query: string }) {
-  if (!query || query.length < 1 || !text) return <>{text}</>
-
-  const terms = query.trim().split(/\s+/).filter(Boolean)
-  const escapedTerms = terms.map(t => t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))
-  const regex = new RegExp(`(${escapedTerms.join("|")})`, "gi")
-  const parts = text.split(regex)
-
-  return (
-    <>
-      {parts.map((part, i) =>
-        regex.test(part) ? (
-          <mark key={i} className="bg-yellow-200 dark:bg-yellow-800/60 text-foreground rounded-sm px-0.5">
-            {part}
-          </mark>
-        ) : (
-          <span key={i}>{part}</span>
-        )
-      )}
-    </>
-  )
-}
-
-// ============================================
-// RESULT CARD (compact, used inside chat messages)
-// ============================================
-
-function ResultCard({ result, query, onClick }: { result: SearchResult; query: string; onClick: () => void }) {
-  const config = TYPE_CONFIG[result.type as keyof typeof TYPE_CONFIG] || TYPE_CONFIG.opportunity
+function ResultRow({ result, onClick }: { result: SearchResult; onClick?: () => void }) {
+  const config = TYPE_CONFIG[result.type] || TYPE_CONFIG.opportunity
   const Icon = config.icon
-  const workModeLabel = result.workMode === "remote" ? "Remote" : result.workMode === "onsite" ? "On-site" : result.workMode === "hybrid" ? "Hybrid" : null
-  const pricingLabel = result.volunteerType === "free" ? "Pro Bono" : result.volunteerType === "paid" ? "Paid" : null
-  const descSnippet = result.description
-    ? result.description.replace(/<[^>]*>/g, "").substring(0, 90).trim() + (result.description.length > 90 ? "…" : "")
-    : null
-
   const href =
     result.type === "volunteer" ? `/volunteers/${result.id}` :
     result.type === "ngo" ? `/ngos/${result.id}` :
-    result.type === "opportunity" ? `/projects/${result.id}` : "#"
+    `/projects/${result.id}`
 
   return (
     <LocaleLink
       href={href}
       onClick={onClick}
-      className="group block bg-background rounded-xl border hover:border-primary/50 hover:shadow-md transition-all duration-200 overflow-hidden"
+      className="group flex items-center gap-3 rounded-lg border border-transparent bg-transparent px-2 py-2 hover:border-border hover:bg-muted/40 transition-colors"
     >
-      <div className={`px-3 py-1 flex items-center justify-between border-b ${
-        result.type === "volunteer" ? "bg-blue-50 dark:bg-blue-950/20" :
-        result.type === "ngo" ? "bg-green-50 dark:bg-green-950/20" :
-        "bg-purple-50 dark:bg-purple-950/20"
-      }`}>
-        <Badge variant="secondary" className={`text-[10px] px-2 py-0.5 font-medium ${config.badgeClass}`}>
-          <Icon className="h-2.5 w-2.5 mr-1" />
-          {config.label}
-        </Badge>
+      <div className="shrink-0">
+        {result.avatar ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={result.avatar}
+            alt={result.title}
+            className="w-8 h-8 rounded-full object-cover bg-muted ring-1 ring-border"
+            loading="lazy"
+          />
+        ) : (
+          <div className={cn("w-8 h-8 rounded-full flex items-center justify-center ring-1 ring-border", config.badgeClass)}>
+            <Icon className="h-3.5 w-3.5" />
+          </div>
+        )}
+      </div>
+      <div className="flex-1 min-w-0">
         <div className="flex items-center gap-1.5">
-          {workModeLabel && (
-            <span className="text-[10px] text-muted-foreground flex items-center gap-0.5">
-              <Globe className="h-2.5 w-2.5" />
-              {workModeLabel}
+          <span className="text-sm font-medium text-foreground truncate group-hover:text-primary transition-colors">
+            {result.title}
+          </span>
+          {result.verified && (
+            <CheckCircle className="h-3 w-3 shrink-0 text-primary" fill="currentColor" strokeWidth={0} />
+          )}
+          <span className={cn("text-[10px] font-medium uppercase tracking-wider shrink-0", config.accent)}>
+            · {config.label}
+          </span>
+        </div>
+        <div className="flex items-center gap-2 text-[11px] text-muted-foreground truncate">
+          {result.subtitle && <span className="truncate">{result.subtitle}</span>}
+          {result.location && (
+            <span className="flex items-center gap-0.5 shrink-0">
+              <MapPin className="h-2.5 w-2.5" />
+              {result.location}
             </span>
           )}
-          {pricingLabel && (
-            <Badge variant="outline" className={`text-[10px] px-1.5 py-0 ${pricingLabel === "Pro Bono" ? "border-emerald-300 text-emerald-700 dark:text-emerald-400" : "border-amber-300 text-amber-700 dark:text-amber-400"}`}>
-              {pricingLabel}
-            </Badge>
-          )}
         </div>
       </div>
-      <div className="p-3">
-        <div className="flex items-start gap-3">
-          <div className="shrink-0">
-            {result.avatar ? (
-              <img
-                src={result.avatar}
-                alt={result.title}
-                className="w-10 h-10 rounded-full object-cover bg-muted ring-2 ring-background shadow-sm"
-                loading="lazy"
-              />
-            ) : (
-              <div className={`w-10 h-10 rounded-full flex items-center justify-center ${config.badgeClass} ring-2 ring-background shadow-sm`}>
-                <Icon className="h-4 w-4" />
-              </div>
-            )}
-          </div>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-1.5 mb-0.5">
-              <h3 className="font-semibold text-foreground truncate group-hover:text-primary transition-colors text-sm">
-                <HighlightedText text={result.title} query={query} />
-              </h3>
-              {result.verified && (
-                <CheckCircle className="h-3.5 w-3.5 shrink-0 text-primary" fill="currentColor" strokeWidth={0} />
-              )}
-            </div>
-            {result.subtitle && (
-              <p className="text-xs text-muted-foreground line-clamp-1 mb-1">
-                <HighlightedText text={result.subtitle} query={query} />
-              </p>
-            )}
-            <div className="flex items-center gap-2.5 flex-wrap">
-              {result.location && (
-                <span className="text-[11px] text-muted-foreground flex items-center gap-0.5">
-                  <MapPin className="h-2.5 w-2.5 shrink-0" />
-                  <HighlightedText text={result.location} query={query} />
-                </span>
-              )}
-              {result.rating && result.rating > 0 && (
-                <span className="text-[11px] text-amber-600 dark:text-amber-400 flex items-center gap-0.5 font-medium">
-                  <Star className="h-2.5 w-2.5 fill-current" />
-                  {result.rating.toFixed(1)}
-                </span>
-              )}
-            </div>
-          </div>
-        </div>
-        {descSnippet && (
-          <p className="text-[11px] text-muted-foreground mt-2 line-clamp-2 leading-relaxed">
-            {descSnippet}
-          </p>
-        )}
-        {result.skills && result.skills.length > 0 && (
-          <div className="flex gap-1 mt-2 flex-wrap">
-            {result.skills.slice(0, 3).map((skill) => (
-              <Badge key={skill} variant="outline" className="text-[10px] px-1.5 py-0.5 font-normal bg-muted/50">
-                {resolveSkillName(skill)}
-              </Badge>
-            ))}
-            {result.skills.length > 3 && (
-              <Badge variant="outline" className="text-[10px] px-1.5 py-0.5 font-normal text-muted-foreground">
-                +{result.skills.length - 3}
-              </Badge>
-            )}
-          </div>
-        )}
-      </div>
+      <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0 group-hover:text-primary group-hover:translate-x-0.5 transition-all" />
     </LocaleLink>
   )
 }
 
 // ============================================
-// CHAT TYPES
+// AI THINKING SHIMMER (kokonut motion technique)
 // ============================================
 
-type SearchTypeFilter = "all" | "opportunity" | "volunteer" | "ngo"
-
-// Inline AI-style cycling loader (compact, with shimmer gradient)
 function CyclingLoader({ texts, interval = 1400 }: { texts: string[]; interval?: number }) {
   const [i, setI] = useState(0)
   useEffect(() => {
@@ -323,147 +216,130 @@ function CyclingLoader({ texts, interval = 1400 }: { texts: string[]; interval?:
   )
 }
 
+// ============================================
+// CHAT TYPES
+// ============================================
+
 type ChatMessage =
-  | { id: string; role: "user"; query: string; type: SearchTypeFilter }
-  | { id: string; role: "assistant"; query: string; type: SearchTypeFilter; status: "loading" | "done" | "error"; results: SearchResult[]; error?: string }
+  | { id: string; role: "user"; content: string }
+  | {
+      id: string
+      role: "assistant"
+      status: "loading" | "done" | "error"
+      content: string
+      results: SearchResult[]
+      action?: "reply" | "search"
+      query?: string
+      type?: "all" | "volunteer" | "ngo" | "opportunity"
+      error?: string
+    }
 
 // ============================================
-// AI-style natural-language summary builder
+// MAIN COMPONENT — JBCerta (Minimax-powered chat)
 // ============================================
 
-function buildAssistantSummary(query: string, results: SearchResult[]): string {
-  if (results.length === 0) return ""
-  const counts = results.reduce<Record<string, number>>((acc, r) => {
-    acc[r.type] = (acc[r.type] || 0) + 1
-    return acc
-  }, {})
-  const parts: string[] = []
-  if (counts.volunteer) parts.push(`${counts.volunteer} ${counts.volunteer === 1 ? "impact agent" : "impact agents"}`)
-  if (counts.ngo) parts.push(`${counts.ngo} ${counts.ngo === 1 ? "NGO" : "NGOs"}`)
-  if (counts.opportunity) parts.push(`${counts.opportunity} ${counts.opportunity === 1 ? "opportunity" : "opportunities"}`)
-
-  const topSkills = Array.from(
-    results.flatMap((r) => r.skills || []).reduce<Map<string, number>>((m, s) => {
-      m.set(s, (m.get(s) || 0) + 1)
-      return m
-    }, new Map())
-  )
-    .sort(([, a], [, b]) => b - a)
-    .slice(0, 3)
-    .map(([s]) => resolveSkillName(s))
-
-  const topLocations = Array.from(
-    results.map((r) => r.location).filter((l): l is string => !!l).reduce<Map<string, number>>((m, l) => {
-      m.set(l, (m.get(l) || 0) + 1)
-      return m
-    }, new Map())
-  )
-    .sort(([, a], [, b]) => b - a)
-    .slice(0, 2)
-    .map(([l]) => l)
-
-  let line = `I found ${parts.join(", ")} matching \u201C${query}\u201D.`
-  if (topSkills.length > 0) line += ` Top skills: ${topSkills.join(", ")}.`
-  if (topLocations.length > 0) line += ` Mostly in ${topLocations.join(" and ")}.`
-  return line
-}
-
-// ============================================
-// MAIN COMPONENT — JBCerta Chat
-// ============================================
+const SUGGESTIONS = [
+  "Find me a graphic designer in Madrid",
+  "Show NGOs working on education",
+  "Are there remote video editing opportunities?",
+  "Recommend volunteers for marketing",
+  "What can JBCerta help me with?",
+]
 
 export function GlobalSearchSection() {
-  const router = useRouter()
-  const locale = useLocale()
   const dict = useDictionary()
-  const s = (dict as any).search || {}
+  const s = (dict as { search?: Record<string, string> }).search || {}
 
-  const [searchType, setSearchType] = useState<SearchTypeFilter>("all")
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [inputValue, setInputValue] = useState("")
+  const [isFocused, setIsFocused] = useState(false)
   const { recentSearches, addRecentSearch, clearRecentSearches } = useRecentSearches()
 
   const messagesEndRef = useRef<HTMLDivElement>(null)
-  const abortControllersRef = useRef<Map<string, AbortController>>(new Map())
+  const abortRef = useRef<AbortController | null>(null)
   const { textareaRef, adjustHeight } = useAutoResizeTextarea({ minHeight: 56, maxHeight: 200 })
-  const [isFocused, setIsFocused] = useState(false)
 
-  // Auto-scroll to bottom whenever messages change
   useEffect(() => {
     if (messages.length > 0) {
       messagesEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" })
     }
   }, [messages])
 
-  // Cleanup all in-flight requests on unmount
   useEffect(() => {
-    const controllers = abortControllersRef.current
-    return () => {
-      controllers.forEach((c) => c.abort())
-      controllers.clear()
-    }
+    return () => abortRef.current?.abort()
   }, [])
 
-  const runQuery = useCallback(async (query: string, type: SearchTypeFilter) => {
-    const trimmed = query.trim()
-    if (!trimmed || trimmed.length > 200) return
+  const sendMessage = useCallback(async (text: string) => {
+    const trimmed = text.trim()
+    if (!trimmed || trimmed.length > 2000) return
 
     const userId = `u-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`
     const assistantId = `a-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`
 
+    // Snapshot current conversation BEFORE adding new turns to send to API
+    const history = messages.map((m) => ({
+      role: m.role as "user" | "assistant",
+      content: m.role === "user" ? m.content : (m.content || ""),
+    }))
+    history.push({ role: "user", content: trimmed })
+
     setMessages((prev) => [
       ...prev,
-      { id: userId, role: "user", query: trimmed, type },
-      { id: assistantId, role: "assistant", query: trimmed, type, status: "loading", results: [] },
+      { id: userId, role: "user", content: trimmed },
+      { id: assistantId, role: "assistant", status: "loading", content: "", results: [] },
     ])
 
     addRecentSearch(trimmed)
 
+    abortRef.current?.abort()
     const controller = new AbortController()
-    abortControllersRef.current.set(assistantId, controller)
+    abortRef.current = controller
 
     try {
-      const types = type === "all" ? `&types=${ALLOWED_TYPES}` : `&types=${type}`
-      const res = await fetch(
-        `/api/unified-search?q=${encodeURIComponent(trimmed)}${types}&limit=15`,
-        { signal: controller.signal }
-      )
-      const data = await res.json()
+      const res = await fetch("/api/jbcerta-chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ messages: history }),
+        signal: controller.signal,
+      })
+
       if (controller.signal.aborted) return
 
-      let filtered: SearchResult[] = (data.results || []).filter(
-        (r: any) => r.type === "volunteer" || r.type === "ngo" || r.type === "opportunity"
-      )
-      if (type !== "all") filtered = filtered.filter((r: any) => r.type === type)
+      const data = await res.json()
+      const action: "reply" | "search" = data?.action === "search" ? "search" : "reply"
+      const message: string = typeof data?.message === "string" ? data.message : ""
+      const results: SearchResult[] = Array.isArray(data?.results) ? data.results : []
+      const query: string | undefined = typeof data?.query === "string" ? data.query : undefined
+      const type = (["all", "volunteer", "ngo", "opportunity"] as const).includes(data?.type)
+        ? (data.type as "all" | "volunteer" | "ngo" | "opportunity")
+        : undefined
 
       setMessages((prev) =>
         prev.map((m) =>
           m.id === assistantId && m.role === "assistant"
-            ? { ...m, status: "done", results: filtered }
+            ? { ...m, status: "done", action, content: message, results, query, type }
             : m
         )
       )
-    } catch (error: any) {
-      if (error.name === "AbortError") return
+    } catch (error: unknown) {
+      if (error instanceof DOMException && error.name === "AbortError") return
       setMessages((prev) =>
         prev.map((m) =>
           m.id === assistantId && m.role === "assistant"
-            ? { ...m, status: "error", results: [], error: "Search failed. Please try again." }
+            ? { ...m, status: "error", error: "Sorry, JBCerta couldn't reply. Please try again." }
             : m
         )
       )
-    } finally {
-      abortControllersRef.current.delete(assistantId)
     }
-  }, [addRecentSearch])
+  }, [messages, addRecentSearch])
 
   const handleSubmit = useCallback(() => {
     const v = inputValue.trim()
     if (!v) return
     setInputValue("")
     adjustHeight(true)
-    runQuery(v, searchType)
-  }, [inputValue, searchType, runQuery, adjustHeight])
+    sendMessage(v)
+  }, [inputValue, sendMessage, adjustHeight])
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -473,14 +349,14 @@ export function GlobalSearchSection() {
   }
 
   const handleResetChat = () => {
-    abortControllersRef.current.forEach((c) => c.abort())
-    abortControllersRef.current.clear()
+    abortRef.current?.abort()
     setMessages([])
   }
 
   const getViewAllLink = (msg: Extract<ChatMessage, { role: "assistant" }>) => {
-    if (msg.type !== "all") {
-      return `${TYPE_CONFIG[msg.type].viewAllPath}?q=${encodeURIComponent(msg.query)}`
+    const q = msg.query || ""
+    if (msg.type && msg.type !== "all") {
+      return `${TYPE_CONFIG[msg.type].viewAllPath}?q=${encodeURIComponent(q)}`
     }
     const counts = msg.results.reduce<Record<string, number>>((acc, r) => {
       acc[r.type] = (acc[r.type] || 0) + 1
@@ -488,8 +364,8 @@ export function GlobalSearchSection() {
     }, {})
     const top = Object.entries(counts).sort(([, a], [, b]) => b - a)[0]?.[0] as keyof typeof TYPE_CONFIG | undefined
     return top
-      ? `${TYPE_CONFIG[top].viewAllPath}?q=${encodeURIComponent(msg.query)}`
-      : `/projects?q=${encodeURIComponent(msg.query)}`
+      ? `${TYPE_CONFIG[top].viewAllPath}?q=${encodeURIComponent(q)}`
+      : `/projects?q=${encodeURIComponent(q)}`
   }
 
   const hasMessages = messages.length > 0
@@ -501,7 +377,7 @@ export function GlobalSearchSection() {
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          className="max-w-4xl mx-auto"
+          className="max-w-3xl mx-auto"
         >
           {/* Header — preserved */}
           <div className="text-center mb-8">
@@ -509,293 +385,223 @@ export function GlobalSearchSection() {
               {s.findTitle || "Save time - just use our Intelligent Search Engine"}{" "}
               <span className="font-extrabold">{s.jbcertaName || "JBCerta"}</span>
             </h2>
-            <div className="flex items-center justify-center gap-2 mb-3">
-              <Badge variant="secondary" className="bg-primary/10 text-primary border-primary/20 px-3 py-1 text-xs font-semibold flex items-center gap-1.5">
-                <Sparkles className="h-3 w-3" />
-                {s.jbcertaBrand || "Powered by JBCerta AI"}
-              </Badge>
+            <div className="inline-flex items-center gap-1.5 mb-3 rounded-full bg-primary/10 text-primary border border-primary/20 px-3 py-1 text-xs font-semibold">
+              <Sparkles className="h-3 w-3" />
+              {s.jbcertaBrand || "Powered by JBCerta AI"}
             </div>
             <p className="text-muted-foreground text-sm md:text-base">
               {s.findSubtitle || "Advanced AI search engine specifically engineered for NGOs and social impact talent"}
             </p>
           </div>
 
-          {/* Type tabs — controls the next query */}
-          <div className="flex flex-wrap justify-center gap-2 mb-6">
-            {(["all", "opportunity", "volunteer", "ngo"] as const).map((type) => {
-              const isActive = searchType === type
-              const config = type !== "all" ? TYPE_CONFIG[type] : null
-              const Icon = config?.icon
-              return (
-                <button
-                  key={type}
-                  onClick={() => setSearchType(type)}
-                  className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 flex items-center gap-1.5 ${
-                    isActive
-                      ? "bg-primary text-primary-foreground shadow-md scale-[1.02]"
-                      : "bg-background text-muted-foreground hover:bg-muted hover:text-foreground border border-transparent hover:border-border"
-                  }`}
-                >
-                  {Icon && <Icon className="h-3.5 w-3.5" />}
-                  {type === "all" ? (s.all || "All") : type === "volunteer" ? (s.impactAgents || "Impact Agents") : type === "ngo" ? (s.ngos || "NGOs") : (s.opportunities || "Opportunities")}
-                </button>
-              )
-            })}
-          </div>
-
-          {/* Chat surface */}
-          <div className="rounded-2xl border bg-background shadow-sm overflow-hidden">
-            {/* Messages feed */}
-            {hasMessages ? (
-              <div className="max-h-[60vh] overflow-y-auto px-4 sm:px-6 py-5 space-y-5">
-                {messages.map((msg) =>
-                  msg.role === "user" ? (
-                    <motion.div
-                      key={msg.id}
-                      initial={{ opacity: 0, y: 6 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className="flex items-start gap-3 justify-end"
-                    >
-                      <div className="max-w-[80%] rounded-2xl rounded-tr-sm bg-primary text-primary-foreground px-4 py-2.5 text-sm shadow-sm">
-                        {msg.query}
-                      </div>
-                      <div className="shrink-0 mt-0.5 h-7 w-7 rounded-full bg-primary/10 text-primary flex items-center justify-center">
-                        <Users className="h-3.5 w-3.5" />
-                      </div>
-                    </motion.div>
-                  ) : (
-                    <motion.div
-                      key={msg.id}
-                      initial={{ opacity: 0, y: 6 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className="flex items-start gap-3"
-                    >
-                      <div className="shrink-0 mt-0.5 h-7 w-7 rounded-full bg-linear-to-br from-primary/20 to-primary/5 text-primary flex items-center justify-center ring-1 ring-primary/10">
-                        <Sparkles className="h-3.5 w-3.5" />
-                      </div>
-                      <div className="flex-1 min-w-0 space-y-3">
-                        {msg.status === "loading" && (
-                          <div className="text-sm flex items-center gap-2">
-                            <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" />
-                            <CyclingLoader
-                              texts={[
-                                `Searching for \u201C${msg.query}\u201D\u2026`,
-                                "Scanning impact agents\u2026",
-                                "Matching NGOs\u2026",
-                                "Ranking opportunities\u2026",
-                                "Almost ready\u2026",
-                              ]}
-                            />
-                          </div>
-                        )}
-
-                        {msg.status === "error" && (
-                          <div className="text-sm text-destructive">{msg.error || "Search failed."}</div>
-                        )}
-
-                        {msg.status === "done" && msg.results.length === 0 && (
-                          <div className="rounded-xl border bg-muted/30 px-4 py-5 text-center">
-                            <Search className="h-8 w-8 text-muted-foreground/60 mx-auto mb-2" />
-                            <p className="text-sm font-medium text-foreground mb-1">
-                              {s.noResultsFor || "No results found for"} &quot;{msg.query}&quot;
-                            </p>
-                            <p className="text-xs text-muted-foreground">
-                              {s.tryDifferent || "Try different keywords or browse categories"}
-                            </p>
-                          </div>
-                        )}
-
-                        {msg.status === "done" && msg.results.length > 0 && (
-                          <>
-                            <p className="text-sm text-foreground leading-relaxed">
-                              {buildAssistantSummary(msg.query, msg.results)}
-                            </p>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                              {msg.results.slice(0, 6).map((r) => (
-                                <ResultCard
-                                  key={`${r.type}-${r.id}`}
-                                  result={r}
-                                  query={msg.query}
-                                  onClick={() => addRecentSearch(msg.query)}
-                                />
-                              ))}
-                            </div>
-                            {msg.results.length > 6 && (
-                              <Button asChild variant="ghost" size="sm" className="text-primary -ml-2">
-                                <LocaleLink href={getViewAllLink(msg)}>
-                                  {s.viewAllResults || "View all"} {msg.results.length} {s.results || "results"}
-                                  <ArrowRight className="ml-1 h-3.5 w-3.5" />
-                                </LocaleLink>
-                              </Button>
-                            )}
-                          </>
-                        )}
-                      </div>
-                    </motion.div>
-                  )
-                )}
-                <div ref={messagesEndRef} />
-              </div>
-            ) : (
-              /* Empty state — friendly intro + suggestions */
-              <div className="px-4 sm:px-6 py-8">
-                <div className="flex items-start gap-3 mb-5">
-                  <div className="shrink-0 mt-0.5 h-7 w-7 rounded-full bg-linear-to-br from-primary/20 to-primary/5 text-primary flex items-center justify-center ring-1 ring-primary/10">
-                    <Sparkles className="h-3.5 w-3.5" />
-                  </div>
-                  <div className="flex-1">
-                    <p className="text-sm text-foreground">
-                      {s.jbcertaGreeting || "Hi! I'm JBCerta. Ask me to find people, NGOs or opportunities — try one of these:"}
-                    </p>
-                  </div>
-                </div>
-                <div className="flex flex-wrap gap-2 ml-10">
-                  {POPULAR_SEARCHES.map((item) => (
-                    <button
-                      key={item.query}
-                      onClick={() => runQuery(item.query, searchType)}
-                      className="px-3 py-1.5 text-xs rounded-full bg-muted/60 border border-border hover:border-primary hover:text-primary hover:bg-primary/5 transition-all duration-200"
-                    >
-                      {item.label}
-                    </button>
-                  ))}
-                </div>
-                {recentSearches.length > 0 && (
-                  <div className="mt-5 ml-10">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
-                        <Clock className="h-3 w-3" />
-                        {s.recentSearches || "Recent"}
-                      </span>
-                      <button
-                        onClick={clearRecentSearches}
-                        className="text-xs text-muted-foreground hover:text-foreground transition-colors"
-                      >
-                        {s.clearAll || "Clear"}
-                      </button>
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                      {recentSearches.map((q) => (
-                        <button
-                          key={q}
-                          onClick={() => runQuery(q, searchType)}
-                          className="px-3 py-1.5 text-xs rounded-full bg-background border border-border hover:border-primary hover:text-primary transition-all duration-200 flex items-center gap-1.5"
-                        >
-                          <Clock className="h-3 w-3 text-muted-foreground" />
-                          {q}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
+          {/* Single unified chat surface — Kokonut-inspired */}
+          <div
+            className={cn(
+              "relative rounded-2xl bg-background shadow-sm transition-all duration-200",
+              "ring-1 ring-border",
+              isFocused && "ring-2 ring-primary/40 shadow-lg shadow-primary/5"
             )}
+          >
+            {/* Soft top gradient bar — visual anchor for the AI surface */}
+            <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-primary/30 to-transparent" />
+            {/* Conversation feed (only visible after first message) */}
+            <AnimatePresence initial={false}>
+              {hasMessages && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  exit={{ opacity: 0, height: 0 }}
+                  transition={{ duration: 0.2 }}
+                  className="overflow-hidden"
+                >
+                  <div className="max-h-[55vh] overflow-y-auto px-4 sm:px-6 py-5 space-y-5">
+                    {messages.map((msg) =>
+                      msg.role === "user" ? (
+                        <motion.div
+                          key={msg.id}
+                          initial={{ opacity: 0, y: 6 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          className="flex items-start gap-3 justify-end"
+                        >
+                          <div className="max-w-[80%] rounded-2xl rounded-tr-sm bg-primary text-primary-foreground px-4 py-2.5 text-sm shadow-sm whitespace-pre-wrap wrap-break-word">
+                            {msg.content}
+                          </div>
+                          <div className="shrink-0 mt-0.5 h-7 w-7 rounded-full bg-primary/10 text-primary flex items-center justify-center">
+                            <Users className="h-3.5 w-3.5" />
+                          </div>
+                        </motion.div>
+                      ) : (
+                        <motion.div
+                          key={msg.id}
+                          initial={{ opacity: 0, y: 6 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          className="flex items-start gap-3"
+                        >
+                          <div className="shrink-0 mt-0.5 h-7 w-7 rounded-full bg-linear-to-br from-primary/20 to-primary/5 text-primary flex items-center justify-center ring-1 ring-primary/10">
+                            <Sparkles className="h-3.5 w-3.5" />
+                          </div>
+                          <div className="flex-1 min-w-0 space-y-3">
+                            {msg.status === "loading" && (
+                              <div className="text-sm flex items-center gap-2">
+                                <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" />
+                                <CyclingLoader
+                                  texts={[
+                                    "Thinking\u2026",
+                                    "Understanding your request\u2026",
+                                    "Looking through the platform\u2026",
+                                    "Almost ready\u2026",
+                                  ]}
+                                />
+                              </div>
+                            )}
 
-            {/* AI input bar — Kokonut-style */}
-            <div className="border-t bg-muted/20 p-3 sm:p-4">
-              <div
-                className={cn(
-                  "relative flex w-full cursor-text flex-col rounded-xl bg-background text-left transition-all duration-200",
-                  "ring-1 ring-border",
-                  isFocused && "ring-2 ring-primary/40"
-                )}
-                onClick={() => textareaRef.current?.focus()}
-              >
-                <div className="max-h-50 overflow-y-auto">
-                  <textarea
-                    ref={textareaRef}
-                    value={inputValue}
-                    onChange={(e) => {
-                      setInputValue(e.target.value)
-                      adjustHeight()
-                    }}
-                    onFocus={() => setIsFocused(true)}
-                    onBlur={() => setIsFocused(false)}
-                    onKeyDown={handleKeyDown}
-                    placeholder={
-                      searchType === "volunteer"
-                        ? (s.placeholderVolunteer || "Ask JBCerta to find impact agents…")
-                        : searchType === "ngo"
-                        ? (s.placeholderNgo || "Ask JBCerta to find NGOs…")
-                        : searchType === "opportunity"
-                        ? (s.placeholderOpportunity || "Ask JBCerta to find opportunities…")
-                        : (s.jbcertaPlaceholder || "Ask JBCerta anything — people, NGOs, opportunities…")
-                    }
-                    aria-label="Ask JBCerta"
-                    rows={1}
-                    className="w-full resize-none rounded-xl rounded-b-none border-none bg-transparent px-4 py-3 text-sm leading-[1.4] outline-none placeholder:text-muted-foreground/70"
-                  />
-                </div>
+                            {msg.status === "error" && (
+                              <div className="text-sm text-destructive">{msg.error || "Something went wrong."}</div>
+                            )}
 
-                <div className="h-12 rounded-b-xl bg-muted/40 dark:bg-white/5">
-                  <div className="absolute bottom-3 left-3 flex items-center gap-2">
-                    <button
-                      type="button"
-                      title={s.attach || "Attach (coming soon)"}
-                      className="cursor-pointer rounded-lg bg-background/60 p-2 text-muted-foreground hover:text-foreground transition-colors"
-                    >
-                      <Paperclip className="h-4 w-4" />
-                    </button>
-                    <div className="flex h-8 items-center gap-1 rounded-full border border-primary/30 bg-primary/10 px-2 py-1 text-primary">
-                      <Sparkles className="h-3.5 w-3.5" />
-                      <span className="text-xs font-medium">JBCerta</span>
-                    </div>
-                    <div className="flex h-8 items-center gap-1 rounded-full border border-border bg-background/70 px-2 py-1 text-muted-foreground">
-                      <Globe className="h-3.5 w-3.5" />
-                      <span className="text-xs font-medium">
-                        {searchType === "all"
-                          ? (s.all || "All")
-                          : searchType === "volunteer"
-                          ? (s.impactAgents || "Impact Agents")
-                          : searchType === "ngo"
-                          ? (s.ngos || "NGOs")
-                          : (s.opportunities || "Opportunities")}
-                      </span>
-                    </div>
-                  </div>
-                  <div className="absolute right-3 bottom-3 flex items-center gap-1">
-                    {hasMessages && (
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          handleResetChat()
-                        }}
-                        className="rounded-lg p-2 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-                        aria-label="Reset chat"
-                        title={s.resetChat || "Reset chat"}
-                        type="button"
-                      >
-                        <RotateCcw className="h-4 w-4" />
-                      </button>
+                            {msg.status === "done" && (
+                              <>
+                                {msg.content && (
+                                  <p className="text-sm text-foreground leading-relaxed whitespace-pre-wrap">
+                                    {msg.content}
+                                  </p>
+                                )}
+
+                                {msg.action === "search" && msg.results.length === 0 && msg.query && (
+                                  <p className="text-xs text-muted-foreground italic">
+                                    {s.noResultsHint || "No matches yet — try rephrasing or being more specific."}
+                                  </p>
+                                )}
+
+                                {msg.results.length > 0 && (
+                                  <div className="rounded-xl border bg-muted/20 p-2 space-y-0.5">
+                                    {msg.results.slice(0, 6).map((r) => (
+                                      <ResultRow
+                                        key={`${r.type}-${r.id}`}
+                                        result={r}
+                                        onClick={() => msg.query && addRecentSearch(msg.query)}
+                                      />
+                                    ))}
+                                    {msg.results.length > 6 && (
+                                      <LocaleLink
+                                        href={getViewAllLink(msg)}
+                                        className="flex items-center justify-center gap-1 px-2 py-2 text-xs text-primary font-medium hover:underline"
+                                      >
+                                        {s.viewAllResults || "View all"} {msg.results.length} {s.results || "results"}
+                                        <ArrowRight className="h-3 w-3" />
+                                      </LocaleLink>
+                                    )}
+                                  </div>
+                                )}
+                              </>
+                            )}
+                          </div>
+                        </motion.div>
+                      )
                     )}
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        handleSubmit()
-                      }}
-                      disabled={!inputValue.trim()}
-                      className={cn(
-                        "rounded-lg p-2 transition-colors",
-                        inputValue.trim()
-                          ? "bg-primary text-primary-foreground hover:bg-primary/90"
-                          : "bg-muted text-muted-foreground/50 cursor-not-allowed"
-                      )}
-                      aria-label="Send"
-                      type="button"
-                    >
-                      <Send className="h-4 w-4" />
-                    </button>
+                    <div ref={messagesEndRef} />
                   </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/* Input row — seamlessly part of the same surface, no divider */}
+            <div className="relative" onClick={() => textareaRef.current?.focus()}>
+              <textarea
+                ref={textareaRef}
+                value={inputValue}
+                onChange={(e) => {
+                  setInputValue(e.target.value)
+                  adjustHeight()
+                }}
+                onFocus={() => setIsFocused(true)}
+                onBlur={() => setIsFocused(false)}
+                onKeyDown={handleKeyDown}
+                placeholder={s.jbcertaPlaceholder || "Ask JBCerta anything\u2026"}
+                aria-label="Ask JBCerta"
+                rows={1}
+                className={cn(
+                  "w-full resize-none border-none bg-transparent px-5 pt-4 pb-14 text-sm leading-normal outline-none placeholder:text-muted-foreground/60",
+                  hasMessages ? "rounded-b-2xl" : "rounded-2xl"
+                )}
+              />
+
+              {/* Bottom-bar inside the same input box */}
+              <div className="absolute bottom-3 left-4 flex items-center gap-2 pointer-events-none">
+                <div className="flex h-7 items-center gap-1 rounded-full border border-primary/30 bg-primary/10 px-2 text-primary pointer-events-auto">
+                  <Sparkles className="h-3 w-3" />
+                  <span className="text-[11px] font-medium">JBCerta</span>
                 </div>
+                <span className="hidden sm:inline text-[11px] text-muted-foreground">
+                  {s.enterToSend || "Enter to send · Shift+Enter for new line"}
+                </span>
               </div>
-              <p className="mt-2 text-center text-[11px] text-muted-foreground">
-                {s.enterToSend || "Press Enter to send · Shift+Enter for new line"}
-              </p>
+
+              <div className="absolute bottom-3 right-3 flex items-center gap-1">
+                {hasMessages && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      handleResetChat()
+                    }}
+                    className="rounded-lg p-2 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                    aria-label="Reset chat"
+                    title={s.resetChat || "Reset chat"}
+                    type="button"
+                  >
+                    <RotateCcw className="h-4 w-4" />
+                  </button>
+                )}
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    handleSubmit()
+                  }}
+                  disabled={!inputValue.trim()}
+                  className={cn(
+                    "rounded-lg p-2 transition-colors",
+                    inputValue.trim()
+                      ? "bg-primary text-primary-foreground hover:bg-primary/90"
+                      : "bg-muted text-muted-foreground/50 cursor-not-allowed"
+                  )}
+                  aria-label="Send"
+                  type="button"
+                >
+                  <Send className="h-4 w-4" />
+                </button>
+              </div>
             </div>
           </div>
+
+          {/* Suggestion chips below the box (only when empty) */}
+          {!hasMessages && (
+            <motion.div
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1 }}
+              className="mt-4 flex flex-wrap justify-center gap-2"
+            >
+              {SUGGESTIONS.map((q) => (
+                <button
+                  key={q}
+                  onClick={() => sendMessage(q)}
+                  className="px-3 py-1.5 text-xs rounded-full bg-background border border-border hover:border-primary hover:text-primary hover:bg-primary/5 transition-all duration-200"
+                >
+                  {q}
+                </button>
+              ))}
+              {recentSearches.length > 0 && (
+                <button
+                  onClick={clearRecentSearches}
+                  className="ml-2 text-[11px] text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  {s.clearAll || "Clear recents"}
+                </button>
+              )}
+            </motion.div>
+          )}
         </motion.div>
       </div>
     </section>
   )
 }
-
