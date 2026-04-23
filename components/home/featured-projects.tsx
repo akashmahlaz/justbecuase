@@ -79,7 +79,7 @@ export function FeaturedProjects() {
         {loading ? (
           <div className="flex gap-6 overflow-hidden -mx-4 px-4 md:-mx-6 md:px-6">
             {Array.from({ length: 4 }).map((_, i) => (
-              <div key={i} className="min-w-[320px] max-w-[380px] flex-shrink-0 rounded-2xl border border-border bg-card p-6 space-y-4">
+              <div key={i} className="min-w-[320px] max-w-95 flex-shrink-0 rounded-2xl border border-border bg-card p-6 space-y-4">
                 <div className="flex items-center gap-3">
                   <Skeleton className="w-10 h-10 rounded-lg" />
                   <Skeleton className="h-4 w-28" />
