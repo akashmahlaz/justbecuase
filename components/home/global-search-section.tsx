@@ -127,51 +127,105 @@ function ResultRow({ result, onClick }: { result: SearchResult; onClick?: () => 
     result.type === "volunteer" ? `/volunteers/${result.id}` :
     result.type === "ngo" ? `/ngos/${result.id}` :
     `/projects/${result.id}`
+  const skills = (result.skills || []).slice(0, 3)
+  const initials = (result.title || "?")
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((s) => s[0])
+    .join("")
+    .toUpperCase()
 
   return (
     <LocaleLink
       href={href}
       onClick={onClick}
-      className="group flex items-center gap-3 rounded-lg border border-transparent bg-transparent px-2 py-2 hover:border-border hover:bg-muted/40 transition-colors"
+      target="_blank"
+      rel="noreferrer"
+      className={cn(
+        "group relative flex items-start gap-3 rounded-xl border border-border/60 bg-background/80",
+        "px-3 py-3 transition-all duration-200",
+        "hover:border-primary/50 hover:bg-muted/40 hover:shadow-md hover:shadow-primary/5"
+      )}
     >
+      {/* Avatar / icon */}
       <div className="shrink-0">
         {result.avatar ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src={result.avatar}
             alt={result.title}
-            className="w-8 h-8 rounded-full object-cover bg-muted ring-1 ring-border"
+            className="w-10 h-10 rounded-full object-cover bg-muted ring-1 ring-border"
             loading="lazy"
           />
         ) : (
-          <div className={cn("w-8 h-8 rounded-full flex items-center justify-center ring-1 ring-border", config.badgeClass)}>
-            <Icon className="h-3.5 w-3.5" />
+          <div
+            className={cn(
+              "w-10 h-10 rounded-full flex items-center justify-center text-xs font-semibold ring-1 ring-border",
+              config.badgeClass
+            )}
+          >
+            {initials || <Icon className="h-4 w-4" />}
           </div>
         )}
       </div>
+
+      {/* Body */}
       <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-1.5">
-          <span className="text-sm font-medium text-foreground truncate group-hover:text-primary transition-colors">
+        {/* Row 1 — name + verified + type pill */}
+        <div className="flex items-center gap-1.5 flex-wrap">
+          <span className="text-sm font-semibold text-foreground truncate group-hover:text-primary transition-colors">
             {result.title}
           </span>
           {result.verified && (
-            <CheckCircle className="h-3 w-3 shrink-0 text-primary" fill="currentColor" strokeWidth={0} />
+            <CheckCircle className="h-3.5 w-3.5 shrink-0 text-primary" fill="currentColor" strokeWidth={0} />
           )}
-          <span className={cn("text-[10px] font-medium uppercase tracking-wider shrink-0", config.accent)}>
-            · {config.label}
+          <span
+            className={cn(
+              "ml-auto inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-medium",
+              config.badgeClass
+            )}
+          >
+            <Icon className="h-2.5 w-2.5" />
+            {config.label}
           </span>
         </div>
-        <div className="flex items-center gap-2 text-[11px] text-muted-foreground truncate">
-          {result.subtitle && <span className="truncate">{result.subtitle}</span>}
-          {result.location && (
-            <span className="flex items-center gap-0.5 shrink-0">
-              <MapPin className="h-2.5 w-2.5" />
-              {result.location}
-            </span>
-          )}
-        </div>
+
+        {/* Row 2 — meta line */}
+        {(result.subtitle || result.location) && (
+          <div className="mt-0.5 flex items-center gap-2 text-[11px] text-muted-foreground min-w-0">
+            {result.subtitle && <span className="truncate">{result.subtitle}</span>}
+            {result.subtitle && result.location && <span className="opacity-50">·</span>}
+            {result.location && (
+              <span className="flex items-center gap-0.5 shrink-0">
+                <MapPin className="h-2.5 w-2.5" />
+                {result.location}
+              </span>
+            )}
+          </div>
+        )}
+
+        {/* Row 3 — skill chips */}
+        {skills.length > 0 && (
+          <div className="mt-2 flex flex-wrap gap-1">
+            {skills.map((sk) => (
+              <span
+                key={sk}
+                className="inline-flex rounded-md bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground"
+              >
+                {sk}
+              </span>
+            ))}
+            {(result.skills?.length || 0) > skills.length && (
+              <span className="inline-flex rounded-md px-1 py-0.5 text-[10px] text-muted-foreground/60">
+                +{(result.skills?.length || 0) - skills.length}
+              </span>
+            )}
+          </div>
+        )}
       </div>
-      <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0 group-hover:text-primary group-hover:translate-x-0.5 transition-all" />
+
+      {/* Open-external indicator */}
+      <ChevronRight className="absolute top-3 right-3 h-3.5 w-3.5 text-muted-foreground/40 group-hover:text-primary group-hover:translate-x-0.5 transition-all" />
     </LocaleLink>
   )
 }
@@ -276,11 +330,37 @@ export function GlobalSearchSection() {
     const userId = `u-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`
     const assistantId = `a-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`
 
-    // Snapshot current conversation BEFORE adding new turns to send to API
-    const history = messages.map((m) => ({
-      role: m.role as "user" | "assistant",
-      content: m.role === "user" ? m.content : (m.content || ""),
-    }))
+    // Snapshot current conversation BEFORE adding new turns to send to API.
+    // For assistant turns we also fold in a structured digest of any results
+    // shown — this gives the LLM real "memory" of who/what was on screen so
+    // follow-ups like "which is best?" can be answered without re-searching.
+    const history = messages.map((m) => {
+      if (m.role === "user") return { role: "user" as const, content: m.content }
+      const text = m.content || ""
+      if (m.results && m.results.length > 0) {
+        const digest = m.results
+          .slice(0, 10)
+          .map((r, i) => {
+            const skills = (r.skills || []).slice(0, 6).join(", ")
+            const parts = [
+              `${i + 1}. ${r.title}`,
+              `[${r.type}, id=${r.id}]`,
+              r.location ? `loc=${r.location}` : null,
+              r.subtitle ? `role=${r.subtitle}` : null,
+              skills ? `skills=${skills}` : null,
+              r.verified ? "verified" : null,
+              typeof r.rating === "number" ? `rating=${r.rating}` : null,
+            ].filter(Boolean)
+            return parts.join(" | ")
+          })
+          .join("\n")
+        return {
+          role: "assistant" as const,
+          content: `${text}\n\n[CONTEXT — results currently visible to the user, query="${m.query || ""}", type=${m.type || "all"}]:\n${digest}`,
+        }
+      }
+      return { role: "assistant" as const, content: text }
+    })
     history.push({ role: "user", content: trimmed })
 
     setMessages((prev) => [
@@ -474,18 +554,29 @@ export function GlobalSearchSection() {
                                 )}
 
                                 {msg.results.length > 0 && (
-                                  <div className="rounded-xl border bg-muted/20 p-2 space-y-0.5">
-                                    {msg.results.slice(0, 6).map((r) => (
-                                      <ResultRow
-                                        key={`${r.type}-${r.id}`}
-                                        result={r}
-                                        onClick={() => msg.query && addRecentSearch(msg.query)}
-                                      />
-                                    ))}
+                                  <div className="rounded-xl border border-border/60 bg-linear-to-b from-muted/30 to-muted/10 p-2.5">
+                                    <div className="mb-2 flex items-center justify-between px-1">
+                                      <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-muted-foreground">
+                                        <Sparkles className="h-3 w-3 text-primary" />
+                                        {msg.results.length} {msg.results.length === 1 ? (s.match || "match") : (s.matches || "matches")}
+                                      </span>
+                                      <span className="text-[10px] text-muted-foreground/60">
+                                        {s.openInNewTab || "Opens in new tab"}
+                                      </span>
+                                    </div>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                                      {msg.results.slice(0, 6).map((r) => (
+                                        <ResultRow
+                                          key={`${r.type}-${r.id}`}
+                                          result={r}
+                                          onClick={() => msg.query && addRecentSearch(msg.query)}
+                                        />
+                                      ))}
+                                    </div>
                                     {msg.results.length > 6 && (
                                       <LocaleLink
                                         href={getViewAllLink(msg)}
-                                        className="flex items-center justify-center gap-1 px-2 py-2 text-xs text-primary font-medium hover:underline"
+                                        className="mt-2 flex items-center justify-center gap-1 rounded-lg px-2 py-2 text-xs text-primary font-medium hover:bg-primary/5"
                                       >
                                         {s.viewAllResults || "View all"} {msg.results.length} {s.results || "results"}
                                         <ArrowRight className="h-3 w-3" />
@@ -520,24 +611,36 @@ export function GlobalSearchSection() {
                 placeholder={s.jbcertaPlaceholder || "Ask JBCerta anything\u2026"}
                 aria-label="Ask JBCerta"
                 rows={1}
+                maxLength={2000}
                 className={cn(
-                  "w-full resize-none border-none bg-transparent px-5 pt-4 pb-14 text-sm leading-normal outline-none placeholder:text-muted-foreground/60",
+                  "w-full resize-none border-none bg-transparent px-5 pt-5 pb-14 text-sm leading-normal outline-none placeholder:text-muted-foreground/60",
                   hasMessages ? "rounded-b-2xl" : "rounded-2xl"
                 )}
               />
 
               {/* Bottom-bar inside the same input box */}
               <div className="absolute bottom-3 left-4 flex items-center gap-2 pointer-events-none">
-                <div className="flex h-7 items-center gap-1 rounded-full border border-primary/30 bg-primary/10 px-2 text-primary pointer-events-auto">
+                <div className="group/pill relative flex h-7 items-center gap-1 overflow-hidden rounded-full border border-primary/30 bg-primary/10 px-2 text-primary pointer-events-auto">
                   <Sparkles className="h-3 w-3" />
-                  <span className="text-[11px] font-medium">JBCerta</span>
+                  <span className="text-[11px] font-semibold">JBCerta</span>
+                  <span className="text-[10px] text-primary/60 font-mono ml-1">M2.7</span>
+                  {/* shimmer */}
+                  <span className="pointer-events-none absolute inset-0 -translate-x-full bg-linear-to-r from-transparent via-white/30 to-transparent group-hover/pill:translate-x-full transition-transform duration-700" />
                 </div>
                 <span className="hidden sm:inline text-[11px] text-muted-foreground">
                   {s.enterToSend || "Enter to send · Shift+Enter for new line"}
                 </span>
               </div>
 
-              <div className="absolute bottom-3 right-3 flex items-center gap-1">
+              <div className="absolute bottom-3 right-3 flex items-center gap-1.5">
+                {inputValue.length > 0 && (
+                  <span className={cn(
+                    "text-[10px] font-mono tabular-nums px-1.5",
+                    inputValue.length > 1800 ? "text-destructive" : "text-muted-foreground/60"
+                  )}>
+                    {inputValue.length}/2000
+                  </span>
+                )}
                 {hasMessages && (
                   <button
                     onClick={(e) => {
@@ -559,10 +662,10 @@ export function GlobalSearchSection() {
                   }}
                   disabled={!inputValue.trim()}
                   className={cn(
-                    "rounded-lg p-2 transition-colors",
+                    "rounded-lg p-2 transition-all duration-200",
                     inputValue.trim()
-                      ? "bg-primary text-primary-foreground hover:bg-primary/90"
-                      : "bg-muted text-muted-foreground/50 cursor-not-allowed"
+                      ? "bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm shadow-primary/30 scale-100"
+                      : "bg-muted text-muted-foreground/40 cursor-not-allowed scale-95"
                   )}
                   aria-label="Send"
                   type="button"
