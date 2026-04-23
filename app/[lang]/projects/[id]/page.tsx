@@ -21,6 +21,7 @@ import { getProject, getNGOById, getActiveProjects, hasAppliedToProject, isProje
 import { externalOpportunitiesDb } from "@/lib/scraper"
 import { fetchPage, extractPageContent } from "@/lib/scraper/text-extractor"
 import { skillCategories } from "@/lib/skills-data"
+import { stripMarkdown } from "@/lib/strip-markdown"
 import { ApplyButton } from "./apply-button"
 import { SaveButton } from "./save-button"
 import { ShareButton } from "@/components/share-button"
@@ -78,7 +79,7 @@ export async function generateMetadata({
     const project = await getProject(id)
     if (project) {
       title = project.title
-      description = (project.description || "").slice(0, 160)
+      description = stripMarkdown(project.description || "").slice(0, 160)
       const ngo = await getNGOById(project.ngoId)
       if (ngo) {
         description = `${title} by ${ngo.orgName}. ${description}`
@@ -299,7 +300,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
                 </CardHeader>
                 <CardContent className="prose prose-slate max-w-none">
                   <div className="text-foreground leading-relaxed whitespace-pre-line">
-                    {project.description}
+                    {stripMarkdown(project.description)}
                   </div>
                 </CardContent>
               </Card>
@@ -530,7 +531,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
                     />
                     <ShareButton 
                       title={project.title}
-                      description={project.description?.substring(0, 150) + "..."}
+                      description={stripMarkdown(project.description).substring(0, 150) + "..."}
                       className="flex-1 bg-transparent"
                     />
                   </div>

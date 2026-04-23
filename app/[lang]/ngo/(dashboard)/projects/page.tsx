@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import Link from "next/link"
 import { resolveSkillName } from "@/lib/skills-data"
+import { stripMarkdown } from "@/lib/strip-markdown"
 import {
   PlusCircle,
   FolderKanban,
@@ -206,7 +207,7 @@ function ProjectCard({ project, dict }: { project: any; dict: any }) {
               )}
             </div>
             <p className="text-muted-foreground line-clamp-2">
-              {project.description}
+              {stripMarkdown(project.description)}
             </p>
           </div>
           <div className="flex items-center gap-2 ml-4">

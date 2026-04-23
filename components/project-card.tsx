@@ -11,6 +11,7 @@ import { Progress } from "@/components/ui/progress"
 import { Separator } from "@/components/ui/separator"
 import { Clock, MapPin, Users, CheckCircle, ArrowRight, Star, Calendar, DollarSign, Globe, GraduationCap } from "lucide-react"
 import { useDictionary } from "@/components/dictionary-provider"
+import { stripMarkdown } from "@/lib/strip-markdown"
 
 interface Project {
   id: string
@@ -131,7 +132,7 @@ export function ProjectCard({ project }: { project: Project }) {
         <h3 className="text-lg font-semibold text-foreground line-clamp-2 group-hover:text-primary transition-colors">
           {project.title}
         </h3>
-        <p className="text-sm text-muted-foreground line-clamp-2 grow">{project.description}</p>
+        <p className="text-sm text-muted-foreground line-clamp-2 grow">{stripMarkdown(project.description)}</p>
 
         {/* Dynamic badges row — work mode, experience, salary */}
         <div className="flex flex-wrap gap-1.5">
