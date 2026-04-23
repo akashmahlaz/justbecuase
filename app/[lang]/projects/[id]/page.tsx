@@ -169,7 +169,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
     <div className="min-h-screen flex flex-col bg-background">
       <JobPostingJsonLd
         title={project.title}
-        description={project.description || ""}
+        description={stripMarkdown(project.description || "")}
         orgName={ngo?.orgName || "Organization"}
         location={project.location}
         datePosted={project.createdAt ? new Date(project.createdAt).toISOString() : undefined}

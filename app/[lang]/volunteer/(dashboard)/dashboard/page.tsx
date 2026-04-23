@@ -20,6 +20,7 @@ import { Clock, CheckCircle2, FolderKanban, TrendingUp, Star, ArrowRight, Edit, 
 import { AIMatchExplanation } from "@/components/ai/match-explanation"
 import Link from "next/link"
 import { resolveSkillName } from "@/lib/skills-data"
+import { stripMarkdown } from "@/lib/strip-markdown"
 import { getDictionary } from "@/app/[lang]/dictionaries"
 import type { Locale } from "@/lib/i18n-config"
 
@@ -209,7 +210,7 @@ export default async function VolunteerDashboard({ params }: { params: Promise<{
                               </Tooltip>
                             </TooltipProvider>
                           </div>
-                          <p className="text-sm text-muted-foreground line-clamp-2 mb-3">{match.project.description}</p>
+                          <p className="text-sm text-muted-foreground line-clamp-2 mb-3">{stripMarkdown(match.project.description)}</p>
                           <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
                             <span className="flex items-center gap-1 capitalize">
                               <MapPin className="h-3 w-3" />{match.project.workMode}

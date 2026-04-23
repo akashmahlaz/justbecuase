@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { browseProjects } from "@/lib/actions"
 import { externalOpportunitiesDb } from "@/lib/scraper"
+import { deriveLogoUrl } from "@/lib/logo-resolver"
 
 // ============================================
 // GET /api/projects — Merged native + scraped, paginated
@@ -88,18 +89,6 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error("Error fetching projects:", error)
     return NextResponse.json({ projects: [], pagination: { page: 1, limit: 24, total: 0, totalPages: 0 } }, { status: 500 })
-  }
-}
-
-/** Derive a logo URL from stored logo or Clearbit domain lookup */
-function deriveLogoUrl(opp: any): string {
-  if (opp.organizationLogo) return opp.organizationLogo
-  const url = opp.organizationUrl || opp.sourceUrl || ""
-  try {
-    const domain = new URL(url).hostname.replace(/^www\./, "")
-    return `https://logo.clearbit.com/${domain}`
-  } catch {
-    return ""
   }
 }
 

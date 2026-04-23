@@ -9,7 +9,8 @@ import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { stripMarkdown } from "@/lib/strip-markdown"
+import { stripMarkdown, looksLikeMarkdown } from "@/lib/strip-markdown"
+import { deriveLogoUrl } from "@/lib/logo-resolver"
 import { ShareButton } from "@/components/share-button"
 import { externalOpportunitiesDb } from "@/lib/scraper"
 import { fetchPage, extractPageContent } from "@/lib/scraper/text-extractor"
@@ -30,17 +31,6 @@ import {
 
 function getInitials(name: string): string {
   return name.split(/\s+/).map(w => w[0]).join("").slice(0, 2).toUpperCase()
-}
-
-function deriveLogoUrl(opp: any): string {
-  if (opp.organizationLogo) return opp.organizationLogo
-  const url = opp.organizationUrl || opp.sourceUrl || ""
-  try {
-    const domain = new URL(url).hostname.replace(/^www\./, "")
-    return `https://logo.clearbit.com/${domain}`
-  } catch {
-    return ""
-  }
 }
 
 function formatDate(date?: Date | string, fallback = "Not specified"): string {
@@ -162,7 +152,7 @@ export default async function ExternalOpportunityDetailPage({
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  {opportunity.bodyHtml ? (
+                  {opportunity.bodyHtml && !looksLikeMarkdown(opportunity.bodyHtml) ? (
                     <div
                       className="prose prose-slate dark:prose-invert max-w-none text-foreground leading-relaxed text-[15px]"
                       dangerouslySetInnerHTML={{ __html: opportunity.bodyHtml }}
@@ -170,9 +160,10 @@ export default async function ExternalOpportunityDetailPage({
                   ) : (
                     <div className="prose prose-slate dark:prose-invert max-w-none text-foreground leading-relaxed whitespace-pre-line text-[15px]">
                       {stripMarkdown(
-                        opportunity.description && opportunity.description.length > 50
-                          ? opportunity.description
-                          : opportunity.shortDescription || opportunity.title
+                        opportunity.bodyHtml ||
+                          (opportunity.description && opportunity.description.length > 50
+                            ? opportunity.description
+                            : opportunity.shortDescription || opportunity.title)
                       )}
                     </div>
                   )}
@@ -189,10 +180,16 @@ export default async function ExternalOpportunityDetailPage({
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div
-                      className="prose prose-slate dark:prose-invert max-w-none text-foreground leading-relaxed text-[15px]"
-                      dangerouslySetInnerHTML={{ __html: opportunity.howToApplyHtml }}
-                    />
+                    {looksLikeMarkdown(opportunity.howToApplyHtml) ? (
+                      <div className="prose prose-slate dark:prose-invert max-w-none text-foreground leading-relaxed whitespace-pre-line text-[15px]">
+                        {stripMarkdown(opportunity.howToApplyHtml)}
+                      </div>
+                    ) : (
+                      <div
+                        className="prose prose-slate dark:prose-invert max-w-none text-foreground leading-relaxed text-[15px]"
+                        dangerouslySetInnerHTML={{ __html: opportunity.howToApplyHtml }}
+                      />
+                    )}
                   </CardContent>
                 </Card>
               )}
