@@ -268,6 +268,7 @@ export function buildJBCertaTools(bag: AgentResultBag) {
       execute: async ({ userId }) => {
         const n = await ngoProfilesDb.findByUserId(userId)
         if (!n) return { found: false, error: "NGO not found." }
+        const nx = n as unknown as Record<string, unknown>
         return {
           found: true,
           profile: {
@@ -276,7 +277,7 @@ export function buildJBCertaTools(bag: AgentResultBag) {
             contactPersonName: n.contactPersonName,
             description: n.description?.slice(0, 800),
             mission: n.mission?.slice(0, 600),
-            location: n.location || [n.city, n.country].filter(Boolean).join(", "),
+            location: (nx.location as string | undefined) || [n.city, n.country].filter(Boolean).join(", "),
             website: n.website,
             causes: n.causes || [],
             typicalSkillsNeeded: n.typicalSkillsNeeded || [],
@@ -302,6 +303,7 @@ export function buildJBCertaTools(bag: AgentResultBag) {
       execute: async ({ id }) => {
         const p = await projectsDb.findById(id)
         if (!p) return { found: false, error: "Opportunity not found." }
+        const px = p as unknown as Record<string, unknown>
         return {
           found: true,
           project: {
@@ -314,8 +316,8 @@ export function buildJBCertaTools(bag: AgentResultBag) {
             experienceLevel: p.experienceLevel,
             workMode: p.workMode,
             location: p.location,
-            urgency: p.urgency,
-            deadline: p.deadline,
+            urgency: px.urgency as string | undefined,
+            deadline: px.deadline as string | undefined,
             applicantsCount: p.applicantsCount,
             viewsCount: p.viewsCount,
           },

@@ -282,9 +282,9 @@ type ChatMessage =
       status: "loading" | "done" | "error"
       content: string
       results: SearchResult[]
-      action?: "reply" | "search"
-      query?: string
-      type?: "all" | "volunteer" | "ngo" | "opportunity"
+      /** The user's prompt that triggered this assistant turn — used for "View all" deep links. */
+      userQuery?: string
+      meta?: { model?: string; steps?: number; toolCalls?: string[]; elapsedMs?: number }
       error?: string
     }
 
@@ -356,7 +356,7 @@ export function GlobalSearchSection() {
           .join("\n")
         return {
           role: "assistant" as const,
-          content: `${text}\n\n[CONTEXT — results currently visible to the user, query="${m.query || ""}", type=${m.type || "all"}]:\n${digest}`,
+          content: `${text}\n\n[CONTEXT — results currently visible to the user, prior query="${m.userQuery || ""}"]:\n${digest}`,
         }
       }
       return { role: "assistant" as const, content: text }
@@ -386,18 +386,14 @@ export function GlobalSearchSection() {
       if (controller.signal.aborted) return
 
       const data = await res.json()
-      const action: "reply" | "search" = data?.action === "search" ? "search" : "reply"
       const message: string = typeof data?.message === "string" ? data.message : ""
       const results: SearchResult[] = Array.isArray(data?.results) ? data.results : []
-      const query: string | undefined = typeof data?.query === "string" ? data.query : undefined
-      const type = (["all", "volunteer", "ngo", "opportunity"] as const).includes(data?.type)
-        ? (data.type as "all" | "volunteer" | "ngo" | "opportunity")
-        : undefined
+      const meta = (data?.meta && typeof data.meta === "object") ? data.meta : undefined
 
       setMessages((prev) =>
         prev.map((m) =>
           m.id === assistantId && m.role === "assistant"
-            ? { ...m, status: "done", action, content: message, results, query, type }
+            ? { ...m, status: "done", content: message, results, userQuery: trimmed, meta }
             : m
         )
       )
@@ -434,10 +430,7 @@ export function GlobalSearchSection() {
   }
 
   const getViewAllLink = (msg: Extract<ChatMessage, { role: "assistant" }>) => {
-    const q = msg.query || ""
-    if (msg.type && msg.type !== "all") {
-      return `${TYPE_CONFIG[msg.type].viewAllPath}?q=${encodeURIComponent(q)}`
-    }
+    const q = msg.userQuery || ""
     const counts = msg.results.reduce<Record<string, number>>((acc, r) => {
       acc[r.type] = (acc[r.type] || 0) + 1
       return acc
@@ -547,7 +540,7 @@ export function GlobalSearchSection() {
                                   </p>
                                 )}
 
-                                {msg.action === "search" && msg.results.length === 0 && msg.query && (
+                                {msg.results.length === 0 && msg.userQuery && !msg.content && (
                                   <p className="text-xs text-muted-foreground italic">
                                     {s.noResultsHint || "No matches yet — try rephrasing or being more specific."}
                                   </p>
@@ -569,7 +562,7 @@ export function GlobalSearchSection() {
                                         <ResultRow
                                           key={`${r.type}-${r.id}`}
                                           result={r}
-                                          onClick={() => msg.query && addRecentSearch(msg.query)}
+                                          onClick={() => msg.userQuery && addRecentSearch(msg.userQuery)}
                                         />
                                       ))}
                                     </div>

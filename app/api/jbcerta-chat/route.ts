@@ -1,232 +1,131 @@
-import { NextRequest, NextResponse } from "next/server"
+// =============================================================
+// JBCerta — tool-calling agent loop powered by Minimax M2.7
+// via the Vercel AI SDK.
+//
+// Architecture:
+//   user msg
+//     -> generateText(model=Minimax, tools={search/get/match...},
+//                     stopWhen=stepCountIs(N))
+//        -> model decides which tool(s) to call
+//           -> each tool wraps existing ES + Mongo helpers
+//           -> tool results stream back into the model context
+//        -> model writes a final natural-language answer
+//     -> route returns { message, results }
+//        where `results` aggregates every entity the agent looked
+//        at, so the UI can render rich cards alongside the text.
+//
+// Server-only — Minimax key never reaches the browser.
+// Sub-agent: matchCandidates tool runs its own scoring LLM call.
+// =============================================================
 
-// =============================================================
-// JBCerta — conversational AI assistant powered by Minimax
-// Server-side only. The Minimax API key NEVER reaches the browser.
-// =============================================================
+import { NextRequest, NextResponse } from "next/server"
+import { generateText, stepCountIs } from "ai"
+import type { ModelMessage } from "ai"
+import { minimaxModel, MINIMAX_MODEL_ID } from "@/lib/ai/minimax"
+import { buildJBCertaTools, createResultBag, type AgentResult } from "@/lib/ai/jbcerta-tools"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
 
-const MINIMAX_BASE_URL = process.env.MINIMAX_BASE_URL || "https://api.minimax.io/v1"
-const MINIMAX_MODEL = process.env.MINIMAX_MODEL || "MiniMax-M2.7"
-const MINIMAX_API_KEY = process.env.MINIMAX_API_KEY || ""
+const MAX_STEPS = 6 // hard cap on tool-loop iterations
+const MAX_HISTORY_TURNS = 12
 
-type ChatRole = "user" | "assistant" | "system"
-type ChatTurn = { role: ChatRole; content: string }
+const SYSTEM_PROMPT = `You are JBCerta, the AI concierge for JustBeCause — a platform that connects skilled people ("Impact Agents") with NGOs and meaningful volunteer opportunities.
 
-type SearchResult = {
-  type: "volunteer" | "ngo" | "opportunity"
-  id: string
-  title: string
-  subtitle?: string
-  description?: string
-  location?: string
-  skills?: string[]
-  avatar?: string
-  verified?: boolean
-  workMode?: string
-  volunteerType?: string
-  rating?: number
-}
+Reply in the same language the user wrote in. Be warm, concise, direct. No filler.
 
-const SYSTEM_PROMPT = `You are JBCerta, the friendly AI concierge for JustBeCause — a platform that connects skilled people (called "Impact Agents"), NGOs, and meaningful volunteer opportunities.
+You have TOOLS that let you read the platform's real data (volunteers, NGOs, opportunities, full profiles, the skill catalog, and a candidate-matching sub-agent). USE THEM. Do not invent people, projects, ids, or skills.
 
-You speak in the same language the user wrote in. Be warm, concise, helpful, and direct. Avoid filler.
+Decision rules:
+1. If the user asks to find/discover/recommend/browse people, NGOs, or opportunities → call the appropriate search tool first. Translate vague terms ("a developer") into concrete skill keywords; if unsure which skills exist on the platform, call \`listSkillCatalog\` first.
+2. If the user asks for detail, comparison, or a recommendation about specific entities → use \`getVolunteerProfile\`, \`getNGOProfile\`, or \`getOpportunity\` for the top 1–3 candidates BEFORE answering, so your reply is grounded in real bios, hours, and rates.
+3. For matchmaking ("who is best for project X?") → call \`matchCandidates\` with the opportunity id; it returns a ranked list with reasons.
+4. For greetings, small talk, or platform questions → answer directly with no tool calls.
+5. After the tools have given you data, write ONE final reply in plain prose (no JSON, no code fences, no markdown headings). Reference real names from the tool results. Keep it under ~6 sentences unless the user asked for detail.
+6. Never repeat a search you already did with the same args. Never call more than ${MAX_STEPS} tools in total. If you have enough information, stop and answer.
+7. If a tool errors or returns nothing, say so honestly and offer next steps.`
 
-You have TWO actions you can take. You MUST always reply with a single valid JSON object on a single line — no markdown, no code fences, no extra text.
+type IncomingMessage = { role: "user" | "assistant"; content: string }
 
-Schema:
-{"action":"reply"|"search","message":"<text shown to the user>","query":"<keywords if action=search>","type":"all"|"volunteer"|"ngo"|"opportunity"}
-
-Choose action carefully:
-
-A. action="search" — ONLY when the user's CURRENT message asks for a NEW set of people, NGOs, or opportunities that they haven't seen yet. Examples: "find a graphic designer", "show NGOs working on education", "any video editing opportunities?". Use type="volunteer" for people/skills, "ngo" for organizations/charities, "opportunity" for projects/jobs/gigs, "all" if mixed.
-
-B. action="reply" — for EVERYTHING ELSE. This includes:
-   - Greetings, small talk, "what can you do", "how does this work".
-   - Follow-up questions about results you ALREADY showed in this conversation. The previous assistant turn(s) contain a [CONTEXT — results currently visible to the user] block listing the names, ids, locations, skills, ratings of every visible result. USE THAT CONTEXT to answer directly. Do NOT trigger a new search just because the user said "which is best", "tell me more about X", "compare them", "any in Madrid?", "who has React?", "rank them", "summarize", "thanks", etc.
-   - Recommendations, comparisons, ranking, advice, explanations, encouragement.
-   - When you reference a person from the context, use their exact name as shown. You may mention their visible skills/location to justify your recommendation.
-
-Important rules:
-- NEVER fabricate a person, NGO, opportunity, id, or skill that isn't in the [CONTEXT] block. If the user asks about someone whose data you don't have, say so honestly and offer to search.
-- The "message" field is what the user sees. Keep it under ~6 sentences unless the user asked for detail.
-- If you triggered a new search, set message to a short pre-amble like "Looking for graphic designers in Madrid…" — the result list will appear below your message automatically.
-
-Output ONLY the JSON object. Nothing else.`
-
-// ---------- helpers ----------
-
-function tryParseJson(text: string): { action?: "reply" | "search"; message?: string; query?: string; type?: string } | null {
-  if (!text) return null
-  // strip code fences if model added them anyway
-  const cleaned = text.replace(/^```(?:json)?\s*|\s*```$/g, "").trim()
-  // attempt direct parse, else find first {...}
-  try {
-    return JSON.parse(cleaned)
-  } catch {
-    const m = cleaned.match(/\{[\s\S]*\}/)
-    if (m) {
-      try { return JSON.parse(m[0]) } catch { /* fall through */ }
-    }
+function sanitizeHistory(raw: unknown): ModelMessage[] {
+  if (!Array.isArray(raw)) return []
+  const cleaned: ModelMessage[] = []
+  for (const m of raw as IncomingMessage[]) {
+    if (!m || typeof m.content !== "string") continue
+    if (m.role !== "user" && m.role !== "assistant") continue
+    cleaned.push({ role: m.role, content: m.content.slice(0, 4000) })
   }
-  return null
+  return cleaned.slice(-MAX_HISTORY_TURNS)
 }
-
-function originFromRequest(req: NextRequest): string {
-  const env = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL
-  if (env) return env.replace(/\/$/, "")
-  const proto = req.headers.get("x-forwarded-proto") || "http"
-  const host = req.headers.get("x-forwarded-host") || req.headers.get("host")
-  return host ? `${proto}://${host}` : "http://localhost:3000"
-}
-
-async function runPlatformSearch(
-  origin: string,
-  query: string,
-  type: "all" | "volunteer" | "ngo" | "opportunity",
-  limit = 6
-): Promise<SearchResult[]> {
-  const trimmed = query.trim().slice(0, 200)
-  if (!trimmed) return []
-  const types = type === "all" ? "volunteer,ngo,opportunity" : type
-  const url = `${origin}/api/unified-search?q=${encodeURIComponent(trimmed)}&types=${types}&limit=${limit}`
-  try {
-    const res = await fetch(url, { cache: "no-store" })
-    if (!res.ok) return []
-    const data = await res.json()
-    const results: SearchResult[] = (data?.results || []).filter(
-      (r: { type?: string }) => r.type === "volunteer" || r.type === "ngo" || r.type === "opportunity"
-    )
-    if (type !== "all") return results.filter((r) => r.type === type)
-    return results
-  } catch {
-    return []
-  }
-}
-
-async function callMinimax(messages: ChatTurn[]): Promise<string> {
-  if (!MINIMAX_API_KEY) throw new Error("MINIMAX_API_KEY missing")
-
-  const res = await fetch(`${MINIMAX_BASE_URL}/text/chatcompletion_v2`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${MINIMAX_API_KEY}`,
-    },
-    body: JSON.stringify({
-      model: MINIMAX_MODEL,
-      messages,
-      temperature: 0.4,
-      top_p: 0.9,
-      // M2.7 is a reasoning model — its hidden reasoning_content also consumes
-      // completion tokens, so give it room or `content` comes back empty.
-      max_tokens: 4096,
-      stream: false,
-    }),
-  })
-
-  if (!res.ok) {
-    const body = await res.text().catch(() => "")
-    throw new Error(`Minimax HTTP ${res.status}: ${body.slice(0, 400)}`)
-  }
-
-  const data = await res.json()
-
-  // Minimax wraps API-level errors in base_resp even when HTTP is 200
-  const baseStatus: number | undefined = data?.base_resp?.status_code
-  if (typeof baseStatus === "number" && baseStatus !== 0) {
-    const msg = data?.base_resp?.status_msg || "unknown minimax error"
-    throw new Error(`Minimax base_resp ${baseStatus}: ${msg}`)
-  }
-
-  // OpenAI-compatible: choices[0].message.content (reasoning_content is separate)
-  const content: string =
-    data?.choices?.[0]?.message?.content ??
-    data?.reply ??
-    ""
-  return typeof content === "string" ? content : String(content ?? "")
-}
-
-// ---------- handler ----------
 
 export async function POST(req: NextRequest) {
+  let history: ModelMessage[] = []
   try {
     const body = await req.json().catch(() => ({}))
-    const incoming: ChatTurn[] = Array.isArray(body?.messages) ? body.messages : []
-
-    // sanitize: only role+content, last 12 turns max, content under 2k chars
-    const history: ChatTurn[] = incoming
-      .filter((m) => m && (m.role === "user" || m.role === "assistant") && typeof m.content === "string")
-      .slice(-12)
-      .map((m) => ({ role: m.role, content: m.content.slice(0, 2000) }))
+    history = sanitizeHistory((body as { messages?: unknown })?.messages)
 
     if (history.length === 0 || history[history.length - 1].role !== "user") {
-      return NextResponse.json({ error: "Last message must be from user" }, { status: 400 })
+      return NextResponse.json(
+        { error: "Last message must be from user" },
+        { status: 400 }
+      )
+    }
+  } catch (err) {
+    return NextResponse.json(
+      { error: "Invalid request body", detail: (err as Error).message },
+      { status: 400 }
+    )
+  }
+
+  const bag = createResultBag()
+  const tools = buildJBCertaTools(bag)
+
+  try {
+    const startedAt = Date.now()
+    const result = await generateText({
+      model: minimaxModel(),
+      system: SYSTEM_PROMPT,
+      messages: history,
+      tools,
+      stopWhen: stepCountIs(MAX_STEPS),
+      temperature: 0.4,
+    })
+
+    const elapsedMs = Date.now() - startedAt
+
+    // Aggregate tool-call telemetry for debugging in dev
+    const toolCallNames: string[] = []
+    for (const step of result.steps ?? []) {
+      for (const call of step.toolCalls ?? []) {
+        toolCallNames.push(call.toolName)
+      }
     }
 
-    const messages: ChatTurn[] = [{ role: "system", content: SYSTEM_PROMPT }, ...history]
-
-    let raw = ""
-    try {
-      raw = await callMinimax(messages)
-    } catch (err: unknown) {
-      const detail = err instanceof Error ? err.message : String(err)
-      console.error("[jbcerta-chat] minimax failure:", detail)
-      const exposeDetail = process.env.NODE_ENV !== "production"
-      return NextResponse.json({
-        action: "reply",
-        message: exposeDetail
-          ? `Minimax is unavailable: ${detail}`
-          : "Sorry — I'm having trouble thinking right now. Please try again in a moment.",
-        results: [],
-      })
-    }
-
-    const parsed = tryParseJson(raw)
-
-    // If the model returned nothing usable, give a varied, helpful nudge instead
-    // of the same canned line every time.
-    if (!parsed || (parsed.action !== "reply" && parsed.action !== "search")) {
-      const fallback = raw.trim()
-        || "Hmm, I lost my thought there. Could you rephrase what you're looking for?"
-      return NextResponse.json({
-        action: "reply",
-        message: fallback,
-        results: [],
-      })
-    }
-
-    if (parsed.action === "reply") {
-      return NextResponse.json({
-        action: "reply",
-        message: parsed.message || "How can I help?",
-        results: [],
-      })
-    }
-
-    // action === "search"
-    const safeType = (["all", "volunteer", "ngo", "opportunity"] as const).includes(parsed.type as never)
-      ? (parsed.type as "all" | "volunteer" | "ngo" | "opportunity")
-      : "all"
-    const safeQuery = (parsed.query || history[history.length - 1].content).trim().slice(0, 200)
-
-    const origin = originFromRequest(req)
-    const results = await runPlatformSearch(origin, safeQuery, safeType, 6)
+    const results: AgentResult[] = bag.list()
+    const finalText = (result.text || "").trim()
 
     return NextResponse.json({
-      action: "search",
-      message: parsed.message || `Here is what I found for "${safeQuery}".`,
-      query: safeQuery,
-      type: safeType,
+      message: finalText || "I gathered some data — but I couldn't form a reply. Try rephrasing?",
       results,
+      meta: {
+        model: MINIMAX_MODEL_ID,
+        steps: result.steps?.length ?? 0,
+        toolCalls: toolCallNames,
+        elapsedMs,
+      },
     })
-  } catch (err: unknown) {
-    console.error("[jbcerta-chat] handler error:", err)
+  } catch (err) {
+    const detail = err instanceof Error ? err.message : String(err)
+    console.error("[jbcerta-chat] agent failure:", detail)
+    const exposeDetail = process.env.NODE_ENV !== "production"
     return NextResponse.json(
-      { action: "reply", message: "Something went wrong. Please try again.", results: [] },
-      { status: 500 }
+      {
+        message: exposeDetail
+          ? `JBCerta hit an error: ${detail}`
+          : "Sorry — I'm having trouble thinking right now. Please try again in a moment.",
+        results: bag.list(),
+      },
+      { status: 200 }
     )
   }
 }
