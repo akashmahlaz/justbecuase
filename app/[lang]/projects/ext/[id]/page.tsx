@@ -8,7 +8,8 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { stripMarkdown } from "@/lib/strip-markdown"
 import { ShareButton } from "@/components/share-button"
 import { externalOpportunitiesDb } from "@/lib/scraper"
 import { fetchPage, extractPageContent } from "@/lib/scraper/text-extractor"
@@ -29,6 +30,17 @@ import {
 
 function getInitials(name: string): string {
   return name.split(/\s+/).map(w => w[0]).join("").slice(0, 2).toUpperCase()
+}
+
+function deriveLogoUrl(opp: any): string {
+  if (opp.organizationLogo) return opp.organizationLogo
+  const url = opp.organizationUrl || opp.sourceUrl || ""
+  try {
+    const domain = new URL(url).hostname.replace(/^www\./, "")
+    return `https://logo.clearbit.com/${domain}`
+  } catch {
+    return ""
+  }
 }
 
 function formatDate(date?: Date | string, fallback = "Not specified"): string {
@@ -119,13 +131,11 @@ export default async function ExternalOpportunityDetailPage({
                 {/* Organization */}
                 <div className="flex items-center gap-4">
                   <Avatar className="h-12 w-12 rounded-lg">
-                    {opportunity.organizationLogo ? (
-                      <img
-                        src={opportunity.organizationLogo}
-                        alt={opportunity.organization}
-                        className="h-full w-full object-cover rounded-lg"
-                      />
-                    ) : null}
+                    <AvatarImage
+                      src={deriveLogoUrl(opportunity)}
+                      alt={opportunity.organization}
+                      className="object-cover"
+                    />
                     <AvatarFallback className="rounded-lg bg-primary/10 text-primary font-semibold">
                       {getInitials(opportunity.organization || "O")}
                     </AvatarFallback>
@@ -159,9 +169,11 @@ export default async function ExternalOpportunityDetailPage({
                     />
                   ) : (
                     <div className="prose prose-slate dark:prose-invert max-w-none text-foreground leading-relaxed whitespace-pre-line text-[15px]">
-                      {opportunity.description && opportunity.description.length > 50
-                        ? opportunity.description
-                        : opportunity.shortDescription || opportunity.title}
+                      {stripMarkdown(
+                        opportunity.description && opportunity.description.length > 50
+                          ? opportunity.description
+                          : opportunity.shortDescription || opportunity.title
+                      )}
                     </div>
                   )}
                 </CardContent>
@@ -254,6 +266,11 @@ export default async function ExternalOpportunityDetailPage({
                   <CardContent>
                     <div className="flex items-start gap-4">
                       <Avatar className="h-16 w-16 rounded-xl shrink-0">
+                        <AvatarImage
+                          src={deriveLogoUrl(opportunity)}
+                          alt={opportunity.organization}
+                          className="object-cover"
+                        />
                         <AvatarFallback className="rounded-xl bg-primary/10 text-primary font-semibold text-lg">
                           {getInitials(opportunity.organization || "O")}
                         </AvatarFallback>

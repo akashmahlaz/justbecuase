@@ -91,6 +91,18 @@ export async function GET(request: NextRequest) {
   }
 }
 
+/** Derive a logo URL from stored logo or Clearbit domain lookup */
+function deriveLogoUrl(opp: any): string {
+  if (opp.organizationLogo) return opp.organizationLogo
+  const url = opp.organizationUrl || opp.sourceUrl || ""
+  try {
+    const domain = new URL(url).hostname.replace(/^www\./, "")
+    return `https://logo.clearbit.com/${domain}`
+  } catch {
+    return ""
+  }
+}
+
 /** Map an external opportunity doc to the same shape as a native project */
 function mapExternalToProject(opp: any) {
   // Use the best available description
@@ -127,7 +139,7 @@ function mapExternalToProject(opp: any) {
     createdAt: opp.postedDate || opp.scrapedAt || new Date(),
     ngo: {
       name: opp.organization || "",
-      logo: opp.organizationLogo || "",
+      logo: deriveLogoUrl(opp),
       verified: false,
     },
     skills: (opp.skillTags && opp.skillTags.length > 0) ? opp.skillTags : (opp.skillsRequired || []).map((s: any) => s.subskillId || s.categoryId).filter(Boolean),
