@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import { useState, useEffect, useCallback, useRef, useMemo } from "react"
 import LocaleLink from "@/components/locale-link"
@@ -6,13 +6,14 @@ import { useRouter } from "next/navigation"
 import { useLocale, localePath } from "@/hooks/use-locale"
 import {
   Search, Users, Building2, Briefcase, ArrowRight, MapPin,
-  CheckCircle, Loader2, X, Clock, TrendingUp, Sparkles,
-  ChevronRight, ArrowUpRight, Star, Globe, GraduationCap, Lightbulb, Heart,
+  CheckCircle, Loader2, X, Clock, Sparkles,
+  Star, Globe, Lightbulb, Heart,
+  Send, Paperclip, RotateCcw,
 } from "lucide-react"
-import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Skeleton } from "@/components/ui/skeleton"
+import { useAutoResizeTextarea } from "@/hooks/use-auto-resize-textarea"
+import { cn } from "@/lib/utils"
 import { resolveSkillName } from "@/lib/skills-data"
 import { motion, AnimatePresence } from "motion/react"
 import { useDictionary } from "@/components/dictionary-provider"
@@ -163,7 +164,212 @@ function HighlightedText({ text, query }: { text: string; query: string }) {
 }
 
 // ============================================
-// MAIN COMPONENT
+// RESULT CARD (compact, used inside chat messages)
+// ============================================
+
+function ResultCard({ result, query, onClick }: { result: SearchResult; query: string; onClick: () => void }) {
+  const config = TYPE_CONFIG[result.type as keyof typeof TYPE_CONFIG] || TYPE_CONFIG.opportunity
+  const Icon = config.icon
+  const workModeLabel = result.workMode === "remote" ? "Remote" : result.workMode === "onsite" ? "On-site" : result.workMode === "hybrid" ? "Hybrid" : null
+  const pricingLabel = result.volunteerType === "free" ? "Pro Bono" : result.volunteerType === "paid" ? "Paid" : null
+  const descSnippet = result.description
+    ? result.description.replace(/<[^>]*>/g, "").substring(0, 90).trim() + (result.description.length > 90 ? "…" : "")
+    : null
+
+  const href =
+    result.type === "volunteer" ? `/volunteers/${result.id}` :
+    result.type === "ngo" ? `/ngos/${result.id}` :
+    result.type === "opportunity" ? `/projects/${result.id}` : "#"
+
+  return (
+    <LocaleLink
+      href={href}
+      onClick={onClick}
+      className="group block bg-background rounded-xl border hover:border-primary/50 hover:shadow-md transition-all duration-200 overflow-hidden"
+    >
+      <div className={`px-3 py-1 flex items-center justify-between border-b ${
+        result.type === "volunteer" ? "bg-blue-50 dark:bg-blue-950/20" :
+        result.type === "ngo" ? "bg-green-50 dark:bg-green-950/20" :
+        "bg-purple-50 dark:bg-purple-950/20"
+      }`}>
+        <Badge variant="secondary" className={`text-[10px] px-2 py-0.5 font-medium ${config.badgeClass}`}>
+          <Icon className="h-2.5 w-2.5 mr-1" />
+          {config.label}
+        </Badge>
+        <div className="flex items-center gap-1.5">
+          {workModeLabel && (
+            <span className="text-[10px] text-muted-foreground flex items-center gap-0.5">
+              <Globe className="h-2.5 w-2.5" />
+              {workModeLabel}
+            </span>
+          )}
+          {pricingLabel && (
+            <Badge variant="outline" className={`text-[10px] px-1.5 py-0 ${pricingLabel === "Pro Bono" ? "border-emerald-300 text-emerald-700 dark:text-emerald-400" : "border-amber-300 text-amber-700 dark:text-amber-400"}`}>
+              {pricingLabel}
+            </Badge>
+          )}
+        </div>
+      </div>
+      <div className="p-3">
+        <div className="flex items-start gap-3">
+          <div className="shrink-0">
+            {result.avatar ? (
+              <img
+                src={result.avatar}
+                alt={result.title}
+                className="w-10 h-10 rounded-full object-cover bg-muted ring-2 ring-background shadow-sm"
+                loading="lazy"
+              />
+            ) : (
+              <div className={`w-10 h-10 rounded-full flex items-center justify-center ${config.badgeClass} ring-2 ring-background shadow-sm`}>
+                <Icon className="h-4 w-4" />
+              </div>
+            )}
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-1.5 mb-0.5">
+              <h3 className="font-semibold text-foreground truncate group-hover:text-primary transition-colors text-sm">
+                <HighlightedText text={result.title} query={query} />
+              </h3>
+              {result.verified && (
+                <CheckCircle className="h-3.5 w-3.5 shrink-0 text-primary" fill="currentColor" strokeWidth={0} />
+              )}
+            </div>
+            {result.subtitle && (
+              <p className="text-xs text-muted-foreground line-clamp-1 mb-1">
+                <HighlightedText text={result.subtitle} query={query} />
+              </p>
+            )}
+            <div className="flex items-center gap-2.5 flex-wrap">
+              {result.location && (
+                <span className="text-[11px] text-muted-foreground flex items-center gap-0.5">
+                  <MapPin className="h-2.5 w-2.5 shrink-0" />
+                  <HighlightedText text={result.location} query={query} />
+                </span>
+              )}
+              {result.rating && result.rating > 0 && (
+                <span className="text-[11px] text-amber-600 dark:text-amber-400 flex items-center gap-0.5 font-medium">
+                  <Star className="h-2.5 w-2.5 fill-current" />
+                  {result.rating.toFixed(1)}
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
+        {descSnippet && (
+          <p className="text-[11px] text-muted-foreground mt-2 line-clamp-2 leading-relaxed">
+            {descSnippet}
+          </p>
+        )}
+        {result.skills && result.skills.length > 0 && (
+          <div className="flex gap-1 mt-2 flex-wrap">
+            {result.skills.slice(0, 3).map((skill) => (
+              <Badge key={skill} variant="outline" className="text-[10px] px-1.5 py-0.5 font-normal bg-muted/50">
+                {resolveSkillName(skill)}
+              </Badge>
+            ))}
+            {result.skills.length > 3 && (
+              <Badge variant="outline" className="text-[10px] px-1.5 py-0.5 font-normal text-muted-foreground">
+                +{result.skills.length - 3}
+              </Badge>
+            )}
+          </div>
+        )}
+      </div>
+    </LocaleLink>
+  )
+}
+
+// ============================================
+// CHAT TYPES
+// ============================================
+
+type SearchTypeFilter = "all" | "opportunity" | "volunteer" | "ngo"
+
+// Inline AI-style cycling loader (compact, with shimmer gradient)
+function CyclingLoader({ texts, interval = 1400 }: { texts: string[]; interval?: number }) {
+  const [i, setI] = useState(0)
+  useEffect(() => {
+    const t = setInterval(() => setI((v) => (v + 1) % texts.length), interval)
+    return () => clearInterval(t)
+  }, [texts.length, interval])
+  return (
+    <div className="relative overflow-hidden">
+      <AnimatePresence mode="wait">
+        <motion.span
+          key={i}
+          initial={{ opacity: 0, y: 6 }}
+          animate={{
+            opacity: 1,
+            y: 0,
+            backgroundPosition: ["200% center", "-200% center"],
+          }}
+          exit={{ opacity: 0, y: -6 }}
+          transition={{
+            opacity: { duration: 0.25 },
+            y: { duration: 0.25 },
+            backgroundPosition: {
+              duration: 2.2,
+              ease: "linear",
+              repeat: Number.POSITIVE_INFINITY,
+            },
+          }}
+          className="inline-block bg-size-[200%_100%] bg-linear-to-r from-foreground via-muted-foreground to-foreground bg-clip-text text-transparent text-sm font-medium"
+        >
+          {texts[i]}
+        </motion.span>
+      </AnimatePresence>
+    </div>
+  )
+}
+
+type ChatMessage =
+  | { id: string; role: "user"; query: string; type: SearchTypeFilter }
+  | { id: string; role: "assistant"; query: string; type: SearchTypeFilter; status: "loading" | "done" | "error"; results: SearchResult[]; error?: string }
+
+// ============================================
+// AI-style natural-language summary builder
+// ============================================
+
+function buildAssistantSummary(query: string, results: SearchResult[]): string {
+  if (results.length === 0) return ""
+  const counts = results.reduce<Record<string, number>>((acc, r) => {
+    acc[r.type] = (acc[r.type] || 0) + 1
+    return acc
+  }, {})
+  const parts: string[] = []
+  if (counts.volunteer) parts.push(`${counts.volunteer} ${counts.volunteer === 1 ? "impact agent" : "impact agents"}`)
+  if (counts.ngo) parts.push(`${counts.ngo} ${counts.ngo === 1 ? "NGO" : "NGOs"}`)
+  if (counts.opportunity) parts.push(`${counts.opportunity} ${counts.opportunity === 1 ? "opportunity" : "opportunities"}`)
+
+  const topSkills = Array.from(
+    results.flatMap((r) => r.skills || []).reduce<Map<string, number>>((m, s) => {
+      m.set(s, (m.get(s) || 0) + 1)
+      return m
+    }, new Map())
+  )
+    .sort(([, a], [, b]) => b - a)
+    .slice(0, 3)
+    .map(([s]) => resolveSkillName(s))
+
+  const topLocations = Array.from(
+    results.map((r) => r.location).filter((l): l is string => !!l).reduce<Map<string, number>>((m, l) => {
+      m.set(l, (m.get(l) || 0) + 1)
+      return m
+    }, new Map())
+  )
+    .sort(([, a], [, b]) => b - a)
+    .slice(0, 2)
+    .map(([l]) => l)
+
+  let line = `I found ${parts.join(", ")} matching \u201C${query}\u201D.`
+  if (topSkills.length > 0) line += ` Top skills: ${topSkills.join(", ")}.`
+  if (topLocations.length > 0) line += ` Mostly in ${topLocations.join(" and ")}.`
+  return line
+}
+
+// ============================================
+// MAIN COMPONENT — JBCerta Chat
 // ============================================
 
 export function GlobalSearchSection() {
@@ -172,267 +378,121 @@ export function GlobalSearchSection() {
   const dict = useDictionary()
   const s = (dict as any).search || {}
 
-  // Search state
-  const [searchQuery, setSearchQuery] = useState("")
-  const [searchType, setSearchType] = useState<"all" | "opportunity" | "volunteer" | "ngo">("all")
-  const [results, setResults] = useState<SearchResult[]>([])
-  const [isSearching, setIsSearching] = useState(false)
-  const [hasSearched, setHasSearched] = useState(false)
-  const [showDropdown, setShowDropdown] = useState(false)
-
-  // Keyboard navigation
-  const [selectedIndex, setSelectedIndex] = useState(-1)
-
-  // Refs
-  const inputRef = useRef<HTMLInputElement>(null)
-  const dropdownRef = useRef<HTMLDivElement>(null)
-  const containerRef = useRef<HTMLDivElement>(null)
-  const abortControllerRef = useRef<AbortController | null>(null)
-
-  // Recent searches
+  const [searchType, setSearchType] = useState<SearchTypeFilter>("all")
+  const [messages, setMessages] = useState<ChatMessage[]>([])
+  const [inputValue, setInputValue] = useState("")
   const { recentSearches, addRecentSearch, clearRecentSearches } = useRecentSearches()
 
-  // ============================================
-  // SEARCH FUNCTIONS
-  // ============================================
+  const messagesEndRef = useRef<HTMLDivElement>(null)
+  const abortControllersRef = useRef<Map<string, AbortController>>(new Map())
+  const { textareaRef, adjustHeight } = useAutoResizeTextarea({ minHeight: 56, maxHeight: 200 })
+  const [isFocused, setIsFocused] = useState(false)
 
-  const performSearch = useCallback(async (query: string, type: string) => {
-    if (!query || query.trim().length < 1) {
-      setResults([])
-      setHasSearched(false)
-      return
+  // Auto-scroll to bottom whenever messages change
+  useEffect(() => {
+    if (messages.length > 0) {
+      messagesEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" })
     }
+  }, [messages])
 
-    if (query.length > 200) return
+  // Cleanup all in-flight requests on unmount
+  useEffect(() => {
+    const controllers = abortControllersRef.current
+    return () => {
+      controllers.forEach((c) => c.abort())
+      controllers.clear()
+    }
+  }, [])
 
-    // Cancel previous search request (race condition fix)
-    abortControllerRef.current?.abort()
+  const runQuery = useCallback(async (query: string, type: SearchTypeFilter) => {
+    const trimmed = query.trim()
+    if (!trimmed || trimmed.length > 200) return
+
+    const userId = `u-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`
+    const assistantId = `a-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`
+
+    setMessages((prev) => [
+      ...prev,
+      { id: userId, role: "user", query: trimmed, type },
+      { id: assistantId, role: "assistant", query: trimmed, type, status: "loading", results: [] },
+    ])
+
+    addRecentSearch(trimmed)
+
     const controller = new AbortController()
-    abortControllerRef.current = controller
-
-    setIsSearching(true)
-    setHasSearched(true)
+    abortControllersRef.current.set(assistantId, controller)
 
     try {
       const types = type === "all" ? `&types=${ALLOWED_TYPES}` : `&types=${type}`
       const res = await fetch(
-        `/api/unified-search?q=${encodeURIComponent(query)}${types}&limit=15`,
+        `/api/unified-search?q=${encodeURIComponent(trimmed)}${types}&limit=15`,
         { signal: controller.signal }
       )
       const data = await res.json()
+      if (controller.signal.aborted) return
 
-      // Only update if this request wasn't cancelled
-      if (!controller.signal.aborted) {
-        if (data.success) {
-          let filtered = (data.results || []).filter(
-            (r: any) => r.type === "volunteer" || r.type === "ngo" || r.type === "opportunity"
-          )
-          // Strictly enforce the selected type — only show results matching the tab
-          if (type !== "all") {
-            filtered = filtered.filter((r: any) => r.type === type)
-          }
-          setResults(filtered)
-        } else {
-          setResults([])
-        }
-      }
+      let filtered: SearchResult[] = (data.results || []).filter(
+        (r: any) => r.type === "volunteer" || r.type === "ngo" || r.type === "opportunity"
+      )
+      if (type !== "all") filtered = filtered.filter((r: any) => r.type === type)
+
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === assistantId && m.role === "assistant"
+            ? { ...m, status: "done", results: filtered }
+            : m
+        )
+      )
     } catch (error: any) {
-      if (error.name !== "AbortError") {
-        console.error("Search failed:", error)
-        setResults([])
-      }
+      if (error.name === "AbortError") return
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === assistantId && m.role === "assistant"
+            ? { ...m, status: "error", results: [], error: "Search failed. Please try again." }
+            : m
+        )
+      )
     } finally {
-      if (!controller.signal.aborted) {
-        setIsSearching(false)
-      }
+      abortControllersRef.current.delete(assistantId)
     }
-  }, [])
+  }, [addRecentSearch])
 
-  // ============================================
-  // DEBOUNCED EFFECTS
-  // ============================================
+  const handleSubmit = useCallback(() => {
+    const v = inputValue.trim()
+    if (!v) return
+    setInputValue("")
+    adjustHeight(true)
+    runQuery(v, searchType)
+  }, [inputValue, searchType, runQuery, adjustHeight])
 
-  // Full results — only triggered explicitly (Enter or button click)
-  // No auto-debounce. The user must submit the search intentionally.
-  const triggerSearch = useCallback(() => {
-    performSearch(searchQuery, searchType)
-  }, [searchQuery, searchType, performSearch])
-
-  // Re-run search when search type tab changes (only if already searched)
-  useEffect(() => {
-    if (hasSearched && searchQuery.trim()) {
-      performSearch(searchQuery, searchType)
-    }
-  }, [searchType]) // eslint-disable-line react-hooks/exhaustive-deps
-
-  // Close dropdown on outside click
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
-        setShowDropdown(false)
-      }
-    }
-    document.addEventListener("mousedown", handleClickOutside)
-    return () => document.removeEventListener("mousedown", handleClickOutside)
-  }, [])
-
-  // Cleanup abort controllers on unmount
-  useEffect(() => {
-    return () => {
-      abortControllerRef.current?.abort()
-    }
-  }, [])
-
-  // ============================================
-  // KEYBOARD NAVIGATION
-  // ============================================
-
-  const dropdownItems = useMemo(() => {
-    const items: Array<{
-      type: "suggestion" | "recent" | "popular"
-      text: string
-      resultType?: string
-      id?: string
-      subtitle?: string
-    }> = []
-
-    if (searchQuery.trim().length < 1) {
-      recentSearches.forEach(s => items.push({ type: "recent", text: s }))
-    }
-
-    return items
-  }, [searchQuery, recentSearches])
-
-  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
-    if (!showDropdown || dropdownItems.length === 0) {
-      if (e.key === "Escape") {
-        setShowDropdown(false)
-        inputRef.current?.blur()
-      } else if (e.key === "Enter" && searchQuery.trim()) {
-        addRecentSearch(searchQuery)
-        setShowDropdown(false)
-        triggerSearch()
-      }
-      return
-    }
-
-    switch (e.key) {
-      case "ArrowDown":
-        e.preventDefault()
-        setSelectedIndex(prev => (prev + 1) % dropdownItems.length)
-        break
-      case "ArrowUp":
-        e.preventDefault()
-        setSelectedIndex(prev => (prev - 1 + dropdownItems.length) % dropdownItems.length)
-        break
-      case "Enter":
-        e.preventDefault()
-        if (selectedIndex >= 0 && selectedIndex < dropdownItems.length) {
-          const item = dropdownItems[selectedIndex]
-          if (item.type === "suggestion" && item.id) {
-            // Navigate directly to result
-            handleSuggestionClick(item)
-          } else {
-            setSearchQuery(item.text)
-            addRecentSearch(item.text)
-            // Trigger search with the selected item text
-            performSearch(item.text, searchType)
-          }
-        } else if (searchQuery.trim()) {
-          addRecentSearch(searchQuery)
-          triggerSearch()
-        }
-        setShowDropdown(false)
-        break
-      case "Escape":
-        setShowDropdown(false)
-        inputRef.current?.blur()
-        break
-    }
-  }, [showDropdown, dropdownItems, selectedIndex, searchQuery, addRecentSearch, triggerSearch, performSearch, searchType])
-
-  // Reset selected index when dropdown items change
-  useEffect(() => {
-    setSelectedIndex(-1)
-  }, [dropdownItems])
-
-  // ============================================
-  // EVENT HANDLERS
-  // ============================================
-
-  const clearSearch = () => {
-    setSearchQuery("")
-    setResults([])
-    setHasSearched(false)
-    setShowDropdown(false)
-    inputRef.current?.focus()
-  }
-
-  const handleSuggestionClick = (item: { text: string; resultType?: string; id?: string }) => {
-    setSearchQuery(item.text)
-    addRecentSearch(item.text)
-    setShowDropdown(false)
-
-    // Skill/cause suggestions (id like "skill:email-marketing" or "cause:education") → just search, don't navigate
-    if (item.id?.startsWith("skill:") || item.id?.startsWith("cause:") || item.resultType === "skill" || item.resultType === "cause") {
-      return
-    }
-
-    if (item.id && item.resultType) {
-      let path = "/"
-      switch (item.resultType) {
-        case "volunteer": path = `/volunteers/${item.id}`; break
-        case "ngo": path = `/ngos/${item.id}`; break
-        case "opportunity": path = `/projects/${item.id}`; break
-        default: return // Unknown type — don't navigate to a wrong page
-      }
-      router.push(localePath(path, locale))
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault()
+      handleSubmit()
     }
   }
 
-  const handleInputFocus = () => {
-    if (searchQuery.trim().length < 1) {
-      setShowDropdown(true)
-    }
+  const handleResetChat = () => {
+    abortControllersRef.current.forEach((c) => c.abort())
+    abortControllersRef.current.clear()
+    setMessages([])
   }
 
-  const getResultLink = (result: SearchResult) => {
-    switch (result.type) {
-      case "volunteer": return `/volunteers/${result.id}`
-      case "ngo": return `/ngos/${result.id}`
-      case "opportunity": return `/projects/${result.id}`
-      default: return "#"
+  const getViewAllLink = (msg: Extract<ChatMessage, { role: "assistant" }>) => {
+    if (msg.type !== "all") {
+      return `${TYPE_CONFIG[msg.type].viewAllPath}?q=${encodeURIComponent(msg.query)}`
     }
+    const counts = msg.results.reduce<Record<string, number>>((acc, r) => {
+      acc[r.type] = (acc[r.type] || 0) + 1
+      return acc
+    }, {})
+    const top = Object.entries(counts).sort(([, a], [, b]) => b - a)[0]?.[0] as keyof typeof TYPE_CONFIG | undefined
+    return top
+      ? `${TYPE_CONFIG[top].viewAllPath}?q=${encodeURIComponent(msg.query)}`
+      : `/projects?q=${encodeURIComponent(msg.query)}`
   }
 
-  // Smart "View All" per type
-  const getViewAllLink = () => {
-    if (searchType !== "all") {
-      return `${TYPE_CONFIG[searchType].viewAllPath}?q=${encodeURIComponent(searchQuery)}`
-    }
-    // For "all", link to the most prevalent result type
-    const typeCounts = results.reduce((acc, r) => { acc[r.type] = (acc[r.type] || 0) + 1; return acc }, {} as Record<string, number>)
-    const topType = Object.entries(typeCounts).sort(([, a], [, b]) => b - a)[0]?.[0] as keyof typeof TYPE_CONFIG
-    return topType
-      ? `${TYPE_CONFIG[topType].viewAllPath}?q=${encodeURIComponent(searchQuery)}`
-      : `/projects?q=${encodeURIComponent(searchQuery)}`
-  }
-
-  // Grouped results by type for categorized display
-  const groupedResults = useMemo(() => {
-    const groups: Record<string, SearchResult[]> = {}
-    for (const result of results) {
-      if (!groups[result.type]) groups[result.type] = []
-      groups[result.type].push(result)
-    }
-    return groups
-  }, [results])
-
-  const totalResultCount = results.length
-
-  // ============================================
-  // RENDER
-  // ============================================
+  const hasMessages = messages.length > 0
 
   return (
     <section className="py-16 bg-muted/30">
@@ -443,12 +503,12 @@ export function GlobalSearchSection() {
           viewport={{ once: true }}
           className="max-w-4xl mx-auto"
         >
-          {/* Header */}
+          {/* Header — preserved */}
           <div className="text-center mb-8">
             <h2 className="text-2xl md:text-3xl font-bold text-foreground mb-2">
-              {s.findTitle || "Save time - just use our Intelligent Search Engine"} <span className="font-extrabold">{s.jbcertaName || "JBCerta"}</span>
+              {s.findTitle || "Save time - just use our Intelligent Search Engine"}{" "}
+              <span className="font-extrabold">{s.jbcertaName || "JBCerta"}</span>
             </h2>
-            {/* JBCerta AI Branding */}
             <div className="flex items-center justify-center gap-2 mb-3">
               <Badge variant="secondary" className="bg-primary/10 text-primary border-primary/20 px-3 py-1 text-xs font-semibold flex items-center gap-1.5">
                 <Sparkles className="h-3 w-3" />
@@ -460,7 +520,7 @@ export function GlobalSearchSection() {
             </p>
           </div>
 
-          {/* Search Type Tabs */}
+          {/* Type tabs — controls the next query */}
           <div className="flex flex-wrap justify-center gap-2 mb-6">
             {(["all", "opportunity", "volunteer", "ngo"] as const).map((type) => {
               const isActive = searchType === type
@@ -483,440 +543,259 @@ export function GlobalSearchSection() {
             })}
           </div>
 
-          {/* Search Input with Dropdown */}
-          <div ref={containerRef} className="relative mb-6">
-            <div className="relative">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground pointer-events-none z-10" />
-              <input
-                ref={inputRef}
-                type="text"
-                placeholder={
-                  searchType === "volunteer"
-                    ? (s.placeholderVolunteer || "Search skills, location, or name...")
-                    : searchType === "ngo"
-                    ? (s.placeholderNgo || "Search organizations...")
-                    : searchType === "opportunity"
-                    ? (s.placeholderOpportunity || "Search opportunities...")
-                    : (s.placeholderAll || "Search opportunities, skills, people, causes...")
-                }
-                value={searchQuery}
-                onChange={(e) => {
-                  const nextValue = e.target.value
-                  setSearchQuery(nextValue)
-                  setShowDropdown(nextValue.trim().length < 1)
-                }}
-                onFocus={handleInputFocus}
-                onKeyDown={handleKeyDown}
-                autoComplete="off"
-                aria-label="Search"
-                aria-expanded={showDropdown}
-                aria-haspopup="listbox"
-                aria-autocomplete="list"
-                role="combobox"
-                className="h-14 w-full pl-12 pr-24 text-lg rounded-xl border-2 bg-background border-border focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all duration-200 placeholder:text-muted-foreground"
-              />
-              <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1">
-                {isSearching && (
-                  <Loader2 className="h-4 w-4 animate-spin text-primary" />
-                )}
-                {searchQuery && (
-                  <button
-                    onClick={clearSearch}
-                    className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-                    aria-label="Clear search"
-                  >
-                    <X className="h-4 w-4" />
-                  </button>
-                )}
-                <button
-                  onClick={() => {
-                    if (searchQuery.trim()) {
-                      addRecentSearch(searchQuery)
-                      setShowDropdown(false)
-                      triggerSearch()
-                    }
-                  }}
-                  className="p-1.5 rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
-                  aria-label="Search"
-                >
-                  <Search className="h-4 w-4" />
-                </button>
-              </div>
-            </div>
-
-            {/* Autocomplete Dropdown */}
-            <AnimatePresence>
-              {showDropdown && (
-                <motion.div
-                  ref={dropdownRef}
-                  initial={{ opacity: 0, y: -4, scale: 0.98 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: -4, scale: 0.98 }}
-                  transition={{ duration: 0.15 }}
-                  role="listbox"
-                  className="absolute z-50 mt-1 max-h-100 w-full overflow-y-auto overflow-hidden rounded-xl border border-border bg-background shadow-xl"
-                >
-                  {/* Recent Searches (when input is empty and focused) */}
-                  {searchQuery.trim().length < 1 && recentSearches.length > 0 && (
-                    <div className="py-1">
-                      <div className="px-3 py-1.5 flex items-center justify-between">
-                        <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
-                          <Clock className="h-3 w-3" />
-                          {s.recentSearches || "Recent Searches"}
-                        </span>
-                        <button
-                          onClick={clearRecentSearches}
-                          className="text-xs text-muted-foreground hover:text-foreground transition-colors"
-                        >
-                          {s.clearAll || "Clear All"}
-                        </button>
+          {/* Chat surface */}
+          <div className="rounded-2xl border bg-background shadow-sm overflow-hidden">
+            {/* Messages feed */}
+            {hasMessages ? (
+              <div className="max-h-[60vh] overflow-y-auto px-4 sm:px-6 py-5 space-y-5">
+                {messages.map((msg) =>
+                  msg.role === "user" ? (
+                    <motion.div
+                      key={msg.id}
+                      initial={{ opacity: 0, y: 6 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="flex items-start gap-3 justify-end"
+                    >
+                      <div className="max-w-[80%] rounded-2xl rounded-tr-sm bg-primary text-primary-foreground px-4 py-2.5 text-sm shadow-sm">
+                        {msg.query}
                       </div>
-                      {recentSearches.map((search, index) => {
-                        const isSelected = selectedIndex === index
-                        return (
-                          <button
-                            key={search}
-                            role="option"
-                            aria-selected={isSelected}
-                            onClick={() => {
-                              setSearchQuery(search)
-                              setShowDropdown(false)
-                              performSearch(search, searchType)
-                            }}
-                            onMouseEnter={() => setSelectedIndex(index)}
-                            className={`w-full px-3 py-2.5 flex items-center gap-3 text-left transition-colors ${
-                              isSelected ? "bg-primary/10" : "hover:bg-muted"
-                            }`}
-                          >
-                            <Clock className="h-4 w-4 text-muted-foreground" />
-                            <span className="text-sm flex-1 truncate">{search}</span>
-                            <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
-                          </button>
-                        )
-                      })}
-                    </div>
-                  )}
-
-                  {/* Popular searches (when no recent and no query) */}
-                  {searchQuery.trim().length < 1 && recentSearches.length === 0 && (
-                    <div className="py-1">
-                      <div className="px-3 py-1.5 text-xs font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
-                        <TrendingUp className="h-3 w-3" />
-                        {s.trendingSearches || "Trending Searches"}
+                      <div className="shrink-0 mt-0.5 h-7 w-7 rounded-full bg-primary/10 text-primary flex items-center justify-center">
+                        <Users className="h-3.5 w-3.5" />
                       </div>
-                      {POPULAR_SEARCHES.map((item, index) => {
-                        const isSelected = selectedIndex === index
-                        return (
-                          <button
-                            key={item.query}
-                            role="option"
-                            aria-selected={isSelected}
-                            onClick={() => {
-                              setSearchQuery(item.query)
-                              setShowDropdown(false)
-                              performSearch(item.query, searchType)
-                            }}
-                            onMouseEnter={() => setSelectedIndex(index)}
-                            className={`w-full px-3 py-2.5 flex items-center gap-3 text-left transition-colors ${
-                              isSelected ? "bg-primary/10" : "hover:bg-muted"
-                            }`}
-                          >
-                            <span className="text-base">{item.icon}</span>
-                            <span className="text-sm flex-1">{item.label}</span>
-                            <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
-                          </button>
-                        )
-                      })}
-                    </div>
-                  )}
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
-
-          {/* Quick Search Tags (only when not searched yet) */}
-          {!hasSearched && (
-            <div className="flex flex-wrap justify-center gap-2 mb-8">
-              <span className="text-sm text-muted-foreground mr-1">{s.popular || "Popular:"}</span>
-              {POPULAR_SEARCHES.map((item) => (
-                <button
-                  key={item.query}
-                  onClick={() => {
-                    setSearchQuery(item.query)
-                    setShowDropdown(false)
-                    addRecentSearch(item.query)
-                    performSearch(item.query, searchType)
-                  }}
-                  className="px-3 py-1 text-sm rounded-full bg-background border border-border hover:border-primary hover:text-primary transition-all duration-200 hover:shadow-sm"
-                >
-                  {item.icon} {item.label}
-                </button>
-              ))}
-            </div>
-          )}
-
-          {/* Search Results */}
-          <AnimatePresence mode="wait">
-            {hasSearched && (
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                transition={{ duration: 0.2 }}
-                className="mt-6"
-              >
-                {/* Loading skeletons */}
-                {isSearching && results.length === 0 ? (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {[1, 2, 3, 4, 5, 6].map(i => (
-                      <div key={i} className="p-4 bg-background rounded-xl border">
-                        <div className="flex items-start gap-3">
-                          <Skeleton className="w-12 h-12 rounded-lg" />
-                          <div className="flex-1 space-y-2">
-                            <Skeleton className="h-4 w-3/4" />
-                            <Skeleton className="h-3 w-1/2" />
-                            <div className="flex gap-1">
-                              <Skeleton className="h-5 w-16 rounded-full" />
-                              <Skeleton className="h-5 w-20 rounded-full" />
-                            </div>
+                    </motion.div>
+                  ) : (
+                    <motion.div
+                      key={msg.id}
+                      initial={{ opacity: 0, y: 6 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="flex items-start gap-3"
+                    >
+                      <div className="shrink-0 mt-0.5 h-7 w-7 rounded-full bg-linear-to-br from-primary/20 to-primary/5 text-primary flex items-center justify-center ring-1 ring-primary/10">
+                        <Sparkles className="h-3.5 w-3.5" />
+                      </div>
+                      <div className="flex-1 min-w-0 space-y-3">
+                        {msg.status === "loading" && (
+                          <div className="text-sm flex items-center gap-2">
+                            <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" />
+                            <CyclingLoader
+                              texts={[
+                                `Searching for \u201C${msg.query}\u201D\u2026`,
+                                "Scanning impact agents\u2026",
+                                "Matching NGOs\u2026",
+                                "Ranking opportunities\u2026",
+                                "Almost ready\u2026",
+                              ]}
+                            />
                           </div>
-                        </div>
+                        )}
+
+                        {msg.status === "error" && (
+                          <div className="text-sm text-destructive">{msg.error || "Search failed."}</div>
+                        )}
+
+                        {msg.status === "done" && msg.results.length === 0 && (
+                          <div className="rounded-xl border bg-muted/30 px-4 py-5 text-center">
+                            <Search className="h-8 w-8 text-muted-foreground/60 mx-auto mb-2" />
+                            <p className="text-sm font-medium text-foreground mb-1">
+                              {s.noResultsFor || "No results found for"} &quot;{msg.query}&quot;
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {s.tryDifferent || "Try different keywords or browse categories"}
+                            </p>
+                          </div>
+                        )}
+
+                        {msg.status === "done" && msg.results.length > 0 && (
+                          <>
+                            <p className="text-sm text-foreground leading-relaxed">
+                              {buildAssistantSummary(msg.query, msg.results)}
+                            </p>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                              {msg.results.slice(0, 6).map((r) => (
+                                <ResultCard
+                                  key={`${r.type}-${r.id}`}
+                                  result={r}
+                                  query={msg.query}
+                                  onClick={() => addRecentSearch(msg.query)}
+                                />
+                              ))}
+                            </div>
+                            {msg.results.length > 6 && (
+                              <Button asChild variant="ghost" size="sm" className="text-primary -ml-2">
+                                <LocaleLink href={getViewAllLink(msg)}>
+                                  {s.viewAllResults || "View all"} {msg.results.length} {s.results || "results"}
+                                  <ArrowRight className="ml-1 h-3.5 w-3.5" />
+                                </LocaleLink>
+                              </Button>
+                            )}
+                          </>
+                        )}
                       </div>
-                    ))}
-                  </div>
-                ) : results.length === 0 ? (
-                  /* Empty state */
-                  <div className="text-center py-12 bg-background rounded-xl border">
-                    <Search className="h-12 w-12 text-muted-foreground mx-auto mb-4 opacity-50" />
-                    <p className="text-foreground font-medium mb-2">{s.noResultsFor || "No results found for"} &quot;{searchQuery}&quot;</p>
-                    <p className="text-sm text-muted-foreground mb-4">
-                      {s.tryDifferent || "Try different keywords, check spelling, or browse categories"}
-                    </p>
-                    <div className="flex flex-wrap justify-center gap-2">
-                      <Button asChild variant="outline" size="sm">
-                        <LocaleLink href="/projects">{s.browseOpportunities || "Browse Opportunities"}</LocaleLink>
-                      </Button>
-                      <Button asChild variant="outline" size="sm">
-                        <LocaleLink href="/volunteers">{s.browseImpactAgents || "Browse Impact Agents"}</LocaleLink>
-                      </Button>
-                      <Button asChild variant="outline" size="sm">
-                        <LocaleLink href="/ngos">{s.browseNGOs || "Browse NGOs"}</LocaleLink>
-                      </Button>
-                    </div>
-                  </div>
-                ) : (
-                  /* Results */
-                  <>
-                    {/* Results header */}
-                    <div className="flex items-center justify-between mb-4">
-                      <div className="flex items-center gap-3">
-                        <p className="text-sm text-muted-foreground">
-                          <span className="font-semibold text-foreground">{totalResultCount}</span> {totalResultCount !== 1 ? (s.results || "results") : (s.result || "result")}
-                          {isSearching && <Loader2 className="inline h-3 w-3 animate-spin ml-2" />}
-                        </p>
-                        {/* Category pills showing counts */}
-                        <div className="hidden sm:flex items-center gap-1.5">
-                          {Object.entries(groupedResults).map(([type, items]) => {
-                            const config = TYPE_CONFIG[type as keyof typeof TYPE_CONFIG] || TYPE_CONFIG.opportunity
-                            return (
-                              <Badge key={type} variant="secondary" className={`text-xs ${config.badgeClass}`}>
-                                {config.pluralLabel}: {items.length}
-                              </Badge>
-                            )
-                          })}
-                        </div>
-                      </div>
-                      <Button asChild variant="ghost" size="sm" className="text-primary">
-                        <LocaleLink href={getViewAllLink()}>
-                          {s.viewAll || "View All"} <ArrowRight className="ml-1 h-3.5 w-3.5" />
-                        </LocaleLink>
-                      </Button>
-                    </div>
-
-                    {/* Results grid */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                      {results.map((result, index) => {
-                        const config = TYPE_CONFIG[result.type as keyof typeof TYPE_CONFIG] || TYPE_CONFIG.opportunity
-                        const Icon = config.icon
-                        // Format work mode label
-                        const workModeLabel = result.workMode === "remote" ? (s.remote || "Remote") : result.workMode === "onsite" ? (s.onsite || "On-site") : result.workMode === "hybrid" ? (s.hybrid || "Hybrid") : null
-                        // Format volunteer type label
-                        const pricingLabel = result.volunteerType === "free" ? (s.proBono || "Pro Bono") : result.volunteerType === "paid" ? (s.paid || "Paid") : null
-                        // Format experience level label
-                        const expLabel = result.experienceLevel === "expert" ? (s.expert || "Expert") : result.experienceLevel === "advanced" ? (s.advanced || "Advanced") : result.experienceLevel === "intermediate" ? (s.intermediate || "Intermediate") : result.experienceLevel === "beginner" ? (s.beginner || "Beginner") : null
-                        const expColor = result.experienceLevel === "expert" ? "border-violet-300 text-violet-700 dark:text-violet-400 bg-violet-50 dark:bg-violet-950/20" : result.experienceLevel === "advanced" ? "border-blue-300 text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/20" : result.experienceLevel === "intermediate" ? "border-cyan-300 text-cyan-700 dark:text-cyan-400 bg-cyan-50 dark:bg-cyan-950/20" : "border-slate-300 text-slate-600 dark:text-slate-400 bg-slate-50 dark:bg-slate-950/20"
-                        // Description snippet — strip HTML and truncate
-                        const descSnippet = result.description
-                          ? result.description.replace(/<[^>]*>/g, "").substring(0, 100).trim() + (result.description.length > 100 ? "…" : "")
-                          : null
-                        return (
-                          <motion.div
-                            key={`${result.type}-${result.id}`}
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: Math.min(index * 0.03, 0.3) }}
-                          >
-                            <LocaleLink
-                              href={getResultLink(result)}
-                              onClick={() => addRecentSearch(searchQuery)}
-                              className="block bg-background rounded-xl border hover:border-primary/50 hover:shadow-lg transition-all duration-200 group h-full overflow-hidden"
-                            >
-                              {/* Card Header — type badge strip */}
-                              <div className={`px-4 py-1.5 flex items-center justify-between border-b ${
-                                result.type === "volunteer" ? "bg-blue-50 dark:bg-blue-950/20" :
-                                result.type === "ngo" ? "bg-green-50 dark:bg-green-950/20" :
-                                "bg-purple-50 dark:bg-purple-950/20"
-                              }`}>
-                                <Badge variant="secondary" className={`text-[10px] px-2 py-0.5 font-medium ${config.badgeClass}`}>
-                                  <Icon className="h-2.5 w-2.5 mr-1" />
-                                  {config.label}
-                                </Badge>
-                                <div className="flex items-center gap-1.5">
-                                  {workModeLabel && (
-                                    <span className="text-[10px] text-muted-foreground flex items-center gap-0.5">
-                                      <Globe className="h-2.5 w-2.5" />
-                                      {workModeLabel}
-                                    </span>
-                                  )}
-                                  {pricingLabel && (
-                                    <Badge variant="outline" className={`text-[10px] px-1.5 py-0 ${pricingLabel === "Pro Bono" ? "border-emerald-300 text-emerald-700 dark:text-emerald-400" : "border-amber-300 text-amber-700 dark:text-amber-400"}`}>
-                                      {pricingLabel}
-                                    </Badge>
-                                  )}
-                                  {expLabel && (
-                                    <Badge variant="outline" className={`text-[10px] px-1.5 py-0 flex items-center gap-0.5 ${expColor}`}>
-                                      <GraduationCap className="h-2.5 w-2.5" />
-                                      {expLabel}
-                                    </Badge>
-                                  )}
-                                </div>
-                              </div>
-
-                              <div className="p-4">
-                                <div className="flex items-start gap-3">
-                                  {/* Avatar/Icon */}
-                                  <div className="shrink-0">
-                                    {result.avatar ? (
-                                      <img
-                                        src={result.avatar}
-                                        alt={result.title}
-                                        className="w-12 h-12 rounded-full object-cover bg-muted ring-2 ring-background shadow-sm"
-                                        loading="lazy"
-                                        onError={(e) => {
-                                          const img = e.target as HTMLImageElement
-                                          img.style.display = "none"
-                                          const parent = img.parentElement
-                                          if (parent) {
-                                            const fallback = document.createElement('div')
-                                            fallback.className = `w-12 h-12 rounded-full flex items-center justify-center ${config.badgeClass} ring-2 ring-background shadow-sm`
-                                            const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
-                                            svg.setAttribute('class', 'h-5 w-5')
-                                            svg.setAttribute('viewBox', '0 0 24 24')
-                                            svg.setAttribute('fill', 'none')
-                                            svg.setAttribute('stroke', 'currentColor')
-                                            svg.setAttribute('stroke-width', '2')
-                                            const path = document.createElementNS('http://www.w3.org/2000/svg', 'path')
-                                            path.setAttribute('d', 'M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2')
-                                            const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle')
-                                            circle.setAttribute('cx', '9')
-                                            circle.setAttribute('cy', '7')
-                                            circle.setAttribute('r', '4')
-                                            svg.appendChild(path)
-                                            svg.appendChild(circle)
-                                            fallback.appendChild(svg)
-                                            parent.replaceChild(fallback, img)
-                                          }
-                                        }}
-                                      />
-                                    ) : (
-                                      <div className={`w-12 h-12 rounded-full flex items-center justify-center ${config.badgeClass} ring-2 ring-background shadow-sm`}>
-                                        <Icon className="h-5 w-5" />
-                                      </div>
-                                    )}
-                                  </div>
-
-                                  <div className="flex-1 min-w-0">
-                                    {/* Title + verified */}
-                                    <div className="flex items-center gap-1.5 mb-0.5">
-                                      <h3 className="font-semibold text-foreground truncate group-hover:text-primary transition-colors text-sm">
-                                        <HighlightedText text={result.title} query={searchQuery} />
-                                      </h3>
-                                      {result.verified && (
-                                        <CheckCircle className="h-3.5 w-3.5 shrink-0 text-primary" fill="currentColor" strokeWidth={0} />
-                                      )}
-                                    </div>
-
-                                    {/* Subtitle / headline */}
-                                    {result.subtitle && (
-                                      <p className="text-xs text-muted-foreground line-clamp-1 mb-1">
-                                        <HighlightedText text={result.subtitle} query={searchQuery} />
-                                      </p>
-                                    )}
-
-                                    {/* Location + Rating row */}
-                                    <div className="flex items-center gap-2.5 flex-wrap">
-                                      {result.location && (
-                                        <span className="text-[11px] text-muted-foreground flex items-center gap-0.5">
-                                          <MapPin className="h-2.5 w-2.5 shrink-0" />
-                                          <HighlightedText text={result.location} query={searchQuery} />
-                                        </span>
-                                      )}
-                                      {result.rating && result.rating > 0 && (
-                                        <span className="text-[11px] text-amber-600 dark:text-amber-400 flex items-center gap-0.5 font-medium">
-                                          <Star className="h-2.5 w-2.5 fill-current" />
-                                          {result.rating.toFixed(1)}
-                                        </span>
-                                      )}
-                                    </div>
-                                  </div>
-                                </div>
-
-                                {/* Description snippet */}
-                                {descSnippet && (
-                                  <p className="text-[11px] text-muted-foreground mt-2.5 line-clamp-2 leading-relaxed">
-                                    {descSnippet}
-                                  </p>
-                                )}
-
-                                {/* Skills */}
-                                {result.skills && result.skills.length > 0 && (
-                                  <div className="flex gap-1 mt-2.5 flex-wrap">
-                                    {result.skills.slice(0, 3).map((skill) => (
-                                      <Badge key={skill} variant="outline" className="text-[10px] px-1.5 py-0.5 font-normal bg-muted/50">
-                                        {resolveSkillName(skill)}
-                                      </Badge>
-                                    ))}
-                                    {result.skills.length > 3 && (
-                                      <Badge variant="outline" className="text-[10px] px-1.5 py-0.5 font-normal text-muted-foreground">
-                                        +{result.skills.length - 3}
-                                      </Badge>
-                                    )}
-                                  </div>
-                                )}
-
-                                {/* Causes (for NGOs/opportunities) */}
-                                {result.causes && result.causes.length > 0 && !result.skills?.length && (
-                                  <div className="flex gap-1 mt-2.5 flex-wrap">
-                                    {result.causes.slice(0, 3).map((cause) => (
-                                      <Badge key={cause} variant="outline" className="text-[10px] px-1.5 py-0.5 font-normal bg-muted/50 border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-400">
-                                        {cause}
-                                      </Badge>
-                                    ))}
-                                  </div>
-                                )}
-                              </div>
-                            </LocaleLink>
-                          </motion.div>
-                        )
-                      })}
-                    </div>
-                  </>
+                    </motion.div>
+                  )
                 )}
-              </motion.div>
+                <div ref={messagesEndRef} />
+              </div>
+            ) : (
+              /* Empty state — friendly intro + suggestions */
+              <div className="px-4 sm:px-6 py-8">
+                <div className="flex items-start gap-3 mb-5">
+                  <div className="shrink-0 mt-0.5 h-7 w-7 rounded-full bg-linear-to-br from-primary/20 to-primary/5 text-primary flex items-center justify-center ring-1 ring-primary/10">
+                    <Sparkles className="h-3.5 w-3.5" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-sm text-foreground">
+                      {s.jbcertaGreeting || "Hi! I'm JBCerta. Ask me to find people, NGOs or opportunities — try one of these:"}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex flex-wrap gap-2 ml-10">
+                  {POPULAR_SEARCHES.map((item) => (
+                    <button
+                      key={item.query}
+                      onClick={() => runQuery(item.query, searchType)}
+                      className="px-3 py-1.5 text-xs rounded-full bg-muted/60 border border-border hover:border-primary hover:text-primary hover:bg-primary/5 transition-all duration-200"
+                    >
+                      {item.label}
+                    </button>
+                  ))}
+                </div>
+                {recentSearches.length > 0 && (
+                  <div className="mt-5 ml-10">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+                        <Clock className="h-3 w-3" />
+                        {s.recentSearches || "Recent"}
+                      </span>
+                      <button
+                        onClick={clearRecentSearches}
+                        className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+                      >
+                        {s.clearAll || "Clear"}
+                      </button>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {recentSearches.map((q) => (
+                        <button
+                          key={q}
+                          onClick={() => runQuery(q, searchType)}
+                          className="px-3 py-1.5 text-xs rounded-full bg-background border border-border hover:border-primary hover:text-primary transition-all duration-200 flex items-center gap-1.5"
+                        >
+                          <Clock className="h-3 w-3 text-muted-foreground" />
+                          {q}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
             )}
-          </AnimatePresence>
+
+            {/* AI input bar — Kokonut-style */}
+            <div className="border-t bg-muted/20 p-3 sm:p-4">
+              <div
+                className={cn(
+                  "relative flex w-full cursor-text flex-col rounded-xl bg-background text-left transition-all duration-200",
+                  "ring-1 ring-border",
+                  isFocused && "ring-2 ring-primary/40"
+                )}
+                onClick={() => textareaRef.current?.focus()}
+              >
+                <div className="max-h-50 overflow-y-auto">
+                  <textarea
+                    ref={textareaRef}
+                    value={inputValue}
+                    onChange={(e) => {
+                      setInputValue(e.target.value)
+                      adjustHeight()
+                    }}
+                    onFocus={() => setIsFocused(true)}
+                    onBlur={() => setIsFocused(false)}
+                    onKeyDown={handleKeyDown}
+                    placeholder={
+                      searchType === "volunteer"
+                        ? (s.placeholderVolunteer || "Ask JBCerta to find impact agents…")
+                        : searchType === "ngo"
+                        ? (s.placeholderNgo || "Ask JBCerta to find NGOs…")
+                        : searchType === "opportunity"
+                        ? (s.placeholderOpportunity || "Ask JBCerta to find opportunities…")
+                        : (s.jbcertaPlaceholder || "Ask JBCerta anything — people, NGOs, opportunities…")
+                    }
+                    aria-label="Ask JBCerta"
+                    rows={1}
+                    className="w-full resize-none rounded-xl rounded-b-none border-none bg-transparent px-4 py-3 text-sm leading-[1.4] outline-none placeholder:text-muted-foreground/70"
+                  />
+                </div>
+
+                <div className="h-12 rounded-b-xl bg-muted/40 dark:bg-white/5">
+                  <div className="absolute bottom-3 left-3 flex items-center gap-2">
+                    <button
+                      type="button"
+                      title={s.attach || "Attach (coming soon)"}
+                      className="cursor-pointer rounded-lg bg-background/60 p-2 text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      <Paperclip className="h-4 w-4" />
+                    </button>
+                    <div className="flex h-8 items-center gap-1 rounded-full border border-primary/30 bg-primary/10 px-2 py-1 text-primary">
+                      <Sparkles className="h-3.5 w-3.5" />
+                      <span className="text-xs font-medium">JBCerta</span>
+                    </div>
+                    <div className="flex h-8 items-center gap-1 rounded-full border border-border bg-background/70 px-2 py-1 text-muted-foreground">
+                      <Globe className="h-3.5 w-3.5" />
+                      <span className="text-xs font-medium">
+                        {searchType === "all"
+                          ? (s.all || "All")
+                          : searchType === "volunteer"
+                          ? (s.impactAgents || "Impact Agents")
+                          : searchType === "ngo"
+                          ? (s.ngos || "NGOs")
+                          : (s.opportunities || "Opportunities")}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="absolute right-3 bottom-3 flex items-center gap-1">
+                    {hasMessages && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handleResetChat()
+                        }}
+                        className="rounded-lg p-2 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                        aria-label="Reset chat"
+                        title={s.resetChat || "Reset chat"}
+                        type="button"
+                      >
+                        <RotateCcw className="h-4 w-4" />
+                      </button>
+                    )}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handleSubmit()
+                      }}
+                      disabled={!inputValue.trim()}
+                      className={cn(
+                        "rounded-lg p-2 transition-colors",
+                        inputValue.trim()
+                          ? "bg-primary text-primary-foreground hover:bg-primary/90"
+                          : "bg-muted text-muted-foreground/50 cursor-not-allowed"
+                      )}
+                      aria-label="Send"
+                      type="button"
+                    >
+                      <Send className="h-4 w-4" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+              <p className="mt-2 text-center text-[11px] text-muted-foreground">
+                {s.enterToSend || "Press Enter to send · Shift+Enter for new line"}
+              </p>
+            </div>
+          </div>
         </motion.div>
       </div>
     </section>
   )
 }
+
