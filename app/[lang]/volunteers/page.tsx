@@ -60,8 +60,40 @@ export default function VolunteersPage({ embed, subscriptionPlan }: VolunteersPa
   // ==========================================
   const [unifiedMatchedIds, setUnifiedMatchedIds] = useState<string[] | null>(null)
   const [unifiedRelevanceOrder, setUnifiedRelevanceOrder] = useState<Map<string, number>>(new Map())
+  const [searchResultVolunteers, setSearchResultVolunteers] = useState<VolunteerProfileView[] | null>(null)
   const [isUnifiedSearching, setIsUnifiedSearching] = useState(false)
   const unifiedAbortRef = useRef<AbortController | null>(null)
+
+  /**
+   * Map a unified-search result row into the local VolunteerProfileView shape
+   * so search hits beyond the locally-fetched volunteer list still render.
+   */
+  function mapSearchResultToVolunteer(r: any): VolunteerProfileView {
+    const skillsArr: any[] = Array.isArray(r.skills) ? r.skills : []
+    const skills = skillsArr.map((s: any) =>
+      typeof s === "string"
+        ? { categoryId: s, subskillId: s }
+        : { categoryId: s.categoryId || s.id || "", subskillId: s.subskillId || s.id || "" }
+    )
+    return {
+      id: r.userId || r.mongoId || r.id,
+      name: r.title || r.name || null,
+      avatar: r.avatar || null,
+      bio: r.subtitle || r.description || null,
+      location: r.location || "",
+      skills,
+      causes: Array.isArray(r.causes) ? r.causes : [],
+      workMode: (r.workMode as any) || "flexible",
+      hoursPerWeek: r.hoursPerWeek || "",
+      volunteerType: (r.volunteerType as any) || "free",
+      completedProjects: 0,
+      hoursContributed: 0,
+      rating: r.rating || 0,
+      isVerified: !!r.verified,
+      isUnlocked: false,
+      canMessage: false,
+    }
+  }
 
   // Debounced unified search
   useEffect(() => {
@@ -69,6 +101,7 @@ export default function VolunteersPage({ embed, subscriptionPlan }: VolunteersPa
     if (trimmed.length < 3) {
       setUnifiedMatchedIds(null)
       setUnifiedRelevanceOrder(new Map())
+      setSearchResultVolunteers(null)
       return
     }
 
@@ -86,8 +119,10 @@ export default function VolunteersPage({ embed, subscriptionPlan }: VolunteersPa
         const data = await res.json()
         if (data.success && !controller.signal.aborted) {
           // Use mongoId for reliable cross-referencing with volunteer list
-          const ids = (data.results || []).map((r: any) => r.mongoId || r.id)
+          const rawResults = (data.results || []).filter((r: any) => r.type === "volunteer")
+          const ids = rawResults.map((r: any) => r.mongoId || r.id)
           setUnifiedMatchedIds(ids)
+          setSearchResultVolunteers(rawResults.map(mapSearchResultToVolunteer))
           const orderMap = new Map<string, number>()
           ids.forEach((id: string, idx: number) => orderMap.set(id, ids.length - idx))
           setUnifiedRelevanceOrder(orderMap)
@@ -157,29 +192,38 @@ export default function VolunteersPage({ embed, subscriptionPlan }: VolunteersPa
 
   // Filter and sort volunteers
   const filteredVolunteers = useMemo(() => {
-    let result = [...volunteers]
+    // When the user has a search query and the unified-search API has
+    // returned results, drive the visible list from those results so we
+    // surface volunteers that aren't part of the locally-fetched page.
+    // Merge with the local list (richer fields like avatar/bio) when an
+    // entry is also present locally.
+    const hasActiveSearch = searchQuery.trim().length > 0
+    let result: VolunteerProfileView[]
 
-    // Search filter — powered by unified search API
-    if (searchQuery.trim()) {
-      if (unifiedMatchedIds !== null) {
-        // API results ready — filter by matched IDs
-        result = result.filter((v) => unifiedMatchedIds.includes(v.id))
-      } else {
-        // API loading — basic client-side fallback
-        const query = searchQuery.toLowerCase()
-        result = result.filter((v) => {
-          const nameMatch = v.name?.toLowerCase()?.includes(query)
-          const bioMatch = v.bio?.toLowerCase()?.includes(query)
-          const skillsMatch = v.skills?.some(
-            (s) =>
-              s.categoryId?.toLowerCase().includes(query) ||
-              s.subskillId?.toLowerCase().includes(query)
-          )
-          const locationMatch = v.location?.toLowerCase()?.includes(query)
-          const causeMatch = v.causes?.some((c) => c.toLowerCase().includes(query))
-          return nameMatch || bioMatch || skillsMatch || locationMatch || causeMatch
-        })
-      }
+    if (hasActiveSearch && searchResultVolunteers !== null) {
+      const localById = new Map(volunteers.map((v) => [v.id, v]))
+      result = searchResultVolunteers.map((sr) => {
+        const local = localById.get(sr.id)
+        return local ? ({ ...sr, ...local } as VolunteerProfileView) : sr
+      })
+    } else if (hasActiveSearch && unifiedMatchedIds === null) {
+      // API request still in flight — fallback to a basic local filter
+      // so the UI doesn't go blank while typing.
+      const query = searchQuery.toLowerCase()
+      result = volunteers.filter((v) => {
+        const nameMatch = v.name?.toLowerCase()?.includes(query)
+        const bioMatch = v.bio?.toLowerCase()?.includes(query)
+        const skillsMatch = v.skills?.some(
+          (s) =>
+            s.categoryId?.toLowerCase().includes(query) ||
+            s.subskillId?.toLowerCase().includes(query)
+        )
+        const locationMatch = v.location?.toLowerCase()?.includes(query)
+        const causeMatch = v.causes?.some((c) => c.toLowerCase().includes(query))
+        return nameMatch || bioMatch || skillsMatch || locationMatch || causeMatch
+      })
+    } else {
+      result = [...volunteers]
     }
 
     // Skills filter (by category)
@@ -235,6 +279,7 @@ export default function VolunteersPage({ embed, subscriptionPlan }: VolunteersPa
     return result
   }, [
     volunteers,
+    searchResultVolunteers,
     searchQuery,
     selectedSkills,
     selectedCauses,
