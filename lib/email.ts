@@ -9,9 +9,10 @@ interface EmailOptions {
   subject: string
   html?: string
   text?: string
+  replyTo?: string | string[]
 }
 
-export async function sendEmail({ to, subject, html, text }: EmailOptions): Promise<boolean> {
+export async function sendEmail({ to, subject, html, text, replyTo }: EmailOptions): Promise<boolean> {
   // If no API key, log and return (for development)
   if (!RESEND_API_KEY) {
     console.log("📧 Email would be sent (RESEND_API_KEY not configured):")
@@ -35,6 +36,7 @@ export async function sendEmail({ to, subject, html, text }: EmailOptions): Prom
         subject,
         html,
         text,
+        ...(replyTo ? { reply_to: replyTo } : {}),
       }),
     })
 
