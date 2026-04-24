@@ -119,7 +119,7 @@ function RoleSelectContent() {
               <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
                 <Heart className="h-10 w-10 text-primary" />
               </div>
-              <CardTitle className="text-xl">I'm an Impact Agent</CardTitle>
+              <CardTitle className="text-xl">I'm an Candidate (Impact Agent)</CardTitle>
               <CardDescription>
                 Share your skills and make an impact
               </CardDescription>
@@ -127,7 +127,7 @@ function RoleSelectContent() {
             <CardContent className="text-center">
               <ul className="text-sm text-muted-foreground space-y-2 mb-6">
                 <li>✓ Create your skills-based profile</li>
-                <li>✓ Browse impact agent opportunities</li>
+                <li>✓ Browse candidate (impact agent) jobs</li>
                 <li>✓ Connect with NGOs</li>
                 <li>✓ Track your social impact</li>
               </ul>
@@ -142,7 +142,7 @@ function RoleSelectContent() {
                     Setting up...
                   </>
                 ) : (
-                  "Continue as Impact Agent"
+                  "Continue as Candidate (Impact Agent)"
                 )}
               </Button>
             </CardContent>

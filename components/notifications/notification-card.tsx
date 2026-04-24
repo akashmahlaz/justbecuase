@@ -260,7 +260,7 @@ function getNotificationActions(notification: NotificationData, dict?: any): Not
       actions.push({ label: dict?.volunteer?.notifications?.actionViewProject || "View Project", href: primaryLink || `/volunteer/applications` })
       break
     case "application_rejected":
-      actions.push({ label: dict?.volunteer?.common?.browseOpportunities || "Browse Opportunities", href: "/volunteer/opportunities", variant: "outline" })
+      actions.push({ label: dict?.volunteer?.common?.browseOpportunities || "Browse Jobs", href: "/volunteer/opportunities", variant: "outline" })
       break
     case "new_message":
       actions.push({ label: dict?.volunteer?.notifications?.actionOpenChat || "Open Chat", href: primaryLink || "/messages" })
@@ -277,7 +277,7 @@ function getNotificationActions(notification: NotificationData, dict?: any): Not
     case "project_match":
     case "followed_ngo_project":
       if (primaryLink) {
-        actions.push({ label: dict?.volunteer?.notifications?.actionViewOpportunity || "View Opportunity", href: primaryLink })
+        actions.push({ label: dict?.volunteer?.notifications?.actionViewOpportunity || "View Job", href: primaryLink })
       }
       actions.push({ label: dict?.volunteer?.notifications?.actionBrowseAll || "Browse All", href: "/volunteer/opportunities", variant: "outline" })
       break

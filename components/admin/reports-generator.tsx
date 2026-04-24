@@ -27,7 +27,7 @@ export function ReportsGenerator({ volunteers, ngos, projects, analytics }: Repo
           // Generate user registration report
           const allUsers = [
             ...volunteers.map(v => ({
-              type: "Impact Agent",
+              type: "Candidate (Impact Agent)",
               name: v.name || v.bio?.slice(0, 30) || "Unnamed",
               contact: v.phone || "N/A",
               location: `${v.city || ""}, ${v.country || ""}`,
@@ -54,7 +54,7 @@ export function ReportsGenerator({ volunteers, ngos, projects, analytics }: Repo
         case "ngo-activity":
           // Generate NGO activity report
           csvContent = [
-            ["Organization", "Email", "Location", "Subscription", "Opportunities Posted", "Opportunities Completed", "Verified"].join(","),
+            ["Organization", "Email", "Location", "Subscription", "Jobs Posted", "Jobs Completed", "Verified"].join(","),
             ...ngos.map(n => [
               n.orgName || n.organizationName || "Unnamed",
               n.contactEmail || "N/A",
@@ -145,7 +145,7 @@ export function ReportsGenerator({ volunteers, ngos, projects, analytics }: Repo
 
   const reports = [
     { id: "user-registration", title: "User Registration Report", description: "All user signups with details" },
-    { id: "ngo-activity", title: "NGO Activity Report", description: "NGO opportunities and engagement" },
+    { id: "ngo-activity", title: "NGO Activity Report", description: "NGO jobs and engagement" },
     { id: "volunteer-activity", title: "Volunteer Activity Report", description: "Volunteer applications and matches" },
     { id: "revenue", title: "Revenue Report", description: "All payments and transactions" },
     { id: "matching", title: "Matching Report", description: "Skill matching statistics" },

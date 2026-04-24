@@ -86,7 +86,7 @@ export function VolunteerAppSidebar({ ...props }: React.ComponentProps<typeof Si
         { title: d.dashboard || "Dashboard", href: "/volunteer/dashboard", icon: LayoutDashboard },
         { title: d.opportunities || "Opportunities", href: "/volunteer/opportunities", icon: Sparkles },
         { title: d.applications || "Applications", href: "/volunteer/applications", icon: FolderKanban },
-        { title: d.savedOpportunities || "Saved Opportunities", href: "/volunteer/saved-projects", icon: Bookmark },
+        { title: d.savedOpportunities || "Saved Jobs", href: "/volunteer/saved-projects", icon: Bookmark },
         { title: d.messages || "Messages", href: "/volunteer/messages", icon: MessageSquare },
       ],
     },
@@ -112,7 +112,7 @@ export function VolunteerAppSidebar({ ...props }: React.ComponentProps<typeof Si
                   <User className="size-4" />
                 </div>
                 <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-semibold">{d.impactAgent || "Impact Agent"}</span>
+                  <span className="truncate font-semibold">{d.impactAgent || "Candidate (Impact Agent)"}</span>
                   <span className="truncate text-xs text-muted-foreground">{d.dashboard || "Dashboard"}</span>
                 </div>
               </LocaleLink>

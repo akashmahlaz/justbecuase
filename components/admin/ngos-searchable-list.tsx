@@ -81,7 +81,7 @@ export function NGOsSearchableList({ ngos, title }: NGOsSearchableListProps) {
 
   const handleExport = () => {
     // Export to CSV
-    const headers = ["Organization", "Email", "Location", "Subscription", "Verified", "Opportunities Posted", "Joined"]
+    const headers = ["Organization", "Email", "Location", "Subscription", "Verified", "Jobs Posted", "Joined"]
     const rows = filteredNGOs.map(ngo => [
       ngo.orgName || ngo.organizationName || "",
       ngo.contactEmail || "",

@@ -23,9 +23,9 @@ export default async function AdminVolunteersPage({ params }: { params: Promise<
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-foreground mb-2">{dict.admin?.volunteers?.title || "Manage Impact Agents"}</h1>
+        <h1 className="text-2xl font-bold text-foreground mb-2">{dict.admin?.volunteers?.title || "Manage Candidates (Impact Agents)"}</h1>
         <p className="text-muted-foreground">
-          {dict.admin?.volunteers?.subtitle || "View and manage all impact agent profiles"}
+          {dict.admin?.volunteers?.subtitle || "View and manage all candidate (impact agent) profiles"}
         </p>
       </div>
 
@@ -38,7 +38,7 @@ export default async function AdminVolunteersPage({ params }: { params: Promise<
             </div>
             <div>
               <p className="text-2xl font-bold text-foreground">{total}</p>
-              <p className="text-sm text-muted-foreground">{dict.admin?.volunteers?.totalImpactAgents || "Total Impact Agents"}</p>
+              <p className="text-sm text-muted-foreground">{dict.admin?.volunteers?.totalImpactAgents || "Total Candidates (Impact Agents)"}</p>
             </div>
           </CardContent>
         </Card>
@@ -80,7 +80,7 @@ export default async function AdminVolunteersPage({ params }: { params: Promise<
       {/* Searchable Volunteers List */}
       <VolunteersSearchableList 
         volunteers={volunteers} 
-        title={dict.admin?.volunteers?.allImpactAgents || "All Impact Agents"}
+        title={dict.admin?.volunteers?.allImpactAgents || "All Candidates (Impact Agents)"}
       />
     </div>
   )

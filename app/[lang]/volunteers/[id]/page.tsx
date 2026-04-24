@@ -37,10 +37,10 @@ export async function generateMetadata({
   const volunteer = await getVolunteerProfileView(id)
 
   if (!volunteer) {
-    return { title: "Impact Agent Not Found" }
+    return { title: "Candidate (Impact Agent) Not Found" }
   }
 
-  const name = volunteer.name || "Impact Agent"
+  const name = volunteer.name || "Candidate (Impact Agent)"
   const title = (volunteer as any).title ? `${name} - ${(volunteer as any).title}` : name
   const description = (volunteer.bio || `${name} is a skilled impact agent on JustBeCause Network`).slice(0, 160)
   const skills = (volunteer.skills || [])
@@ -118,7 +118,7 @@ export default async function VolunteerProfilePage({ params }: { params: Promise
                 {volunteer.avatar && !isLocked ? (
                   <img
                     src={volunteer.avatar}
-                    alt={volunteer.name || (dict.volunteerDetail?.impactAgent || "Impact Agent")}
+                    alt={volunteer.name || (dict.volunteerDetail?.impactAgent || "Candidate (Impact Agent)")}
                     className="w-32 h-32 rounded-full object-cover border-4 border-background shadow-xl"
                   />
                 ) : (
@@ -140,7 +140,7 @@ export default async function VolunteerProfilePage({ params }: { params: Promise
                       {dict.volunteerDetail?.profileLocked || "Profile Locked"}
                     </span>
                   ) : (
-                    volunteer.name || (dict.volunteerDetail?.impactAgent || "Impact Agent")
+                    volunteer.name || (dict.volunteerDetail?.impactAgent || "Candidate (Impact Agent)")
                   )}
                 </h1>
 
@@ -162,7 +162,7 @@ export default async function VolunteerProfilePage({ params }: { params: Promise
                   </div>
                   <div className="flex items-center gap-1 text-foreground">
                     <CheckCircle className="h-4 w-4 text-success" />
-                    {(dict.volunteerDetail?.opportunitiesCompleted || "{count} opportunities completed").replace("{count}", String(volunteer.completedProjects))}
+                    {(dict.volunteerDetail?.opportunitiesCompleted || "{count} jobs completed").replace("{count}", String(volunteer.completedProjects))}
                   </div>
                   {volunteer.volunteerType === "paid" && (
                     <Badge variant="secondary">{dict.volunteerDetail?.paidBadge || "Paid"}</Badge>
@@ -196,7 +196,7 @@ export default async function VolunteerProfilePage({ params }: { params: Promise
                 {!isLocked && (
                   <FollowButton
                     targetId={id}
-                    targetName={volunteer.name || (dict.volunteerDetail?.impactAgent || "Impact Agent")}
+                    targetName={volunteer.name || (dict.volunteerDetail?.impactAgent || "Candidate (Impact Agent)")}
                     isFollowing={followStats.isFollowing}
                     followersCount={followStats.followersCount}
                     showCount={false}
@@ -220,14 +220,14 @@ export default async function VolunteerProfilePage({ params }: { params: Promise
                 ) : volunteer.canMessage ? (
                   <ContactVolunteerButton
                     volunteerId={volunteer.id}
-                    volunteerName={volunteer.name || (dict.volunteerDetail?.impactAgent || "Impact Agent")}
+                    volunteerName={volunteer.name || (dict.volunteerDetail?.impactAgent || "Candidate (Impact Agent)")}
                     className="w-full bg-primary hover:bg-primary/90"
                   />
                 ) : null}
                 <ShareButton
                   url={`/volunteers/${id}`}
-                  title={isLocked ? (dict.volunteerDetail?.shareTitle || "Skilled Impact Agent on JustBeCause") : (dict.volunteerDetail?.shareTitleWithName || "{name} - Impact Agent Profile").replace("{name}", volunteer.name)}
-                  description={(dict.volunteerDetail?.shareDescription || "Discover this talented impact agent with {projects} completed projects and a {rating} rating.").replace("{projects}", String(volunteer.completedProjects)).replace("{rating}", volunteer.rating.toFixed(1))}
+                  title={isLocked ? (dict.volunteerDetail?.shareTitle || "Skilled Candidate (Impact Agent) on JustBeCause") : (dict.volunteerDetail?.shareTitleWithName || "{name} - Candidate (Impact Agent) Profile").replace("{name}", volunteer.name)}
+                  description={(dict.volunteerDetail?.shareDescription || "Discover this talented candidate (impact agent) with {projects} completed projects and a {rating} rating.").replace("{projects}", String(volunteer.completedProjects)).replace("{rating}", volunteer.rating.toFixed(1))}
                   variant="outline"
                   className="w-full"
                 />
@@ -251,7 +251,7 @@ export default async function VolunteerProfilePage({ params }: { params: Promise
                           {dict.volunteerDetail?.proRequired || "Pro Subscription Required"}
                         </h3>
                         <p className="text-muted-foreground mb-4">
-                          {dict.volunteerDetail?.proRequiredDesc || "This is a free impact agent. Subscribe to our Pro plan to view their full profile, contact details, portfolio, and connect with them directly."}
+                          {dict.volunteerDetail?.proRequiredDesc || "This is a free candidate (impact agent). Subscribe to our Pro plan to view their full profile, contact details, portfolio, and connect with them directly."}
                         </p>
                         <Button asChild>
                           <Link href="/pricing">
@@ -457,7 +457,7 @@ export default async function VolunteerProfilePage({ params }: { params: Promise
                       </div>
                       <div>
                         <p className="font-medium text-foreground">{dict.volunteerDetail?.hours100 || "100+ Hours"}</p>
-                        <p className="text-xs text-muted-foreground">{dict.volunteerDetail?.hours100Desc || "Impact Agent milestone"}</p>
+                        <p className="text-xs text-muted-foreground">{dict.volunteerDetail?.hours100Desc || "Candidate (Impact Agent) milestone"}</p>
                       </div>
                     </div>
                   )}

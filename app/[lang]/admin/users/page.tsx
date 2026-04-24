@@ -22,7 +22,7 @@ export default async function AdminUsersPage({ params }: { params: Promise<{ lan
   const allUsers = [
     ...volunteersData.data.map(v => ({
       id: v.userId,
-      name: v.name || "Unnamed Impact Agent",
+      name: v.name || "Unnamed Candidate (Impact Agent)",
       email: v.phone || "No email",
       role: "volunteer" as const,
       avatar: v.avatar,
@@ -79,7 +79,7 @@ export default async function AdminUsersPage({ params }: { params: Promise<{ lan
             </div>
             <div>
               <p className="text-2xl font-bold text-foreground">{stats.totalVolunteers}</p>
-              <p className="text-sm text-muted-foreground">{dict.admin?.users?.impactAgents || "Impact Agents"}</p>
+              <p className="text-sm text-muted-foreground">{dict.admin?.users?.impactAgents || "Candidates (Impact Agents)"}</p>
             </div>
           </CardContent>
         </Card>

@@ -34,7 +34,7 @@ interface SearchResult {
 const TYPE_CONFIG = {
   volunteer: {
     icon: Users,
-    label: "Impact Agent",
+    label: "Candidate (Impact Agent)",
     badgeClass: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
   },
   ngo: {
@@ -88,7 +88,7 @@ export function OpportunitiesSearchCard() {
         }
       } catch (err: any) {
         if (err.name !== "AbortError") {
-          console.error("Opportunities search failed:", err)
+          console.error("Jobs search failed:", err)
           setResults([])
         }
       } finally {

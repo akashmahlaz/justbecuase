@@ -180,7 +180,7 @@ export function VolunteersSearchableList({ volunteers, title }: VolunteersSearch
                 </thead>
                 <tbody>
                   {filteredVolunteers.map((volunteer) => {
-                    const name = volunteer.name || volunteer.bio?.slice(0, 20) || "Impact Agent"
+                    const name = volunteer.name || volunteer.bio?.slice(0, 20) || "Candidate (Impact Agent)"
                     const skills = volunteer.skills || []
                     return (
                       <tr key={volunteer.userId} className="border-b hover:bg-muted/50">

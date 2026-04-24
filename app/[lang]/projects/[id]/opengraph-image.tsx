@@ -1,7 +1,7 @@
 import { ImageResponse } from "next/og"
 import { getProject, getNGOById } from "@/lib/actions"
 
-export const alt = "JustBeCause Network - Opportunity"
+export const alt = "JustBeCause Network - Job"
 export const size = { width: 1200, height: 630 }
 export const contentType = "image/png"
 

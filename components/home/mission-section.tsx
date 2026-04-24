@@ -62,7 +62,7 @@ export function MissionSection() {
             >
               <LocaleLink href="/auth/signup?role=volunteer" className="flex items-center gap-2">
                 <Users className="h-5 w-5" />
-                {h.registerAsAgent || "Register as Impact Agent"}
+                {h.registerAsAgent || "Register as Candidate (Impact Agent)"}
                 <ArrowRight className="h-4 w-4" />
               </LocaleLink>
             </Button>

@@ -1,4 +1,4 @@
-﻿"use server"
+"use server"
 
 // ============================================
 // Server Actions for JustBecause Network
@@ -834,7 +834,7 @@ export async function createProject(data: {
       }
     }
 
-    // Best effort: Email volunteers whose skills match this opportunity
+    // Best effort: Email volunteers whose skills match this job
     try {
       const { sendEmail, getNewOpportunityEmailHtml } = await import("@/lib/email")
       // Fetch only active volunteers with email notifications enabled
@@ -879,7 +879,7 @@ export async function createProject(data: {
             await notificationsDb.create({
               userId: vol.userId,
               type: "project_match",
-              title: "New Matching Opportunity",
+              title: "New Matching Job",
               message: `A new project "${sanitizedTitle}" matches your skills`,
               referenceId: projectId,
               referenceType: "project",
@@ -896,9 +896,9 @@ export async function createProject(data: {
           if (volUser?.email && prefs?.emailNotifications !== false && prefs?.opportunityDigest !== false) {
             await sendEmail({
               to: volUser.email,
-              subject: `New opportunity matching your skills: ${sanitizedTitle}`,
+              subject: `New job matching your skills: ${sanitizedTitle}`,
               html: getNewOpportunityEmailHtml(
-                vol.name || volUser.name || "Impact Agent",
+                vol.name || volUser.name || "Candidate (Impact Agent)",
                 sanitizedTitle,
                 ngoProfile.organizationName || "An NGO",
                 projectId
@@ -911,7 +911,7 @@ export async function createProject(data: {
       }
       console.log(`[createProject] Notified ${Math.min(matchingVolunteers.length, 20)} matching volunteers (out of ${allVolunteers.length} total)`)
     } catch (emailError) {
-      console.error("[createProject] Failed to send opportunity emails:", emailError)
+      console.error("[createProject] Failed to send job emails:", emailError)
     }
 
     // Notify followers of this NGO about the new project (in-app always, email only if skills match)
@@ -1326,7 +1326,7 @@ export async function applyToProject(
       const ngoPrefs = ngoUserDb?.privacy
       if (ngoUserInfo?.email && ngoPrefs?.applicationNotifications !== false && ngoPrefs?.emailNotifications !== false) {
         const { sendEmail, getNewApplicationEmailHtml } = await import("@/lib/email")
-        const volunteerName = (await getUserInfo(user.id))?.name || "An Impact Agent"
+        const volunteerName = (await getUserInfo(user.id))?.name || "An Candidate (Impact Agent)"
         const html = getNewApplicationEmailHtml(
           ngoUserInfo.name,
           volunteerName,
@@ -1611,7 +1611,7 @@ export async function getVolunteerProfileView(
     isNgoViewer
 
   // Get the best name available
-  const displayName = volunteerProfile.name || volunteerUser?.name || "Impact Agent"
+  const displayName = volunteerProfile.name || volunteerUser?.name || "Candidate (Impact Agent)"
 
   // Build the view based on unlock status
   const view: VolunteerProfileView = {

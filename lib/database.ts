@@ -1068,7 +1068,7 @@ export const adminSettingsDb = {
           "Featured profile badge",
           "Priority in search results",
           "Direct message NGOs",
-          "Early access to opportunities",
+          "Early access to jobs",
           "Profile analytics",
           "Certificate downloads",
         ],
@@ -1088,7 +1088,7 @@ export const adminSettingsDb = {
           "Priority support",
           "Project analytics & reports",
           "Featured NGO badge",
-          "Bulk impact agent outreach",
+          "Bulk candidate (impact agent) outreach",
         ],
         
         // Features Toggle
@@ -1107,8 +1107,8 @@ export const adminSettingsDb = {
         maintenanceMode: false,
         
         // SEO
-        metaTitle: "JustBeCause Network - Connect NGOs with Impact Agents",
-        metaDescription: "Platform connecting NGOs with skilled impact agents for social impact",
+        metaTitle: "JustBeCause Network - Connect NGOs with Candidates (Impact Agents)",
+        metaDescription: "Platform connecting NGOs with skilled candidates (impact agents) for social impact",
         
         updatedAt: new Date(),
         updatedBy: adminUserId,

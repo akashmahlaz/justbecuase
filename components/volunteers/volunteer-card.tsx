@@ -51,7 +51,7 @@ export function VolunteerCard({ volunteer }: VolunteerCardProps) {
             {volunteer.avatar && !isLocked ? (
               <Image
                 src={volunteer.avatar}
-                alt={volunteer.name || "Impact Agent"}
+                alt={volunteer.name || "Candidate (Impact Agent)"}
                 width={40}
                 height={40}
                 className="w-10 h-10 rounded-full object-cover"
@@ -73,7 +73,7 @@ export function VolunteerCard({ volunteer }: VolunteerCardProps) {
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
               <h3 className={`font-semibold text-foreground text-sm leading-tight truncate ${isLocked ? "blur-sm" : ""}`}>
-                {volunteer.name || "Impact Agent"}
+                {volunteer.name || "Candidate (Impact Agent)"}
               </h3>
               {isFreeVolunteer ? (
                 <Badge className="bg-green-100 text-green-700 border-green-200 dark:bg-green-950/40 dark:text-green-400 dark:border-green-800 text-[10px] px-1.5 py-0 h-[18px] flex-shrink-0">

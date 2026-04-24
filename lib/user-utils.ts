@@ -68,7 +68,7 @@ export async function getUserInfo(userId: string): Promise<UserInfo | null> {
   if (role === "volunteer") {
     return {
       id: userId,
-      name: user.name || "Impact Agent",
+      name: user.name || "Candidate (Impact Agent)",
       email: user.email,
       image: user.avatar || user.image,
       type: "volunteer",
@@ -153,7 +153,7 @@ export async function getUsersInfo(userIds: string[]): Promise<Map<string, UserI
     } else if (role === "volunteer") {
       result.set(userId, {
         id: userId,
-        name: user.name || "Impact Agent",
+        name: user.name || "Candidate (Impact Agent)",
         email: user.email,
         image: user.avatar || user.image,
         type: "volunteer",

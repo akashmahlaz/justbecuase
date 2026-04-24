@@ -77,7 +77,7 @@ export default async function ImpactDashboardPage({ params }: { params: Promise<
                   <div className="text-5xl">{levelInfo.icon}</div>
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-1">
-                      <h2 className="text-xl font-bold text-foreground">{levelInfo.level} {dict.volunteer?.impact?.impactAgent || "Impact Agent"}</h2>
+                      <h2 className="text-xl font-bold text-foreground">{levelInfo.level} {dict.volunteer?.impact?.impactAgent || "Candidate (Impact Agent)"}</h2>
                       <Badge className={`${levelInfo.color} text-white`}>{levelInfo.level}</Badge>
                     </div>
                     <p className="text-sm text-muted-foreground mb-3">
