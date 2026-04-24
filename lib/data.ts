@@ -1,4 +1,4 @@
-// Sample data for the platform
+﻿// Sample data for the platform
 export const sampleProjects = [
   {
     id: "3",
@@ -162,7 +162,7 @@ export interface Testimonial {
   role: string
   organization: string
   avatar: string
-  type: "Enterprise" | "Volunteer"
+  type: "NGO" | "Volunteer"
   tag: string
 }
 
@@ -174,7 +174,7 @@ export const featuredTestimonial: Testimonial = {
   role: "Executive Director",
   organization: "WaterBridge Foundation",
   avatar: "https://i.pravatar.cc/150?u=amira",
-  type: "Enterprise",
+  type: "NGO",
   tag: "Impact",
 }
 
@@ -198,7 +198,7 @@ export const testimonialRow1: Testimonial[] = [
     role: "Programs Director",
     organization: "GreenLeaf Initiative",
     avatar: "https://i.pravatar.cc/150?u=fatima",
-    type: "Enterprise",
+    type: "NGO",
     tag: "Data",
   },
   {
@@ -220,7 +220,7 @@ export const testimonialRow1: Testimonial[] = [
     role: "Founder",
     organization: "SafeHaven Trust",
     avatar: "https://i.pravatar.cc/150?u=priya",
-    type: "Enterprise",
+    type: "NGO",
     tag: "Legal",
   },
   {
@@ -231,7 +231,7 @@ export const testimonialRow1: Testimonial[] = [
     role: "COO",
     organization: "Nordic Aid Alliance",
     avatar: "https://i.pravatar.cc/150?u=lena",
-    type: "Enterprise",
+    type: "NGO",
     tag: "Tech",
   },
 ]
@@ -239,8 +239,8 @@ export const testimonialRow1: Testimonial[] = [
 export const testimonialRow2: Testimonial[] = [
   {
     id: 7,
-    quote: "After retiring from corporate law, I was looking for purpose. JustBecause connected me with an anti-trafficking Enterprise that needed exactly my expertise.",
-    highlight: "an anti-trafficking Enterprise that needed exactly my expertise",
+    quote: "After retiring from corporate law, I was looking for purpose. JustBecause connected me with an anti-trafficking NGO that needed exactly my expertise.",
+    highlight: "an anti-trafficking NGO that needed exactly my expertise",
     author: "Margaret Okonkwo",
     role: "Legal Consultant",
     organization: "Pro-bono Volunteer",
@@ -256,7 +256,7 @@ export const testimonialRow2: Testimonial[] = [
     role: "Development Director",
     organization: "EduForward Foundation",
     avatar: "https://i.pravatar.cc/150?u=tomas",
-    type: "Enterprise",
+    type: "NGO",
     tag: "Fundraising",
   },
   {
@@ -278,13 +278,13 @@ export const testimonialRow2: Testimonial[] = [
     role: "Executive Director",
     organization: "Youth Forward Africa",
     avatar: "https://i.pravatar.cc/150?u=james",
-    type: "Enterprise",
+    type: "NGO",
     tag: "Finance",
   },
   {
     id: 11,
-    quote: "The skill-matching is remarkable. I listed graphic design and within 48 hours three Enterprises reached out. Now I design impact reports that actually get read.",
-    highlight: "within 48 hours three Enterprises reached out",
+    quote: "The skill-matching is remarkable. I listed graphic design and within 48 hours three NGOs reached out. Now I design impact reports that actually get read.",
+    highlight: "within 48 hours three NGOs reached out",
     author: "Sophie Laurent",
     role: "Graphic Designer",
     organization: "Pro-bono Volunteer",

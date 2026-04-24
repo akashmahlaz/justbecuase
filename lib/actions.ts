@@ -1,4 +1,4 @@
-"use server"
+﻿"use server"
 
 // ============================================
 // Server Actions for JustBecause Network
@@ -440,7 +440,7 @@ export async function getVolunteerSubscriptionStatus(): Promise<{
   }
 }
 
-// Get Enterprise subscription status
+// Get NGO subscription status
 export async function getNGOSubscriptionStatus(): Promise<{
   plan: "free" | "pro"
   canViewFreeVolunteers: boolean
@@ -546,7 +546,7 @@ export async function updateVolunteerProfile(
 }
 
 // ============================================
-// Enterprise PROFILE ACTIONS
+// NGO PROFILE ACTIONS
 // ============================================
 
 export async function saveNGOOnboarding(data: {
@@ -635,10 +635,10 @@ export async function saveNGOOnboarding(data: {
     } catch (syncErr) {
       console.error("[saveNGOOnboarding] ES sync failed (non-blocking):", syncErr)
     }
-    return { success: true, data: "Enterprise profile saved successfully" }
+    return { success: true, data: "NGO profile saved successfully" }
   } catch (error) {
     if (isRedirectError(error)) throw error
-    console.error("Error saving Enterprise onboarding:", error)
+    console.error("Error saving NGO onboarding:", error)
     return { success: false, error: "Failed to save profile" }
   }
 }
@@ -650,7 +650,7 @@ export async function getNGOProfile(userId?: string): Promise<NGOProfile | null>
   return serializeDocument(profile)
 }
 
-// Allowed fields for Enterprise profile updates - filters out sensitive fields
+// Allowed fields for NGO profile updates - filters out sensitive fields
 const ALLOWED_NGO_UPDATE_FIELDS = [
   "orgName", "organizationName", "registrationNumber", "website", "phone",
   "address", "city", "country", "description", "mission", "yearFounded",
@@ -673,10 +673,10 @@ export async function updateNGOProfile(
       }
     }
 
-    console.log(`[Enterprise Save] userId=${user.id}, fields=${Object.keys(filteredUpdates).join(",")}`)
+    console.log(`[NGO Save] userId=${user.id}, fields=${Object.keys(filteredUpdates).join(",")}`)
 
     if (Object.keys(filteredUpdates).length === 0) {
-      console.log(`[Enterprise Save] No valid fields after filtering. Incoming keys: ${Object.keys(updates).join(",")}`)
+      console.log(`[NGO Save] No valid fields after filtering. Incoming keys: ${Object.keys(updates).join(",")}`)
       return { success: false, error: "No valid fields to update" }
     }
 
@@ -687,7 +687,7 @@ export async function updateNGOProfile(
     }
 
     const result = await ngoProfilesDb.update(user.id, filteredUpdates)
-    console.log(`[Enterprise Save] DB update result: modified=${result}`)
+    console.log(`[NGO Save] DB update result: modified=${result}`)
     revalidatePath("/ngo/profile")
     revalidatePath("/ngo/settings")
     // Real-time ES sync - never block the profile save
@@ -703,7 +703,7 @@ export async function updateNGOProfile(
     if (error?.digest?.startsWith?.("NEXT_")) {
       throw error
     }
-    console.error("[Enterprise Save] Error:", error?.message || error, error?.stack)
+    console.error("[NGO Save] Error:", error?.message || error, error?.stack)
     return { success: false, error: error?.message || "Failed to update profile" }
   }
 }
@@ -734,14 +734,14 @@ export async function createProject(data: {
     const ngoProfile = await ngoProfilesDb.findByUserId(user.id)
 
     if (!ngoProfile) {
-      return { success: false, error: "Enterprise profile not found. Please complete onboarding." }
+      return { success: false, error: "NGO profile not found. Please complete onboarding." }
     }
 
     // Get admin settings for project limits
     const settings = await adminSettingsDb.get()
     const FREE_PLAN_PROJECT_LIMIT = settings?.ngoFreeProjectsPerMonth ?? 3
 
-    // Check project posting limits for free plan Enterprises
+    // Check project posting limits for free plan NGOs
     const subscriptionPlan = ngoProfile.subscriptionPlan || "free"
     const monthlyProjectsPosted = ngoProfile.monthlyProjectsPosted || 0
 
@@ -767,7 +767,7 @@ export async function createProject(data: {
     }
 
     if (!ngoProfile) {
-      return { success: false, error: "Enterprise profile not found. Please complete onboarding." }
+      return { success: false, error: "NGO profile not found. Please complete onboarding." }
     }
 
     // Input validation
@@ -821,7 +821,7 @@ export async function createProject(data: {
     const projectId = await projectsDb.create(projectData)
     await ngoProfilesDb.incrementStat(user.id, "projectsPosted")
 
-    // Increment monthly project counter for free plan Enterprises
+    // Increment monthly project counter for free plan NGOs
     if (subscriptionPlan === "free") {
       try {
         await ngoProfilesDb.update(user.id, {
@@ -900,7 +900,7 @@ export async function createProject(data: {
               html: getNewOpportunityEmailHtml(
                 vol.name || volUser.name || "Candidate",
                 sanitizedTitle,
-                ngoProfile.organizationName || "An Enterprise",
+                ngoProfile.organizationName || "An NGO",
                 projectId
               ),
             })
@@ -914,7 +914,7 @@ export async function createProject(data: {
       console.error("[createProject] Failed to send job emails:", emailError)
     }
 
-    // Notify followers of this Enterprise about the new project (in-app always, email only if skills match)
+    // Notify followers of this NGO about the new project (in-app always, email only if skills match)
     try {
       const { followers } = await followsDb.getFollowers(user.id, 1, 50)
       const db = await import("@/lib/database").then(m => m.getDb())
@@ -928,12 +928,12 @@ export async function createProject(data: {
 
       for (const follow of followers.slice(0, 50)) {
         try {
-          // In-app notification (always - they chose to follow this Enterprise)
+          // In-app notification (always - they chose to follow this NGO)
           await notificationsDb.create({
             userId: follow.followerId,
             type: "followed_ngo_project",
-            title: "New Project from Enterprise You Follow",
-            message: `${ngoProfile.organizationName || "An Enterprise"} posted "${sanitizedTitle}"`,
+            title: "New Project from NGO You Follow",
+            message: `${ngoProfile.organizationName || "An NGO"} posted "${sanitizedTitle}"`,
             referenceId: projectId,
             referenceType: "project",
             link: `/projects/${projectId}`,
@@ -961,14 +961,14 @@ export async function createProject(data: {
           if (hasMatchingSkills) {
             await sendEmail({
               to: followerUser.email,
-              subject: `${ngoProfile.organizationName || "An Enterprise you follow"} posted a new project matching your skills`,
+              subject: `${ngoProfile.organizationName || "An NGO you follow"} posted a new project matching your skills`,
               html: `
                 <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
                   <h1 style="color: #10b981;">JustBeCause Network</h1>
                   <div style="background: #f9fafb; border-radius: 8px; padding: 30px;">
                     <h2>New Project Alert</h2>
                     <p>Hi ${followerUser.name || "there"},</p>
-                    <p><strong>${ngoProfile.organizationName || "An Enterprise"}</strong> that you follow just posted a new project that matches your skills:</p>
+                    <p><strong>${ngoProfile.organizationName || "An NGO"}</strong> that you follow just posted a new project that matches your skills:</p>
                     <div style="background: white; border-left: 4px solid #10b981; padding: 15px; margin: 20px 0; border-radius: 0 8px 8px 0;">
                       <h3 style="margin: 0 0 8px 0;">${sanitizedTitle}</h3>
                     </div>
@@ -1020,7 +1020,7 @@ export async function getProjectById(id: string): Promise<Project | null> {
   return serializeDocument(project)
 }
 
-// Get Enterprise by user ID or profile ID
+// Get NGO by user ID or profile ID
 export async function getNGOById(userId: string): Promise<NGOProfile | null> {
   const profile = await ngoProfilesDb.findByUserId(userId)
   return serializeDocument(profile)
@@ -1319,7 +1319,7 @@ export async function applyToProject(
       console.error("Failed to create notification:", e)
     }
 
-    // Best effort: Email Enterprise about new application (respects notification preferences)
+    // Best effort: Email NGO about new application (respects notification preferences)
     try {
       const ngoUserInfo = await getUserInfo(project.ngoId)
       const ngoUserDb = await (await getDb()).collection("user").findOne(userIdQuery(project.ngoId))
@@ -1455,7 +1455,7 @@ export async function getNGOApplications(): Promise<Application[]> {
 }
 
 /**
- * Get Enterprise applications with enriched data (project and volunteer info)
+ * Get NGO applications with enriched data (project and volunteer info)
  * Optimized to avoid N+1 queries
  */
 export async function getNGOApplicationsEnriched() {
@@ -1535,7 +1535,7 @@ export async function updateApplicationStatus(
           const html = getApplicationStatusEmailHtml(
             volunteerInfo.name,
             project?.title || "a project",
-            ngoInfo?.name || "An Enterprise",
+            ngoInfo?.name || "An NGO",
             status as "accepted" | "rejected" | "shortlisted",
             notes
           )
@@ -1592,7 +1592,7 @@ export async function getVolunteerProfileView(
   //     Pro Bono / Both / Paid agents are equally findable. Hiding their
   //     identity from clicks-from-search defeats the discovery loop.
   //   - CONTACT (phone, linkedin, portfolio, resume, hourly rate): only
-  //     exposed to Enterprises, admins, the volunteer themselves, or — as a
+  //     exposed to NGOs, admins, the volunteer themselves, or — as a
   //     legacy carve-out — when the volunteer's type is "paid" since
   //     paid pros opt-in to public contact for client outreach.
   const isOwner = currentUser?.id === volunteerId
@@ -1603,7 +1603,7 @@ export async function getVolunteerProfileView(
   const isUnlocked = true
 
   // Contact info: keep the previous gating to avoid leaking PII to
-  // logged-out / non-Enterprise viewers for free / both volunteers.
+  // logged-out / non-NGO viewers for free / both volunteers.
   const canSeeContact =
     volunteerProfile.volunteerType === "paid" ||
     isOwner ||
@@ -1635,7 +1635,7 @@ export async function getVolunteerProfileView(
     avatar: volunteerProfile.avatar || volunteerUser?.image,
     bio: volunteerProfile.bio,
 
-    // Contact fields — gated to Enterprise / admin / owner / paid pros
+    // Contact fields — gated to NGO / admin / owner / paid pros
     phone: canSeeContact ? volunteerProfile.phone : null,
     linkedinUrl: canSeeContact ? volunteerProfile.linkedinUrl : null,
     portfolioUrl: canSeeContact ? volunteerProfile.portfolioUrl : null,
@@ -1679,7 +1679,7 @@ export async function getMatchedVolunteersForProject(
     { isActive: { $ne: false } } as any
   )
 
-  // All volunteers (free + paid) are visible to all Enterprises regardless of subscription
+  // All volunteers (free + paid) are visible to all NGOs regardless of subscription
   const visibleVolunteers = volunteers
 
   const matches = matchVolunteersToProject(project, visibleVolunteers)
@@ -1732,14 +1732,14 @@ export async function getMatchedOpportunitiesForVolunteer(): Promise<
   }))
 }
 
-// Get recommended volunteers for Enterprise based on their active projects' skills
+// Get recommended volunteers for NGO based on their active projects' skills
 export async function getRecommendedVolunteersForNGO(): Promise<
   { volunteerId: string; score: number; volunteer: { name?: string; headline?: string; skills?: any[]; avatar?: string; freeHoursPerMonth?: number } }[]
 > {
   const user = await getCurrentUser()
   if (!user || user.role !== "ngo") return []
 
-  // Get Enterprise's active projects to determine what skills they need
+  // Get NGO's active projects to determine what skills they need
   const projects = await projectsDb.findByNgoId(user.id)
   const activeProjects = projects.filter(p => p.status === "open" || p.status === "active")
 
@@ -1760,7 +1760,7 @@ export async function getRecommendedVolunteersForNGO(): Promise<
     { isActive: { $ne: false } } as any
   )
 
-  // All volunteers (free + paid) are visible to all Enterprises regardless of subscription
+  // All volunteers (free + paid) are visible to all NGOs regardless of subscription
   const visibleVolunteers = volunteers
 
   // Score volunteers based on skill match
@@ -2041,7 +2041,7 @@ export async function getAdminAnalytics() {
       .toArray()
       .then(docs => docs.map(d => ({
         type: "ngo_signup" as const,
-        text: `New Enterprise: ${d.organizationName || d.orgName || d.name || "Organization"}`,
+        text: `New NGO: ${d.organizationName || d.orgName || d.name || "Organization"}`,
         createdAt: d.createdAt
       }))),
     db.collection("projects")
@@ -2240,7 +2240,7 @@ export async function getAllProjects(page: number = 1, limit: number = 20) {
 export async function verifyNGO(userId: string, isVerified: boolean): Promise<ApiResponse<boolean>> {
   try {
     await requireRole(["admin"])
-    console.log(`[verifyNGO] Updating Enterprise ${userId} to isVerified=${isVerified}`)
+    console.log(`[verifyNGO] Updating NGO ${userId} to isVerified=${isVerified}`)
     const result = await ngoProfilesDb.update(userId, { isVerified })
     console.log(`[verifyNGO] Update result:`, result)
     revalidatePath("/admin/ngos")
@@ -2615,7 +2615,7 @@ export async function browseVolunteers(filters?: {
     return true
   })
 
-  // All volunteers (free + paid) are visible to all Enterprises regardless of subscription
+  // All volunteers (free + paid) are visible to all NGOs regardless of subscription
   const currentUser = await getCurrentUser()
 
   // Limit results
@@ -2665,7 +2665,7 @@ export async function browseProjects(filters?: {
     return true
   })
 
-  // Fetch Enterprise info for each project
+  // Fetch NGO info for each project
   const ngoIds = [...new Set(filteredProjects.map(p => p.ngoId).filter(Boolean))]
   const ngoMap: Record<string, { name: string; logo?: string; verified: boolean }> = {}
 
@@ -2680,7 +2680,7 @@ export async function browseProjects(filters?: {
     }
   }
 
-  // Attach Enterprise info to projects
+  // Attach NGO info to projects
   const projectsWithNgo = filteredProjects.map(p => ({
     ...p,
     ngo: ngoMap[p.ngoId] || { name: "Organization", verified: false },
@@ -3244,9 +3244,9 @@ export async function deleteAccount(): Promise<ApiResponse<boolean>> {
     await Promise.all([
       // Delete volunteer profile from volunteerProfiles collection
       db.collection("volunteerProfiles").deleteOne({ userId: user.id }),
-      // Delete Enterprise profile from ngoProfiles collection
+      // Delete NGO profile from ngoProfiles collection
       db.collection("ngoProfiles").deleteOne({ userId: user.id }),
-      // Delete user's projects (for Enterprises)
+      // Delete user's projects (for NGOs)
       db.collection("projects").deleteMany({ ngoId: user.id }),
       // Delete user's applications (for volunteers)
       db.collection("applications").deleteMany({ volunteerId: user.id }),
@@ -3332,7 +3332,7 @@ export async function initializePlatform(): Promise<void> {
 }
 
 // ============================================
-// Enterprise FOLLOW/UNFOLLOW
+// NGO FOLLOW/UNFOLLOW
 // ============================================
 
 // ============================================
@@ -3340,7 +3340,7 @@ export async function initializePlatform(): Promise<void> {
 // ============================================
 
 /**
- * Follow any user (Enterprise or Candidate). Works for all authenticated users.
+ * Follow any user (NGO or Candidate). Works for all authenticated users.
  */
 export async function followUser(targetId: string): Promise<ApiResponse<{ followersCount: number }>> {
   try {
@@ -4331,7 +4331,7 @@ export async function logProjectHours(
     const project = await projectsDb.findById(projectId)
     if (!project) return { success: false, error: "Project not found" }
 
-    // Only accepted volunteers or the Enterprise owner can log hours
+    // Only accepted volunteers or the NGO owner can log hours
     const isNGO = project.ngoId === session.user.id
     if (!isNGO) {
       const volunteerApps = await applicationsDb.findByVolunteerId(session.user.id)

@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server"
+﻿import { NextRequest, NextResponse } from "next/server"
 import { headers } from "next/headers"
 import { auth } from "@/lib/auth"
 import { getStripeClient } from "@/lib/payment-gateway"
@@ -220,7 +220,7 @@ export async function GET(request: NextRequest) {
       const userRecord = await db.collection("user").findOne(userIdQuery(userId))
       if (userRecord?.email) {
         const { sendEmail, getSubscriptionConfirmationEmailHtml } = await import("@/lib/email")
-        const planName = isNgoPlan ? "Enterprise Pro" : "Candidate Pro"
+        const planName = isNgoPlan ? "NGO Pro" : "Candidate Pro"
         const expiryFormatted = subscriptionExpiry.toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })
         const html = getSubscriptionConfirmationEmailHtml(
           userRecord.name || "there",

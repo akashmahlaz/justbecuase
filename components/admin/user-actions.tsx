@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
@@ -264,7 +264,7 @@ export function UserActions({
                 disabled={currentRole === "ngo"}
               >
                 <Building2 className="h-4 w-4" />
-                Enterprise
+                NGO
                 {currentRole === "ngo" && <CheckCircle className="h-3 w-3 ml-auto text-green-600" />}
               </DropdownMenuItem>
               <DropdownMenuSeparator />

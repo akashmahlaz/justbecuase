@@ -1,4 +1,4 @@
-// ============================================
+﻿// ============================================
 // MongoDB Search Engine - Amazon-Level Search
 // ============================================
 // Features:
@@ -556,7 +556,7 @@ function buildCausesSearchText(causes: any): string {
 }
 
 /**
- * Build searchable text from typicalSkillsNeeded (Enterprise) or skillsRequired (Project)
+ * Build searchable text from typicalSkillsNeeded (NGO) or skillsRequired (Project)
  * These are stored as arrays of objects: [{categoryId, subskillId, ...}]
  */
 function buildObjectSkillsSearchText(skillsArr: any): string {
@@ -726,7 +726,7 @@ function computeRelevanceScore(doc: any, searchTerms: string[]): number {
       }
     }
 
-    // --- Score TYPICAL SKILLS NEEDED (Enterprise) / skillsRequired (Project) as object arrays ---
+    // --- Score TYPICAL SKILLS NEEDED (NGO) / skillsRequired (Project) as object arrays ---
     const objectSkillsText = buildObjectSkillsSearchText(doc.typicalSkillsNeeded || doc.skillsRequired)
     if (objectSkillsText) {
       if (objectSkillsText.includes(termLower)) {
@@ -830,7 +830,7 @@ function findMatchedField(doc: any, searchTerms: string[]): string | undefined {
     // Check causes
     const causesText = buildCausesSearchText(doc.causes)
     if (causesText && causesText.includes(termLower)) return "causes"
-    // Check typical skills needed (Enterprise object array)
+    // Check typical skills needed (NGO object array)
     const typicalText = buildObjectSkillsSearchText(doc.typicalSkillsNeeded)
     if (typicalText && typicalText.includes(termLower)) return "typicalSkillsNeeded"
     // Check languages
@@ -911,7 +911,7 @@ function mapUserToResult(user: any, searchTerms: string[]): SearchResult {
       matchedField,
     }
   }
-  // Enterprise
+  // NGO
   let subtitle = user.description?.slice(0, 80)
   if (matchedField === "causes") {
     const causeIds = parseCauses(user.causes)
@@ -985,7 +985,7 @@ const USER_PROJECTION = {
   hourlyRate: 1, discountedRate: 1, currency: 1,
   // Contact/links
   phone: 1, linkedIn: 1, portfolio: 1,
-  // Enterprise-specific
+  // NGO-specific
   website: 1, yearFounded: 1, teamSize: 1,
   registrationNumber: 1, typicalSkillsNeeded: 1,
   // Stats
@@ -1132,7 +1132,7 @@ function buildUserRegexConditions(searchTerms: string[], prefixOnly = false): an
     conditions.push({ portfolio: containsRegex })
     conditions.push({ website: containsRegex })
 
-    // Enterprise metadata
+    // NGO metadata
     conditions.push({ yearFounded: containsRegex })
     conditions.push({ teamSize: containsRegex })
     conditions.push({ registrationNumber: containsRegex })
@@ -1145,7 +1145,7 @@ function buildUserRegexConditions(searchTerms: string[], prefixOnly = false): an
     conditions.push({ languages: containsRegex })
     conditions.push({ interests: containsRegex })
 
-    // Enterprise typicalSkillsNeeded (array of objects - dot notation)
+    // NGO typicalSkillsNeeded (array of objects - dot notation)
     conditions.push({ "typicalSkillsNeeded.subskillId": containsRegex })
     conditions.push({ "typicalSkillsNeeded.categoryId": containsRegex })
   }
@@ -1392,7 +1392,7 @@ function buildUserFuzzyConditions(searchTerms: string[]): any[] {
     conditions.push({ yearFounded: regex })
     conditions.push({ teamSize: regex })
 
-    // Enterprise object skills
+    // NGO object skills
     conditions.push({ "typicalSkillsNeeded.subskillId": regex })
     conditions.push({ "typicalSkillsNeeded.categoryId": regex })
   }
@@ -1710,7 +1710,7 @@ export async function getSearchSuggestions(params: SearchSuggestionsParams): Pro
     userOrConditions.push({ rating: num })
   }
 
-  // Only search users if we need volunteers or Enterprises
+  // Only search users if we need volunteers or NGOs
   const users = (searchVolunteers || searchNgos)
     ? await db.collection("user")
       .find({
@@ -1788,7 +1788,7 @@ export async function getSearchSuggestions(params: SearchSuggestionsParams): Pro
     }
   }
 
-  // Add cause suggestions (relevant to Enterprises and opportunities)
+  // Add cause suggestions (relevant to NGOs and opportunities)
   if (suggestions.length < limit && (searchNgos || searchOpportunities)) {
     for (const cause of CAUSE_LIST) {
       if (suggestions.length >= limit) break

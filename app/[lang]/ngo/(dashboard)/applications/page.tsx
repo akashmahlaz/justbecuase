@@ -1,4 +1,4 @@
-import { Suspense } from "react"
+﻿import { Suspense } from "react"
 import { redirect } from "next/navigation"
 import { headers } from "next/headers"
 import { auth } from "@/lib/auth"
@@ -27,7 +27,7 @@ export default async function ApplicationsPage({
     redirect(`/${lang}/auth/signin`)
   }
 
-  // Role verification: Ensure user is an Enterprise
+  // Role verification: Ensure user is an NGO
   if (session.user.role !== "ngo") {
     if (session.user.role === "volunteer") {
       redirect(`/${lang}/volunteer/dashboard`)

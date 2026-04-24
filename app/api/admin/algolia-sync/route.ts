@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server"
+﻿import { NextResponse } from "next/server"
 import { algoliasearch } from "algoliasearch"
 import clientPromise from "@/lib/db"
 import {
@@ -68,7 +68,7 @@ export async function POST(request: Request) {
     }
     log.push(`✅ ${volTotal} volunteers synced`)
 
-    // 5. Sync Enterprises
+    // 5. Sync NGOs
     const ngoCursor = db.collection("user").find({ role: "ngo", isOnboarded: true, isBanned: { $ne: true } })
     const ngoBatch: Record<string, any>[] = []
     let ngoTotal = 0
@@ -85,7 +85,7 @@ export async function POST(request: Request) {
       await algolia.saveObjects({ indexName: ALGOLIA_INDEXES.NGOS, objects: ngoBatch })
       ngoTotal += ngoBatch.length
     }
-    log.push(`✅ ${ngoTotal} Enterprises synced`)
+    log.push(`✅ ${ngoTotal} NGOs synced`)
 
     // 6. Sync opportunities
     const ngoNameMap = new Map<string, string>()

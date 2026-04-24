@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { UserPlus, Search, Rocket, FileText, Users, CheckCircle } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -86,7 +86,7 @@ export function HowItWorks() {
                 value="ngos" 
                 className="px-6 py-2 rounded-full text-sm font-semibold data-[state=active]:bg-background data-[state=active]:text-secondary data-[state=active]:shadow-sm"
               >
-                {home.forNGOsTab || "For Enterprises"}
+                {home.forNGOsTab || "For NGOs"}
               </TabsTrigger>
             </TabsList>
           </div>

@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server"
+﻿import { NextResponse } from "next/server"
 import { adminSettingsDb } from "@/lib/database"
 
 // Force dynamic — never cache this route so admin changes take effect immediately
@@ -25,7 +25,7 @@ export async function GET() {
             "Unlimited job applications",
             "Featured profile badge",
             "Priority in search results",
-            "Direct message Enterprises",
+            "Direct message NGOs",
             "Early access to opportunities",
             "Profile analytics",
             "Certificate downloads",
@@ -40,13 +40,13 @@ export async function GET() {
             "Advanced AI-powered matching",
             "Priority support",
             "Project analytics & reports",
-            "Featured Enterprise badge",
+            "Featured NGO badge",
             "Bulk candidate outreach",
           ],
           enablePayments: true,
           enableMessaging: true,
-          metaTitle: "JustBeCause Network - Connect Enterprises with Candidates",
-          metaDescription: "Platform connecting Enterprises with skilled candidates for social impact",
+          metaTitle: "JustBeCause Network - Connect NGOs with Candidates",
+          metaDescription: "Platform connecting NGOs with skilled candidates for social impact",
         }
       })
     }

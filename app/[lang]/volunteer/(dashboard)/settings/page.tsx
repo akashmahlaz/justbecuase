@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
@@ -353,7 +353,7 @@ export default function VolunteerSettingsPage() {
                       {dict.volunteer?.settings?.yourSkills || "Your Skills"}
                     </CardTitle>
                     <CardDescription>
-                      {dict.volunteer?.settings?.skillsDesc || "Add or remove skills that Enterprises can match you with"}
+                      {dict.volunteer?.settings?.skillsDesc || "Add or remove skills that NGOs can match you with"}
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-6">
@@ -702,7 +702,7 @@ export default function VolunteerSettingsPage() {
                           <div className="min-w-0 flex-1">
                             <p className="font-medium">{dict.volunteer?.settings?.applicationUpdates || "Application Updates"}</p>
                             <p className="text-sm text-muted-foreground">
-                              {dict.volunteer?.settings?.applicationUpdatesDesc || "Get notified when Enterprises respond to your applications"}
+                              {dict.volunteer?.settings?.applicationUpdatesDesc || "Get notified when NGOs respond to your applications"}
                             </p>
                           </div>
                           <Switch
@@ -717,7 +717,7 @@ export default function VolunteerSettingsPage() {
                           <div className="min-w-0 flex-1">
                             <p className="font-medium">{dict.volunteer?.settings?.newMessages || "New Messages"}</p>
                             <p className="text-sm text-muted-foreground">
-                              {dict.volunteer?.settings?.newMessagesDesc || "Receive emails for new messages from Enterprises"}
+                              {dict.volunteer?.settings?.newMessagesDesc || "Receive emails for new messages from NGOs"}
                             </p>
                           </div>
                           <Switch
@@ -769,7 +769,7 @@ export default function VolunteerSettingsPage() {
                       <div className="min-w-0 flex-1">
                         <p className="font-medium">{dict.volunteer?.settings?.profileStatus || "Profile Status"}</p>
                         <p className="text-sm text-muted-foreground">
-                          {dict.volunteer?.settings?.profileStatusDesc || "Make your profile visible to Enterprises"}
+                          {dict.volunteer?.settings?.profileStatusDesc || "Make your profile visible to NGOs"}
                         </p>
                       </div>
                       <Switch
@@ -909,7 +909,7 @@ export default function VolunteerSettingsPage() {
                       {dict.volunteer?.settings?.pricingTitle || "Your Pricing & Candidate Type"}
                     </CardTitle>
                     <CardDescription>
-                      {dict.volunteer?.settings?.pricingDesc || "Set your candidate type and rates for Enterprises"}
+                      {dict.volunteer?.settings?.pricingDesc || "Set your candidate type and rates for NGOs"}
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-6">
@@ -957,7 +957,7 @@ export default function VolunteerSettingsPage() {
                           {dict.volunteer?.common?.freeHoursContribution || "Free Hours Contribution"}
                         </h3>
                         <p className="text-sm text-muted-foreground">
-                          {dict.volunteer?.settings?.freeHoursDesc || "How many free hours per month would you like to offer Enterprises?"}
+                          {dict.volunteer?.settings?.freeHoursDesc || "How many free hours per month would you like to offer NGOs?"}
                         </p>
                         <div className="space-y-2">
                           <Label htmlFor="freeHoursPerMonth">{dict.volunteer?.common?.freeHoursPerMonth || "Free Hours per Month"}</Label>
@@ -1055,7 +1055,7 @@ export default function VolunteerSettingsPage() {
                           </div>
                           
                           <div className="space-y-2">
-                            <Label htmlFor="discountedRate">{dict.volunteer?.common?.discountedRate || "Discounted Rate for Enterprises"}</Label>
+                            <Label htmlFor="discountedRate">{dict.volunteer?.common?.discountedRate || "Discounted Rate for NGOs"}</Label>
                             <div className="relative">
                               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
                                 {getCurrencySymbol(profile?.currency || "USD")}
@@ -1096,7 +1096,7 @@ export default function VolunteerSettingsPage() {
                           <div className="flex items-center gap-2 text-sm text-green-600 bg-green-50 dark:bg-green-950/20 p-2 rounded flex-wrap">
                             <CheckCircle className="h-4 w-4 shrink-0" />
                             <span>
-                              {(dict.volunteer?.common?.ngoSavingsMessage || "Enterprises save {percent}% with your discounted rate!").replace("{percent}", String(Math.round(((profile.hourlyRate - profile.discountedRate) / profile.hourlyRate) * 100)))}
+                              {(dict.volunteer?.common?.ngoSavingsMessage || "NGOs save {percent}% with your discounted rate!").replace("{percent}", String(Math.round(((profile.hourlyRate - profile.discountedRate) / profile.hourlyRate) * 100)))}
                             </span>
                           </div>
                         )}

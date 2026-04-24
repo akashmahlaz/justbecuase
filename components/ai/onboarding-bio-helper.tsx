@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
@@ -12,7 +12,7 @@ interface OnboardingBioHelperProps {
   linkedinUrl?: string
   /** Pass "volunteer" or "ngo" to tailor the prompt */
   role: "volunteer" | "ngo"
-  /** Extra context — for Enterprise this is orgName + mission */
+  /** Extra context — for NGO this is orgName + mission */
   extraContext?: Record<string, string>
   onApply: (bio: string) => void
 }

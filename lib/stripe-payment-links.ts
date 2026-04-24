@@ -1,4 +1,4 @@
-// @deprecated - This file is no longer used. Payment Links have been replaced by Stripe Checkout Sessions.
+﻿// @deprecated - This file is no longer used. Payment Links have been replaced by Stripe Checkout Sessions.
 // See app/api/payments/create-subscription/route.ts for the new flow.
 //
 // Stripe Payment Links Configuration
@@ -6,12 +6,12 @@
 // Then add the URLs here
 
 // BUSINESS MODEL:
-// - Enterprise Pro: Can unlock UNLIMITED free volunteer profiles
+// - NGO Pro: Can unlock UNLIMITED free volunteer profiles
 // - Volunteer Pro: Can apply to UNLIMITED jobs
 // - NO individual profile unlock payment!
 
 export const STRIPE_PAYMENT_LINKS = {
-  // Enterprise Pro Subscription
+  // NGO Pro Subscription
   // For TESTING: Create with Price = $0.05 USD, Billing = Monthly
   // For PRODUCTION: Create with Price = $29.99 USD, Billing = Monthly
   // Redirect URL: https://yoursite.com/api/payments/stripe-link-callback?type=subscription&plan=ngo-pro
@@ -19,7 +19,7 @@ export const STRIPE_PAYMENT_LINKS = {
     url: "https://buy.stripe.com/00w4gAeb27bQ91U6jdcs801", // TEST LINK ($0.05)
     price: 0.05, // TEST PRICE in USD - change to 29.99 USD for production
     currency: "USD",
-    description: "Enterprise Pro - Unlock unlimited free candidate profiles",
+    description: "NGO Pro - Unlock unlimited free candidate profiles",
   },
   
   // Volunteer Pro Subscription  
@@ -39,9 +39,9 @@ export const STRIPE_PAYMENT_LINKS = {
 // STEP 1: Go to https://dashboard.stripe.com/payment-links
 // STEP 2: Click "+ New payment link"
 // 
-// CREATE LINK 1 - Enterprise Pro:
+// CREATE LINK 1 - NGO Pro:
 //   - Click "Add new product" or select existing
-//   - Name: "Enterprise Pro Subscription (Test)"
+//   - Name: "NGO Pro Subscription (Test)"
 //   - Price: $1 (for testing) or $29.99 (production)
 //   - Billing: "Recurring" → "Monthly"
 //   - Under "After payment" → "Don't show confirmation page"

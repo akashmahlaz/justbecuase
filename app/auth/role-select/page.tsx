@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import { useState, useEffect, Suspense } from "react"
 import { useRouter } from "next/navigation"
@@ -128,7 +128,7 @@ function RoleSelectContent() {
               <ul className="text-sm text-muted-foreground space-y-2 mb-6">
                 <li>✓ Create your skills-based profile</li>
                 <li>✓ Browse candidate jobs</li>
-                <li>✓ Connect with Enterprises</li>
+                <li>✓ Connect with NGOs</li>
                 <li>✓ Track your social impact</li>
               </ul>
               <Button
@@ -148,7 +148,7 @@ function RoleSelectContent() {
             </CardContent>
           </Card>
 
-          {/* Enterprise Card */}
+          {/* NGO Card */}
           <Card
             className={`cursor-pointer transition-all hover:shadow-lg hover:border-secondary ${
               selectedRole === "ngo" ? "border-secondary ring-2 ring-secondary" : ""
@@ -159,7 +159,7 @@ function RoleSelectContent() {
               <div className="w-20 h-20 rounded-full bg-secondary/10 flex items-center justify-center mx-auto mb-4">
                 <Building2 className="h-10 w-10 text-secondary" />
               </div>
-              <CardTitle className="text-xl">I'm an Enterprise</CardTitle>
+              <CardTitle className="text-xl">I'm an NGO</CardTitle>
               <CardDescription>
                 Find skilled candidates for your cause
               </CardDescription>
@@ -182,7 +182,7 @@ function RoleSelectContent() {
                     Setting up...
                   </>
                 ) : (
-                  "Continue as Enterprise"
+                  "Continue as NGO"
                 )}
               </Button>
             </CardContent>

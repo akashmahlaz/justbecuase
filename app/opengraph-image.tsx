@@ -1,4 +1,4 @@
-import { ImageResponse } from "next/og"
+﻿import { ImageResponse } from "next/og"
 
 export const runtime = "edge"
 export const alt = "JustBeCause Network - Skills-Based Impact Platform | Connect Skills with Causes"
@@ -99,7 +99,7 @@ export default function Image() {
           </div>
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
             <div style={{ fontSize: "28px", fontWeight: 700, color: "#22d3ee" }}>500+</div>
-            <div style={{ fontSize: "14px", color: "#94a3b8" }}>Enterprise Projects</div>
+            <div style={{ fontSize: "14px", color: "#94a3b8" }}>NGO Projects</div>
           </div>
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
             <div style={{ fontSize: "28px", fontWeight: 700, color: "#22d3ee" }}>6</div>

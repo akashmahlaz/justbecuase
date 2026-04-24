@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import { useState, useMemo } from "react"
 import { Input } from "@/components/ui/input"
@@ -125,7 +125,7 @@ export function UsersSearchableList({
                 >
                   <option value="all">All Roles</option>
                   <option value="volunteer">Candidates</option>
-                  <option value="ngo">Enterprises</option>
+                  <option value="ngo">NGOs</option>
                 </select>
               )}
               <select 

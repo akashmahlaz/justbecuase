@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import LocaleLink from "@/components/locale-link"
 import { Button } from "@/components/ui/button"
@@ -44,7 +44,7 @@ export function MissionSection() {
             transition={{ delay: 0.2 }}
             className="text-lg md:text-xl text-muted-foreground mb-10 max-w-2xl mx-auto text-pretty"
           >
-            {h.missionDesc || "We believe everyone has the power to make a difference. JustBeCause Network connects skilled professionals with Enterprises and social enterprises that need expertise — not just goodwill."}
+            {h.missionDesc || "We believe everyone has the power to make a difference. JustBeCause Network connects skilled professionals with NGOs and social enterprises that need expertise — not just goodwill."}
           </motion.p>
 
           {/* Registration Buttons */}
@@ -74,7 +74,7 @@ export function MissionSection() {
             >
               <LocaleLink href="/auth/signup?role=ngo" className="flex items-center gap-2">
                 <Building2 className="h-5 w-5" />
-                {h.registerAsNGO || "Register as Enterprise"}
+                {h.registerAsNGO || "Register as NGO"}
               </LocaleLink>
             </Button>
           </motion.div>

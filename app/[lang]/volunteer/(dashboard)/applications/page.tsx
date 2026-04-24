@@ -1,4 +1,4 @@
-import { Suspense } from "react"
+﻿import { Suspense } from "react"
 import { redirect } from "next/navigation"
 import { headers } from "next/headers"
 import { auth } from "@/lib/auth"
@@ -182,7 +182,7 @@ async function ApplicationsList({ filter, dict }: { filter?: string; dict: any }
 
             {application.ngoNotes && (
               <div className="mt-4 p-3 bg-muted/50 rounded-lg">
-                <p className="text-sm font-medium text-foreground mb-1">{dict.volunteer?.applications?.feedbackFromNgo || "Feedback from Enterprise:"}</p>
+                <p className="text-sm font-medium text-foreground mb-1">{dict.volunteer?.applications?.feedbackFromNgo || "Feedback from NGO:"}</p>
                 <p className="text-sm text-muted-foreground">{application.ngoNotes}</p>
               </div>
             )}

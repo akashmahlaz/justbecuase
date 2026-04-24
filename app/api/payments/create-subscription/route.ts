@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server"
+﻿import { NextRequest, NextResponse } from "next/server"
 import { headers } from "next/headers"
 import { auth } from "@/lib/auth"
 import { getStripeClient } from "@/lib/payment-gateway"
@@ -7,7 +7,7 @@ import { toStripeAmount } from "@/lib/currency"
 
 // Plan display names for Stripe checkout
 const PLAN_NAMES: Record<string, string> = {
-  "ngo-pro": "Enterprise Pro Plan",
+  "ngo-pro": "NGO Pro Plan",
   "volunteer-pro": "Candidate Pro Plan",
 }
 

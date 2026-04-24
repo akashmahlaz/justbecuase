@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import LocaleLink from "@/components/locale-link"
 import { usePathname } from "next/navigation"
@@ -38,7 +38,7 @@ const navGroups = [
   {
     label: "Intelligence",
     items: [
-      { title: "Enterprise Prospecting", href: "/marketing/prospecting", icon: Target },
+      { title: "NGO Prospecting", href: "/marketing/prospecting", icon: Target },
       { title: "Skills Demand", href: "/marketing/skills-demand", icon: TrendingUp },
       { title: "Hiring Pulse", href: "/marketing/hiring-pulse", icon: Activity },
     ],
@@ -47,7 +47,7 @@ const navGroups = [
     label: "Outreach",
     items: [
       { title: "Outreach Generator", href: "/marketing/outreach", icon: Mail },
-      { title: "Enterprise Enrichment", href: "/marketing/enrichment", icon: Building2 },
+      { title: "NGO Enrichment", href: "/marketing/enrichment", icon: Building2 },
       { title: "Volunteer Match", href: "/marketing/volunteer-match", icon: Users },
     ],
   },

@@ -1,4 +1,4 @@
-import Link from "next/link"
+﻿import Link from "next/link"
 import type { Metadata } from "next"
 import { notFound } from "next/navigation"
 import { getDictionary } from "@/app/[lang]/dictionaries"
@@ -141,7 +141,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
     notFound()
   }
   
-  // Get Enterprise profile
+  // Get NGO profile
   const ngo = await getNGOById(project.ngoId)
 
   // Check if user has applied

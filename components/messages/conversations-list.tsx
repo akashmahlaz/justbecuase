@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import { useState, useEffect } from "react"
 import LocaleLink from "@/components/locale-link"
@@ -80,7 +80,7 @@ function ConversationItem({
 
   const name = userType === "ngo" 
     ? (conversation.volunteerName || "Candidate")
-    : (conversation.ngoName || "Enterprise")
+    : (conversation.ngoName || "NGO")
   
   const avatar = userType === "ngo"
     ? conversation.volunteerAvatar
@@ -171,7 +171,7 @@ function EmptyState({ userType }: { userType: "volunteer" | "ngo" }) {
       <p className="text-sm text-muted-foreground max-w-xs mx-auto">
         {userType === "ngo" 
           ? "Messages with candidates will appear here when you start a conversation"
-          : "Apply to jobs or receive messages from Enterprises to start chatting"
+          : "Apply to jobs or receive messages from NGOs to start chatting"
         }
       </p>
     </div>

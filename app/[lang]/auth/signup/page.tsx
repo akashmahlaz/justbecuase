@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import type React from "react"
 import { useState, useRef, useEffect, Suspense } from "react"
@@ -336,7 +336,7 @@ function SignUpPageInner() {
             <div className="flex-1">
               <h3 className="font-semibold text-foreground mb-1">{a.imImpactAgent || "I'm an Candidate"}</h3>
               <p className="text-sm text-muted-foreground">
-                {a.imImpactAgentDesc || "I want to contribute my skills and expertise to help Enterprises and nonprofits."}
+                {a.imImpactAgentDesc || "I want to contribute my skills and expertise to help NGOs and nonprofits."}
               </p>
             </div>
             <ArrowRight className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors" />
@@ -358,7 +358,7 @@ function SignUpPageInner() {
               <Building2 className="h-6 w-6 text-secondary" />
             </div>
             <div className="flex-1">
-              <h3 className="font-semibold text-foreground mb-1">{a.imNGO || "I'm an Enterprise / Nonprofit"}</h3>
+              <h3 className="font-semibold text-foreground mb-1">{a.imNGO || "I'm an NGO / Nonprofit"}</h3>
               <p className="text-sm text-muted-foreground">
                 {a.imNGODesc || "I want to find skilled candidates to help with jobs and grow our capacity."}
               </p>
@@ -625,7 +625,7 @@ function SignUpPageInner() {
           <Card className="border-0 shadow-lg">
             <CardHeader className="space-y-1">
               <CardTitle className="text-2xl">{a.createAccount || "Create an account"}</CardTitle>
-              <CardDescription>{a.joinThousands || "Join thousands of candidates and Enterprises making an impact"}</CardDescription>
+              <CardDescription>{a.joinThousands || "Join thousands of candidates and NGOs making an impact"}</CardDescription>
             </CardHeader>
             <CardContent>
               {/* Email Verification Message */}

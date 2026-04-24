@@ -1,4 +1,4 @@
-import type { Metadata } from "next"
+﻿import type { Metadata } from "next"
 import { Navbar } from "@/components/navbar"
 import { Footer } from "@/components/footer"
 import { Card, CardContent } from "@/components/ui/card"
@@ -24,7 +24,7 @@ const blogPosts: Record<string, {
 }> = {
   "launch-announcement": {
     title: "Introducing JustBeCause Network - Skills-Based Impact Platform",
-    excerpt: "We're excited to launch JustBeCause Network, a platform connecting skilled professionals with Enterprises that need their expertise.",
+    excerpt: "We're excited to launch JustBeCause Network, a platform connecting skilled professionals with NGOs that need their expertise.",
     date: "December 6, 2025",
     author: "JustBeCause Team",
     category: "Announcement",
@@ -32,11 +32,11 @@ const blogPosts: Record<string, {
     content: `
 ## A New Era of Meaningful Impact
 
-Today marks the beginning of something special. After months of development and countless conversations with Enterprises and candidates, we're thrilled to officially launch JustBeCause Network.
+Today marks the beginning of something special. After months of development and countless conversations with NGOs and candidates, we're thrilled to officially launch JustBeCause Network.
 
 ### The Problem We're Solving
 
-Enterprises worldwide are doing incredible work - from environmental conservation to education, healthcare to community development. But many of them lack access to specialized skills they need to maximize their impact:
+NGOs worldwide are doing incredible work - from environmental conservation to education, healthcare to community development. But many of them lack access to specialized skills they need to maximize their impact:
 
 - **Marketing expertise** to spread their message further
 - **Technology skills** to build better systems
@@ -49,7 +49,7 @@ Meanwhile, millions of skilled professionals want to give back but don't know ho
 
 JustBeCause Network bridges this gap by creating a marketplace where:
 
-1. **Enterprises can post specific projects** describing exactly what skills they need
+1. **NGOs can post specific projects** describing exactly what skills they need
 2. **Professionals can browse jobs** that match their expertise
 3. **Smart matching algorithms** connect the right people with the right projects
 4. **Built-in communication tools** make collaboration seamless
@@ -60,12 +60,12 @@ Unlike traditional volunteering platforms, we focus exclusively on **skills-base
 
 - Higher impact per contribution hour
 - More fulfilling experience for candidates
-- Sustainable support for Enterprises
+- Sustainable support for NGOs
 - Measurable outcomes for everyone
 
 ### Join Us
 
-Whether you're an Enterprise looking for skilled support or a professional wanting to make a difference, we invite you to join our community.
+Whether you're an NGO looking for skilled support or a professional wanting to make a difference, we invite you to join our community.
 
 Together, we can create lasting change worldwide - one project at a time.
 
@@ -76,7 +76,7 @@ Together, we can create lasting change worldwide - one project at a time.
   },
   "why-skills-based-volunteering": {
     title: "Why Skills-Based Impact Matters More Than Ever",
-    excerpt: "Traditional volunteering is valuable, but skills-based contributions can multiply an Enterprise's impact by 10x. Here's why.",
+    excerpt: "Traditional volunteering is valuable, but skills-based contributions can multiply an NGO's impact by 10x. Here's why.",
     date: "December 5, 2025",
     author: "Akash Mahlaz",
     category: "Impact",
@@ -84,7 +84,7 @@ Together, we can create lasting change worldwide - one project at a time.
     content: `
 ## The Multiplier Effect
 
-When a professional marketer contributes 10 hours to develop a fundraising strategy for an Enterprise, the impact can be worth thousands of dollars in revenue generated over years. That's the power of skills-based impact.
+When a professional marketer contributes 10 hours to develop a fundraising strategy for an NGO, the impact can be worth thousands of dollars in revenue generated over years. That's the power of skills-based impact.
 
 ### The Numbers Don't Lie
 
@@ -100,7 +100,7 @@ But it's not just about money. Skills-based contributions create:
 
 #### 1. Sustainable Solutions
 
-When you teach an Enterprise how to run their own social media campaigns, you're not just solving today's problem - you're building capability for years to come.
+When you teach an NGO how to run their own social media campaigns, you're not just solving today's problem - you're building capability for years to come.
 
 #### 2. Professional Development
 
@@ -113,11 +113,11 @@ Skills-based candidates report higher satisfaction because they see the direct i
 ### The Asia Opportunity
 
 Asia is home to:
-- Over 3 million registered Enterprises
+- Over 3 million registered NGOs
 - The world's fastest-growing pool of skilled professionals
 - Unprecedented digital connectivity
 
-Yet the gap between Enterprise needs and available skilled support remains massive. That's why we built JustBeCause Network.
+Yet the gap between NGO needs and available skilled support remains massive. That's why we built JustBeCause Network.
 
 ### Getting Started
 
@@ -131,7 +131,7 @@ The world needs what you know. Let's put it to work.
     `,
   },
   "getting-started-ngos": {
-    title: "Getting Started: A Guide for Enterprises",
+    title: "Getting Started: A Guide for NGOs",
     excerpt: "Learn how to post your first project, attract the right candidates, and maximize the value of skills-based partnerships.",
     date: "December 4, 2025",
     author: "JustBeCause Team",
@@ -149,7 +149,7 @@ Your organization profile is often the first thing candidates see. Make it count
 - **Add a compelling logo** - First impressions matter
 - **Write a clear mission statement** - What change are you trying to create?
 - **List your focus areas** - Help candidates find you
-- **Add verification documents** - Verified Enterprises get 3x more applications
+- **Add verification documents** - Verified NGOs get 3x more applications
 
 ### Step 2: Post Effective Projects
 

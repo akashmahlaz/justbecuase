@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
@@ -12,13 +12,13 @@ interface UnlockProfileButtonProps {
   onSuccess?: () => void
   onError?: (error: string) => void
   className?: string
-  subscriptionPlan?: "free" | "pro" // Enterprise's current plan
+  subscriptionPlan?: "free" | "pro" // NGO's current plan
   isAlreadyUnlocked?: boolean // Whether this profile is already unlocked
 }
 
 // BUSINESS MODEL:
-// - Enterprise Pro subscription = Can unlock UNLIMITED free volunteer profiles
-// - Enterprise Free = Cannot unlock any profiles, must upgrade to Pro
+// - NGO Pro subscription = Can unlock UNLIMITED free volunteer profiles
+// - NGO Free = Cannot unlock any profiles, must upgrade to Pro
 // - NO individual profile unlock payment (removed)
 
 export function UnlockProfileButton({

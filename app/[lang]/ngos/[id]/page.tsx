@@ -1,4 +1,4 @@
-import Link from "next/link"
+﻿import Link from "next/link"
 import type { Metadata } from "next"
 import { notFound } from "next/navigation"
 import { getDictionary } from "@/app/[lang]/dictionaries"
@@ -45,7 +45,7 @@ export async function generateMetadata({
   const ngo = await getNGOById(id)
 
   if (!ngo) {
-    return { title: "Enterprise Not Found" }
+    return { title: "NGO Not Found" }
   }
 
   const title = ngo.orgName
@@ -81,18 +81,18 @@ export default async function NGOProfilePage({ params }: { params: Promise<{ id:
   const { lang, id } = await params
   const dict = await getDictionary(lang as Locale) as any;
   
-  // Get Enterprise profile from database
+  // Get NGO profile from database
   const ngo = await getNGOById(id)
   
   if (!ngo) {
     notFound()
   }
   
-  // Get Enterprise's projects
+  // Get NGO's projects
   const allProjects = await getActiveProjects(20)
   const ngoProjects = allProjects.filter(p => p.ngoId === id)
   
-  // Check if current user is following this Enterprise + get stats
+  // Check if current user is following this NGO + get stats
   const followStatsResult = await getFollowStats(id)
   const followStats = followStatsResult.success ? followStatsResult.data! : { followersCount: 0, followingCount: 0, isFollowing: false }
 

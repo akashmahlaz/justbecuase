@@ -1,4 +1,4 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+﻿import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import {
   BarChart3,
@@ -90,7 +90,7 @@ export default async function AdminReportsPage({ params }: { params: Promise<{ l
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">{dict.admin?.reports?.newNgosThisMonth || "New Enterprises (This Month)"}</p>
+                <p className="text-sm text-muted-foreground">{dict.admin?.reports?.newNgosThisMonth || "New NGOs (This Month)"}</p>
                 <p className="text-2xl font-bold text-foreground">{newNGOsThisMonth}</p>
               </div>
               <div className="w-10 h-10 rounded-lg bg-secondary/10 flex items-center justify-center">

@@ -1,4 +1,4 @@
-// ============================================
+﻿// ============================================
 // Advanced Matching Algorithm for JustBeCause Network
 // ============================================
 //
@@ -497,7 +497,7 @@ function urgencyScore(deadline?: Date | string): number {
 }
 
 /**
- * Enterprise quality score
+ * NGO quality score
  */
 function ngoQualityScore(project: Project): number {
   let score = 50
@@ -567,7 +567,7 @@ function composeFinalScore(
 // ============================================
 
 /**
- * Match volunteers to a project (for Enterprise view)
+ * Match volunteers to a project (for NGO view)
  * Returns sorted list of volunteers with match scores
  *
  * Handles edge case: 50,000+ volunteers with same skills
@@ -672,7 +672,7 @@ export function matchOpportunitiesToVolunteer(
       project.experienceLevel
     )
 
-    // Tiebreaker: urgency + Enterprise quality
+    // Tiebreaker: urgency + NGO quality
     const tiebreaker = urgencyScore(project.deadline) * 0.5 + ngoQualityScore(project) * 0.5
 
     // Compose final (volunteer view doesn't penalize missing must-haves as hard
@@ -710,7 +710,7 @@ export function matchOpportunitiesToVolunteer(
 }
 
 /**
- * Get recommended volunteers for an Enterprise based on their typical needs
+ * Get recommended volunteers for an NGO based on their typical needs
  */
 export function getRecommendedVolunteers(
   ngoTypicalSkills: RequiredSkill[],
@@ -949,7 +949,7 @@ export interface PersonalizedScoringInput {
   project: Project & { ngo?: { name: string; logo?: string; verified: boolean; city?: string; country?: string; coordinates?: Coordinates } }
   ngoProfile?: NGOProfile | null
   volunteerCoords?: Coordinates | null  // From profile or IP geolocation
-  ngoCoords?: Coordinates | null         // From Enterprise profile or IP geolocation
+  ngoCoords?: Coordinates | null         // From NGO profile or IP geolocation
 }
 
 /**
@@ -960,11 +960,11 @@ export interface PersonalizedScoringInput {
  * | Signal           | Weight | Why                                              |
  * |------------------|--------|--------------------------------------------------|
  * | Skill match      | 35%    | Skills are the #1 predictor of fit               |
- * | Geo distance     | 20%    | Closer Enterprises = easier collaboration               |
+ * | Geo distance     | 20%    | Closer NGOs = easier collaboration               |
  * | Cause alignment  | 15%    | Shared mission = higher motivation               |
  * | Work mode match  | 10%    | Remote vs onsite compatibility                   |
  * | Freshness        | 8%     | Newer & urgent posts get attention               |
- * | Enterprise quality      | 7%     | Verified Enterprises with good track records            |
+ * | NGO quality      | 7%     | Verified NGOs with good track records            |
  * | Experience fit   | 5%     | Beginner/intermediate/expert alignment            |
  */
 export function scorePersonalizedOpportunity(
@@ -1012,7 +1012,7 @@ export function scorePersonalizedOpportunity(
   // ------- 5. FRESHNESS + URGENCY (8%) -------
   const freshness = freshnessScore(project)
 
-  // ------- 6. Enterprise QUALITY (7%) -------
+  // ------- 6. NGO QUALITY (7%) -------
   let ngoQuality = 50
   const ngo = ngoProfile || (project as any).ngo
   if (ngo) {

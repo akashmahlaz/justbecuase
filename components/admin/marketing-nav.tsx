@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import LocaleLink from "@/components/locale-link"
 import { usePathname } from "next/navigation"
@@ -15,11 +15,11 @@ import {
 } from "lucide-react"
 
 const plays = [
-  { title: "Enterprise Prospecting", href: "/admin/marketing/prospecting", icon: Target },
+  { title: "NGO Prospecting", href: "/admin/marketing/prospecting", icon: Target },
   { title: "Skills Demand", href: "/admin/marketing/skills-demand", icon: TrendingUp },
   { title: "Outreach Generator", href: "/admin/marketing/outreach", icon: Mail },
   { title: "Hiring Pulse", href: "/admin/marketing/hiring-pulse", icon: Activity },
-  { title: "Enterprise Enrichment", href: "/admin/marketing/enrichment", icon: Building2 },
+  { title: "NGO Enrichment", href: "/admin/marketing/enrichment", icon: Building2 },
   { title: "Volunteer Match", href: "/admin/marketing/volunteer-match", icon: Users },
 ]
 

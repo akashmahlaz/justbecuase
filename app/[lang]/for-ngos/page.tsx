@@ -1,4 +1,4 @@
-import type { Metadata } from "next"
+﻿import type { Metadata } from "next"
 import LocaleLink from "@/components/locale-link"
 import { Navbar } from "@/components/navbar"
 import { Footer } from "@/components/footer"
@@ -10,19 +10,19 @@ import type { Locale } from "@/lib/i18n-config"
 import { Users, Clock, DollarSign, FileText, MessageSquare, Shield, ArrowRight, Star, Briefcase, Database, Target, Search, Gift } from "lucide-react"
 
 export const metadata: Metadata = {
-  title: "For Enterprises - Find Skilled Volunteers for Your Projects",
-  description: "Find skilled professionals for your Enterprise. Post projects, access top talent, manage applications, and amplify your social impact with JustBeCause Network. Free to get started.",
+  title: "For NGOs - Find Skilled Volunteers for Your Projects",
+  description: "Find skilled professionals for your NGO. Post projects, access top talent, manage applications, and amplify your social impact with JustBeCause Network. Free to get started.",
   keywords: [
-    "Enterprise volunteer platform",
+    "NGO volunteer platform",
     "find volunteers for nonprofit",
     "skilled volunteer recruitment",
-    "Enterprise project management",
+    "NGO project management",
     "pro bono talent acquisition",
     "CSR partner platform",
   ],
   openGraph: {
-    title: "For Enterprises | JustBeCause Network",
-    description: "Find skilled professionals for your Enterprise. Post projects and amplify your social impact.",
+    title: "For NGOs | JustBeCause Network",
+    description: "Find skilled professionals for your NGO. Post projects and amplify your social impact.",
   },
 }
 
@@ -51,10 +51,10 @@ export default async function ForNGOsPage({ params }: { params: Promise<{ lang: 
   ]
 
   const faqs = [
-    { question: n.faq1Q || "Is it free for Enterprises to join?", answer: n.faq1A || "Yes! Creating an account and posting jobs is free." },
+    { question: n.faq1Q || "Is it free for NGOs to join?", answer: n.faq1A || "Yes! Creating an account and posting jobs is free." },
     { question: n.faq2Q || "How do I find the right candidate?", answer: n.faq2A || "Post your job with detailed requirements." },
     { question: n.faq3Q || "What types of projects can I post?", answer: n.faq3A || "Anything your organization needs." },
-    { question: n.faq4Q || "How long does it take to find help?", answer: n.faq4A || "Most Enterprises receive applications within 48 hours." },
+    { question: n.faq4Q || "How long does it take to find help?", answer: n.faq4A || "Most NGOs receive applications within 48 hours." },
     { question: n.faq5Q || "Can I offer paid jobs too?", answer: n.faq5A || "Absolutely!" },
     { question: n.faq6Q || "How do I know the quality will be good?", answer: n.faq6A || "All candidates have verified profiles." },
   ]
@@ -69,10 +69,10 @@ export default async function ForNGOsPage({ params }: { params: Promise<{ lang: 
             <div className="grid lg:grid-cols-2 gap-12 items-center">
               <div>
                 <h1 className="text-4xl md:text-5xl font-bold text-foreground mb-6">
-                  {n.heroTitle || "For Enterprises: Build Your Dream Team"}
+                  {n.heroTitle || "For NGOs: Build Your Dream Team"}
                 </h1>
                 <p className="text-xl text-muted-foreground mb-4">
-                  {n.heroPara1 || "Get Professionals with specialized skill sets to support your Enterprise goals."}
+                  {n.heroPara1 || "Get Professionals with specialized skill sets to support your NGO goals."}
                 </p>
                 <p className="text-lg text-muted-foreground mb-8">
                   {n.heroPara2 || "Access skilled professionals ready to help with marketing, tech, design, finance, and more."}
@@ -80,7 +80,7 @@ export default async function ForNGOsPage({ params }: { params: Promise<{ lang: 
                 <div className="flex flex-wrap gap-4">
                   <Button asChild size="lg" className="bg-secondary hover:bg-secondary/90 text-secondary-foreground">
                     <LocaleLink href="/auth/signup">
-                      {n.registerNow || "Enterprise's – Register Now"}
+                      {n.registerNow || "NGO's – Register Now"}
                       <ArrowRight className="ml-2 h-4 w-4" />
                     </LocaleLink>
                   </Button>
@@ -92,7 +92,7 @@ export default async function ForNGOsPage({ params }: { params: Promise<{ lang: 
               <div className="relative overflow-hidden">
                 <img
                   src="/nonprofit-team-meeting-diverse-professionals.png"
-                  alt="Enterprise team collaborating"
+                  alt="NGO team collaborating"
                   className="rounded-2xl shadow-2xl w-full"
                 />
                 <div className="absolute -bottom-4 right-2 md:-bottom-6 md:-right-6 bg-card p-3 md:p-4 rounded-xl shadow-lg border border-border">
@@ -102,7 +102,7 @@ export default async function ForNGOsPage({ params }: { params: Promise<{ lang: 
                     </div>
                     <div>
                       <p className="font-semibold text-foreground">{n.valueStat || "$2.4M+ Value"}</p>
-                      <p className="text-sm text-muted-foreground">{n.valueStatDesc || "Created for Enterprises"}</p>
+                      <p className="text-sm text-muted-foreground">{n.valueStatDesc || "Created for NGOs"}</p>
                     </div>
                   </div>
                 </div>
@@ -111,11 +111,11 @@ export default async function ForNGOsPage({ params }: { params: Promise<{ lang: 
           </div>
         </section>
 
-        {/* Key Features for Enterprises */}
+        {/* Key Features for NGOs */}
         <section className="py-16 bg-muted/30">
           <div className="container mx-auto px-4 md:px-6">
             <div className="text-center mb-12">
-              <h2 className="text-3xl font-bold text-foreground mb-4">{n.helpTitle || "How We Help Enterprises Build Their Dream Team"}</h2>
+              <h2 className="text-3xl font-bold text-foreground mb-4">{n.helpTitle || "How We Help NGOs Build Their Dream Team"}</h2>
               <p className="text-muted-foreground max-w-2xl mx-auto">
                 {n.helpSubtitle || "Access the talent you need through multiple pathways"}
               </p>
@@ -164,7 +164,7 @@ export default async function ForNGOsPage({ params }: { params: Promise<{ lang: 
             <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
               <div>
                 <p className="text-4xl font-bold text-primary mb-2">{impactMetrics.ngosSupported}</p>
-                <p className="text-muted-foreground">{n.statNGOs || "Enterprises Supported"}</p>
+                <p className="text-muted-foreground">{n.statNGOs || "NGOs Supported"}</p>
               </div>
               <div>
                 <p className="text-4xl font-bold text-secondary mb-2">{impactMetrics.projectsCompleted}</p>
@@ -188,7 +188,7 @@ export default async function ForNGOsPage({ params }: { params: Promise<{ lang: 
         <section className="py-16">
           <div className="container mx-auto px-4 md:px-6">
             <div className="text-center mb-12">
-              <h2 className="text-3xl font-bold text-foreground mb-4">{n.whyChooseTitle || "Why Enterprises Choose Us"}</h2>
+              <h2 className="text-3xl font-bold text-foreground mb-4">{n.whyChooseTitle || "Why NGOs Choose Us"}</h2>
               <p className="text-muted-foreground max-w-2xl mx-auto">
                 {n.whyChooseSubtitle || "Get the professional support you need to grow your impact without stretching your budget"}
               </p>
@@ -259,7 +259,7 @@ export default async function ForNGOsPage({ params }: { params: Promise<{ lang: 
           <div className="container mx-auto px-4 md:px-6 text-center">
             <h2 className="text-3xl font-bold mb-4">{n.ctaHeading || "Ready to Find Your Candidates?"}</h2>
             <p className="text-xl mb-8 text-primary-foreground/90 max-w-2xl mx-auto">
-              {n.ctaPara || "Join hundreds of Enterprises already benefiting from skills-based contributions"}
+              {n.ctaPara || "Join hundreds of NGOs already benefiting from skills-based contributions"}
             </p>
             <Button size="lg" variant="secondary" asChild>
               <LocaleLink href="/auth/signup">

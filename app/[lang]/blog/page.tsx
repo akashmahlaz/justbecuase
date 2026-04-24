@@ -1,4 +1,4 @@
-import type { Metadata } from "next"
+﻿import type { Metadata } from "next"
 import { Navbar } from "@/components/navbar"
 import { Footer } from "@/components/footer"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -14,7 +14,7 @@ const fallbackPosts = [
   {
     slug: "launch-announcement",
     title: "Introducing JustBeCause Network - Skills-Based Volunteering",
-    excerpt: "We're excited to launch JustBeCause Network, a platform connecting skilled professionals with Enterprises that need their expertise.",
+    excerpt: "We're excited to launch JustBeCause Network, a platform connecting skilled professionals with NGOs that need their expertise.",
     date: "December 6, 2025",
     author: "JustBeCause Team",
     tags: ["Announcement"],
@@ -23,7 +23,7 @@ const fallbackPosts = [
   {
     slug: "why-skills-based-volunteering",
     title: "Why Skills-Based Volunteering Matters More Than Ever",
-    excerpt: "Traditional volunteering is valuable, but skills-based volunteering can multiply an Enterprise's impact by 10x. Here's why.",
+    excerpt: "Traditional volunteering is valuable, but skills-based volunteering can multiply an NGO's impact by 10x. Here's why.",
     date: "December 5, 2025",
     author: "Akash Mahlaz",
     tags: ["Impact"],
@@ -31,7 +31,7 @@ const fallbackPosts = [
   },
   {
     slug: "getting-started-ngos",
-    title: "Getting Started: A Guide for Enterprises",
+    title: "Getting Started: A Guide for NGOs",
     excerpt: "Learn how to post your first job, attract the right volunteers, and maximize the value of skills-based partnerships.",
     date: "December 4, 2025",
     author: "JustBeCause Team",
@@ -44,8 +44,8 @@ export const revalidate = 300
 
 export const metadata: Metadata = {
   title: "Blog - Insights on Skills-Based Volunteering & Social Impact",
-  description: "Read insights, guides, and stories about skills-based volunteering, social impact, Enterprise success stories, and how to make a difference with your professional expertise.",
-  keywords: ["volunteering blog", "social impact stories", "Enterprise guides", "skills-based volunteering tips", "nonprofit insights"],
+  description: "Read insights, guides, and stories about skills-based volunteering, social impact, NGO success stories, and how to make a difference with your professional expertise.",
+  keywords: ["volunteering blog", "social impact stories", "NGO guides", "skills-based volunteering tips", "nonprofit insights"],
   openGraph: {
     title: "Blog | JustBeCause Network",
     description: "Insights, guides, and stories about skills-based volunteering and social impact.",

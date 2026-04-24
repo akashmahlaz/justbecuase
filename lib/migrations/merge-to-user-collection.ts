@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Migration Script: Merge Profile Collections into User Collection
  * 
  * This script merges volunteerProfiles and ngoProfiles into the user collection,
@@ -91,10 +91,10 @@ async function mergeToUserCollection() {
     }
     console.log(`   ✅ Updated ${volunteerUpdated} volunteer users\n`)
     
-    // === MERGE Enterprise PROFILES ===
+    // === MERGE NGO PROFILES ===
     console.log("📋 Step 2: Merging ngoProfiles into user...")
     const ngos = await db.collection("ngoProfiles").find().toArray()
-    console.log(`   Found ${ngos.length} Enterprise profiles`)
+    console.log(`   Found ${ngos.length} NGO profiles`)
     
     let ngoUpdated = 0
     for (const profile of ngos) {
@@ -105,7 +105,7 @@ async function mergeToUserCollection() {
         updatedAt: new Date()
       }
       
-      // Add all Enterprise fields
+      // Add all NGO fields
       updateFields.orgName = profile.orgName || profile.organizationName || null
       updateFields.description = profile.description || null
       updateFields.mission = profile.mission || null
@@ -146,12 +146,12 @@ async function mergeToUserCollection() {
         console.log(`   ✓ Merged profile for user ${userId}`)
       }
     }
-    console.log(`   ✅ Updated ${ngoUpdated} Enterprise users\n`)
+    console.log(`   ✅ Updated ${ngoUpdated} NGO users\n`)
     
     // === SUMMARY ===
     console.log("📊 Migration Summary:")
     console.log(`   - Volunteer profiles merged: ${volunteerUpdated}`)
-    console.log(`   - Enterprise profiles merged: ${ngoUpdated}`)
+    console.log(`   - NGO profiles merged: ${ngoUpdated}`)
     console.log(`   - Total users updated: ${volunteerUpdated + ngoUpdated}`)
     
     console.log("\n✅ Migration completed successfully!")

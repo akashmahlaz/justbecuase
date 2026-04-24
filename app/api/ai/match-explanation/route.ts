@@ -1,4 +1,4 @@
-import { generateText, Output } from "ai"
+﻿import { generateText, Output } from "ai"
 import { openai } from "@ai-sdk/openai"
 import { z } from "zod"
 import { auth } from "@/lib/auth"
@@ -52,7 +52,7 @@ export async function POST(req: Request) {
           compatibilityScore: z.string().describe("A one-word compatibility assessment: Excellent, Strong, Good, Fair, Weak, or Poor"),
         }),
       }),
-      prompt: `Analyze the match quality between a volunteer and an Enterprise project. The algorithm scored this match at ${numericScore}% (${scoreTier}).
+      prompt: `Analyze the match quality between a volunteer and an NGO project. The algorithm scored this match at ${numericScore}% (${scoreTier}).
 
 YOUR EXPLANATION MUST BE CONSISTENT WITH THE ${numericScore}% SCORE.
 ${toneGuidance}

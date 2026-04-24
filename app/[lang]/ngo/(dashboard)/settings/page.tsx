@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
@@ -709,7 +709,7 @@ export default function NGOSettingsPage() {
                       <div>
                         <p className="font-medium">{dict.ngo?.settings?.showInDirectory || "Show in Directory"}</p>
                         <p className="text-sm text-muted-foreground">
-                          {dict.ngo?.settings?.showInDirectoryDesc || "List your organization in the Enterprise directory"}
+                          {dict.ngo?.settings?.showInDirectoryDesc || "List your organization in the NGO directory"}
                         </p>
                       </div>
                       <Switch

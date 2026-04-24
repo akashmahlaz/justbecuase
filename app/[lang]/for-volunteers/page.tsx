@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import LocaleLink from "@/components/locale-link"
 import { Navbar } from "@/components/navbar"
@@ -31,7 +31,7 @@ export default function ForVolunteersPage() {
 
   const steps = [
     { number: "01", title: v.step1Title || "Create Your Profile", description: v.step1Desc || "Sign up and showcase your skills, experience, and the causes you care about." },
-    { number: "02", title: v.step2Title || "Browse Jobs", description: v.step2Desc || "Explore jobs matched to your skills and interests from vetted Enterprises." },
+    { number: "02", title: v.step2Title || "Browse Jobs", description: v.step2Desc || "Explore jobs matched to your skills and interests from vetted NGOs." },
     { number: "03", title: v.step3Title || "Apply & Connect", description: v.step3Desc || "Submit your application and connect directly with the organization." },
     { number: "04", title: v.step4Title || "Make an Impact", description: v.step4Desc || "Complete the job, receive feedback, and add it to your portfolio." },
   ]
@@ -40,8 +40,8 @@ export default function ForVolunteersPage() {
     { question: v.faq1Q || "Is it really free to join as an candidate?", answer: v.faq1A || "Yes! Signing up as an candidate is completely free." },
     { question: v.faq2Q || "How much time do I need to commit?", answer: v.faq2A || "It's entirely up to you." },
     { question: v.faq3Q || "What types of skills are in demand?", answer: v.faq3A || "Everything from web development, design, and marketing to financial planning." },
-    { question: v.faq4Q || "Will I get recognition for my work?", answer: v.faq4A || "Absolutely! Enterprises can rate and review your contributions." },
-    { question: v.faq5Q || "Can I choose which Enterprises to work with?", answer: v.faq5A || "Yes, you have full control over which jobs you apply to." },
+    { question: v.faq4Q || "Will I get recognition for my work?", answer: v.faq4A || "Absolutely! NGOs can rate and review your contributions." },
+    { question: v.faq5Q || "Can I choose which NGOs to work with?", answer: v.faq5A || "Yes, you have full control over which jobs you apply to." },
     { question: v.faq6Q || "What if I want to offer paid services too?", answer: v.faq6A || "You can! Our platform supports pro bono, low bono, and paid engagements." },
   ]
   return (
@@ -59,10 +59,10 @@ export default function ForVolunteersPage() {
                   {v.heroPara1 || "At the JustBeCause Network, we believe your professional expertise is more than just a paycheck—it's a pathway to impact."}
                 </p>
                 <p className="text-lg text-muted-foreground mb-6">
-                  {v.heroPara2 || "Join our Purpose-Driven Exchange and lend your talent to Enterprises who are changing the world."}
+                  {v.heroPara2 || "Join our Purpose-Driven Exchange and lend your talent to NGOs who are changing the world."}
                 </p>
                 <p className="text-muted-foreground mb-8">
-                  {v.heroPara3 || "Our platform serves as a high-impact marketplace connecting skilled professionals with Enterprises."}
+                  {v.heroPara3 || "Our platform serves as a high-impact marketplace connecting skilled professionals with NGOs."}
                 </p>
                 <div className="flex flex-wrap gap-4">
                   <Button asChild size="lg" className="bg-primary hover:bg-primary/90">

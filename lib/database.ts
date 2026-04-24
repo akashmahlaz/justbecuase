@@ -1,4 +1,4 @@
-// ============================================
+﻿// ============================================
 // MongoDB Database Operations
 // ============================================
 
@@ -273,11 +273,11 @@ export const passwordResetDb = {
 }
 
 // ============================================
-// Enterprise PROFILES
+// NGO PROFILES
 // ============================================
 /**
  * SIMPLIFIED: Now reads from user collection directly
- * All Enterprise data is stored in the user collection
+ * All NGO data is stored in the user collection
  */
 export const ngoProfilesDb = {
   async create(profile: Omit<NGOProfile, "_id">): Promise<string> {
@@ -1067,17 +1067,17 @@ export const adminSettingsDb = {
           "Unlimited job applications",
           "Featured profile badge",
           "Priority in search results",
-          "Direct message Enterprises",
+          "Direct message NGOs",
           "Early access to jobs",
           "Profile analytics",
           "Certificate downloads",
         ],
         
-        // Enterprise Free Plan
+        // NGO Free Plan
         ngoFreeProjectsPerMonth: 3,
         ngoFreeProfileUnlocksPerMonth: 0,
         
-        // Enterprise Pro Plan - Production price
+        // NGO Pro Plan - Production price
         ngoProPrice: 2999,
         ngoProProjectsUnlimited: true,
         ngoProUnlocksUnlimited: true,
@@ -1087,7 +1087,7 @@ export const adminSettingsDb = {
           "Advanced AI-powered matching",
           "Priority support",
           "Project analytics & reports",
-          "Featured Enterprise badge",
+          "Featured NGO badge",
           "Bulk candidate outreach",
         ],
         
@@ -1107,8 +1107,8 @@ export const adminSettingsDb = {
         maintenanceMode: false,
         
         // SEO
-        metaTitle: "JustBeCause Network - Connect Enterprises with Candidates",
-        metaDescription: "Platform connecting Enterprises with skilled candidates for social impact",
+        metaTitle: "JustBeCause Network - Connect NGOs with Candidates",
+        metaDescription: "Platform connecting NGOs with skilled candidates for social impact",
         
         updatedAt: new Date(),
         updatedBy: adminUserId,
@@ -1202,7 +1202,7 @@ export const subscriptionPlansDb = {
           updatedAt: new Date(),
         },
         {
-          name: "Enterprise",
+          name: "NGO",
           tier: "enterprise",
           priceMonthly: 4999,
           priceYearly: 49990,

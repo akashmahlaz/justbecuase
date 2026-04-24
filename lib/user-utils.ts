@@ -1,4 +1,4 @@
-import { getDb } from "./database"
+﻿import { getDb } from "./database"
 
 // Collection names (must match database.ts)
 const COLLECTIONS = {
@@ -53,11 +53,11 @@ export async function getUserInfo(userId: string): Promise<UserInfo | null> {
   // Determine user type from role field
   const role = user.role
   
-  // Enterprise users: use orgName if set, otherwise fall back to name
+  // NGO users: use orgName if set, otherwise fall back to name
   if (role === "ngo") {
     return {
       id: userId,
-      name: user.orgName || user.organizationName || user.name || "Enterprise",
+      name: user.orgName || user.organizationName || user.name || "NGO",
       email: user.email,
       image: user.logo || user.image || user.avatar,
       type: "ngo",
@@ -145,7 +145,7 @@ export async function getUsersInfo(userIds: string[]): Promise<Map<string, UserI
     if (role === "ngo") {
       result.set(userId, {
         id: userId,
-        name: user.orgName || user.organizationName || user.name || "Enterprise",
+        name: user.orgName || user.organizationName || user.name || "NGO",
         email: user.email,
         image: user.logo || user.image || user.avatar,
         type: "ngo",

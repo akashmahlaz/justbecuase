@@ -1,4 +1,4 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+﻿import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Mail } from "lucide-react"
 
 export default function OutreachPage() {
@@ -11,7 +11,7 @@ export default function OutreachPage() {
         </CardTitle>
       </CardHeader>
       <CardContent className="text-muted-foreground">
-        Coming soon — Generate personalized outreach emails for Enterprise partnerships.
+        Coming soon — Generate personalized outreach emails for NGO partnerships.
       </CardContent>
     </Card>
   )

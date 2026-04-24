@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import { useState, useEffect, useRef } from "react"
 import LocaleLink from "@/components/locale-link"
@@ -60,7 +60,7 @@ export function FeaturedProjects() {
               {home.featuredProjects || "Featured Jobs"}
             </h2>
             <p className="text-muted-foreground leading-relaxed">
-              {home.featuredProjectsDesc || "A curated directory of high-impact jobs from verified Enterprises worldwide. Designed for architects of social change."}
+              {home.featuredProjectsDesc || "A curated directory of high-impact jobs from verified NGOs worldwide. Designed for architects of social change."}
             </p>
           </div>
 

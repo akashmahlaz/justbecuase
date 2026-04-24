@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import { Fragment, useState, useCallback, useEffect, useMemo } from "react"
 import { Button } from "@/components/ui/button"
@@ -63,7 +63,7 @@ import { Linkedin } from "@/components/ui/brand-icons"
 import type { TheirStackJob, CreditBalance } from "@/lib/theirstack"
 
 // ============================================
-// Enterprise Industry IDs (from TheirStack docs)
+// NGO Industry IDs (from TheirStack docs)
 // ============================================
 const NGO_INDUSTRY_IDS = [
   { id: 70, label: "Non-profit Organization Management" },
@@ -77,11 +77,11 @@ const NGO_INDUSTRY_IDS = [
   { id: 139, label: "Government Relations" },
 ]
 
-// Preset Enterprise search patterns
+// Preset NGO search patterns
 const NGO_PATTERNS = [
   "nonprofit",
   "non-profit",
-  "Enterprise",
+  "NGO",
   "charitable",
   "social impact",
   "humanitarian",
@@ -171,7 +171,7 @@ interface SearchPreset {
 const SEARCH_PRESETS: SearchPreset[] = [
   {
     name: "🎯 Best Results (Recommended)",
-    description: "Enterprises posting volunteer-related jobs — proven high-relevance query",
+    description: "NGOs posting volunteer-related jobs — proven high-relevance query",
     icon: <Star className="size-4 text-yellow-500" />,
     filters: {
       mode: "jobs",
@@ -188,8 +188,8 @@ const SEARCH_PRESETS: SearchPreset[] = [
     },
   },
   {
-    name: "India Enterprises Hiring Now",
-    description: "Enterprises in India posting volunteer/community roles — last 14 days",
+    name: "India NGOs Hiring Now",
+    description: "NGOs in India posting volunteer/community roles — last 14 days",
     icon: <Zap className="size-4 text-orange-500" />,
     filters: {
       mode: "jobs",
@@ -206,8 +206,8 @@ const SEARCH_PRESETS: SearchPreset[] = [
     },
   },
   {
-    name: "Enterprises With Contacts",
-    description: "Volunteer-related roles at Enterprises — only results with hiring contacts",
+    name: "NGOs With Contacts",
+    description: "Volunteer-related roles at NGOs — only results with hiring contacts",
     icon: <Building2 className="size-4 text-purple-500" />,
     filters: {
       mode: "jobs",
@@ -224,8 +224,8 @@ const SEARCH_PRESETS: SearchPreset[] = [
     },
   },
   {
-    name: "Urgently Hiring Enterprises",
-    description: "Enterprises with urgent hiring language — reach out immediately",
+    name: "Urgently Hiring NGOs",
+    description: "NGOs with urgent hiring language — reach out immediately",
     icon: <AlertTriangle className="size-4 text-red-500" />,
     filters: {
       mode: "jobs",
@@ -242,8 +242,8 @@ const SEARCH_PRESETS: SearchPreset[] = [
     },
   },
   {
-    name: "Global Remote Enterprises",
-    description: "Remote volunteer/community roles at Enterprises worldwide",
+    name: "Global Remote NGOs",
+    description: "Remote volunteer/community roles at NGOs worldwide",
     icon: <Globe className="size-4 text-blue-500" />,
     filters: {
       mode: "jobs",
@@ -704,10 +704,10 @@ export default function ProspectingPage() {
           <div>
             <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
               <Target className="size-6 text-orange-600" />
-              Enterprise Prospecting Pipeline
+              NGO Prospecting Pipeline
             </h1>
             <p className="text-sm text-muted-foreground mt-1">
-              Find Enterprises actively hiring → reach out to partner with JustBeCause
+              Find NGOs actively hiring → reach out to partner with JustBeCause
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -744,7 +744,7 @@ export default function ProspectingPage() {
                 TheirStack API Key Required
               </CardTitle>
               <CardDescription className="text-amber-700 dark:text-amber-300">
-                Add your API key to start searching for Enterprises.
+                Add your API key to start searching for NGOs.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-3 text-sm">
@@ -789,7 +789,7 @@ export default function ProspectingPage() {
                     <Badge className="bg-blue-600">1</Badge> Search
                   </div>
                   <p className="text-muted-foreground text-xs">
-                    Pick a <strong>Quick Start preset</strong> or customize filters. Click &quot;Search Enterprises&quot; → confirm credit spend → results appear.
+                    Pick a <strong>Quick Start preset</strong> or customize filters. Click &quot;Search NGOs&quot; → confirm credit spend → results appear.
                   </p>
                 </div>
                 <div className="space-y-1.5 p-3 rounded-lg bg-white dark:bg-background border">
@@ -884,7 +884,7 @@ export default function ProspectingPage() {
 
             {/* Description patterns */}
             <div className="space-y-2">
-              <Label className="text-sm font-medium">Enterprise Description Patterns</Label>
+              <Label className="text-sm font-medium">NGO Description Patterns</Label>
               <p className="text-xs text-muted-foreground">Matches companies whose description includes any of these</p>
               <div className="flex flex-wrap gap-1.5">
                 {NGO_PATTERNS.map((p) => (
@@ -1131,7 +1131,7 @@ export default function ProspectingPage() {
               </div>
               {!showConfirm ? (
                 <Button onClick={() => setShowConfirm(true)} disabled={!canAfford || loading || isApiKeyMissing} className="gap-2">
-                  <Search className="size-4" /> Search Enterprises
+                  <Search className="size-4" /> Search NGOs
                 </Button>
               ) : (
                 <div className="flex items-center gap-2">
@@ -1161,7 +1161,7 @@ export default function ProspectingPage() {
             <CardContent className="p-6 space-y-3">
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <Loader2 className="size-4 animate-spin" />
-                Searching TheirStack for Enterprises matching your filters...
+                Searching TheirStack for NGOs matching your filters...
               </div>
               <Skeleton className="h-4 w-48" />
               <Skeleton className="h-32 w-full" />

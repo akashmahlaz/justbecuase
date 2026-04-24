@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import { useState, useEffect, useCallback } from "react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
@@ -66,10 +66,10 @@ const COLLECTIONS: CollectionDef[] = [
   },
   {
     key: "ngos",
-    label: "Enterprises",
+    label: "NGOs",
     collectionParam: ["ngos"],
     icon: Building2,
-    description: "All Enterprise organization profiles",
+    description: "All NGO organization profiles",
   },
   {
     key: "blog",
@@ -89,7 +89,7 @@ const COLLECTIONS: CollectionDef[] = [
 
 const INDEX_LABEL_MAP: Record<string, string> = {
   justbecause_volunteers: "Candidates",
-  justbecause_ngos: "Enterprises",
+  justbecause_ngos: "NGOs",
   justbecause_projects: "Opportunities",
   justbecause_blog_posts: "Blog Posts",
   justbecause_pages: "Pages",
@@ -287,7 +287,7 @@ export default function AdminSearchPage() {
             <div>
               <p className="font-medium text-sm">Sync All Collections</p>
               <p className="text-xs text-muted-foreground mt-0.5">
-                Volunteers · Enterprises · Opportunities · Blog · Pages
+                Volunteers · NGOs · Opportunities · Blog · Pages
               </p>
               {syncResults["all"] && (
                 <SyncResultBadge result={syncResults["all"]} />

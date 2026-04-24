@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import { useState, useEffect, useRef, useCallback } from "react"
 import { Card, CardContent } from "@/components/ui/card"
@@ -39,7 +39,7 @@ const TYPE_CONFIG = {
   },
   ngo: {
     icon: Building2,
-    label: "Enterprise",
+    label: "NGO",
     badgeClass: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
   },
   opportunity: {
@@ -80,7 +80,7 @@ export function OpportunitiesSearchCard() {
         )
         const data = await res.json()
         if (data.success && !controller.signal.aborted) {
-          // Only show opportunity results — filter out any volunteers/Enterprises/blogs
+          // Only show opportunity results — filter out any volunteers/NGOs/blogs
           const opportunityResults = (data.results || []).filter(
             (r: SearchResult) => r.type === "opportunity"
           )

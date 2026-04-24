@@ -1,4 +1,4 @@
-import { generateText, Output } from "ai"
+﻿import { generateText, Output } from "ai"
 import { openai } from "@ai-sdk/openai"
 import { z } from "zod"
 import { auth } from "@/lib/auth"
@@ -39,7 +39,7 @@ export async function POST(req: Request) {
           keyStrengths: z.array(z.string()).describe("0-3 key strengths based on ACTUAL skill overlap. Can be empty if poor match."),
         }),
       }),
-      prompt: `Generate an honest cover letter for a volunteer applying to an Enterprise project.
+      prompt: `Generate an honest cover letter for a volunteer applying to an NGO project.
 
 PROJECT DETAILS:
 - Title: ${projectTitle}

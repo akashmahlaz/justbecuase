@@ -1,4 +1,4 @@
-import { redirect } from "next/navigation"
+﻿import { redirect } from "next/navigation"
 import { headers } from "next/headers"
 import { auth } from "@/lib/auth"
 import { getDictionary } from "@/app/[lang]/dictionaries"
@@ -39,7 +39,7 @@ export default async function NGOProjectsPage({ params }: { params: Promise<{ la
     redirect(`/${lang}/auth/signin`)
   }
 
-  // Role verification: Ensure user is an Enterprise
+  // Role verification: Ensure user is an NGO
   if (session.user.role !== "ngo") {
     if (session.user.role === "volunteer") {
       redirect(`/${lang}/volunteer/dashboard`)

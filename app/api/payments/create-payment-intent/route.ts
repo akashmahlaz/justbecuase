@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server"
+﻿import { NextRequest, NextResponse } from "next/server"
 import { headers } from "next/headers"
 import { auth } from "@/lib/auth"
 import { getStripeClient } from "@/lib/payment-gateway"
@@ -6,7 +6,7 @@ import { adminSettingsDb, couponsDb, couponUsagesDb } from "@/lib/database"
 import { toStripeAmount } from "@/lib/currency"
 
 const PLAN_NAMES: Record<string, string> = {
-  "ngo-pro": "Enterprise Pro Plan",
+  "ngo-pro": "NGO Pro Plan",
   "volunteer-pro": "Candidate Pro Plan",
 }
 

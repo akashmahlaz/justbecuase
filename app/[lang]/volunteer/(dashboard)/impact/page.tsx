@@ -1,4 +1,4 @@
-import { redirect } from "next/navigation"
+﻿import { redirect } from "next/navigation"
 import { headers } from "next/headers"
 import { auth } from "@/lib/auth"
 import { getDictionary } from "@/app/[lang]/dictionaries"
@@ -198,7 +198,7 @@ export default async function ImpactDashboardPage({ params }: { params: Promise<
                       <Star className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
                       <p className="text-sm text-muted-foreground">{dict.volunteer?.impact?.noReviews || "No reviews yet"}</p>
                       <p className="text-xs text-muted-foreground">
-                        {dict.volunteer?.impact?.noReviewsHint || "Complete projects to receive reviews from Enterprises"}
+                        {dict.volunteer?.impact?.noReviewsHint || "Complete projects to receive reviews from NGOs"}
                       </p>
                     </div>
                   ) : (
@@ -206,7 +206,7 @@ export default async function ImpactDashboardPage({ params }: { params: Promise<
                       {reviews.slice(0, 5).map((review: any, i: number) => (
                         <div key={i} className="border rounded-lg p-3">
                           <div className="flex items-center justify-between mb-1">
-                            <span className="text-sm font-medium">{review.reviewerName || "Enterprise"}</span>
+                            <span className="text-sm font-medium">{review.reviewerName || "NGO"}</span>
                             <div className="flex gap-0.5">
                               {[1, 2, 3, 4, 5].map((star) => (
                                 <Star

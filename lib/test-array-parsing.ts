@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Test script to verify array parsing in database helpers
  * Run with: npx tsx lib/test-array-parsing.ts
  */
@@ -24,10 +24,10 @@ async function testArrayParsing() {
       console.log(`  Causes: ${Array.isArray(v.causes) ? '✅ Array' : '❌ Not array'} - ${v.causes?.length || 0} items`)
     }
 
-    // Test 2: Enterprise findMany
-    console.log("\n[Test 2] Enterprise findMany - checking array parsing...")
+    // Test 2: NGO findMany
+    console.log("\n[Test 2] NGO findMany - checking array parsing...")
     const ngos = await ngoProfilesDb.findMany({}, { limit: 3 })
-    console.log(`Found ${ngos.length} Enterprises`)
+    console.log(`Found ${ngos.length} NGOs`)
     
     for (const n of ngos) {
       console.log(`\n- ${n.userId} (${n.orgName || 'No name'})`)
@@ -47,9 +47,9 @@ async function testArrayParsing() {
       }
     }
 
-    // Test 4: Enterprise findByUserId (if we have an Enterprise ID)
+    // Test 4: NGO findByUserId (if we have an NGO ID)
     if (ngos.length > 0) {
-      console.log("\n[Test 4] Enterprise findByUserId - checking array parsing...")
+      console.log("\n[Test 4] NGO findByUserId - checking array parsing...")
       const ngo = await ngoProfilesDb.findByUserId(ngos[0].userId)
       if (ngo) {
         console.log(`\n- ${ngo.userId} (${ngo.orgName || 'No name'})`)

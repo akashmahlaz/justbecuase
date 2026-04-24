@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import { useState, useEffect, useRef, useCallback, useMemo } from "react"
 import { useRouter } from "next/navigation"
@@ -563,7 +563,7 @@ export function UnifiedSearchBar({
     ? s.placeholderNgo || "Search organizations..."
     : defaultType === "opportunity"
     ? s.placeholderOpportunity || "Search jobs..."
-    : s.placeholderDefault || "Search volunteers, Enterprises, jobs, blog, anything..."
+    : s.placeholderDefault || "Search volunteers, NGOs, jobs, blog, anything..."
 
   // ============================================
   // RENDER

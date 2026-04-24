@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { motion } from "motion/react";
 import { Users, CheckCircle2, Building2, Clock, DollarSign } from "lucide-react";
@@ -42,7 +42,7 @@ export function ImpactMetrics({ impactMetrics }: { impactMetrics: any }) {
   const metrics = useMemo(() => [
     { icon: Users, value: impactMetrics.volunteers, label: h.metricAgents || "Skilled Candidates" },
     { icon: CheckCircle2, value: impactMetrics.projectsCompleted, label: h.metricCompleted || "Jobs Completed" },
-    { icon: Building2, value: impactMetrics.ngosSupported, label: h.metricNGOs || "Enterprises Supported" },
+    { icon: Building2, value: impactMetrics.ngosSupported, label: h.metricNGOs || "NGOs Supported" },
     { icon: Clock, value: impactMetrics.hoursContributed, label: h.metricHours || "Hours Contributed", suffix: "+" },
     { icon: DollarSign, value: impactMetrics.valueGenerated, label: h.metricValue || "Value Generated", prefix: "$" },
   ], [h, impactMetrics]);

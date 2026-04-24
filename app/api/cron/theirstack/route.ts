@@ -1,4 +1,4 @@
-// filepath: app/api/cron/theirstack/route.ts
+﻿// filepath: app/api/cron/theirstack/route.ts
 import { NextResponse } from "next/server"
 import { runTheirStackSync } from "@/lib/theirstack-sync"
 
@@ -7,8 +7,8 @@ export const maxDuration = 800 // Vercel Pro max is 800s
 // ============================================
 // GET /api/cron/theirstack — Daily TheirStack sync
 // ============================================
-// Fetches Enterprise/nonprofit-related jobs from TheirStack using the same
-// Enterprise filters as the prospecting tooling and stores them in the shared
+// Fetches NGO/nonprofit-related jobs from TheirStack using the same
+// NGO filters as the prospecting tooling and stores them in the shared
 // externalOpportunities collection. Supports preview mode for low-credit testing.
 
 export async function GET(request: Request) {

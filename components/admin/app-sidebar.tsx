@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import LocaleLink from "@/components/locale-link"
 import Image from "next/image"
@@ -49,7 +49,7 @@ const navGroups = [
     items: [
       { title: "Users", href: "/admin/users", icon: Users },
       { title: "Candidates", href: "/admin/volunteers", icon: Heart },
-      { title: "Enterprises", href: "/admin/ngos", icon: Building2 },
+      { title: "NGOs", href: "/admin/ngos", icon: Building2 },
       { title: "Opportunities", href: "/admin/projects", icon: FolderKanban },
     ],
   },

@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import { useEffect, useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
@@ -145,14 +145,14 @@ export function AnalyticsCharts() {
                 <TrendingUp className="h-5 w-5 text-primary" />
                 User Growth Over Time
               </CardTitle>
-              <CardDescription>New volunteer and Enterprise signups per day</CardDescription>
+              <CardDescription>New volunteer and NGO signups per day</CardDescription>
             </CardHeader>
             <CardContent>
               <GrowthChart
                 data={mergeTimeSeries(metrics.userGrowth, metrics.ngoGrowth)}
                 series={[
                   { key: "volunteers", name: "Volunteers", color: "#6366f1" },
-                  { key: "ngos", name: "Enterprises", color: "#8b5cf6" },
+                  { key: "ngos", name: "NGOs", color: "#8b5cf6" },
                 ]}
               />
             </CardContent>

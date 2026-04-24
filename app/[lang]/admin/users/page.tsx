@@ -1,4 +1,4 @@
-import { Card, CardContent } from "@/components/ui/card"
+﻿import { Card, CardContent } from "@/components/ui/card"
 import { getAdminStats, getAllVolunteers, getAllNGOs } from "@/lib/actions"
 import { UsersSearchableList } from "@/components/admin/users-searchable-list"
 import {
@@ -34,7 +34,7 @@ export default async function AdminUsersPage({ params }: { params: Promise<{ lan
     })),
     ...ngosData.data.map(n => ({
       id: n.userId,
-      name: n.organizationName || n.orgName || "Unnamed Enterprise",
+      name: n.organizationName || n.orgName || "Unnamed NGO",
       email: n.contactEmail || "No email",
       role: "ngo" as const,
       avatar: n.logo,
@@ -90,7 +90,7 @@ export default async function AdminUsersPage({ params }: { params: Promise<{ lan
             </div>
             <div>
               <p className="text-2xl font-bold text-foreground">{stats.totalNGOs}</p>
-              <p className="text-sm text-muted-foreground">{dict.admin?.users?.ngos || "Enterprises"}</p>
+              <p className="text-sm text-muted-foreground">{dict.admin?.users?.ngos || "NGOs"}</p>
             </div>
           </CardContent>
         </Card>

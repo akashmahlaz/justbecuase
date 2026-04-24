@@ -1,12 +1,12 @@
-import type { Metadata } from "next"
+﻿import type { Metadata } from "next"
 
 export const metadata: Metadata = {
   title: "Browse Skilled Candidates & Volunteers",
-  description: "Find skilled professionals ready to contribute to your Enterprise. Browse candidates with expertise in technology, marketing, finance, design, legal, and more.",
+  description: "Find skilled professionals ready to contribute to your NGO. Browse candidates with expertise in technology, marketing, finance, design, legal, and more.",
   keywords: [
     "skilled volunteers",
     "pro bono professionals",
-    "Enterprise talent",
+    "NGO talent",
     "candidates",
     "volunteer database",
     "find volunteers",
@@ -14,7 +14,7 @@ export const metadata: Metadata = {
   ],
   openGraph: {
     title: "Browse Candidates | JustBeCause Network",
-    description: "Find skilled professionals ready to contribute to your Enterprise's mission.",
+    description: "Find skilled professionals ready to contribute to your NGO's mission.",
   },
 }
 
