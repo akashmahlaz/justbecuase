@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { UserPlus, Search, Rocket, FileText, Users, CheckCircle } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";

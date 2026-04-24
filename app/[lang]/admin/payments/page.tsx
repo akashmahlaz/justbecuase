@@ -1,4 +1,4 @@
-﻿import { Suspense } from "react"
+import { Suspense } from "react"
 import { getDictionary } from "@/app/[lang]/dictionaries"
 import { Locale } from "@/lib/i18n-config"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"

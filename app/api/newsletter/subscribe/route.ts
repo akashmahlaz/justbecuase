@@ -1,4 +1,4 @@
-﻿import { NextRequest, NextResponse } from "next/server"
+import { NextRequest, NextResponse } from "next/server"
 import { getDb } from "@/lib/database"
 import { sendEmail } from "@/lib/email"
 

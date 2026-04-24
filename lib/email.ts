@@ -1,4 +1,4 @@
-﻿// Email sending utility for JustBecause Network
+// Email sending utility for JustBecause Network
 // Configure RESEND_API_KEY in your environment variables
 
 const RESEND_API_KEY = process.env.RESEND_API_KEY || process.env.RESEND_AKASH

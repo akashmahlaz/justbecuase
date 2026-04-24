@@ -1,4 +1,4 @@
-﻿import { Suspense } from "react"
+import { Suspense } from "react"
 import Link from "next/link"
 import { getDictionary } from "@/app/[lang]/dictionaries"
 import { Locale } from "@/lib/i18n-config"

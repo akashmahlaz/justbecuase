@@ -1,4 +1,4 @@
-﻿import { Card, CardContent } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { getAllNGOs, getAdminStats } from "@/lib/actions"
 import { NGOsSearchableList } from "@/components/admin/ngos-searchable-list"
 import { getDictionary } from "@/app/[lang]/dictionaries"

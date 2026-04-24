@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Migration Script: Sync user names from auth table to profiles
  * 
  * Run this script to populate missing names in volunteerProfiles and ngoProfiles

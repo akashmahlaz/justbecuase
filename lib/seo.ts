@@ -1,4 +1,4 @@
-﻿import type { Metadata } from "next"
+import type { Metadata } from "next"
 import { i18n, type Locale } from "@/lib/i18n-config"
 
 const SITE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://justbecausenetwork.com"

@@ -1,4 +1,4 @@
-﻿"use client"
+"use client"
 
 import Link from "next/link"
 import { Linkedin, Twitter, Instagram, Facebook } from "@/components/ui/brand-icons"

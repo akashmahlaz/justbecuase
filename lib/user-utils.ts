@@ -1,4 +1,4 @@
-﻿import { getDb } from "./database"
+import { getDb } from "./database"
 
 // Collection names (must match database.ts)
 const COLLECTIONS = {

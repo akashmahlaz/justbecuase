@@ -1,4 +1,4 @@
-﻿import { betterAuth } from "better-auth";
+import { betterAuth } from "better-auth";
 import { mongodbAdapter } from "better-auth/adapters/mongodb";
 import { admin } from "better-auth/plugins";
 import client from "./db";

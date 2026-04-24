@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Test script to verify array parsing in database helpers
  * Run with: npx tsx lib/test-array-parsing.ts
  */

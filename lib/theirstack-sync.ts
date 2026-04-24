@@ -1,4 +1,4 @@
-﻿import {
+import {
   getCreditBalance,
   searchJobs,
   type JobSearchParams,

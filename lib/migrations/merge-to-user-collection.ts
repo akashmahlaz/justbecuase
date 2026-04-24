@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Migration Script: Merge Profile Collections into User Collection
  * 
  * This script merges volunteerProfiles and ngoProfiles into the user collection,

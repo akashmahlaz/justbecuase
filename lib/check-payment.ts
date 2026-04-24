@@ -1,4 +1,4 @@
-﻿import { MongoClient } from "mongodb"
+import { MongoClient } from "mongodb"
 
 async function checkPaymentSetup() {
   const uri = process.env.MONGODB_URI || "mongodb://localhost:27017/justbecause"

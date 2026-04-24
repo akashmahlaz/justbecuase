@@ -1,4 +1,4 @@
-﻿/**
+/**
  * User Profile Helpers - Single Collection Approach
  * 
  * These helpers read/write from the user collection directly,

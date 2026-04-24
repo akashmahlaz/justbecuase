@@ -1,4 +1,4 @@
-﻿import { NextResponse } from "next/server"
+import { NextResponse } from "next/server"
 import { adminSettingsDb } from "@/lib/database"
 
 // Force dynamic — never cache this route so admin changes take effect immediately

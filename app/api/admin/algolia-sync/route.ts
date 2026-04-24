@@ -1,4 +1,4 @@
-﻿import { NextResponse } from "next/server"
+import { NextResponse } from "next/server"
 import { algoliasearch } from "algoliasearch"
 import clientPromise from "@/lib/db"
 import {

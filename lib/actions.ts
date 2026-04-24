@@ -1,4 +1,4 @@
-﻿"use server"
+"use server"
 
 // ============================================
 // Server Actions for JustBecause Network
