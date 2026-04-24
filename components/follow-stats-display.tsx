@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import { useState, useEffect, useCallback } from "react"
 import {
@@ -195,7 +195,7 @@ function UserList({ userId, type }: { userId: string; type: "followers" | "follo
             <div className="flex items-center gap-2">
               <span className="font-medium text-sm truncate">{user.name}</span>
               <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4">
-                {user.role === "ngo" ? "Enterprise" : "Candidate"}
+                {user.role === "ngo" ? "NGO" : "Candidate"}
               </Badge>
             </div>
             {user.headline && (

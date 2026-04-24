@@ -1,8 +1,8 @@
-// ============================================
+﻿// ============================================
 // Powerful Text Extractor — deep content extraction from any HTML page
 // ============================================
 // Uses cheerio to intelligently extract structured data from arbitrary pages.
-// Handles job boards, Enterprise pages, and generic content with heuristic parsing.
+// Handles job boards, NGO pages, and generic content with heuristic parsing.
 
 import * as cheerio from "cheerio"
 

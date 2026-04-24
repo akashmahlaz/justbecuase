@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
@@ -379,7 +379,7 @@ export default function AdminSettingsPage() {
           </TabsTrigger>
           <TabsTrigger value="ngo-plans" className="flex items-center gap-2">
             <Building2 className="h-4 w-4" />
-            {dict.admin?.settings?.tabs?.ngoPlans || "Enterprise Plans"}
+            {dict.admin?.settings?.tabs?.ngoPlans || "NGO Plans"}
           </TabsTrigger>
           <TabsTrigger value="features" className="flex items-center gap-2">
             <Settings className="h-4 w-4" />
@@ -442,7 +442,7 @@ export default function AdminSettingsPage() {
                     setSettings({ ...settings, platformDescription: e.target.value })
                   }
                   rows={3}
-                  placeholder="Connecting Enterprises with skilled candidates..."
+                  placeholder="Connecting NGOs with skilled candidates..."
                 />
               </div>
               <div className="grid sm:grid-cols-2 gap-4">
@@ -950,9 +950,9 @@ export default function AdminSettingsPage() {
                 <div className="flex items-start gap-2">
                   <Building2 className="h-5 w-5 text-primary mt-0.5" />
                   <div>
-                    <p className="font-medium">{dict.admin?.settings?.payment?.ngoProSubscription || "Enterprise Pro Subscription"}</p>
+                    <p className="font-medium">{dict.admin?.settings?.payment?.ngoProSubscription || "NGO Pro Subscription"}</p>
                     <p className="text-sm text-muted-foreground">
-                      {dict.admin?.settings?.payment?.ngoProSubscriptionDescription || "All Enterprises can view both free and paid candidate profiles without a subscription. Pro subscription unlocks additional platform features."}
+                      {dict.admin?.settings?.payment?.ngoProSubscriptionDescription || "All NGOs can view both free and paid candidate profiles without a subscription. Pro subscription unlocks additional platform features."}
                     </p>
                   </div>
                 </div>
@@ -967,7 +967,7 @@ export default function AdminSettingsPage() {
                 </div>
               </div>
               <p className="text-xs text-muted-foreground">
-                {dict.admin?.settings?.payment?.businessModelNote || "Note: All candidate profiles (free and paid) are visible to all Enterprises without requiring a subscription."}
+                {dict.admin?.settings?.payment?.businessModelNote || "Note: All candidate profiles (free and paid) are visible to all NGOs without requiring a subscription."}
               </p>
             </CardContent>
           </Card>
@@ -1123,16 +1123,16 @@ export default function AdminSettingsPage() {
           </Card>
         </TabsContent>
 
-        {/* Enterprise Plans */}
+        {/* NGO Plans */}
         <TabsContent value="ngo-plans" className="space-y-6">
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Badge variant="secondary">Free Plan</Badge>
-                {dict.admin?.settings?.ngoPlans?.freePlanTitle || "Enterprise Free Plan Limits"}
+                {dict.admin?.settings?.ngoPlans?.freePlanTitle || "NGO Free Plan Limits"}
               </CardTitle>
               <CardDescription>
-                {dict.admin?.settings?.ngoPlans?.freePlanDescription || "Configure limits for Enterprises on the free plan"}
+                {dict.admin?.settings?.ngoPlans?.freePlanDescription || "Configure limits for NGOs on the free plan"}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -1151,7 +1151,7 @@ export default function AdminSettingsPage() {
                     }
                   />
                   <p className="text-xs text-muted-foreground">
-                    {dict.admin?.settings?.ngoPlans?.opportunitiesPerMonthHint || "Number of jobs Enterprises can post per month"}
+                    {dict.admin?.settings?.ngoPlans?.opportunitiesPerMonthHint || "Number of jobs NGOs can post per month"}
                   </p>
                 </div>
                 <div className="space-y-2">
@@ -1179,10 +1179,10 @@ export default function AdminSettingsPage() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Badge className="bg-primary">Pro Plan</Badge>
-                {dict.admin?.settings?.ngoPlans?.proPlanTitle || "Enterprise Pro Plan"}
+                {dict.admin?.settings?.ngoPlans?.proPlanTitle || "NGO Pro Plan"}
               </CardTitle>
               <CardDescription>
-                {dict.admin?.settings?.ngoPlans?.proPlanDescription || "Configure pricing and features for the Enterprise pro plan"}
+                {dict.admin?.settings?.ngoPlans?.proPlanDescription || "Configure pricing and features for the NGO pro plan"}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
@@ -1685,9 +1685,9 @@ export default function AdminSettingsPage() {
               <Separator />
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="font-medium">{dict.admin?.settings?.security?.ngoVerification || "Enterprise Verification"}</p>
+                  <p className="font-medium">{dict.admin?.settings?.security?.ngoVerification || "NGO Verification"}</p>
                   <p className="text-sm text-muted-foreground">
-                    {dict.admin?.settings?.security?.ngoVerificationHint || "Require Enterprises to be verified by admin before they can post jobs"}
+                    {dict.admin?.settings?.security?.ngoVerificationHint || "Require NGOs to be verified by admin before they can post jobs"}
                   </p>
                 </div>
                 <Switch

@@ -1,4 +1,4 @@
-import Link from "next/link"
+﻿import Link from "next/link"
 import type { Metadata } from "next"
 import { notFound } from "next/navigation"
 import { getDictionary } from "@/app/[lang]/dictionaries"
@@ -83,7 +83,7 @@ export default async function VolunteerProfilePage({ params }: { params: Promise
   // Get volunteer profile with visibility rules applied
   const volunteer = await getVolunteerProfileView(id)
   
-  // Get Enterprise subscription status if viewing as Enterprise
+  // Get NGO subscription status if viewing as NGO
   const ngoSubscription = await getNGOSubscriptionStatus()
 
   // Get follow stats for this volunteer
@@ -421,7 +421,7 @@ export default async function VolunteerProfilePage({ params }: { params: Promise
                   )}
                   {volunteer.discountedRate && !isLocked && volunteer.volunteerType !== "free" && (
                     <div className="flex items-center justify-between">
-                      <span className="text-sm text-muted-foreground">{dict.volunteerDetail?.ngoDiscountRate || "Enterprise Discounted Rate"}</span>
+                      <span className="text-sm text-muted-foreground">{dict.volunteerDetail?.ngoDiscountRate || "NGO Discounted Rate"}</span>
                       <span className="text-sm font-medium text-green-600">
                         {getCurrencySymbol(volunteer.currency || "USD")}{volunteer.discountedRate}/hr
                       </span>

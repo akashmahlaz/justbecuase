@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import { useState, Suspense } from "react"
 import { useSearchParams } from "next/navigation"
@@ -92,7 +92,7 @@ function ContactPageContent() {
               <MessageSquare className="h-4 w-4 text-primary" />
               <span className="text-sm font-medium text-primary">
                 {source === "pricing_contact_sales"
-                  ? (c.salesBadge || "Enterprise Solutions")
+                  ? (c.salesBadge || "NGO Solutions")
                   : (c.badge || "We're Here to Help")}
               </span>
             </div>

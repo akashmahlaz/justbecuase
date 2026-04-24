@@ -1,4 +1,4 @@
-import { redirect } from "next/navigation"
+﻿import { redirect } from "next/navigation"
 import { Suspense } from "react"
 import { headers } from "next/headers"
 import { auth } from "@/lib/auth"
@@ -46,7 +46,7 @@ export default async function NGODashboard({ params }: { params: Promise<{ lang:
     redirect(`/${lang}/auth/signin`)
   }
 
-  // Role verification: Ensure user is an Enterprise
+  // Role verification: Ensure user is an NGO
   if (session.user.role !== "ngo") {
     console.log("[ngo-dashboard] wrong role:", session.user.role, "— redirecting")
     if (session.user.role === "volunteer") {

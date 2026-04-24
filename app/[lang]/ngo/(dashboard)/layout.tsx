@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import type React from "react"
 import { useAuth } from "@/lib/auth-context"
@@ -24,7 +24,7 @@ export default function NGODashboardLayout({
         <SidebarInset>
           <DashboardContentHeader
             userType="ngo"
-            userName={user?.name || "Enterprise"}
+            userName={user?.name || "NGO"}
             userAvatar={user?.image || undefined}
           />
           {user?.id && <NotificationListener userId={user.id} userType="ngo" />}

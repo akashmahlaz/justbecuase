@@ -1,4 +1,4 @@
-import { betterAuth } from "better-auth";
+﻿import { betterAuth } from "better-auth";
 import { mongodbAdapter } from "better-auth/adapters/mongodb";
 import { admin } from "better-auth/plugins";
 import client from "./db";
@@ -139,7 +139,7 @@ export const auth = betterAuth({
         required: false,
         input: true,
       },
-      // Volunteer-specific fields (null if Enterprise)
+      // Volunteer-specific fields (null if NGO)
       bio: {
         type: "string",
         required: false,
@@ -193,7 +193,7 @@ export const auth = betterAuth({
         type: "number",
         required: false,
       },
-      // Enterprise-specific fields (null if Volunteer)
+      // NGO-specific fields (null if Volunteer)
       orgName: {
         type: "string",
         required: false,

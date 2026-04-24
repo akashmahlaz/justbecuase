@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import LocaleLink from "@/components/locale-link"
 import Image from "next/image"
@@ -90,7 +90,7 @@ export function DashboardHeader({ userType, userName, userAvatar }: DashboardHea
           <UnifiedSearchBar
             variant="compact"
             placeholder={userType === "volunteer" 
-              ? "Search jobs or Enterprises..." 
+              ? "Search jobs or NGOs..." 
               : "Search candidates, skills, or projects..."}
             allowedTypes={userType === "volunteer" 
               ? ["opportunity", "ngo"] 

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Migration Script: Sync user names from auth table to profiles
  * 
  * Run this script to populate missing names in volunteerProfiles and ngoProfiles
@@ -85,7 +85,7 @@ async function syncUserNames() {
     
     console.log(`\n📊 Migration Summary:`)
     console.log(`   - Volunteer profiles updated: ${volunteerUpdates}`)
-    console.log(`   - Enterprise profiles updated: ${ngoUpdates}`)
+    console.log(`   - NGO profiles updated: ${ngoUpdates}`)
     console.log(`\n✅ Migration completed successfully!`)
     
   } catch (error) {

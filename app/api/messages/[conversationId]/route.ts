@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server"
+﻿import { NextRequest, NextResponse } from "next/server"
 import { headers } from "next/headers"
 import { auth } from "@/lib/auth"
 import { getDb, userIdQuery } from "@/lib/database"
@@ -185,7 +185,7 @@ export async function POST(
     let senderRole = "volunteer"
     const senderUser = await userCollection.findOne(userIdQuery(session.user.id))
     if (senderUser) {
-      // For Enterprises, prefer orgName/organizationName
+      // For NGOs, prefer orgName/organizationName
       if (senderUser.role === "ngo") {
         senderName = senderUser.orgName || senderUser.organizationName || senderUser.name || senderName
         senderRole = "ngo"

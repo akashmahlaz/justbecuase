@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import LocaleLink from "@/components/locale-link"
 import { Badge } from "@/components/ui/badge"
@@ -85,7 +85,7 @@ export function ProjectCard({ project }: { project: Project }) {
           </div>
         )}
 
-        {/* Enterprise Info with HoverCard */}
+        {/* NGO Info with HoverCard */}
         <div className="flex items-center gap-3">
           <HoverCard>
             <HoverCardTrigger asChild>

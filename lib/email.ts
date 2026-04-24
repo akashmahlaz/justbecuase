@@ -1,4 +1,4 @@
-// Email sending utility for JustBecause Network
+﻿// Email sending utility for JustBecause Network
 // Configure RESEND_API_KEY in your environment variables
 
 const RESEND_API_KEY = process.env.RESEND_API_KEY || process.env.RESEND_AKASH
@@ -270,7 +270,7 @@ export function getNewFollowerEmailHtml(
   recipientProfileUrl: string,
   followerCount: number
 ): string {
-  const roleLabel = followerRole === "ngo" ? "Enterprise" : "Candidate"
+  const roleLabel = followerRole === "ngo" ? "NGO" : "Candidate"
   const followerCountText = followerCount === 1 ? "1 follower" : `${followerCount.toLocaleString()} followers`
 
   return `
@@ -341,7 +341,7 @@ export function getNewMessageEmailHtml(
   messagePreview: string,
   messagesUrl: string
 ): string {
-  const roleLabel = senderRole === "ngo" ? "Enterprise" : "Candidate"
+  const roleLabel = senderRole === "ngo" ? "NGO" : "Candidate"
   const truncated = messagePreview.length > 120 ? messagePreview.substring(0, 120) + "..." : messagePreview
 
   return `
@@ -507,7 +507,7 @@ export function getContactEmailHtml(
   senderRole: string,
   message?: string
 ): string {
-  const roleLabel = senderRole === "ngo" ? "Enterprise" : "Candidate"
+  const roleLabel = senderRole === "ngo" ? "NGO" : "Candidate"
 
   return `
     <!DOCTYPE html>
@@ -705,10 +705,10 @@ export function getProfileNudgeEmailHtml(
   role: "ngo" | "volunteer",
   onboardingUrl: string
 ): string {
-  const roleLabel = role === "ngo" ? "Enterprise" : "Candidate"
+  const roleLabel = role === "ngo" ? "NGO" : "Candidate"
   const benefits = role === "ngo" 
     ? "post projects, find skilled Candidates, and start making an impact"
-    : "discover projects, connect with Enterprises, and start making a difference"
+    : "discover projects, connect with NGOs, and start making a difference"
 
   return `
     <!DOCTYPE html>
@@ -836,7 +836,7 @@ export function getReEngagementEmailHtml(
             <p style="margin: 0; color: #92400e;"><strong>🎯 ${data.missedMatches}</strong> projects matched your skills</p>
           </div>
 
-          <p style="color: #6b7280;">Enterprises are actively looking for professionals like you. Your skills can make a real difference — come back and explore what's new!</p>
+          <p style="color: #6b7280;">NGOs are actively looking for professionals like you. Your skills can make a real difference — come back and explore what's new!</p>
 
           <div style="text-align: center; margin-top: 24px;">
             <a href="${process.env.NEXT_PUBLIC_APP_URL || "https://justbecausenetwork.com"}/projects" style="display: inline-block; background: #f59e0b; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600;">See What You're Missing</a>
@@ -878,7 +878,7 @@ export function getZeroResultAlertEmailHtml(query: string, engine: string, filte
         <ul style="margin-top: 4px;">${filterStr}</ul>
         <h3 style="margin-bottom: 8px;">Possible Reasons:</h3>
         <ul>
-          <li>No volunteers/Enterprises/jobs match this skill or role</li>
+          <li>No volunteers/NGOs/jobs match this skill or role</li>
           <li>The search term may need to be added as a synonym</li>
           <li>A new skill category might need to be created</li>
         </ul>
@@ -926,7 +926,7 @@ export function getIrrelevantResultAlertEmailHtml(
         <ul>
           <li>Users may see results that don't match what they searched for</li>
           <li>Consider adding synonyms or skill mappings for this query</li>
-          <li>The search term may need new volunteer/Enterprise/project data</li>
+          <li>The search term may need new volunteer/NGO/project data</li>
         </ul>
         <div style="text-align: center; margin-top: 20px;">
           <a href="${appUrl}/admin/search-analytics" style="display: inline-block; background: #10b981; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600;">View Search Analytics</a>
@@ -1061,7 +1061,7 @@ export function getDailyActivitySummaryEmailHtml(data: {
         <table style="width: 100%; border-collapse: collapse;">
           <tr>
             <td style="padding: 10px; text-align: center; width: 25%;"><div style="font-size: 28px; font-weight: 700; color: #2563eb;">${data.newSignups}</div><div style="font-size: 11px; color: #6b7280; text-transform: uppercase;">New Users</div></td>
-            <td style="padding: 10px; text-align: center; width: 25%;"><div style="font-size: 28px; font-weight: 700; color: #7c3aed;">${data.ngoSignups}</div><div style="font-size: 11px; color: #6b7280; text-transform: uppercase;">New Enterprises</div></td>
+            <td style="padding: 10px; text-align: center; width: 25%;"><div style="font-size: 28px; font-weight: 700; color: #7c3aed;">${data.ngoSignups}</div><div style="font-size: 11px; color: #6b7280; text-transform: uppercase;">New NGOs</div></td>
             <td style="padding: 10px; text-align: center; width: 25%;"><div style="font-size: 28px; font-weight: 700; color: #059669;">${data.newProjects}</div><div style="font-size: 11px; color: #6b7280; text-transform: uppercase;">Projects</div></td>
             <td style="padding: 10px; text-align: center; width: 25%;"><div style="font-size: 28px; font-weight: 700; color: #ea580c;">${data.applications}</div><div style="font-size: 11px; color: #6b7280; text-transform: uppercase;">Applications</div></td>
           </tr>
@@ -1146,7 +1146,7 @@ export function getWeeklyTeamDigestEmailHtml(data: {
         <table style="width: 100%; border-collapse: collapse;">
           <tr>
             <td style="padding: 10px; text-align: center;"><div style="font-size: 28px; font-weight: 700; color: #2563eb;">${data.newSignups}</div><div style="font-size: 11px; color: #6b7280;">New Users</div></td>
-            <td style="padding: 10px; text-align: center;"><div style="font-size: 28px; font-weight: 700; color: #7c3aed;">${data.ngoSignups}</div><div style="font-size: 11px; color: #6b7280;">New Enterprises</div></td>
+            <td style="padding: 10px; text-align: center;"><div style="font-size: 28px; font-weight: 700; color: #7c3aed;">${data.ngoSignups}</div><div style="font-size: 11px; color: #6b7280;">New NGOs</div></td>
             <td style="padding: 10px; text-align: center;"><div style="font-size: 28px; font-weight: 700; color: #059669;">${data.newProjects}</div><div style="font-size: 11px; color: #6b7280;">Projects</div></td>
           </tr>
           <tr>

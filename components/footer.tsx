@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import Link from "next/link"
 import { Linkedin, Twitter, Instagram, Facebook } from "@/components/ui/brand-icons"
@@ -86,9 +86,9 @@ export function Footer() {
             </ul>
           </div>
 
-          {/* For Enterprises */}
+          {/* For NGOs */}
           <div>
-            <h4 className="font-semibold text-foreground mb-4">{footer.forNGOs || "For Enterprises"}</h4>
+            <h4 className="font-semibold text-foreground mb-4">{footer.forNGOs || "For NGOs"}</h4>
             <ul className="space-y-3">
               <li>
                 <LocaleLink href="/for-ngos" className="text-muted-foreground hover:text-foreground transition-colors">

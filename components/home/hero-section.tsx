@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import Image from "next/image"
 import { useDictionary } from "@/components/dictionary-provider"
@@ -51,7 +51,7 @@ export function HeroSection() {
                 ))
               ) : (
                 <>
-                  Across the globe, visionary Enterprises are working tirelessly to change lives, but they shouldn&apos;t have to do it alone.
+                  Across the globe, visionary NGOs are working tirelessly to change lives, but they shouldn&apos;t have to do it alone.
                   They have the passion, but they need your professional expertise to break through.
                   <span className="font-semibold text-foreground"> {platformName}</span> is the bridge between your talent and their impact.
                   We believe that when your mastery meets their mission, the impossible becomes possible.

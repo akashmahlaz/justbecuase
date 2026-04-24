@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import { useState, useEffect, useMemo, useRef } from "react"
 import { Navbar } from "@/components/navbar"
@@ -36,11 +36,11 @@ import type { VolunteerProfileView } from "@/lib/types"
 interface VolunteersPageProps {
   /**
    * When true the component is being rendered inside another layout (e.g.
-   * Enterprise dashboard) so we should disable the global navbar/hero that normally
+   * NGO dashboard) so we should disable the global navbar/hero that normally
    * surrounds the search UI.
    */
   embed?: boolean
-  /** Enterprise subscription plan – passed from the Enterprise find-talent page */
+  /** NGO subscription plan – passed from the NGO find-talent page */
   subscriptionPlan?: "free" | "pro"
 }
 

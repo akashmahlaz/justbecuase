@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import LocaleLink from "@/components/locale-link"
 import { usePathname } from "next/navigation"
@@ -36,7 +36,7 @@ const navItems = [
     icon: Heart,
   },
   {
-    title: "Enterprises",
+    title: "NGOs",
     href: "/admin/ngos",
     icon: Building2,
   },

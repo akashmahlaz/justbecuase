@@ -1,4 +1,4 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+﻿import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { TrendingUp } from "lucide-react"
 
 export default function SkillsDemandPage() {
@@ -11,7 +11,7 @@ export default function SkillsDemandPage() {
         </CardTitle>
       </CardHeader>
       <CardContent className="text-muted-foreground">
-        Coming soon — Analyze which skills Enterprises are hiring for most to align volunteer training.
+        Coming soon — Analyze which skills NGOs are hiring for most to align volunteer training.
       </CardContent>
     </Card>
   )

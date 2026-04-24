@@ -1,4 +1,4 @@
-import type { MetadataRoute } from "next"
+﻿import type { MetadataRoute } from "next"
 import { i18n } from "@/lib/i18n-config"
 import { projectsDb, ngoProfilesDb, blogPostsDb, volunteerProfilesDb } from "@/lib/database"
 
@@ -59,7 +59,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     console.error("[sitemap] Failed to fetch projects:", e)
   }
 
-  // Dynamic Enterprise pages
+  // Dynamic NGO pages
   let ngoEntries: MetadataRoute.Sitemap = []
   try {
     const ngos = await ngoProfilesDb.findMany({ isActive: true }, { limit: 5000 } as any)
@@ -77,7 +77,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       }))
     )
   } catch (e) {
-    console.error("[sitemap] Failed to fetch Enterprises:", e)
+    console.error("[sitemap] Failed to fetch NGOs:", e)
   }
 
   // Dynamic blog pages

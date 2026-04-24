@@ -1,4 +1,4 @@
-import type { Metadata } from "next"
+﻿import type { Metadata } from "next"
 import { Navbar } from "@/components/navbar"
 import { Footer } from "@/components/footer"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -23,17 +23,17 @@ const changelogEntries = [
       {
         type: "feature",
         title: "Platform Launch",
-        description: "Initial release of JustBeCause Network with core features for candidates and Enterprises.",
+        description: "Initial release of JustBeCause Network with core features for candidates and NGOs.",
       },
       {
         type: "feature",
         title: "Better Auth Integration",
-        description: "Enterprise-grade authentication with MongoDB backend and role-based access control.",
+        description: "NGO-grade authentication with MongoDB backend and role-based access control.",
       },
       {
         type: "feature",
         title: "Onboarding Flows",
-        description: "Comprehensive onboarding for both candidates and Enterprises with skills matching.",
+        description: "Comprehensive onboarding for both candidates and NGOs with skills matching.",
       },
       {
         type: "feature",
@@ -55,7 +55,7 @@ const changelogEntries = [
       {
         type: "feature",
         title: "Beta Testing Phase",
-        description: "Closed beta with select Enterprises and candidates for platform testing.",
+        description: "Closed beta with select NGOs and candidates for platform testing.",
       },
       {
         type: "improvement",
@@ -77,7 +77,7 @@ const changelogEntries = [
       {
         type: "feature",
         title: "Dashboard Prototypes",
-        description: "Initial dashboards for candidates and Enterprises.",
+        description: "Initial dashboards for candidates and NGOs.",
       },
     ],
   },

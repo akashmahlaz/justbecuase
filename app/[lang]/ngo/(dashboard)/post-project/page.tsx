@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import type React from "react"
 import { useState, useEffect } from "react"
@@ -157,14 +157,14 @@ export default function PostProjectPage() {
     setDocuments(prev => prev.filter((_, i) => i !== index))
   }
 
-  // Fetch Enterprise profile on mount
+  // Fetch NGO profile on mount
   useEffect(() => {
     async function loadProfile() {
       if (!user) return
       const profile = await getNGOProfile()
       if (profile) {
         setNgoProfile(profile)
-        // Pre-fill causes from Enterprise profile
+        // Pre-fill causes from NGO profile
         if (profile.causes) {
           setFormData(prev => ({ ...prev, causes: profile.causes || [] }))
         }

@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server"
+﻿import { NextRequest, NextResponse } from "next/server"
 import { headers } from "next/headers"
 import { auth } from "@/lib/auth"
 import { ngoProfilesDb, volunteerProfilesDb, transactionsDb, notificationsDb, adminSettingsDb } from "@/lib/database"
@@ -89,10 +89,10 @@ export async function POST(request: NextRequest) {
     const isPro = planId.endsWith("-pro")
 
     if (isNgoPlan && userRole === "ngo") {
-      // Update Enterprise profile
+      // Update NGO profile
       const profile = await ngoProfilesDb.findByUserId(userId)
       if (!profile) {
-        return NextResponse.json({ error: "Enterprise profile not found" }, { status: 404 })
+        return NextResponse.json({ error: "NGO profile not found" }, { status: 404 })
       }
 
       await ngoProfilesDb.update(userId, {
@@ -175,7 +175,7 @@ export async function POST(request: NextRequest) {
       const userRecord = await db.collection("user").findOne(userIdQuery(userId))
       if (userRecord?.email) {
         const { sendEmail, getSubscriptionConfirmationEmailHtml } = await import("@/lib/email")
-        const planName = isNgoPlan ? "Enterprise Pro" : "Candidate Pro"
+        const planName = isNgoPlan ? "NGO Pro" : "Candidate Pro"
         const locale = currency === "INR" ? "en-IN" : "en-US"
         const expiryFormatted = subscriptionExpiry.toLocaleDateString(locale, { year: "numeric", month: "long", day: "numeric" })
         const html = getSubscriptionConfirmationEmailHtml(

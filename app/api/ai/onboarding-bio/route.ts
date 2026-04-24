@@ -1,4 +1,4 @@
-import { generateText, Output } from "ai"
+﻿import { generateText, Output } from "ai"
 import { openai } from "@ai-sdk/openai"
 import { z } from "zod"
 import { auth } from "@/lib/auth"
@@ -22,7 +22,7 @@ export async function POST(req: Request) {
     const isNGO = role === "ngo"
 
     const prompt = isNGO
-      ? `Write a brief, professional organization description for an Enterprise onboarding profile.
+      ? `Write a brief, professional organization description for an NGO onboarding profile.
 
 DETAILS:
 - Contact Person: ${name}

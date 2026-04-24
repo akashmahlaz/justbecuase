@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import { useState, useMemo } from "react"
 import { Input } from "@/components/ui/input"
@@ -113,7 +113,7 @@ export function ProjectsSearchableList({ projects, title }: ProjectsSearchableLi
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input 
-                placeholder="Search by title, Enterprise, skills, or location..." 
+                placeholder="Search by title, NGO, skills, or location..." 
                 className="pl-9"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}

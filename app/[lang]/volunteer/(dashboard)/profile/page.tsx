@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import type React from "react"
 import { useState, useEffect } from "react"
@@ -329,7 +329,7 @@ export default function VolunteerProfileEditPage() {
             <div className="flex items-center justify-between mb-8">
               <div>
                 <h1 className="text-2xl font-bold text-foreground mb-2">{dict.volunteer?.profile?.title || "Edit Profile"}</h1>
-                <p className="text-muted-foreground">{dict.volunteer?.profile?.subtitle || "Update your information to help Enterprises find you"}</p>
+                <p className="text-muted-foreground">{dict.volunteer?.profile?.subtitle || "Update your information to help NGOs find you"}</p>
               </div>
               <Button asChild variant="outline" className="bg-transparent">
                 <LocaleLink href={`/volunteers/${session.user.id}`}>{dict.volunteer?.profile?.viewPublicProfile || "View Public Profile"}</LocaleLink>
@@ -492,7 +492,7 @@ export default function VolunteerProfileEditPage() {
                           onGenerated={(bio) => setFormData({ ...formData, bio })}
                         />
                         <p className="text-xs text-muted-foreground">
-                          <strong>Tip:</strong> {dict.volunteer?.profile?.bioTip || "Mention your years of experience, specialties, and preferred project types — Enterprises search for these details!"}
+                          <strong>Tip:</strong> {dict.volunteer?.profile?.bioTip || "Mention your years of experience, specialties, and preferred project types — NGOs search for these details!"}
                         </p>
                       </div>
 
@@ -523,7 +523,7 @@ export default function VolunteerProfileEditPage() {
                       <div className="space-y-3 pt-4 border-t">
                         <Label>{dict.volunteer?.profile?.resumeCv || "Resume / CV"}</Label>
                         <p className="text-sm text-muted-foreground">
-                          {dict.volunteer?.profile?.resumeHint || "Upload your resume to help Enterprises understand your experience (PDF, DOC, DOCX - max 10MB)"}
+                          {dict.volunteer?.profile?.resumeHint || "Upload your resume to help NGOs understand your experience (PDF, DOC, DOCX - max 10MB)"}
                         </p>
                         
                         {profile?.resumeUrl ? (

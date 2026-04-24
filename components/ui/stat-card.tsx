@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import * as React from "react"
 import { Badge } from "@/components/ui/badge"
@@ -14,7 +14,7 @@ import { cn } from "@/lib/utils"
  *   - Tabular-num value, optional accent badge, optional trailing badge
  *
  * Drop-in replacement for the ad-hoc <Card><CardContent>… pattern used across
- * volunteer + Enterprise + admin dashboards. Same data shape, much higher fidelity.
+ * volunteer + NGO + admin dashboards. Same data shape, much higher fidelity.
  *
  * NOTE: `icon` is `ReactNode` (not a component reference) so this card can be
  * mounted from React Server Components without crossing a non-serializable

@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import type React from "react"
 import { useState, useEffect, useRef } from "react"
@@ -496,7 +496,7 @@ export default function NGOOnboardingPage() {
     <div className="space-y-6">
       <div>
         <h2 className="text-xl font-semibold text-foreground mb-2">{dict.ngo?.onboarding?.orgDetails || "Organization Details"}</h2>
-        <p className="text-muted-foreground">{dict.ngo?.onboarding?.orgDetailsDesc || "Tell us about your Enterprise or nonprofit"}</p>
+        <p className="text-muted-foreground">{dict.ngo?.onboarding?.orgDetailsDesc || "Tell us about your NGO or nonprofit"}</p>
       </div>
 
       <div className="grid gap-4">
@@ -505,7 +505,7 @@ export default function NGOOnboardingPage() {
             <Label htmlFor="orgName">{dict.ngo?.common?.organizationName || "Organization Name"} *</Label>
             <Input
               id="orgName"
-              placeholder={dict.ngo?.onboarding?.orgNamePlaceholder || "Your Enterprise name"}
+              placeholder={dict.ngo?.onboarding?.orgNamePlaceholder || "Your NGO name"}
               value={orgDetails.orgName}
               onChange={(e) => setOrgDetails({ ...orgDetails, orgName: e.target.value })}
               required
@@ -515,7 +515,7 @@ export default function NGOOnboardingPage() {
             <Label htmlFor="registrationNumber">{dict.ngo?.onboarding?.regNumberRequired || "Registration Number"} *</Label>
             <Input
               id="registrationNumber"
-              placeholder={dict.ngo?.onboarding?.regNumberPlaceholder || "Enterprise registration ID"}
+              placeholder={dict.ngo?.onboarding?.regNumberPlaceholder || "NGO registration ID"}
               value={orgDetails.registrationNumber}
               onChange={(e) =>
                 setOrgDetails({ ...orgDetails, registrationNumber: e.target.value })

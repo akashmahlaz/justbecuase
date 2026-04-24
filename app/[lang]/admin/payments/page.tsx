@@ -1,4 +1,4 @@
-import { Suspense } from "react"
+﻿import { Suspense } from "react"
 import { getDictionary } from "@/app/[lang]/dictionaries"
 import { Locale } from "@/lib/i18n-config"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -116,7 +116,7 @@ export default async function AdminPaymentsPage({ params }: { params: Promise<{ 
               <DollarSign className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
               <p className="text-muted-foreground">{dict.admin?.payments?.noTransactionsYet || "No transactions yet"}</p>
               <p className="text-sm text-muted-foreground mt-1">
-                {dict.admin?.payments?.noTransactionsDescription || "Transactions will appear here when Enterprises start unlocking profiles"}
+                {dict.admin?.payments?.noTransactionsDescription || "Transactions will appear here when NGOs start unlocking profiles"}
               </p>
             </div>
           ) : (

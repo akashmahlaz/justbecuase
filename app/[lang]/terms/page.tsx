@@ -1,4 +1,4 @@
-import type { Metadata } from "next"
+﻿import type { Metadata } from "next"
 import { Navbar } from "@/components/navbar"
 import { Footer } from "@/components/footer"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -61,10 +61,10 @@ export default function TermsPage() {
                 </p>
                 <p>
                   <strong>2.2 Account Types:</strong> The Platform offers two types of accounts: Candidate
-                  accounts and Enterprise/Nonprofit accounts. You may only create one account per entity.
+                  accounts and NGO/Nonprofit accounts. You may only create one account per entity.
                 </p>
                 <p>
-                  <strong>2.3 Verification:</strong> Enterprise accounts may be subject to verification to ensure they
+                  <strong>2.3 Verification:</strong> NGO accounts may be subject to verification to ensure they
                   represent legitimate nonprofit organizations.
                 </p>
               </CardContent>
@@ -98,7 +98,7 @@ export default function TermsPage() {
                 </p>
                 <p>
                   <strong>4.2 No Employment Relationship:</strong> JustBeCause Network does not create an employment
-                  relationship between candidates and Enterprises. Users are responsible for their own tax and legal
+                  relationship between candidates and NGOs. Users are responsible for their own tax and legal
                   obligations.
                 </p>
                 <p>
@@ -123,7 +123,7 @@ export default function TermsPage() {
                 </p>
                 <p>
                   <strong>5.3 Work Product:</strong> Intellectual property rights for work created through
-                  volunteer projects should be agreed upon between candidates and Enterprises before project commencement.
+                  volunteer projects should be agreed upon between candidates and NGOs before project commencement.
                 </p>
               </CardContent>
             </Card>
@@ -134,7 +134,7 @@ export default function TermsPage() {
               </CardHeader>
               <CardContent className="prose prose-sm max-w-none">
                 <p>
-                  JustBeCause Network is a platform connecting candidates with Enterprises. We are not responsible for:
+                  JustBeCause Network is a platform connecting candidates with NGOs. We are not responsible for:
                 </p>
                 <ul className="list-disc pl-6 space-y-2">
                   <li>The quality or outcome of candidate work</li>

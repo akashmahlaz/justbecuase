@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import { useState, useEffect, useMemo, useRef } from "react"
 import { Card, CardContent } from "@/components/ui/card"
@@ -966,7 +966,7 @@ export function OpportunitiesBrowser() {
                       )}
                     </div>
 
-                    {/* Enterprise */}
+                    {/* NGO */}
                     {project.ngo && (
                       <div className="flex items-center gap-1.5 mb-2">
                         {project.ngo.logo ? (

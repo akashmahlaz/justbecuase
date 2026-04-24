@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import LocaleLink from "@/components/locale-link"
 import { Navbar } from "@/components/navbar"
@@ -58,7 +58,7 @@ export default function NotFound() {
                 {nav.forImpactAgents || "For Candidates"}
               </LocaleLink>
               <LocaleLink href="/for-ngos" className="text-primary hover:underline">
-                {nav.forNGOs || "For Enterprises"}
+                {nav.forNGOs || "For NGOs"}
               </LocaleLink>
             </div>
           </div>

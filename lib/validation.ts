@@ -1,4 +1,4 @@
-// ============================================
+﻿// ============================================
 // Input Validation Utilities
 // ============================================
 
@@ -121,7 +121,7 @@ export function validateVolunteerProfileData(data: {
 }
 
 /**
- * Validate Enterprise profile data
+ * Validate NGO profile data
  */
 export function validateNGOProfileData(data: {
   orgName?: string

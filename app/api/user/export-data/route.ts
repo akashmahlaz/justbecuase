@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server"
+﻿import { NextResponse } from "next/server"
 import { auth } from "@/lib/auth"
 import { headers } from "next/headers"
 import { getDb, userIdQuery } from "@/lib/database"
@@ -97,7 +97,7 @@ export async function GET() {
       }))
 
     } else if (role === "ngo") {
-      // Get Enterprise profile from user collection (Better Auth stores _id as ObjectId)
+      // Get NGO profile from user collection (Better Auth stores _id as ObjectId)
       const profile = await db.collection("user").findOne(userIdQuery(userId))
       if (profile) {
         userData.profile = {

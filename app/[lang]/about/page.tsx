@@ -1,4 +1,4 @@
-import type { Metadata } from "next"
+﻿import type { Metadata } from "next"
 import Image from "next/image"
 import LocaleLink from "@/components/locale-link"
 import { Navbar } from "@/components/navbar"
@@ -16,11 +16,11 @@ import { Linkedin, Twitter } from "@/components/ui/brand-icons"
 
 export const metadata: Metadata = {
   title: "About Us - Our Mission to Connect Skills with Purpose",
-  description: "Learn about JustBeCause Network — our mission to connect skilled professionals with Enterprises and nonprofits worldwide. Meet our team and discover how we're creating lasting social impact.",
+  description: "Learn about JustBeCause Network — our mission to connect skilled professionals with NGOs and nonprofits worldwide. Meet our team and discover how we're creating lasting social impact.",
   keywords: ["about JustBeCause", "social impact mission", "volunteer platform story", "nonprofit technology"],
   openGraph: {
     title: "About JustBeCause Network",
-    description: "Our mission to connect skilled professionals with Enterprises making a difference worldwide.",
+    description: "Our mission to connect skilled professionals with NGOs making a difference worldwide.",
   },
 }
 
@@ -47,7 +47,7 @@ export default async function AboutPage({ params }: { params: Promise<{ lang: st
     {
       icon: Target,
       title: a.valueExcellence || "Excellence",
-      description: a.valueExcellenceDesc || "We strive to match the highest quality candidates with Enterprises for maximum effectiveness.",
+      description: a.valueExcellenceDesc || "We strive to match the highest quality candidates with NGOs for maximum effectiveness.",
     },
     {
       icon: Globe,
@@ -145,7 +145,7 @@ export default async function AboutPage({ params }: { params: Promise<{ lang: st
                   </div>
                   <div>
                     <p className="text-foreground leading-relaxed">
-                      {a.platformDesc || "The JustBeCause Network introduces an advanced AI search engine JBCerta specifically engineered for the unique ecosystem of Enterprises and social impact talent."}
+                      {a.platformDesc || "The JustBeCause Network introduces an advanced AI search engine JBCerta specifically engineered for the unique ecosystem of NGOs and social impact talent."}
                     </p>
                   </div>
                 </div>
@@ -159,7 +159,7 @@ export default async function AboutPage({ params }: { params: Promise<{ lang: st
                       <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center mb-4">
                         <Building2 className="h-6 w-6 text-primary" />
                       </div>
-                      <h4 className="font-semibold text-foreground mb-2">{a.forNGOsCard || "For Enterprises"}</h4>
+                      <h4 className="font-semibold text-foreground mb-2">{a.forNGOsCard || "For NGOs"}</h4>
                       <p className="text-sm text-muted-foreground">
                         {a.forNGOsCardDesc || "Stop sifting through hundreds of mismatched resumes. Our AI analyzes candidate expertise, values, and past impact to present only those who truly align with your mission."}
                       </p>
@@ -286,7 +286,7 @@ export default async function AboutPage({ params }: { params: Promise<{ lang: st
             <Award className="h-12 w-12 mx-auto mb-6 opacity-80" />
             <h2 className="text-3xl font-bold mb-4">{a.ctaHeading || "Ready to Make an Impact?"}</h2>
             <p className="text-lg opacity-90 max-w-2xl mx-auto mb-8">
-              {a.ctaPara || "Whether you're a skilled professional looking to give back or an Enterprise seeking expert help, we're here to connect you with jobs that matter."}
+              {a.ctaPara || "Whether you're a skilled professional looking to give back or an NGO seeking expert help, we're here to connect you with jobs that matter."}
             </p>
             <div className="flex flex-wrap justify-center gap-4">
               <Button asChild size="lg" variant="secondary">

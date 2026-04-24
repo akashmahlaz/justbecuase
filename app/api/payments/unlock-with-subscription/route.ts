@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server"
+﻿import { NextRequest, NextResponse } from "next/server"
 import { headers } from "next/headers"
 import { auth } from "@/lib/auth"
 import { ngoProfilesDb, profileUnlocksDb, volunteerProfilesDb, notificationsDb, adminSettingsDb } from "@/lib/database"
@@ -14,7 +14,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (session.user.role !== "ngo") {
-      return NextResponse.json({ error: "Only Enterprises can unlock profiles" }, { status: 403 })
+      return NextResponse.json({ error: "Only NGOs can unlock profiles" }, { status: 403 })
     }
 
     const body = await request.json()
@@ -24,10 +24,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Candidate ID required" }, { status: 400 })
     }
 
-    // Get Enterprise profile to check subscription
+    // Get NGO profile to check subscription
     const ngoProfile = await ngoProfilesDb.findByUserId(session.user.id)
     if (!ngoProfile) {
-      return NextResponse.json({ error: "Enterprise profile not found" }, { status: 404 })
+      return NextResponse.json({ error: "NGO profile not found" }, { status: 404 })
     }
 
     // Check if Pro plan
@@ -87,7 +87,7 @@ export async function POST(request: NextRequest) {
         userId: volunteerId,
         type: "profile_viewed",
         title: "Your Profile Was Viewed",
-        message: `${ngoProfile.organizationName || "An Enterprise"} unlocked your profile`,
+        message: `${ngoProfile.organizationName || "An NGO"} unlocked your profile`,
         referenceId: session.user.id,
         referenceType: "ngo",
         isRead: false,

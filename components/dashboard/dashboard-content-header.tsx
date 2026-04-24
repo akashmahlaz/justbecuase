@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import { useEffect } from "react"
 import LocaleLink from "@/components/locale-link"
@@ -68,7 +68,7 @@ export function DashboardContentHeader({ userType, userName, userAvatar }: Dashb
         </LocaleLink>
       </div>
 
-      {/* Center - Opportunities-only search (volunteer) / Talent search (Enterprise) */}
+      {/* Center - Opportunities-only search (volunteer) / Talent search (NGO) */}
       <div className="hidden md:flex flex-1 max-w-md mx-4 lg:mx-8">
         <UnifiedSearchBar
           variant="compact"

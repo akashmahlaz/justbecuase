@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server"
+﻿import { NextRequest, NextResponse } from "next/server"
 import { headers } from "next/headers"
 import { auth } from "@/lib/auth"
 import { unlockVolunteerProfile } from "@/lib/actions"
@@ -17,7 +17,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (session.user.role !== "ngo") {
-      return NextResponse.json({ error: "Only Enterprises can unlock profiles" }, { status: 403 })
+      return NextResponse.json({ error: "Only NGOs can unlock profiles" }, { status: 403 })
     }
 
     const body = await request.json()

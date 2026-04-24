@@ -1,5 +1,5 @@
-// Signed Cloudinary Upload Utility
-// Enterprise-grade secure file uploads (images & documents)
+﻿// Signed Cloudinary Upload Utility
+// NGO-grade secure file uploads (images & documents)
 
 interface SignedUploadParams {
   signature: string

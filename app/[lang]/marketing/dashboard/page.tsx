@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import { useState, useEffect } from "react"
 import LocaleLink from "@/components/locale-link"
@@ -23,8 +23,8 @@ import type { CreditBalance } from "@/lib/theirstack"
 
 const modules = [
   {
-    title: "Enterprise Prospecting",
-    description: "Search and discover Enterprises hiring for roles that match your platform's skill categories. Find organizations to partner with.",
+    title: "NGO Prospecting",
+    description: "Search and discover NGOs hiring for roles that match your platform's skill categories. Find organizations to partner with.",
     href: "/marketing/prospecting",
     icon: Target,
     status: "active" as const,
@@ -32,7 +32,7 @@ const modules = [
   },
   {
     title: "Skills Demand",
-    description: "Analyze which skills Enterprises are hiring for most, identify trending skill gaps, and optimize your volunteer matching.",
+    description: "Analyze which skills NGOs are hiring for most, identify trending skill gaps, and optimize your volunteer matching.",
     href: "/marketing/skills-demand",
     icon: TrendingUp,
     status: "coming-soon" as const,
@@ -48,15 +48,15 @@ const modules = [
   },
   {
     title: "Outreach Generator",
-    description: "Generate personalized outreach emails and messages for Enterprise partnerships based on their hiring needs.",
+    description: "Generate personalized outreach emails and messages for NGO partnerships based on their hiring needs.",
     href: "/marketing/outreach",
     icon: Mail,
     status: "coming-soon" as const,
     color: "text-orange-600 bg-orange-600/10",
   },
   {
-    title: "Enterprise Enrichment",
-    description: "Enrich existing Enterprise profiles with company intelligence — tech stack, team size, funding, and more.",
+    title: "NGO Enrichment",
+    description: "Enrich existing NGO profiles with company intelligence — tech stack, team size, funding, and more.",
     href: "/marketing/enrichment",
     icon: Building2,
     status: "coming-soon" as const,
@@ -64,7 +64,7 @@ const modules = [
   },
   {
     title: "Volunteer Match",
-    description: "Match your platform's volunteers with Enterprise job openings based on skills, experience, and availability.",
+    description: "Match your platform's volunteers with NGO job openings based on skills, experience, and availability.",
     href: "/marketing/volunteer-match",
     icon: Users,
     status: "coming-soon" as const,
@@ -102,7 +102,7 @@ export default function MarketingDashboardPage() {
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Marketing Intelligence</h1>
         <p className="text-muted-foreground mt-1">
-          Discover Enterprises, analyze hiring trends, and grow your platform with data-driven intelligence.
+          Discover NGOs, analyze hiring trends, and grow your platform with data-driven intelligence.
         </p>
       </div>
 
@@ -177,7 +177,7 @@ export default function MarketingDashboardPage() {
           <Button asChild>
             <LocaleLink href="/marketing/prospecting">
               <Target className="h-4 w-4 mr-2" />
-              Search Enterprises
+              Search NGOs
             </LocaleLink>
           </Button>
           <Button variant="outline" asChild>

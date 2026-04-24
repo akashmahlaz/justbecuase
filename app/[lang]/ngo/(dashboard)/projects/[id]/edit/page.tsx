@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import { useState, useEffect, use } from "react"
 import LocaleLink from "@/components/locale-link"
@@ -57,7 +57,7 @@ export default function EditProjectPage({ params }: Props) {
     status: "active" as "draft" | "active" | "open" | "paused" | "completed" | "closed" | "cancelled",
   })
 
-  // Fetch project and Enterprise profile on mount
+  // Fetch project and NGO profile on mount
   useEffect(() => {
     async function loadData() {
       if (!user) return

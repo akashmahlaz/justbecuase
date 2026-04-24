@@ -1,4 +1,4 @@
-import type { Metadata } from "next"
+﻿import type { Metadata } from "next"
 import { i18n, type Locale } from "@/lib/i18n-config"
 
 const SITE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://justbecausenetwork.com"
@@ -9,11 +9,11 @@ export const seoConfig = {
   name: SITE_NAME,
   title: "JustBeCause Network - Skills-Based Impact Platform",
   description:
-    "Connect your skills with meaningful causes. Join thousands of professionals making an impact worldwide through skills-based volunteering with Enterprises and nonprofits.",
+    "Connect your skills with meaningful causes. Join thousands of professionals making an impact worldwide through skills-based volunteering with NGOs and nonprofits.",
   keywords: [
     "skills-based volunteering",
     "candidate",
-    "Enterprise volunteering",
+    "NGO volunteering",
     "nonprofit volunteer platform",
     "social impact",
     "JustBeCause Network",
@@ -22,7 +22,7 @@ export const seoConfig = {
     "skilled volunteering",
     "CSR platform",
     "volunteer opportunities",
-    "Enterprise project matching",
+    "NGO project matching",
     "social good platform",
     "professional volunteering",
     "impact marketplace",
@@ -251,7 +251,7 @@ export function volunteerJsonLd(volunteer: {
   }
 }
 
-/** JSON-LD for an Enterprise profile */
+/** JSON-LD for an NGO profile */
 export function ngoJsonLd(ngo: {
   name: string
   description?: string
@@ -263,7 +263,7 @@ export function ngoJsonLd(ngo: {
 }) {
   return {
     "@context": "https://schema.org",
-    "@type": "Enterprise",
+    "@type": "NGO",
     name: ngo.name,
     url: absoluteUrl(`/${ngo.lang}/ngos/${ngo.id}`),
     ...(ngo.description && { description: ngo.description }),

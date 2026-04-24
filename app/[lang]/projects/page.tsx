@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import { useState, useEffect, useMemo, useRef, Suspense } from "react"
 import { useSearchParams } from "next/navigation"
@@ -824,7 +824,7 @@ function ProjectsContent() {
                             postedAt: project.createdAt ? new Date(project.createdAt).toLocaleDateString() : (dict.projectsListing?.recently || "Recently"),
                             projectType: project.projectType,
                             deadline: project.deadline ? (typeof project.deadline === "string" ? project.deadline : new Date(project.deadline).toLocaleDateString()) : undefined,
-                            ngo: project.ngo || { name: "Enterprise", verified: false },
+                            ngo: project.ngo || { name: "NGO", verified: false },
                             matchScore: scoreData?.score,
                             matchReasons: scoreData?.matchReasons,
                             // Dynamic fields from scraped data

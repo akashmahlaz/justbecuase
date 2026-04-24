@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import { useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
@@ -109,7 +109,7 @@ export default function AdminNotificationsPage() {
       <div>
         <h1 className="text-2xl font-bold text-foreground mb-2">{dict.admin?.notifications?.title || "Send Notifications"}</h1>
         <p className="text-muted-foreground">
-          {dict.admin?.notifications?.subtitle || "Send notifications to users, candidates, or Enterprises"}
+          {dict.admin?.notifications?.subtitle || "Send notifications to users, candidates, or NGOs"}
         </p>
       </div>
 
@@ -149,7 +149,7 @@ export default function AdminNotificationsPage() {
                   <SelectItem value="ngos">
                     <div className="flex items-center gap-2">
                       <Building2 className="h-4 w-4" />
-                      {dict.admin?.notifications?.allNgos || "All Enterprises"}
+                      {dict.admin?.notifications?.allNgos || "All NGOs"}
                     </div>
                   </SelectItem>
                   <SelectItem value="specific">

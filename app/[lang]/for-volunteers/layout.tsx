@@ -1,8 +1,8 @@
-import type { Metadata } from "next"
+﻿import type { Metadata } from "next"
 
 export const metadata: Metadata = {
   title: "For Candidates & Volunteers - Make a Difference with Your Skills",
-  description: "Use your professional skills for good. Browse Enterprise volunteer jobs, build your impact portfolio, get endorsed, and connect with causes that matter. Join JustBeCause Network for free.",
+  description: "Use your professional skills for good. Browse NGO volunteer jobs, build your impact portfolio, get endorsed, and connect with causes that matter. Join JustBeCause Network for free.",
   keywords: [
     "volunteer jobs",
     "skills-based volunteering",

@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import { useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -35,7 +35,7 @@ export function ReportsGenerator({ volunteers, ngos, projects, analytics }: Repo
               createdAt: v.createdAt ? new Date(v.createdAt).toLocaleDateString() : "N/A"
             })),
             ...ngos.map(n => ({
-              type: "Enterprise",
+              type: "NGO",
               name: n.orgName || n.organizationName || "Unnamed",
               contact: n.contactEmail || "N/A",
               location: `${n.city || ""}, ${n.country || ""}`,
@@ -52,7 +52,7 @@ export function ReportsGenerator({ volunteers, ngos, projects, analytics }: Repo
           break
           
         case "ngo-activity":
-          // Generate Enterprise activity report
+          // Generate NGO activity report
           csvContent = [
             ["Organization", "Email", "Location", "Subscription", "Jobs Posted", "Jobs Completed", "Verified"].join(","),
             ...ngos.map(n => [
@@ -111,13 +111,13 @@ export function ReportsGenerator({ volunteers, ngos, projects, analytics }: Repo
           csvContent = [
             "Metric,Value",
             `Total Volunteers,${volunteers.length}`,
-            `Total Enterprises,${ngos.length}`,
+            `Total NGOs,${ngos.length}`,
             `Total Opportunities,${projects.length}`,
             `Active Opportunities,${analytics.activeProjects}`,
             `Completed Opportunities,${analytics.completedProjects}`,
             `Total Applications,${analytics.totalApplications}`,
             `Verified Volunteers,${volunteers.filter((v: any) => v.isVerified).length}`,
-            `Verified Enterprises,${ngos.filter((n: any) => n.isVerified).length}`
+            `Verified NGOs,${ngos.filter((n: any) => n.isVerified).length}`
           ].join("\n")
           fileName = "platform-health-report"
           break
@@ -145,7 +145,7 @@ export function ReportsGenerator({ volunteers, ngos, projects, analytics }: Repo
 
   const reports = [
     { id: "user-registration", title: "User Registration Report", description: "All user signups with details" },
-    { id: "ngo-activity", title: "Enterprise Activity Report", description: "Enterprise jobs and engagement" },
+    { id: "ngo-activity", title: "NGO Activity Report", description: "NGO jobs and engagement" },
     { id: "volunteer-activity", title: "Volunteer Activity Report", description: "Volunteer applications and matches" },
     { id: "revenue", title: "Revenue Report", description: "All payments and transactions" },
     { id: "matching", title: "Matching Report", description: "Skill matching statistics" },

@@ -1,4 +1,4 @@
-import { generateText, Output } from "ai"
+﻿import { generateText, Output } from "ai"
 import { openai } from "@ai-sdk/openai"
 import { z } from "zod"
 import { auth } from "@/lib/auth"
@@ -25,14 +25,14 @@ export async function POST(req: Request) {
               category: z.string().describe("Skill category (e.g., Marketing, Technology, Design)"),
               relevance: z.enum(["high", "medium"]).describe("How relevant this skill is to their profile"),
               reason: z.string().describe("Why this skill would be valuable for them"),
-              demandLevel: z.enum(["high", "medium", "low"]).describe("Current demand for this skill among Enterprises"),
+              demandLevel: z.enum(["high", "medium", "low"]).describe("Current demand for this skill among NGOs"),
             })
           ).describe("5-8 skill suggestions"),
           profileStrength: z.number().min(0).max(100).describe("Profile strength score from 0 to 100 based on completeness and skill diversity"),
           careerTip: z.string().describe("One actionable career/impact tip"),
         }),
       }),
-      prompt: `Analyze a volunteer's profile and suggest skills they should add to become more valuable for Enterprise projects.
+      prompt: `Analyze a volunteer's profile and suggest skills they should add to become more valuable for NGO projects.
 
 CURRENT PROFILE:
 - Existing Skills: ${currentSkills?.join(", ") || "None listed"}
@@ -40,14 +40,14 @@ CURRENT PROFILE:
 - Bio: ${bio || "Not provided"}
 - Completed Projects: ${completedProjects || 0}
 
-Consider the Enterprise/nonprofit sector specifically. Suggest skills that:
+Consider the NGO/nonprofit sector specifically. Suggest skills that:
 1. Complement their existing skill set
-2. Are in high demand among Enterprises
+2. Are in high demand among NGOs
 3. Would help them take on more impactful projects
 4. Are learnable and actionable
 
 Focus on practical, professional skills relevant to the volunteer consulting/nonprofit space.
-Common high-demand Enterprise skills include: Grant Writing, Digital Marketing, Data Analysis, UX Design, SEO, Project Management, Fundraising Strategy, Financial Modeling, Impact Measurement, Graphic Design, Social Media Strategy, Content Writing, Web Development, Video Production, Public Speaking.`,
+Common high-demand NGO skills include: Grant Writing, Digital Marketing, Data Analysis, UX Design, SEO, Project Management, Fundraising Strategy, Financial Modeling, Impact Measurement, Graphic Design, Social Media Strategy, Content Writing, Web Development, Video Production, Public Speaking.`,
     })
 
     return NextResponse.json(output)

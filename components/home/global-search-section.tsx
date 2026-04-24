@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import { useState, useEffect, useCallback, useRef, useMemo } from "react"
 import LocaleLink from "@/components/locale-link"
@@ -70,8 +70,8 @@ const TYPE_CONFIG = {
   },
   ngo: {
     icon: Building2,
-    label: "Enterprise",
-    pluralLabel: "Enterprises",
+    label: "NGO",
+    pluralLabel: "NGOs",
     badgeClass: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
     viewAllPath: "/ngos",
   },
@@ -444,7 +444,7 @@ export function GlobalSearchSection() {
               </Badge>
             </div>
             <p className="text-muted-foreground text-sm md:text-base">
-              {s.findSubtitle || "Advanced AI search engine specifically engineered for Enterprises and social impact talent"}
+              {s.findSubtitle || "Advanced AI search engine specifically engineered for NGOs and social impact talent"}
             </p>
           </div>
 
@@ -465,7 +465,7 @@ export function GlobalSearchSection() {
                   }`}
                 >
                   {Icon && <Icon className="h-3.5 w-3.5" />}
-                  {type === "all" ? (s.all || "All") : type === "volunteer" ? (s.impactAgents || "Candidates") : type === "ngo" ? (s.ngos || "Enterprises") : (s.opportunities || "Opportunities")}
+                  {type === "all" ? (s.all || "All") : type === "volunteer" ? (s.impactAgents || "Candidates") : type === "ngo" ? (s.ngos || "NGOs") : (s.opportunities || "Opportunities")}
                 </button>
               )
             })}
@@ -684,7 +684,7 @@ export function GlobalSearchSection() {
                         <LocaleLink href="/volunteers">{s.browseImpactAgents || "Browse Candidates"}</LocaleLink>
                       </Button>
                       <Button asChild variant="outline" size="sm">
-                        <LocaleLink href="/ngos">{s.browseNGOs || "Browse Enterprises"}</LocaleLink>
+                        <LocaleLink href="/ngos">{s.browseNGOs || "Browse NGOs"}</LocaleLink>
                       </Button>
                     </div>
                   </div>
@@ -860,7 +860,7 @@ export function GlobalSearchSection() {
                                   </div>
                                 )}
 
-                                {/* Causes (for Enterprises/opportunities) */}
+                                {/* Causes (for NGOs/opportunities) */}
                                 {result.causes && result.causes.length > 0 && !result.skills?.length && (
                                   <div className="flex gap-1 mt-2.5 flex-wrap">
                                     {result.causes.slice(0, 3).map((cause) => (
