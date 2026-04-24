@@ -137,7 +137,7 @@ function RoleSelectContent() {
               <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
                 <Heart className="h-10 w-10 text-primary" />
               </div>
-              <CardTitle className="text-xl">{a.imImpactAgent || "I'm an Candidate (Impact Agent)"}</CardTitle>
+              <CardTitle className="text-xl">{a.imImpactAgent || "I'm an Impact Agent"}</CardTitle>
               <CardDescription>
                 {a.shareSkills || "Share your skills and make an impact"}
               </CardDescription>
@@ -145,7 +145,7 @@ function RoleSelectContent() {
             <CardContent className="text-center">
               <ul className="text-sm text-muted-foreground space-y-2 mb-6">
                 <li>✓ {a.agentBullet1 || "Create your skills-based profile"}</li>
-                <li>✓ {a.agentBullet2 || "Browse candidate (impact agent) jobs"}</li>
+                <li>✓ {a.agentBullet2 || "Browse impact agent opportunities"}</li>
                 <li>✓ {a.agentBullet3 || "Connect with NGOs"}</li>
                 <li>✓ {a.trackImpact || "Track your social impact"}</li>
               </ul>
@@ -160,7 +160,7 @@ function RoleSelectContent() {
                     {a.settingUp || "Setting up..."}
                   </>
                 ) : (
-                  a.continueAsImpactAgent || "Continue as Candidate (Impact Agent)"
+                  a.continueAsImpactAgent || "Continue as Impact Agent"
                 )}
               </Button>
             </CardContent>
@@ -179,14 +179,14 @@ function RoleSelectContent() {
               </div>
               <CardTitle className="text-xl">{a.imNGO || "I'm an NGO"}</CardTitle>
               <CardDescription>
-                {a.findProfessionals || "Find skilled candidates (impact agents) for your cause"}
+                {a.findProfessionals || "Find skilled impact agents for your cause"}
               </CardDescription>
             </CardHeader>
             <CardContent className="text-center">
               <ul className="text-sm text-muted-foreground space-y-2 mb-6">
                 <li>✓ {a.ngoBullet1 || "Create your organization profile"}</li>
-                <li>✓ {a.ngoBullet2 || "Post candidate (impact agent) jobs"}</li>
-                <li>✓ {a.ngoBullet3 || "Browse skilled candidates (impact agents)"}</li>
+                <li>✓ {a.ngoBullet2 || "Post impact agent opportunities"}</li>
+                <li>✓ {a.ngoBullet3 || "Browse skilled impact agents"}</li>
                 <li>✓ {a.trackImpact || "Manage applications"}</li>
               </ul>
               <Button

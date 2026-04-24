@@ -927,14 +927,14 @@ export default function VolunteerOnboardingPage() {
     <div className="space-y-6">
       <div>
         <h2 className="text-xl font-semibold text-foreground mb-2">{dict.volunteer?.onboarding?.step4Title || "Your work preferences"}</h2>
-        <p className="text-muted-foreground">{dict.volunteer?.onboarding?.step4Subtitle || "Help us match you with the right jobs"}</p>
+        <p className="text-muted-foreground">{dict.volunteer?.onboarding?.step4Subtitle || "Help us match you with the right opportunities"}</p>
       </div>
 
       <div className="space-y-6">
         <div className="space-y-3">
           <Label className="text-base font-medium flex items-center gap-2">
             <DollarSign className="h-4 w-4" />
-            {dict.volunteer?.common?.impactAgentType || "Candidate (Impact Agent) Type"}
+            {dict.volunteer?.common?.impactAgentType || "Impact Agent Type"}
           </Label>
           <RadioGroup
             value={workPreferences.volunteerType}

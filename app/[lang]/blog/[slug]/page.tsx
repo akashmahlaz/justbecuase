@@ -50,7 +50,7 @@ Meanwhile, millions of skilled professionals want to give back but don't know ho
 JustBeCause Network bridges this gap by creating a marketplace where:
 
 1. **NGOs can post specific projects** describing exactly what skills they need
-2. **Professionals can browse jobs** that match their expertise
+2. **Professionals can browse opportunities** that match their expertise
 3. **Smart matching algorithms** connect the right people with the right projects
 4. **Built-in communication tools** make collaboration seamless
 
@@ -59,7 +59,7 @@ JustBeCause Network bridges this gap by creating a marketplace where:
 Unlike traditional volunteering platforms, we focus exclusively on **skills-based contributions**. This means:
 
 - Higher impact per contribution hour
-- More fulfilling experience for candidates (impact agents)
+- More fulfilling experience for impact agents
 - Sustainable support for NGOs
 - Measurable outcomes for everyone
 
@@ -108,7 +108,7 @@ Impact agents gain real-world experience in new contexts. A corporate lawyer hel
 
 #### 3. Deeper Engagement
 
-Skills-based candidates (impact agents) report higher satisfaction because they see the direct impact of their specific expertise. It's the difference between "I packed boxes" and "I designed a system that will help them serve 10,000 more families."
+Skills-based impact agents report higher satisfaction because they see the direct impact of their specific expertise. It's the difference between "I packed boxes" and "I designed a system that will help them serve 10,000 more families."
 
 ### The Asia Opportunity
 
@@ -127,12 +127,12 @@ The world needs what you know. Let's put it to work.
 
 ---
 
-*Browse [open jobs](/projects) and make your skills count.*
+*Browse [open opportunities](/projects) and make your skills count.*
     `,
   },
   "getting-started-ngos": {
     title: "Getting Started: A Guide for NGOs",
-    excerpt: "Learn how to post your first project, attract the right candidates (impact agents), and maximize the value of skills-based partnerships.",
+    excerpt: "Learn how to post your first project, attract the right impact agents, and maximize the value of skills-based partnerships.",
     date: "December 4, 2025",
     author: "JustBeCause Team",
     category: "Guide",
@@ -140,15 +140,15 @@ The world needs what you know. Let's put it to work.
     content: `
 ## Welcome to JustBeCause Network
 
-This guide will help you get the most out of our platform and connect with skilled candidates (impact agents) who can help your organization grow.
+This guide will help you get the most out of our platform and connect with skilled impact agents who can help your organization grow.
 
 ### Step 1: Complete Your Profile
 
-Your organization profile is often the first thing candidates (impact agents) see. Make it count:
+Your organization profile is often the first thing impact agents see. Make it count:
 
 - **Add a compelling logo** - First impressions matter
 - **Write a clear mission statement** - What change are you trying to create?
-- **List your focus areas** - Help candidates (impact agents) find you
+- **List your focus areas** - Help impact agents find you
 - **Add verification documents** - Verified NGOs get 3x more applications
 
 ### Step 2: Post Effective Projects

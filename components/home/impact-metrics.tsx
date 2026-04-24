@@ -40,8 +40,8 @@ export function ImpactMetrics({ impactMetrics }: { impactMetrics: any }) {
   const h = dict.home || {} as any;
 
   const metrics = useMemo(() => [
-    { icon: Users, value: impactMetrics.volunteers, label: h.metricAgents || "Skilled Candidates (Impact Agents)" },
-    { icon: CheckCircle2, value: impactMetrics.projectsCompleted, label: h.metricCompleted || "Jobs Completed" },
+    { icon: Users, value: impactMetrics.volunteers, label: h.metricAgents || "Skilled Impact Agents" },
+    { icon: CheckCircle2, value: impactMetrics.projectsCompleted, label: h.metricCompleted || "Opportunities Completed" },
     { icon: Building2, value: impactMetrics.ngosSupported, label: h.metricNGOs || "NGOs Supported" },
     { icon: Clock, value: impactMetrics.hoursContributed, label: h.metricHours || "Hours Contributed", suffix: "+" },
     { icon: DollarSign, value: impactMetrics.valueGenerated, label: h.metricValue || "Value Generated", prefix: "$" },

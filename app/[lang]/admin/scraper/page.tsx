@@ -75,7 +75,7 @@ interface ExternalOpp {
 
 const PLATFORM_INFO: Record<string, { name: string; description: string; icon: string }> = {
   reliefweb: { name: "ReliefWeb", description: "UN humanitarian jobs API", icon: "🌍" },
-  idealist: { name: "Idealist", description: "Nonprofit volunteer jobs", icon: "💡" },
+  idealist: { name: "Idealist", description: "Nonprofit volunteer opportunities", icon: "💡" },
   unjobs: { name: "UN Jobs", description: "United Nations job aggregator", icon: "🇺🇳" },
   devex: { name: "Devex", description: "Global development careers", icon: "🔬" },
   impactpool: { name: "Impactpool", description: "Impact career platform", icon: "🎯" },

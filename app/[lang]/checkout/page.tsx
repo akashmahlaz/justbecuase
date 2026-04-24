@@ -158,7 +158,7 @@ function CheckoutOrchestrator() {
     if (planId === "volunteer-pro") {
       return {
         id: "volunteer-pro",
-        name: dict.checkout?.agentPlanName || "Candidate (Impact Agent) Pro Plan",
+        name: dict.checkout?.agentPlanName || "Impact Agent Pro Plan",
         description: dict.checkout?.agentPlanDesc || "Unlimited applications and premium features",
         price: billingCycle === "yearly" ? volunteerProYearlyPrice : volunteerProPrice,
         features: platformSettings?.volunteerProFeatures || [
@@ -166,7 +166,7 @@ function CheckoutOrchestrator() {
           dict.checkout?.agentFeature2 || "Featured profile badge",
           dict.checkout?.agentFeature3 || "Priority in search results",
           dict.checkout?.agentFeature4 || "Direct message NGOs",
-          dict.checkout?.agentFeature5 || "Early access to jobs",
+          dict.checkout?.agentFeature5 || "Early access to opportunities",
           dict.checkout?.agentFeature6 || "Profile analytics",
           dict.checkout?.agentFeature7 || "Certificate downloads",
         ],
@@ -324,7 +324,7 @@ function CheckoutOrchestrator() {
   }
 
   if (!roleMatchesPlan) {
-    const expected = planId.startsWith("ngo-") ? (dict.checkout?.roleNGO || "NGO") : (dict.checkout?.roleAgent || "Candidate (Impact Agent)")
+    const expected = planId.startsWith("ngo-") ? (dict.checkout?.roleNGO || "NGO") : (dict.checkout?.roleAgent || "Impact Agent")
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center space-y-4">

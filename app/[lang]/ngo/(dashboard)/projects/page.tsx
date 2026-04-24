@@ -68,7 +68,7 @@ export default async function NGOProjectsPage({ params }: { params: Promise<{ la
             <div>
               <h1 className="text-2xl font-bold text-foreground mb-2">{dict.ngo?.projects?.title || "My Requirements"}</h1>
               <p className="text-muted-foreground">
-                {dict.ngo?.projects?.subtitle || "Manage your candidate (impact agent) jobs"}
+                {dict.ngo?.projects?.subtitle || "Manage your impact agent opportunities"}
               </p>
             </div>
             <Button asChild>
@@ -144,9 +144,9 @@ function ProjectsList({ projects, dict }: { projects: any[]; dict: any }) {
       <Card>
         <CardContent className="py-12 text-center">
           <FolderKanban className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-          <p className="text-muted-foreground">{dict.ngo?.projects?.noOpportunities || "No jobs found"}</p>
+          <p className="text-muted-foreground">{dict.ngo?.projects?.noOpportunities || "No opportunities found"}</p>
           <Button variant="link" asChild>
-            <Link href="/ngo/post-project">{dict.ngo?.dashboard?.createFirstOpportunity || "Create your first job"}</Link>
+            <Link href="/ngo/post-project">{dict.ngo?.dashboard?.createFirstOpportunity || "Create your first opportunity"}</Link>
           </Button>
         </CardContent>
       </Card>

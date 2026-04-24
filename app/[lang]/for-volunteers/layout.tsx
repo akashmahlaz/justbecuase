@@ -1,12 +1,12 @@
 import type { Metadata } from "next"
 
 export const metadata: Metadata = {
-  title: "For Candidates (Impact Agents) & Volunteers - Make a Difference with Your Skills",
-  description: "Use your professional skills for good. Browse NGO volunteer jobs, build your impact portfolio, get endorsed, and connect with causes that matter. Join JustBeCause Network for free.",
+  title: "For Impact Agents & Volunteers - Make a Difference with Your Skills",
+  description: "Use your professional skills for good. Browse NGO volunteer opportunities, build your impact portfolio, get endorsed, and connect with causes that matter. Join JustBeCause Network for free.",
   keywords: [
-    "volunteer jobs",
+    "volunteer opportunities",
     "skills-based volunteering",
-    "candidate (impact agent)",
+    "impact agent",
     "remote volunteering",
     "pro bono work",
     "volunteer from home",
@@ -14,8 +14,8 @@ export const metadata: Metadata = {
     "make a difference",
   ],
   openGraph: {
-    title: "For Candidates (Impact Agents) | JustBeCause Network",
-    description: "Make a real difference with your professional skills. Browse jobs and join thousands of candidates (impact agents) worldwide.",
+    title: "For Impact Agents | JustBeCause Network",
+    description: "Make a real difference with your professional skills. Browse opportunities and join thousands of impact agents worldwide.",
   },
 }
 

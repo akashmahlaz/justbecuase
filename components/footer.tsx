@@ -58,11 +58,11 @@ export function Footer() {
 
           {/* For Volunteers */}
           <div>
-            <h4 className="font-semibold text-foreground mb-4">{footer.forImpactAgents || "For Candidates (Impact Agents)"}</h4>
+            <h4 className="font-semibold text-foreground mb-4">{footer.forImpactAgents || "For Impact Agents"}</h4>
             <ul className="space-y-3">
               <li>
                 <LocaleLink href="/projects" className="text-muted-foreground hover:text-foreground transition-colors">
-                  {footer.browseOpportunities || "Browse Jobs"}
+                  {footer.browseOpportunities || "Browse Opportunities"}
                 </LocaleLink>
               </li>
               <li>
@@ -100,7 +100,7 @@ export function Footer() {
                   href="/ngo/post-project"
                   className="text-muted-foreground hover:text-foreground transition-colors"
                 >
-                  {footer.postOpportunity || "Post an Job"}
+                  {footer.postOpportunity || "Post an Opportunity"}
                 </LocaleLink>
               </li>
               <li>
@@ -139,7 +139,7 @@ export function Footer() {
           <div className="max-w-md mx-auto mb-8">
             <h4 className="font-semibold text-foreground mb-2 text-center">{footer.stayUpdated || "Stay Updated"}</h4>
             <p className="text-sm text-muted-foreground mb-4 text-center">
-              {footer.newsletterDesc || "Get the latest jobs and impact stories delivered to your inbox."}
+              {footer.newsletterDesc || "Get the latest opportunities and impact stories delivered to your inbox."}
             </p>
             <NewsletterSubscribe />
           </div>

@@ -730,9 +730,9 @@ export default function VolunteerSettingsPage() {
                         </div>
                         <div className="flex items-center justify-between gap-4">
                           <div className="min-w-0 flex-1">
-                            <p className="font-medium">{dict.volunteer?.settings?.opportunityRecommendations || "Job Recommendations"}</p>
+                            <p className="font-medium">{dict.volunteer?.settings?.opportunityRecommendations || "Opportunity Recommendations"}</p>
                             <p className="text-sm text-muted-foreground">
-                              {dict.volunteer?.settings?.opportunityRecommendationsDesc || "Weekly digest of jobs matching your skills"}
+                              {dict.volunteer?.settings?.opportunityRecommendationsDesc || "Weekly digest of opportunities matching your skills"}
                             </p>
                           </div>
                           <Switch
@@ -784,7 +784,7 @@ export default function VolunteerSettingsPage() {
                       <div className="min-w-0 flex-1">
                         <p className="font-medium">{dict.volunteer?.settings?.showInSearch || "Show in Search Results"}</p>
                         <p className="text-sm text-muted-foreground">
-                          {dict.volunteer?.settings?.showInSearchDesc || "Allow your profile to appear in candidate (impact agent) searches"}
+                          {dict.volunteer?.settings?.showInSearchDesc || "Allow your profile to appear in impact agent searches"}
                         </p>
                       </div>
                       <Switch
@@ -906,21 +906,21 @@ export default function VolunteerSettingsPage() {
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                       <CreditCard className="h-5 w-5" />
-                      {dict.volunteer?.settings?.pricingTitle || "Your Pricing & Candidate (Impact Agent) Type"}
+                      {dict.volunteer?.settings?.pricingTitle || "Your Pricing & Impact Agent Type"}
                     </CardTitle>
                     <CardDescription>
-                      {dict.volunteer?.settings?.pricingDesc || "Set your candidate (impact agent) type and rates for NGOs"}
+                      {dict.volunteer?.settings?.pricingDesc || "Set your impact agent type and rates for NGOs"}
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-6">
                     {/* Volunteer Type Selection */}
                     <div className="space-y-3">
-                      <Label className="text-base font-medium">{dict.volunteer?.common?.impactAgentType || "Candidate (Impact Agent) Type"}</Label>
+                      <Label className="text-base font-medium">{dict.volunteer?.common?.impactAgentType || "Impact Agent Type"}</Label>
                       <div className="grid sm:grid-cols-3 gap-3">
                         {[
                           { value: "free", label: dict.volunteer?.common?.proBonoOnly || "Pro-Bono Only", desc: dict.volunteer?.common?.proBonoDesc || "Contribute for free", icon: "❤️" },
                           { value: "paid", label: dict.volunteer?.common?.paidOnly || "Paid Only", desc: dict.volunteer?.common?.paidDesc || "Charge for your time", icon: "💰" },
-                          { value: "both", label: dict.volunteer?.common?.openToBoth || "Open to Both", desc: dict.volunteer?.common?.openToBothDesc || "Flexible based on job", icon: "💡" },
+                          { value: "both", label: dict.volunteer?.common?.openToBoth || "Open to Both", desc: dict.volunteer?.common?.openToBothDesc || "Flexible based on opportunity", icon: "💡" },
                         ].map((type) => (
                           <div
                             key={type.value}

@@ -32,7 +32,7 @@ const fallbackPosts = [
   {
     slug: "getting-started-ngos",
     title: "Getting Started: A Guide for NGOs",
-    excerpt: "Learn how to post your first job, attract the right volunteers, and maximize the value of skills-based partnerships.",
+    excerpt: "Learn how to post your first opportunity, attract the right volunteers, and maximize the value of skills-based partnerships.",
     date: "December 4, 2025",
     author: "JustBeCause Team",
     tags: ["Guide"],

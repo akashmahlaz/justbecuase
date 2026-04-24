@@ -17,7 +17,7 @@ const sidebarLinks: SidebarLink[] = [
   { href: "/volunteer/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/volunteer/opportunities", label: "Opportunities", icon: Sparkles },
   { href: "/volunteer/applications", label: "Applications", icon: FolderKanban },
-  { href: "/volunteer/saved-projects", label: "Saved Jobs", icon: Bookmark },
+  { href: "/volunteer/saved-projects", label: "Saved Opportunities", icon: Bookmark },
   { href: "/volunteer/notifications", label: "Notifications", icon: Bell },
   { href: "/volunteer/referrals", label: "Refer & Earn", icon: Gift },
   { href: "/volunteer/profile", label: "My Profile", icon: User },

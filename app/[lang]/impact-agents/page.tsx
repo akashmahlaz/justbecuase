@@ -184,7 +184,7 @@ function ImpactAgentsContent() {
           setAgents(data.volunteers || [])
         }
       } catch (error) {
-        console.error("Failed to fetch candidates (impact agents):", error)
+        console.error("Failed to fetch impact agents:", error)
       } finally {
         setLoading(false)
       }
@@ -333,7 +333,7 @@ function ImpactAgentsContent() {
           <div className="container mx-auto px-4 md:px-6 py-10 md:py-14">
             <div className="max-w-2xl">
               <TextAnimate animation="blurInUp" by="word" as="h1" className="text-3xl md:text-4xl font-bold text-foreground mb-3">
-                {vl.title ? vl.title.replace("Volunteers", "Candidates (Impact Agents)") : "Discover Candidates (Impact Agents)"}
+                {vl.title ? vl.title.replace("Volunteers", "Impact Agents") : "Discover Impact Agents"}
               </TextAnimate>
               <p className="text-muted-foreground text-lg mb-6">
                 Connect with skilled professionals ready to make a difference — browse, search, and find the right impact agent for your cause.
@@ -584,11 +584,11 @@ function ImpactAgentsContent() {
           ) : filteredAgents.length === 0 ? (
             <AIEmptyState
               mode="empty"
-              title={vl.noAgentsFound || "No candidates (impact agents) found"}
+              title={vl.noAgentsFound || "No impact agents found"}
               description={
                 hasActiveFilters || searchQuery
                   ? (vl.tryAdjusting || "Try adjusting your filters or search terms")
-                  : (vl.checkBackLater || "Check back later for new candidates (impact agents)")
+                  : (vl.checkBackLater || "Check back later for new impact agents")
               }
               action={
                 (hasActiveFilters || searchQuery) ? (

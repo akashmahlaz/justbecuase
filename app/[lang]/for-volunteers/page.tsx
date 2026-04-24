@@ -15,12 +15,12 @@ export default function ForVolunteersPage() {
   const v = (dict as any).forVolunteers || {}
 
   const benefits = [
-    { icon: Briefcase, title: v.benefitPortfolioTitle || "Build Your Portfolio", description: v.benefitPortfolioDesc || "Add real-world jobs to your resume and showcase your impact to future employers." },
-    { icon: TrendingUp, title: v.benefitSkillsTitle || "Develop New Skills", description: v.benefitSkillsDesc || "Take on challenging jobs that push your boundaries and help you grow professionally." },
+    { icon: Briefcase, title: v.benefitPortfolioTitle || "Build Your Portfolio", description: v.benefitPortfolioDesc || "Add real-world opportunities to your resume and showcase your impact to future employers." },
+    { icon: TrendingUp, title: v.benefitSkillsTitle || "Develop New Skills", description: v.benefitSkillsDesc || "Take on challenging opportunities that push your boundaries and help you grow professionally." },
     { icon: Heart, title: v.benefitDifferenceTitle || "Make a Difference", description: v.benefitDifferenceDesc || "Use your expertise to create lasting positive change in communities worldwide." },
-    { icon: Globe, title: v.benefitFlexibleTitle || "Flexible Contributions", description: v.benefitFlexibleDesc || "Choose from virtual jobs or local jobs that fit your schedule and lifestyle." },
-    { icon: Award, title: v.benefitRecognizedTitle || "Get Recognized", description: v.benefitRecognizedDesc || "Earn badges, testimonials, and track your impact with our comprehensive candidate (impact agent) profiles." },
-    { icon: Clock, title: v.benefitCommitmentTitle || "Choose Your Commitment", description: v.benefitCommitmentDesc || "From 1-hour consultations to long-term jobs, find ones that match your availability." },
+    { icon: Globe, title: v.benefitFlexibleTitle || "Flexible Contributions", description: v.benefitFlexibleDesc || "Choose from virtual opportunities or local opportunities that fit your schedule and lifestyle." },
+    { icon: Award, title: v.benefitRecognizedTitle || "Get Recognized", description: v.benefitRecognizedDesc || "Earn badges, testimonials, and track your impact with our comprehensive impact agent profiles." },
+    { icon: Clock, title: v.benefitCommitmentTitle || "Choose Your Commitment", description: v.benefitCommitmentDesc || "From 1-hour consultations to long-term opportunities, find ones that match your availability." },
   ]
 
   const exchangeOptions = [
@@ -31,17 +31,17 @@ export default function ForVolunteersPage() {
 
   const steps = [
     { number: "01", title: v.step1Title || "Create Your Profile", description: v.step1Desc || "Sign up and showcase your skills, experience, and the causes you care about." },
-    { number: "02", title: v.step2Title || "Browse Jobs", description: v.step2Desc || "Explore jobs matched to your skills and interests from vetted NGOs." },
+    { number: "02", title: v.step2Title || "Browse Opportunities", description: v.step2Desc || "Explore opportunities matched to your skills and interests from vetted NGOs." },
     { number: "03", title: v.step3Title || "Apply & Connect", description: v.step3Desc || "Submit your application and connect directly with the organization." },
-    { number: "04", title: v.step4Title || "Make an Impact", description: v.step4Desc || "Complete the job, receive feedback, and add it to your portfolio." },
+    { number: "04", title: v.step4Title || "Make an Impact", description: v.step4Desc || "Complete the opportunity, receive feedback, and add it to your portfolio." },
   ]
 
   const faqs = [
-    { question: v.faq1Q || "Is it really free to join as an candidate (impact agent)?", answer: v.faq1A || "Yes! Signing up as an candidate (impact agent) is completely free." },
+    { question: v.faq1Q || "Is it really free to join as an impact agent?", answer: v.faq1A || "Yes! Signing up as an impact agent is completely free." },
     { question: v.faq2Q || "How much time do I need to commit?", answer: v.faq2A || "It's entirely up to you." },
     { question: v.faq3Q || "What types of skills are in demand?", answer: v.faq3A || "Everything from web development, design, and marketing to financial planning." },
     { question: v.faq4Q || "Will I get recognition for my work?", answer: v.faq4A || "Absolutely! NGOs can rate and review your contributions." },
-    { question: v.faq5Q || "Can I choose which NGOs to work with?", answer: v.faq5A || "Yes, you have full control over which jobs you apply to." },
+    { question: v.faq5Q || "Can I choose which NGOs to work with?", answer: v.faq5A || "Yes, you have full control over which opportunities you apply to." },
     { question: v.faq6Q || "What if I want to offer paid services too?", answer: v.faq6A || "You can! Our platform supports pro bono, low bono, and paid engagements." },
   ]
   return (
@@ -67,12 +67,12 @@ export default function ForVolunteersPage() {
                 <div className="flex flex-wrap gap-4">
                   <Button asChild size="lg" className="bg-primary hover:bg-primary/90">
                     <LocaleLink href="/auth/signup">
-                      {v.registerNow || "Candidates (Impact Agents) – Register Now"}
+                      {v.registerNow || "Impact Agents – Register Now"}
                       <ArrowRight className="ml-2 h-4 w-4" />
                     </LocaleLink>
                   </Button>
                   <Button asChild size="lg" variant="outline" className="bg-transparent">
-                    <LocaleLink href="/projects">{v.browseOpportunities || "Browse Jobs"}</LocaleLink>
+                    <LocaleLink href="/projects">{v.browseOpportunities || "Browse Opportunities"}</LocaleLink>
                   </Button>
                 </div>
               </div>
@@ -92,7 +92,7 @@ export default function ForVolunteersPage() {
             <div className="text-center mb-12">
               <h2 className="text-3xl font-bold text-foreground mb-4">{v.exchangeTitle || "The Global Purpose-Driven Exchange"}</h2>
               <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-                {v.exchangeSubtitle || "Candidates (Impact Agents) (Professionals): Your \"Time\" is the new currency."}
+                {v.exchangeSubtitle || "Impact Agents (Professionals): Your \"Time\" is the new currency."}
               </p>
             </div>
             <div className="grid md:grid-cols-3 gap-6">
@@ -115,7 +115,7 @@ export default function ForVolunteersPage() {
         <section className="py-16">
           <div className="container mx-auto px-4 md:px-6">
             <div className="text-center mb-12">
-              <h2 className="text-3xl font-bold text-foreground mb-4">{v.whyBecomeTitle || "Why Become an Candidate (Impact Agent)?"}</h2>
+              <h2 className="text-3xl font-bold text-foreground mb-4">{v.whyBecomeTitle || "Why Become an Impact Agent?"}</h2>
               <p className="text-muted-foreground max-w-2xl mx-auto">
                 {v.whyBecomeSubtitle || "Skills-based contributions offer unique benefits that traditional volunteering can't match"}
               </p>
@@ -164,9 +164,9 @@ export default function ForVolunteersPage() {
       <section className="py-16">
         <div className="container mx-auto px-4 md:px-6">
           <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-foreground mb-4">{v.storiesTitle || "Candidate (Impact Agent) Stories"}</h2>
+            <h2 className="text-3xl font-bold text-foreground mb-4">{v.storiesTitle || "Impact Agent Stories"}</h2>
             <p className="text-muted-foreground max-w-2xl mx-auto">
-              {v.storiesSubtitle || "Hear from candidates (impact agents) who have made a difference through our platform"}
+              {v.storiesSubtitle || "Hear from impact agents who have made a difference through our platform"}
             </p>
           </div>
           <div className="grid md:grid-cols-3 gap-6">
@@ -199,7 +199,7 @@ export default function ForVolunteersPage() {
         <div className="container mx-auto px-4 md:px-6 max-w-3xl">
           <div className="text-center mb-12">
             <h2 className="text-3xl font-bold text-foreground mb-4">{v.faqTitle || "Frequently Asked Questions"}</h2>
-            <p className="text-muted-foreground">{v.faqSubtitle || "Everything you need to know about becoming an candidate (impact agent)"}</p>
+            <p className="text-muted-foreground">{v.faqSubtitle || "Everything you need to know about becoming an impact agent"}</p>
           </div>
           <Accordion type="single" collapsible className="w-full">
             {faqs.map((faq, index) => (
@@ -217,7 +217,7 @@ export default function ForVolunteersPage() {
         <div className="container mx-auto px-4 md:px-6 text-center">
           <h2 className="text-3xl font-bold mb-4">{v.ctaHeading || "Ready to Start Making an Impact?"}</h2>
           <p className="text-lg opacity-90 max-w-2xl mx-auto mb-8">
-            {v.ctaPara || "Join our community of skilled candidates (impact agents) and start contributing to causes you care about today."}
+            {v.ctaPara || "Join our community of skilled impact agents and start contributing to causes you care about today."}
           </p>
           <Button asChild size="lg" variant="secondary">
             <LocaleLink href="/auth/signup">

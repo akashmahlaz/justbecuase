@@ -63,8 +63,8 @@ const POPULAR_SEARCHES = [
 const TYPE_CONFIG = {
   volunteer: {
     icon: Users,
-    label: "Candidate (Impact Agent)",
-    pluralLabel: "Candidates (Impact Agents)",
+    label: "Impact Agent",
+    pluralLabel: "Impact Agents",
     badgeClass: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
     viewAllPath: "/volunteers",
   },
@@ -222,7 +222,7 @@ export function GlobalSearchSection() {
       if (!controller.signal.aborted) {
         if (data.success) {
           let filtered = (data.results || []).filter(
-            (r: any) => r.type === "volunteer" || r.type === "ngo" || r.type === "job"
+            (r: any) => r.type === "volunteer" || r.type === "ngo" || r.type === "opportunity"
           )
           // Strictly enforce the selected type — only show results matching the tab
           if (type !== "all") {
@@ -465,7 +465,7 @@ export function GlobalSearchSection() {
                   }`}
                 >
                   {Icon && <Icon className="h-3.5 w-3.5" />}
-                  {type === "all" ? (s.all || "All") : type === "volunteer" ? (s.impactAgents || "Candidates (Impact Agents)") : type === "ngo" ? (s.ngos || "NGOs") : (s.opportunities || "Opportunities")}
+                  {type === "all" ? (s.all || "All") : type === "volunteer" ? (s.impactAgents || "Impact Agents") : type === "ngo" ? (s.ngos || "NGOs") : (s.opportunities || "Opportunities")}
                 </button>
               )
             })}
@@ -484,8 +484,8 @@ export function GlobalSearchSection() {
                     : searchType === "ngo"
                     ? (s.placeholderNgo || "Search organizations...")
                     : searchType === "opportunity"
-                    ? (s.placeholderOpportunity || "Search jobs...")
-                    : (s.placeholderAll || "Search jobs, skills, people, causes...")
+                    ? (s.placeholderOpportunity || "Search opportunities...")
+                    : (s.placeholderAll || "Search opportunities, skills, people, causes...")
                 }
                 value={searchQuery}
                 onChange={(e) => {
@@ -678,10 +678,10 @@ export function GlobalSearchSection() {
                     </p>
                     <div className="flex flex-wrap justify-center gap-2">
                       <Button asChild variant="outline" size="sm">
-                        <LocaleLink href="/projects">{s.browseOpportunities || "Browse Jobs"}</LocaleLink>
+                        <LocaleLink href="/projects">{s.browseOpportunities || "Browse Opportunities"}</LocaleLink>
                       </Button>
                       <Button asChild variant="outline" size="sm">
-                        <LocaleLink href="/volunteers">{s.browseImpactAgents || "Browse Candidates (Impact Agents)"}</LocaleLink>
+                        <LocaleLink href="/volunteers">{s.browseImpactAgents || "Browse Impact Agents"}</LocaleLink>
                       </Button>
                       <Button asChild variant="outline" size="sm">
                         <LocaleLink href="/ngos">{s.browseNGOs || "Browse NGOs"}</LocaleLink>

@@ -48,7 +48,7 @@ const navGroups = [
     label: "Management",
     items: [
       { title: "Users", href: "/admin/users", icon: Users },
-      { title: "Candidates (Impact Agents)", href: "/admin/volunteers", icon: Heart },
+      { title: "Impact Agents", href: "/admin/volunteers", icon: Heart },
       { title: "NGOs", href: "/admin/ngos", icon: Building2 },
       { title: "Opportunities", href: "/admin/projects", icon: FolderKanban },
     ],

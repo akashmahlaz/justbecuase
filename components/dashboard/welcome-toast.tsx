@@ -15,7 +15,7 @@ export function WelcomeToast() {
     if (welcomeName) {
       // Show welcome toast with the volunteer's name
       toast.success((dict.volunteer?.welcomeToast?.title || "Welcome to JustBeCause, {name}!").replace("{name}", decodeURIComponent(welcomeName)), {
-        description: dict.volunteer?.welcomeToast?.description || "Your profile has been set up successfully. Start exploring impact jobs!",
+        description: dict.volunteer?.welcomeToast?.description || "Your profile has been set up successfully. Start exploring impact opportunities!",
         duration: 5000,
       })
       

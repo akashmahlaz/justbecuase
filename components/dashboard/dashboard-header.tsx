@@ -37,7 +37,7 @@ export function DashboardHeader({ userType, userName, userAvatar }: DashboardHea
     userType === "volunteer"
       ? [
           { href: "/volunteer/dashboard", label: "Dashboard" },
-          { href: "/projects", label: "Browse Jobs" },
+          { href: "/projects", label: "Browse Opportunities" },
           { href: "/volunteer/applications", label: "My Applications" },
           { href: "/volunteer/opportunities", label: "Opportunities" },
           { href: "/volunteer/profile", label: "My Profile" },
@@ -90,8 +90,8 @@ export function DashboardHeader({ userType, userName, userAvatar }: DashboardHea
           <UnifiedSearchBar
             variant="compact"
             placeholder={userType === "volunteer" 
-              ? "Search jobs or NGOs..." 
-              : "Search candidates (impact agents), skills, or projects..."}
+              ? "Search opportunities or NGOs..." 
+              : "Search impact agents, skills, or projects..."}
             allowedTypes={userType === "volunteer" 
               ? ["opportunity", "ngo"] 
               : ["volunteer", "opportunity"]}

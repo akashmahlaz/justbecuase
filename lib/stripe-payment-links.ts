@@ -19,7 +19,7 @@ export const STRIPE_PAYMENT_LINKS = {
     url: "https://buy.stripe.com/00w4gAeb27bQ91U6jdcs801", // TEST LINK ($0.05)
     price: 0.05, // TEST PRICE in USD - change to 29.99 USD for production
     currency: "USD",
-    description: "NGO Pro - Unlock unlimited free candidate (impact agent) profiles",
+    description: "NGO Pro - Unlock unlimited free impact agent profiles",
   },
   
   // Volunteer Pro Subscription  
@@ -30,7 +30,7 @@ export const STRIPE_PAYMENT_LINKS = {
     url: "https://buy.stripe.com/aFafZid6YeEi3HAfTNcs800", // TEST LINK ($0.05)
     price: 0.05, // TEST PRICE in USD - change to 9.99 USD for production
     currency: "USD",
-    description: "Candidate (Impact Agent) Pro - Apply to unlimited jobs",
+    description: "Impact Agent Pro - Apply to unlimited jobs",
   },
 }
 

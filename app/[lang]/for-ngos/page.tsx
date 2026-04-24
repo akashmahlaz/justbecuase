@@ -34,11 +34,11 @@ export default async function ForNGOsPage({ params }: { params: Promise<{ lang: 
 
   const benefits = [
     { icon: Briefcase, title: n.benefit1Title || "Custom Job Postings", description: n.benefit1Desc || "Post remote roles for specialized job functions." },
-    { icon: Database, title: n.benefit2Title || "Pro Bono & Low Bono Database", description: n.benefit2Desc || "Access our vetted directory of Skilled Candidates (Impact Agents)." },
-    { icon: Target, title: n.benefit3Title || "Skill-Matched Jobs", description: n.benefit3Desc || "Post a specific job and let our matching engine find the perfect specialist." },
-    { icon: Shield, title: n.benefit4Title || "Vetted Candidates (Impact Agents)", description: n.benefit4Desc || "All candidates (impact agents) are verified professionals." },
-    { icon: FileText, title: n.benefit5Title || "Job Templates", description: n.benefit5Desc || "Use our pre-built templates to quickly post common job types." },
-    { icon: MessageSquare, title: n.benefit6Title || "Built-in Communication", description: n.benefit6Desc || "Communicate directly with candidates (impact agents) through our platform." },
+    { icon: Database, title: n.benefit2Title || "Pro Bono & Low Bono Database", description: n.benefit2Desc || "Access our vetted directory of Skilled Impact Agents." },
+    { icon: Target, title: n.benefit3Title || "Skill-Matched Opportunities", description: n.benefit3Desc || "Post a specific opportunity and let our matching engine find the perfect specialist." },
+    { icon: Shield, title: n.benefit4Title || "Vetted Impact Agents", description: n.benefit4Desc || "All impact agents are verified professionals." },
+    { icon: FileText, title: n.benefit5Title || "Opportunity Templates", description: n.benefit5Desc || "Use our pre-built templates to quickly post common opportunity types." },
+    { icon: MessageSquare, title: n.benefit6Title || "Built-in Communication", description: n.benefit6Desc || "Communicate directly with impact agents through our platform." },
   ]
 
   const projectTypes = [
@@ -51,12 +51,12 @@ export default async function ForNGOsPage({ params }: { params: Promise<{ lang: 
   ]
 
   const faqs = [
-    { question: n.faq1Q || "Is it free for NGOs to join?", answer: n.faq1A || "Yes! Creating an account and posting jobs is free." },
-    { question: n.faq2Q || "How do I find the right candidate (impact agent)?", answer: n.faq2A || "Post your job with detailed requirements." },
+    { question: n.faq1Q || "Is it free for NGOs to join?", answer: n.faq1A || "Yes! Creating an account and posting opportunities is free." },
+    { question: n.faq2Q || "How do I find the right impact agent?", answer: n.faq2A || "Post your opportunity with detailed requirements." },
     { question: n.faq3Q || "What types of projects can I post?", answer: n.faq3A || "Anything your organization needs." },
     { question: n.faq4Q || "How long does it take to find help?", answer: n.faq4A || "Most NGOs receive applications within 48 hours." },
-    { question: n.faq5Q || "Can I offer paid jobs too?", answer: n.faq5A || "Absolutely!" },
-    { question: n.faq6Q || "How do I know the quality will be good?", answer: n.faq6A || "All candidates (impact agents) have verified profiles." },
+    { question: n.faq5Q || "Can I offer paid opportunities too?", answer: n.faq5A || "Absolutely!" },
+    { question: n.faq6Q || "How do I know the quality will be good?", answer: n.faq6A || "All impact agents have verified profiles." },
   ]
   return (
     <div className="min-h-screen flex flex-col bg-background">
@@ -85,7 +85,7 @@ export default async function ForNGOsPage({ params }: { params: Promise<{ lang: 
                     </LocaleLink>
                   </Button>
                   <Button asChild size="lg" variant="outline" className="bg-transparent">
-                    <LocaleLink href="/projects">{n.seeExamples || "See Example Jobs"}</LocaleLink>
+                    <LocaleLink href="/projects">{n.seeExamples || "See Example Opportunities"}</LocaleLink>
                   </Button>
                 </div>
               </div>
@@ -139,7 +139,7 @@ export default async function ForNGOsPage({ params }: { params: Promise<{ lang: 
                   </div>
                   <h3 className="font-semibold text-foreground mb-2">{n.proBonoDbTitle || "Pro Bono & Low Bono Database"}</h3>
                   <p className="text-sm text-muted-foreground">
-                    {n.proBonoDbDesc || "Access our vetted directory of Skilled Candidates (Impact Agents)."}
+                    {n.proBonoDbDesc || "Access our vetted directory of Skilled Impact Agents."}
                   </p>
                 </CardContent>
               </Card>
@@ -148,9 +148,9 @@ export default async function ForNGOsPage({ params }: { params: Promise<{ lang: 
                   <div className="w-12 h-12 rounded-xl bg-secondary/10 flex items-center justify-center mb-4">
                     <Target className="h-6 w-6 text-secondary" />
                   </div>
-                  <h3 className="font-semibold text-foreground mb-2">{n.skillMatchTitle || "Skill-Matched Jobs"}</h3>
+                  <h3 className="font-semibold text-foreground mb-2">{n.skillMatchTitle || "Skill-Matched Opportunities"}</h3>
                   <p className="text-sm text-muted-foreground">
-                    {n.skillMatchDesc || "Post a specific job and let our matching engine find the perfect specialist."}
+                    {n.skillMatchDesc || "Post a specific opportunity and let our matching engine find the perfect specialist."}
                   </p>
                 </CardContent>
               </Card>
@@ -168,11 +168,11 @@ export default async function ForNGOsPage({ params }: { params: Promise<{ lang: 
               </div>
               <div>
                 <p className="text-4xl font-bold text-secondary mb-2">{impactMetrics.projectsCompleted}</p>
-                <p className="text-muted-foreground">{n.statCompleted || "Jobs Completed"}</p>
+                <p className="text-muted-foreground">{n.statCompleted || "Opportunities Completed"}</p>
               </div>
               <div>
                 <p className="text-4xl font-bold text-primary mb-2">{impactMetrics.volunteers.toLocaleString()}</p>
-                <p className="text-muted-foreground">{n.statAgents || "Skilled Candidates (Impact Agents)"}</p>
+                <p className="text-muted-foreground">{n.statAgents || "Skilled Impact Agents"}</p>
               </div>
               <div>
                 <p className="text-4xl font-bold text-secondary mb-2">
@@ -215,7 +215,7 @@ export default async function ForNGOsPage({ params }: { params: Promise<{ lang: 
             <div className="text-center mb-12">
               <h2 className="text-3xl font-bold text-foreground mb-4">{n.valueCalcTitle || "See the Value You Could Receive"}</h2>
               <p className="text-muted-foreground max-w-2xl mx-auto">
-                {n.valueCalcSubtitle || "Based on average consultant rates of $75/hour, here's what you could save on common jobs"}
+                {n.valueCalcSubtitle || "Based on average consultant rates of $75/hour, here's what you could save on common opportunities"}
               </p>
             </div>
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 max-w-4xl mx-auto">
@@ -257,7 +257,7 @@ export default async function ForNGOsPage({ params }: { params: Promise<{ lang: 
         {/* Final CTA */}
         <section className="py-16 bg-primary text-primary-foreground">
           <div className="container mx-auto px-4 md:px-6 text-center">
-            <h2 className="text-3xl font-bold mb-4">{n.ctaHeading || "Ready to Find Your Candidates (Impact Agents)?"}</h2>
+            <h2 className="text-3xl font-bold mb-4">{n.ctaHeading || "Ready to Find Your Impact Agents?"}</h2>
             <p className="text-xl mb-8 text-primary-foreground/90 max-w-2xl mx-auto">
               {n.ctaPara || "Join hundreds of NGOs already benefiting from skills-based contributions"}
             </p>

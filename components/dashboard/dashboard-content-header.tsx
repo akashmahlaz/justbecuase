@@ -73,8 +73,8 @@ export function DashboardContentHeader({ userType, userName, userAvatar }: Dashb
         <UnifiedSearchBar
           variant="compact"
           placeholder={userType === "volunteer"
-            ? d.searchOpportunitiesPlaceholder || "Search jobs..."
-            : d.searchNgoPlaceholder || "Search candidates (impact agents), skills, or projects..."}
+            ? d.searchOpportunitiesPlaceholder || "Search opportunities..."
+            : d.searchNgoPlaceholder || "Search impact agents, skills, or projects..."}
           allowedTypes={userType === "volunteer" ? ["opportunity"] : ["volunteer", "opportunity"]}
           disableSuggestions={userType === "volunteer"}
           className="w-full"

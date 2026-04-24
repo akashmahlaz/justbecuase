@@ -148,7 +148,7 @@ export default async function ExternalOpportunityDetailPage({
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <FileText className="h-5 w-5 text-primary" />
-                    {dict.projectDetail?.opportunityDescription || "Job Description"}
+                    {dict.projectDetail?.opportunityDescription || "Opportunity Description"}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>

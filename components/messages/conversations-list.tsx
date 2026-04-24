@@ -79,7 +79,7 @@ function ConversationItem({
   const locale = useLocale()
 
   const name = userType === "ngo" 
-    ? (conversation.volunteerName || "Candidate (Impact Agent)")
+    ? (conversation.volunteerName || "Impact Agent")
     : (conversation.ngoName || "NGO")
   
   const avatar = userType === "ngo"
@@ -170,8 +170,8 @@ function EmptyState({ userType }: { userType: "volunteer" | "ngo" }) {
       <h3 className="font-medium text-foreground mb-2">No conversations yet</h3>
       <p className="text-sm text-muted-foreground max-w-xs mx-auto">
         {userType === "ngo" 
-          ? "Messages with candidates (impact agents) will appear here when you start a conversation"
-          : "Apply to jobs or receive messages from NGOs to start chatting"
+          ? "Messages with impact agents will appear here when you start a conversation"
+          : "Apply to opportunities or receive messages from NGOs to start chatting"
         }
       </p>
     </div>

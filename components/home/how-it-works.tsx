@@ -18,31 +18,31 @@ export function HowItWorks() {
     },
     {
       icon: Search,
-      title: home.volStep2Title || "Discover Jobs",
-      description: home.volStep2Desc || "Browse meaningful jobs matched to your expertise. Filter by skills, time, and location.",
+      title: home.volStep2Title || "Discover Opportunities",
+      description: home.volStep2Desc || "Browse meaningful opportunities matched to your expertise. Filter by skills, time, and location.",
     },
     {
       icon: Rocket,
       title: home.volStep3Title || "Make an Impact",
-      description: home.volStep3Desc || "Complete jobs, build your portfolio, and create lasting change for communities.",
+      description: home.volStep3Desc || "Complete opportunities, build your portfolio, and create lasting change for communities.",
     },
   ];
 
   const ngoSteps = [
     {
       icon: FileText,
-      title: home.ngoStep1Title || "Post Your Job",
+      title: home.ngoStep1Title || "Post Your Opportunity",
       description: home.ngoStep1Desc || "Describe your needs in just 5 minutes using our pre-scoped templates.",
     },
     {
       icon: Users,
       title: home.ngoStep2Title || "Review Applications",
-      description: home.ngoStep2Desc || "Browse candidate (impact agent) profiles, check ratings, and find the perfect match for your job.",
+      description: home.ngoStep2Desc || "Browse impact agent profiles, check ratings, and find the perfect match for your opportunity.",
     },
     {
       icon: CheckCircle,
       title: home.ngoStep3Title || "Get Expert Help",
-      description: home.ngoStep3Desc || "Collaborate with skilled candidates (impact agents) and receive professional-quality deliverables.",
+      description: home.ngoStep3Desc || "Collaborate with skilled impact agents and receive professional-quality deliverables.",
     },
   ];
 
@@ -80,7 +80,7 @@ export function HowItWorks() {
                 value="volunteers" 
                 className="px-6 py-2 rounded-full text-sm font-semibold data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-sm"
               >
-                {home.forImpactAgentsTab || "For Candidates (Impact Agents)"}
+                {home.forImpactAgentsTab || "For Impact Agents"}
               </TabsTrigger>
               <TabsTrigger 
                 value="ngos" 
@@ -95,7 +95,7 @@ export function HowItWorks() {
             <StepCards steps={volunteerSteps} color="primary" />
             <div className="mt-14 text-center">
               <Button asChild size="lg" className="h-12 px-10 rounded-full">
-                <LocaleLink href="/for-volunteers">{home.joinAsImpactAgent || "Join as an Candidate (Impact Agent)"}</LocaleLink>
+                <LocaleLink href="/for-volunteers">{home.joinAsImpactAgent || "Join as an Impact Agent"}</LocaleLink>
               </Button>
             </div>
           </TabsContent>
