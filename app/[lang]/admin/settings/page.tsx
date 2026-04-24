@@ -375,7 +375,7 @@ export default function AdminSettingsPage() {
           </TabsTrigger>
           <TabsTrigger value="volunteer-plans" className="flex items-center gap-2">
             <Users className="h-4 w-4" />
-            {dict.admin?.settings?.tabs?.volunteerPlans || "Impact Agent Plans"}
+            {dict.admin?.settings?.tabs?.volunteerPlans || "Candidate (Impact Agent) Plans"}
           </TabsTrigger>
           <TabsTrigger value="ngo-plans" className="flex items-center gap-2">
             <Building2 className="h-4 w-4" />
@@ -442,7 +442,7 @@ export default function AdminSettingsPage() {
                     setSettings({ ...settings, platformDescription: e.target.value })
                   }
                   rows={3}
-                  placeholder="Connecting NGOs with skilled impact agents..."
+                  placeholder="Connecting NGOs with skilled candidates (impact agents)..."
                 />
               </div>
               <div className="grid sm:grid-cols-2 gap-4">
@@ -952,22 +952,22 @@ export default function AdminSettingsPage() {
                   <div>
                     <p className="font-medium">{dict.admin?.settings?.payment?.ngoProSubscription || "NGO Pro Subscription"}</p>
                     <p className="text-sm text-muted-foreground">
-                      {dict.admin?.settings?.payment?.ngoProSubscriptionDescription || "All NGOs can view both free and paid impact agent profiles without a subscription. Pro subscription unlocks additional platform features."}
+                      {dict.admin?.settings?.payment?.ngoProSubscriptionDescription || "All NGOs can view both free and paid candidate (impact agent) profiles without a subscription. Pro subscription unlocks additional platform features."}
                     </p>
                   </div>
                 </div>
                 <div className="flex items-start gap-2">
                   <Users className="h-5 w-5 text-primary mt-0.5" />
                   <div>
-                    <p className="font-medium">{dict.admin?.settings?.payment?.impactAgentProSubscription || "Impact Agent Pro Subscription"}</p>
+                    <p className="font-medium">{dict.admin?.settings?.payment?.impactAgentProSubscription || "Candidate (Impact Agent) Pro Subscription"}</p>
                     <p className="text-sm text-muted-foreground">
-                      {(dict.admin?.settings?.payment?.impactAgentProSubscriptionDescription || "Impact Agents with Pro subscription can apply to unlimited jobs. Free impact agents are limited to {count} applications/month.").replace("{count}", String(settings?.volunteerFreeApplicationsPerMonth || 3))}
+                      {(dict.admin?.settings?.payment?.impactAgentProSubscriptionDescription || "Candidates (Impact Agents) with Pro subscription can apply to unlimited jobs. Free candidates (impact agents) are limited to {count} applications/month.").replace("{count}", String(settings?.volunteerFreeApplicationsPerMonth || 3))}
                     </p>
                   </div>
                 </div>
               </div>
               <p className="text-xs text-muted-foreground">
-                {dict.admin?.settings?.payment?.businessModelNote || "Note: All impact agent profiles (free and paid) are visible to all NGOs without requiring a subscription."}
+                {dict.admin?.settings?.payment?.businessModelNote || "Note: All candidate (impact agent) profiles (free and paid) are visible to all NGOs without requiring a subscription."}
               </p>
             </CardContent>
           </Card>
@@ -979,10 +979,10 @@ export default function AdminSettingsPage() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Badge variant="secondary">Free Plan</Badge>
-                {dict.admin?.settings?.volunteerPlans?.freePlanTitle || "Impact Agent Free Plan Limits"}
+                {dict.admin?.settings?.volunteerPlans?.freePlanTitle || "Candidate (Impact Agent) Free Plan Limits"}
               </CardTitle>
               <CardDescription>
-                {dict.admin?.settings?.volunteerPlans?.freePlanDescription || "Configure limits for impact agents on the free plan"}
+                {dict.admin?.settings?.volunteerPlans?.freePlanDescription || "Configure limits for candidates (impact agents) on the free plan"}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -1001,7 +1001,7 @@ export default function AdminSettingsPage() {
                     }
                   />
                   <p className="text-xs text-muted-foreground">
-                    {dict.admin?.settings?.volunteerPlans?.applicationsPerMonthHint || "Number of opportunity applications allowed per month"}
+                    {dict.admin?.settings?.volunteerPlans?.applicationsPerMonthHint || "Number of job applications allowed per month"}
                   </p>
                 </div>
                 <div className="space-y-2 flex items-center gap-4 pt-6">
@@ -1014,7 +1014,7 @@ export default function AdminSettingsPage() {
                   <div>
                     <Label>{dict.admin?.settings?.volunteerPlans?.profileVisibility || "Profile Visibility"}</Label>
                     <p className="text-xs text-muted-foreground">
-                      {dict.admin?.settings?.volunteerPlans?.profileVisibilityHint || "Allow free plan impact agents to be visible in search"}
+                      {dict.admin?.settings?.volunteerPlans?.profileVisibilityHint || "Allow free plan candidates (impact agents) to be visible in search"}
                     </p>
                   </div>
                 </div>
@@ -1026,10 +1026,10 @@ export default function AdminSettingsPage() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Badge className="bg-primary">Pro Plan</Badge>
-                {dict.admin?.settings?.volunteerPlans?.proPlanTitle || "Impact Agent Pro Plan"}
+                {dict.admin?.settings?.volunteerPlans?.proPlanTitle || "Candidate (Impact Agent) Pro Plan"}
               </CardTitle>
               <CardDescription>
-                {dict.admin?.settings?.volunteerPlans?.proPlanDescription || "Configure pricing and features for the impact agent pro plan"}
+                {dict.admin?.settings?.volunteerPlans?.proPlanDescription || "Configure pricing and features for the candidate (impact agent) pro plan"}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
@@ -1138,7 +1138,7 @@ export default function AdminSettingsPage() {
             <CardContent className="space-y-4">
               <div className="grid sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="ngoFreeProjects">{dict.admin?.settings?.ngoPlans?.opportunitiesPerMonth || "Opportunities per Month"}</Label>
+                  <Label htmlFor="ngoFreeProjects">{dict.admin?.settings?.ngoPlans?.opportunitiesPerMonth || "Jobs per Month"}</Label>
                   <Input
                     id="ngoFreeProjects"
                     type="number"
@@ -1151,7 +1151,7 @@ export default function AdminSettingsPage() {
                     }
                   />
                   <p className="text-xs text-muted-foreground">
-                    {dict.admin?.settings?.ngoPlans?.opportunitiesPerMonthHint || "Number of opportunities NGOs can post per month"}
+                    {dict.admin?.settings?.ngoPlans?.opportunitiesPerMonthHint || "Number of jobs NGOs can post per month"}
                   </p>
                 </div>
                 <div className="space-y-2">
@@ -1239,7 +1239,7 @@ export default function AdminSettingsPage() {
                       setSettings({ ...settings, ngoProProjectsUnlimited: checked })
                     }
                   />
-                  <Label>{dict.admin?.settings?.ngoPlans?.unlimitedOpportunities || "Unlimited Opportunities"}</Label>
+                  <Label>{dict.admin?.settings?.ngoPlans?.unlimitedOpportunities || "Unlimited Jobs"}</Label>
                 </div>
                 <div className="space-y-2 flex items-center gap-2 pt-6">
                   <Switch
@@ -1644,7 +1644,7 @@ export default function AdminSettingsPage() {
                 <div>
                   <p className="font-medium">{dict.admin?.settings?.integrations?.requirePhoneVerification || "Require Phone Verification"}</p>
                   <p className="text-sm text-muted-foreground">
-                    {dict.admin?.settings?.integrations?.requirePhoneVerificationHint || "Require impact agents to verify their phone number during onboarding"}
+                    {dict.admin?.settings?.integrations?.requirePhoneVerificationHint || "Require candidates (impact agents) to verify their phone number during onboarding"}
                   </p>
                 </div>
                 <Switch
@@ -1687,7 +1687,7 @@ export default function AdminSettingsPage() {
                 <div>
                   <p className="font-medium">{dict.admin?.settings?.security?.ngoVerification || "NGO Verification"}</p>
                   <p className="text-sm text-muted-foreground">
-                    {dict.admin?.settings?.security?.ngoVerificationHint || "Require NGOs to be verified by admin before they can post opportunities"}
+                    {dict.admin?.settings?.security?.ngoVerificationHint || "Require NGOs to be verified by admin before they can post jobs"}
                   </p>
                 </div>
                 <Switch

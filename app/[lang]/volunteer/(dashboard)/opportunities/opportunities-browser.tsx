@@ -1,4 +1,4 @@
-﻿"use client"
+"use client"
 
 import { useState, useEffect, useMemo, useRef } from "react"
 import { Card, CardContent } from "@/components/ui/card"
@@ -503,7 +503,7 @@ export function OpportunitiesBrowser() {
     // When a search is active and the unified-search API has returned
     // results, drive the source list from those results so we surface
     // matches that aren't part of the locally-fetched personalized or
-    // fallback page (including external scraped opportunities). When a
+    // fallback page (including external scraped jobs). When a
     // local entry exists for the same id we merge the richer local data
     // (score, distance, breakdown) on top.
     const hasActiveSearch = searchQuery.trim().length > 0
@@ -922,11 +922,11 @@ export function OpportunitiesBrowser() {
           </div>
         ) : filteredItems.length === 0 ? (
           <div className="text-center py-12 bg-muted/30 rounded-lg">
-            <p className="text-muted-foreground">{opp?.noResults || "No opportunities found"}</p>
+            <p className="text-muted-foreground">{opp?.noResults || "No jobs found"}</p>
             <p className="text-sm text-muted-foreground mt-1">
               {hasActiveFilters || searchQuery
                 ? (opp?.noResultsFilterHint || "Try adjusting your filters or search terms")
-                : (opp?.noResultsHint || "Check back later for new opportunities")}
+                : (opp?.noResultsHint || "Check back later for new jobs")}
             </p>
             {(hasActiveFilters || searchQuery) && (
               <Button variant="outline" className="mt-4" onClick={clearFilters}>

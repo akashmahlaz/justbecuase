@@ -42,12 +42,12 @@ export default async function AboutPage({ params }: { params: Promise<{ lang: st
     {
       icon: Users,
       title: a.valueCommunityDriven || "Community Driven",
-      description: a.valueCommunityDrivenDesc || "We believe in the power of collective action and building strong impact agent communities.",
+      description: a.valueCommunityDrivenDesc || "We believe in the power of collective action and building strong candidate (impact agent) communities.",
     },
     {
       icon: Target,
       title: a.valueExcellence || "Excellence",
-      description: a.valueExcellenceDesc || "We strive to match the highest quality impact agents with NGOs for maximum effectiveness.",
+      description: a.valueExcellenceDesc || "We strive to match the highest quality candidates (impact agents) with NGOs for maximum effectiveness.",
     },
     {
       icon: Globe,
@@ -98,7 +98,7 @@ export default async function AboutPage({ params }: { params: Promise<{ lang: st
                 <LocaleLink href="/auth/signup">{a.joinCommunity || "Join Our Community"}</LocaleLink>
               </Button>
               <Button asChild size="lg" variant="outline" className="bg-transparent">
-                <LocaleLink href="/projects">{a.browseOpportunities || "Browse Opportunities"}</LocaleLink>
+                <LocaleLink href="/projects">{a.browseOpportunities || "Browse Jobs"}</LocaleLink>
               </Button>
             </div>
           </div>
@@ -172,7 +172,7 @@ export default async function AboutPage({ params }: { params: Promise<{ lang: st
                       </div>
                       <h4 className="font-semibold text-foreground mb-2">{a.forTalentCard || "For Talent"}</h4>
                       <p className="text-sm text-muted-foreground">
-                        {a.forTalentCardDesc || "Don't waste time on roles that don't fit your skills or passion. Receive highly relevant opportunities curated to your specific professional profile and altruistic goals."}
+                        {a.forTalentCardDesc || "Don't waste time on roles that don't fit your skills or passion. Receive highly relevant jobs curated to your specific professional profile and altruistic goals."}
                       </p>
                     </CardContent>
                   </Card>
@@ -286,7 +286,7 @@ export default async function AboutPage({ params }: { params: Promise<{ lang: st
             <Award className="h-12 w-12 mx-auto mb-6 opacity-80" />
             <h2 className="text-3xl font-bold mb-4">{a.ctaHeading || "Ready to Make an Impact?"}</h2>
             <p className="text-lg opacity-90 max-w-2xl mx-auto mb-8">
-              {a.ctaPara || "Whether you're a skilled professional looking to give back or an NGO seeking expert help, we're here to connect you with opportunities that matter."}
+              {a.ctaPara || "Whether you're a skilled professional looking to give back or an NGO seeking expert help, we're here to connect you with jobs that matter."}
             </p>
             <div className="flex flex-wrap justify-center gap-4">
               <Button asChild size="lg" variant="secondary">
@@ -301,7 +301,7 @@ export default async function AboutPage({ params }: { params: Promise<{ lang: st
                 variant="outline"
                 className="bg-transparent border-primary-foreground text-primary-foreground hover:bg-primary-foreground/10"
               >
-                <LocaleLink href="/projects">{a.ctaBrowseOpportunities || "Browse Opportunities"}</LocaleLink>
+                <LocaleLink href="/projects">{a.ctaBrowseOpportunities || "Browse Jobs"}</LocaleLink>
               </Button>
             </div>
           </div>

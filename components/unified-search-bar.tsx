@@ -525,7 +525,7 @@ export function UnifiedSearchBar({
       switch (item.resultType) {
         case "volunteer": path = `/volunteers/${item.id}`; break
         case "ngo": path = `/ngos/${item.id}`; break
-        case "opportunity": path = `/projects/${item.id}`; break
+        case "job": path = `/projects/${item.id}`; break
         case "blog": path = `/blog/${item.id}`; break
         case "page": path = item.id.startsWith("/") ? item.id : `/${item.id}`; break
         default: return // Unknown type — don't navigate to a wrong page
@@ -562,8 +562,8 @@ export function UnifiedSearchBar({
     : defaultType === "ngo"
     ? s.placeholderNgo || "Search organizations..."
     : defaultType === "opportunity"
-    ? s.placeholderOpportunity || "Search opportunities..."
-    : s.placeholderDefault || "Search volunteers, NGOs, opportunities, blog, anything..."
+    ? s.placeholderOpportunity || "Search jobs..."
+    : s.placeholderDefault || "Search volunteers, NGOs, jobs, blog, anything..."
 
   // ============================================
   // RENDER

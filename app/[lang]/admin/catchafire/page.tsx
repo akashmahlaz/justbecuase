@@ -78,8 +78,8 @@ export default function CatchafireAdminPage() {
       setOpportunities(data.opportunities || [])
       setTotal(data.pagination?.total || 0)
     } catch (err) {
-      console.error("Failed to fetch opportunities:", err)
-      toast.error("Failed to load opportunities")
+      console.error("Failed to fetch jobs:", err)
+      toast.error("Failed to load jobs")
     } finally {
       setLoading(false)
     }
@@ -190,7 +190,7 @@ export default function CatchafireAdminPage() {
             <div className="relative flex-1 min-w-[200px]">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Search opportunities..."
+                placeholder="Search jobs..."
                 value={search}
                 onChange={e => {
                   setSearch(e.target.value)

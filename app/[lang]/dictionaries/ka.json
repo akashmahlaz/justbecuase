@@ -74,7 +74,7 @@
     "unreadMessages": "{count} ಓದದ ಸಂದೇಶಗಳು"
   },
   "nav": {
-    "browseOpportunities": "ಮೌಕೆಗಳನ್ನು ಬ್ರೌಸ್ ಮಾಡಿ",
+    "browseJobs": "ಮೌಕೆಗಳನ್ನು ಬ್ರೌಸ್ ಮಾಡಿ",
     "forImpactAgents": "ಪ್ರಭಾವ ಏಜೆಂಟ್‌ಗಳಿಗೆ",
     "forNGOs": "ಸ್ವಯಂಸೇವಾ ಸಂಸ್ಥೆಗಳಿಗೆ",
     "aboutUs": "ನಮ್ಮ ಬಗ್ಗೆ",
@@ -108,7 +108,7 @@
   "home": {
     "featuredProjects": "ಪ್ರಮುಖ ಮೌಕೆಗಳು",
     "featuredProjectsDesc": "ಪ್ರಪಂಚದಾದ್ಯಂತ ಪರಿಶೀಲಿತ ಸ್ವಯಂಸೇವಾ ಸಂಸ್ಥೆಗಳಿಂದ ಉನ್ನತ ಪ್ರಭಾವದ ಮೌಕೆಗಳ ಆಯ್ದ ಪಟ್ಟಿ. ಸಮಾಜ ಬದಲಿಸುವವರಿಗೆ.",
-    "browseAllOpportunities": "ಎಲ್ಲಾ ಮೌಕೆಗಳನ್ನು ನೋಡಿ",
+    "browseAllJobs": "ಎಲ್ಲಾ ಮೌಕೆಗಳನ್ನು ನೋಡಿ",
     "howItWorks": "ಇದು ಹೇಗೆ ಕಾರ್ಯನಿರ್ವಹಿಸುತ್ತದೆ",
     "howItWorksDesc": "ಮೂರು ಸುಲಭ ಹಂತಗಳಲ್ಲಿ ಪ್ರಾರಂಭಿಸಿ",
     "theEcosystem": "ಪರಿಸರ",
@@ -173,17 +173,17 @@
     "statCommunity": "ಸಮುದಾಯ",
     "findBySkill": "ಕೌಶಲ್ಯದಂತೆ ಮೌಕೆಗಳನ್ನು ಹುಡುಕಿ",
     "findBySkillDesc": "ನಿಮ್ಮ ವಿಶೇಷತೆಗೆ ಹೊಂದುವ ಮೌಕೆಗಳನ್ನು ಬ್ರೌಸ್ ಮಾಡಿ. ಪ್ರತಿ ಕೌಶಲ್ಯದಲ್ಲಿ ಬದಲಾವಣೆ ತರುವ ಶಕ್ತಿ ಇದೆ.",
-    "opportunitiesCount": "{count} ಮೌಕೆಗಳು"
+    "jobsCount": "{count} ಮೌಕೆಗಳು"
   },
   "footer": {
     "forImpactAgents": "ಪ್ರಭಾವ ಏಜೆಂಟ್‌ಗಳಿಗೆ",
-    "browseOpportunities": "ಮೌಕೆಗಳನ್ನು ಬ್ರೌಸ್ ಮಾಡಿ",
+    "browseJobs": "ಮೌಕೆಗಳನ್ನು ಬ್ರೌಸ್ ಮಾಡಿ",
     "howItWorks": "ಇದು ಹೇಗೆ ಕಾರ್ಯನಿರ್ವಹಿಸುತ್ತದೆ",
     "createProfile": "ಪ್ರೊಫೈಲ್ ರಚಿಸಿ",
     "dashboard": "ಡ್ಯಾಶ್‌ಬೋರ್ಡ್",
     "forNGOs": "ಸ್ವಯಂಸೇವಾ ಸಂಸ್ಥೆಗಳಿಗೆ",
     "whyPartner": "ಪಾಲುದಾರರಾಗುವುದು ಏಕೆ",
-    "postOpportunity": "ಮೌಕೆ ಪೋಸ್ಟ್ ಮಾಡಿ",
+    "postJob": "ಮೌಕೆ ಪೋಸ್ಟ್ ಮಾಡಿ",
     "findTalent": "ಪ್ರತಿಭೆ ಹುಡುಕಿ",
     "ngoDashboard": "ಸ್ವಯಂಸೇವಾ ಸಂಸ್ಥೆ ಡ್ಯಾಶ್‌ಬೋರ್ಡ್",
     "company": "ಕಂಪನಿ",

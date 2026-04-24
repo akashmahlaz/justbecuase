@@ -196,7 +196,7 @@ export function getWelcomeEmailHtml(userName: string, userRole: string): string 
         <p>Here's what you can do next:</p>
         <ul>
           <li>Complete your profile with your skills</li>
-          <li>Browse available opportunities</li>
+          <li>Browse available jobs</li>
           <li>Apply to projects that match your expertise</li>
         </ul>
         `}
@@ -236,9 +236,9 @@ export function getNewOpportunityEmailHtml(
       </div>
       
       <div style="background: #f9fafb; border-radius: 8px; padding: 30px; margin-bottom: 20px;">
-        <h2 style="margin-top: 0;">New Opportunity Matching Your Skills! 🎯</h2>
+        <h2 style="margin-top: 0;">New Job Matching Your Skills! 🎯</h2>
         <p>Hi ${volunteerName},</p>
-        <p><strong>${ngoName}</strong> just posted a new opportunity that matches your skills:</p>
+        <p><strong>${ngoName}</strong> just posted a new job that matches your skills:</p>
         
         <div style="background: white; border: 1px solid #e5e7eb; border-radius: 8px; padding: 20px; margin: 20px 0;">
           <h3 style="color: #10b981; margin-top: 0;">${opportunityTitle}</h3>
@@ -247,11 +247,11 @@ export function getNewOpportunityEmailHtml(
         
         <div style="text-align: center; margin: 30px 0;">
           <a href="https://justbecausenetwork.com/projects/${opportunityId}" style="display: inline-block; background: #10b981; color: white; padding: 14px 30px; text-decoration: none; border-radius: 8px; font-weight: 600;">
-            View Opportunity
+            View Job
           </a>
         </div>
         
-        <p style="color: #666; font-size: 14px;">You received this email because your skills match this opportunity. You can manage your notification preferences in your dashboard settings.</p>
+        <p style="color: #666; font-size: 14px;">You received this email because your skills match this job. You can manage your notification preferences in your dashboard settings.</p>
       </div>
       
       <div style="text-align: center; color: #999; font-size: 12px;">
@@ -270,7 +270,7 @@ export function getNewFollowerEmailHtml(
   recipientProfileUrl: string,
   followerCount: number
 ): string {
-  const roleLabel = followerRole === "ngo" ? "NGO" : "Impact Agent"
+  const roleLabel = followerRole === "ngo" ? "NGO" : "Candidate (Impact Agent)"
   const followerCountText = followerCount === 1 ? "1 follower" : `${followerCount.toLocaleString()} followers`
 
   return `
@@ -341,7 +341,7 @@ export function getNewMessageEmailHtml(
   messagePreview: string,
   messagesUrl: string
 ): string {
-  const roleLabel = senderRole === "ngo" ? "NGO" : "Impact Agent"
+  const roleLabel = senderRole === "ngo" ? "NGO" : "Candidate (Impact Agent)"
   const truncated = messagePreview.length > 120 ? messagePreview.substring(0, 120) + "..." : messagePreview
 
   return `
@@ -487,7 +487,7 @@ export function getApplicationStatusEmailHtml(
           </a>
         </div>
         
-        ${status === "rejected" ? '<p style="color: #666; font-size: 14px;">Don\'t be discouraged! There are many more opportunities waiting for you on JustBeCause Network.</p>' : '<p style="color: #666; font-size: 14px;">Log in to your dashboard for more details.</p>'}
+        ${status === "rejected" ? '<p style="color: #666; font-size: 14px;">Don\'t be discouraged! There are many more jobs waiting for you on JustBeCause Network.</p>' : '<p style="color: #666; font-size: 14px;">Log in to your dashboard for more details.</p>'}
       </div>
       
       <div style="text-align: center; color: #999; font-size: 12px;">
@@ -507,7 +507,7 @@ export function getContactEmailHtml(
   senderRole: string,
   message?: string
 ): string {
-  const roleLabel = senderRole === "ngo" ? "NGO" : "Impact Agent"
+  const roleLabel = senderRole === "ngo" ? "NGO" : "Candidate (Impact Agent)"
 
   return `
     <!DOCTYPE html>
@@ -539,7 +539,7 @@ export function getContactEmailHtml(
           </a>
         </div>
         
-        <p style="color: #666; font-size: 14px;">Don't miss this connection opportunity! Log in to reply and start collaborating.</p>
+        <p style="color: #666; font-size: 14px;">Don't miss this connection job! Log in to reply and start collaborating.</p>
       </div>
       
       <div style="text-align: center; color: #999; font-size: 12px;">
@@ -564,7 +564,7 @@ export function getSubscriptionConfirmationEmailHtml(
   const dashboardUrl = role === "ngo" ? "/ngo/dashboard" : "/volunteer/dashboard"
   const features = role === "ngo" 
     ? [
-        "Unlimited access to pro bono Impact Agents",
+        "Unlimited access to pro bono Candidates (Impact Agents)",
         "Unlimited profile unlocks",
         "Priority project visibility",
         "Advanced matching &amp; search",
@@ -641,7 +641,7 @@ export function getSubscriptionExpiryReminderEmailHtml(
   
   const lostFeatures = role === "ngo" 
     ? [
-        "Unlimited access to pro bono Impact Agents",
+        "Unlimited access to pro bono Candidates (Impact Agents)",
         "Unlimited profile unlocks",
         "Priority project visibility",
         "Advanced matching &amp; search",
@@ -705,9 +705,9 @@ export function getProfileNudgeEmailHtml(
   role: "ngo" | "volunteer",
   onboardingUrl: string
 ): string {
-  const roleLabel = role === "ngo" ? "NGO" : "Impact Agent"
+  const roleLabel = role === "ngo" ? "NGO" : "Candidate (Impact Agent)"
   const benefits = role === "ngo" 
-    ? "post projects, find skilled Impact Agents, and start making an impact"
+    ? "post projects, find skilled Candidates (Impact Agents), and start making an impact"
     : "discover projects, connect with NGOs, and start making a difference"
 
   return `
@@ -780,7 +780,7 @@ export function getWeeklyDigestEmailHtml(
           <div style="display: flex; gap: 12px; margin: 20px 0;">
             <div style="flex: 1; background: #eff6ff; padding: 16px; border-radius: 8px; text-align: center;">
               <div style="font-size: 24px; font-weight: bold; color: #3b82f6;">${data.newProjects}</div>
-              <div style="font-size: 12px; color: #6b7280;">New Opportunities</div>
+              <div style="font-size: 12px; color: #6b7280;">New Jobs</div>
             </div>
             <div style="flex: 1; background: #f0fdf4; padding: 16px; border-radius: 8px; text-align: center;">
               <div style="font-size: 24px; font-weight: bold; color: #22c55e;">${data.profileViews}</div>
@@ -791,12 +791,12 @@ export function getWeeklyDigestEmailHtml(
           ${badgesList}
 
           ${data.matchingProjects.length > 0 ? `
-          <h3 style="color: #374151; margin-top: 24px;">🎯 Opportunities Matching Your Skills</h3>
+          <h3 style="color: #374151; margin-top: 24px;">🎯 Jobs Matching Your Skills</h3>
           <ul style="padding-left: 20px; color: #4b5563;">${projectLinks}</ul>
           ` : ""}
 
           <div style="text-align: center; margin-top: 24px;">
-            <a href="${process.env.NEXT_PUBLIC_APP_URL || "https://justbecausenetwork.com"}/projects" style="display: inline-block; background: #6366f1; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 500;">Browse All Opportunities</a>
+            <a href="${process.env.NEXT_PUBLIC_APP_URL || "https://justbecausenetwork.com"}/projects" style="display: inline-block; background: #6366f1; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 500;">Browse All Jobs</a>
           </div>
         </div>
         <div style="background: #f9fafb; padding: 20px; text-align: center; border-top: 1px solid #e5e7eb;">
@@ -878,7 +878,7 @@ export function getZeroResultAlertEmailHtml(query: string, engine: string, filte
         <ul style="margin-top: 4px;">${filterStr}</ul>
         <h3 style="margin-bottom: 8px;">Possible Reasons:</h3>
         <ul>
-          <li>No volunteers/NGOs/opportunities match this skill or role</li>
+          <li>No volunteers/NGOs/jobs match this skill or role</li>
           <li>The search term may need to be added as a synonym</li>
           <li>A new skill category might need to be created</li>
         </ul>
@@ -1325,7 +1325,7 @@ export function getContactAcknowledgementEmailHtml(firstName: string): string {
           <p>We've received your message and our team will get back to you as soon as possible, typically within 1-2 business days.</p>
           <p>In the meantime, feel free to explore our platform:</p>
           <div style="margin: 24px 0; text-align: center;">
-            <a href="${appUrl}/en/projects" style="display: inline-block; background: #10b981; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 500;">Browse Opportunities</a>
+            <a href="${appUrl}/en/projects" style="display: inline-block; background: #10b981; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 500;">Browse Jobs</a>
           </div>
           <p style="color: #6b7280; font-size: 14px;">If you have any urgent questions, you can reply directly to this email.</p>
         </div>

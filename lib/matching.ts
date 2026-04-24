@@ -188,7 +188,7 @@ function deepSkillMatch(
 }
 
 /**
- * Skill match from volunteer's perspective (seeing opportunities)
+ * Skill match from volunteer's perspective (seeing jobs)
  * Answers: "How well do my skills fit this project?"
  */
 function volunteerSkillFit(
@@ -676,7 +676,7 @@ export function matchOpportunitiesToVolunteer(
     const tiebreaker = urgencyScore(project.deadline) * 0.5 + ngoQualityScore(project) * 0.5
 
     // Compose final (volunteer view doesn't penalize missing must-haves as hard
-    // because the volunteer should still SEE relevant opportunities)
+    // because the volunteer should still SEE relevant jobs)
     const missedMustHaves = skill.totalMustHaves - skill.mustHavesMet
     const score = composeFinalScore(
       skill.score,
@@ -768,7 +768,7 @@ export function getRecommendedVolunteers(
 }
 
 /**
- * Get recommended opportunities for a volunteer
+ * Get recommended jobs for a volunteer
  */
 export function getRecommendedOpportunities(
   volunteer: VolunteerProfile,
@@ -1080,7 +1080,7 @@ export function scorePersonalizedOpportunity(
     reasons.push("Same country")
   }
 
-  if (project.workMode === "remote") reasons.push("Remote opportunity")
+  if (project.workMode === "remote") reasons.push("Remote job")
 
   if (causeAlign >= 70) reasons.push("Aligned with your causes")
   else if (causeAlign >= 40) reasons.push("Related to your interests")

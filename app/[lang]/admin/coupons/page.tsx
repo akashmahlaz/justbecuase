@@ -49,7 +49,7 @@ interface Coupon {
 
 const PLAN_OPTIONS = [
   { value: "ngo-pro", label: "NGO Pro" },
-  { value: "volunteer-pro", label: "Impact Agent Pro" },
+  { value: "volunteer-pro", label: "Candidate (Impact Agent) Pro" },
 ]
 
 export default function AdminCouponsPage() {

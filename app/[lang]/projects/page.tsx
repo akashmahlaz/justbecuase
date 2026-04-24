@@ -249,11 +249,11 @@ function ProjectsContent() {
           setTotalCount(data.pagination?.total || pageProjects.length)
           setServerTotalPages(data.pagination?.totalPages || 1)
         } else if (!personalized) {
-          setFetchError("Failed to load opportunities")
+          setFetchError("Failed to load jobs")
         }
       } catch (error) {
         console.error("Failed to fetch projects:", error)
-        setFetchError("Something went wrong loading opportunities")
+        setFetchError("Something went wrong loading jobs")
       } finally {
         setLoading(false)
       }
@@ -509,15 +509,15 @@ function ProjectsContent() {
           <div className="container mx-auto px-4 md:px-6 py-10 md:py-14">
             <div className="max-w-2xl">
               <TextAnimate animation="blurInUp" by="word" as="h1" className="text-3xl md:text-4xl font-bold text-foreground mb-3">
-                {dict.projectsListing?.title || "Browse Opportunities"}
+                {dict.projectsListing?.title || "Browse Jobs"}
               </TextAnimate>
-              <p className="text-muted-foreground text-lg mb-6">{dict.projectsListing?.subtitle || "Find opportunities that match your skills and interests"}</p>
+              <p className="text-muted-foreground text-lg mb-6">{dict.projectsListing?.subtitle || "Find jobs that match your skills and interests"}</p>
               <div className="max-w-xl">
                 <UnifiedSearchBar
                   defaultType="opportunity"
                   allowedTypes={["opportunity"]}
                   variant="default"
-                  placeholder={dict.projectsListing?.searchPlaceholder || "Search opportunities, skills, or organizations..."}
+                  placeholder={dict.projectsListing?.searchPlaceholder || "Search jobs, skills, or organizations..."}
                   value={searchQuery}
                   onSearchChange={setSearchQuery}
                   navigateOnSelect={false}
@@ -791,11 +791,11 @@ function ProjectsContent() {
               ) : filteredProjects.length === 0 ? (
                 <AIEmptyState
                   mode="empty"
-                  title={dict.projectsListing?.noOpportunitiesFound || "No opportunities found"}
+                  title={dict.projectsListing?.noOpportunitiesFound || "No jobs found"}
                   description={
                     hasActiveFilters
                       ? (dict.projectsListing?.tryAdjustingFilters || "Try adjusting your filters")
-                      : (dict.projectsListing?.checkBackLater || "Check back later for new opportunities")
+                      : (dict.projectsListing?.checkBackLater || "Check back later for new jobs")
                   }
                   action={
                     hasActiveFilters ? (

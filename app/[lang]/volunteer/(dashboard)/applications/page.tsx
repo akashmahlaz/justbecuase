@@ -52,7 +52,7 @@ export default async function VolunteerApplicationsPage({ params }: { params: Pr
           <div className="mb-8">
             <h1 className="text-2xl font-bold text-foreground mb-2">{dict.volunteer?.applications?.title || "My Applications"}</h1>
             <p className="text-muted-foreground">
-              {dict.volunteer?.applications?.subtitle || "Track the status of your impact agent applications"}
+              {dict.volunteer?.applications?.subtitle || "Track the status of your candidate (impact agent) applications"}
             </p>
           </div>
 
@@ -113,7 +113,7 @@ async function ApplicationsList({ filter, dict }: { filter?: string; dict: any }
           <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
           <p className="text-muted-foreground">{dict.volunteer?.applications?.noApplications || "No applications found"}</p>
           <Button variant="link" asChild className="mt-2">
-            <Link href="/volunteer/opportunities">{dict.volunteer?.common?.browseOpportunities || "Browse Opportunities"}</Link>
+            <Link href="/volunteer/opportunities">{dict.volunteer?.common?.browseOpportunities || "Browse Jobs"}</Link>
           </Button>
         </CardContent>
       </Card>
@@ -142,7 +142,7 @@ async function ApplicationsList({ filter, dict }: { filter?: string; dict: any }
                   <div>
                     <h3 className="font-medium text-foreground">{dict.volunteer?.applications?.applicationNumber || "Application #"}{application._id?.toString().slice(-6)}</h3>
                     <p className="text-sm text-muted-foreground">
-                      {dict.volunteer?.applications?.opportunityId || "Opportunity ID:"} {application.projectId.slice(-8)}
+                      {dict.volunteer?.applications?.opportunityId || "Job ID:"} {application.projectId.slice(-8)}
                     </p>
                   </div>
                 </div>
@@ -174,7 +174,7 @@ async function ApplicationsList({ filter, dict }: { filter?: string; dict: any }
                 <Button variant="outline" size="sm" asChild>
                   <Link href={`/projects/${application.projectId}`}>
                     <Eye className="h-4 w-4 mr-1" />
-                    {dict.volunteer?.applications?.viewOpportunity || "View Opportunity"}
+                    {dict.volunteer?.applications?.viewOpportunity || "View Job"}
                   </Link>
                 </Button>
               </div>

@@ -249,7 +249,7 @@ export default async function NGOProfilePage({ params }: { params: Promise<{ id:
                 <Card>
                   <CardContent className="py-12 text-center">
                     <FolderKanban className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                    <h3 className="font-semibold text-foreground mb-2">{dict.ngoDetail?.noOpenOpportunities || "No Open Opportunities"}</h3>
+                    <h3 className="font-semibold text-foreground mb-2">{dict.ngoDetail?.noOpenOpportunities || "No Open Jobs"}</h3>
                     <p className="text-muted-foreground">
                       {dict.ngoDetail?.noOpenOpportunitiesDesc || "This organization doesn't have any open opportunities at the moment."}
                     </p>

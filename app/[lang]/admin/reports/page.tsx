@@ -103,7 +103,7 @@ export default async function AdminReportsPage({ params }: { params: Promise<{ l
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">{dict.admin?.reports?.newOpportunitiesThisMonth || "New Opportunities (This Month)"}</p>
+                <p className="text-sm text-muted-foreground">{dict.admin?.reports?.newOpportunitiesThisMonth || "New Jobs (This Month)"}</p>
                 <p className="text-2xl font-bold text-foreground">{newProjectsThisMonth}</p>
               </div>
               <div className="w-10 h-10 rounded-lg bg-green-100 flex items-center justify-center">

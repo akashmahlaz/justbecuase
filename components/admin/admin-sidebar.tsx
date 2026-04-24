@@ -31,7 +31,7 @@ const navItems = [
     icon: Users,
   },
   {
-    title: "Impact Agents",
+    title: "Candidates (Impact Agents)",
     href: "/admin/volunteers",
     icon: Heart,
   },

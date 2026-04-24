@@ -334,7 +334,7 @@ function SignUpPageInner() {
               <User className="h-6 w-6 text-primary" />
             </div>
             <div className="flex-1">
-              <h3 className="font-semibold text-foreground mb-1">{a.imImpactAgent || "I'm an Impact Agent"}</h3>
+              <h3 className="font-semibold text-foreground mb-1">{a.imImpactAgent || "I'm an Candidate (Impact Agent)"}</h3>
               <p className="text-sm text-muted-foreground">
                 {a.imImpactAgentDesc || "I want to contribute my skills and expertise to help NGOs and nonprofits."}
               </p>
@@ -360,7 +360,7 @@ function SignUpPageInner() {
             <div className="flex-1">
               <h3 className="font-semibold text-foreground mb-1">{a.imNGO || "I'm an NGO / Nonprofit"}</h3>
               <p className="text-sm text-muted-foreground">
-                {a.imNGODesc || "I want to find skilled impact agents to help with opportunities and grow our capacity."}
+                {a.imNGODesc || "I want to find skilled candidates (impact agents) to help with jobs and grow our capacity."}
               </p>
             </div>
             <ArrowRight className="h-5 w-5 text-muted-foreground group-hover:text-secondary transition-colors" />
@@ -378,7 +378,7 @@ function SignUpPageInner() {
         </Button>
         <div>
           <h2 className="font-semibold text-foreground">
-            {accountType === "volunteer" ? (a.createAgentAccount || "Create your impact agent account") : (a.registerOrganization || "Register your organization")}
+            {accountType === "volunteer" ? (a.createAgentAccount || "Create your candidate (impact agent) account") : (a.registerOrganization || "Register your organization")}
           </h2>
           <p className="text-sm text-muted-foreground">{a.enterDetails || "Enter your details to get started"}</p>
         </div>
@@ -625,7 +625,7 @@ function SignUpPageInner() {
           <Card className="border-0 shadow-lg">
             <CardHeader className="space-y-1">
               <CardTitle className="text-2xl">{a.createAccount || "Create an account"}</CardTitle>
-              <CardDescription>{a.joinThousands || "Join thousands of impact agents and NGOs making an impact"}</CardDescription>
+              <CardDescription>{a.joinThousands || "Join thousands of candidates (impact agents) and NGOs making an impact"}</CardDescription>
             </CardHeader>
             <CardContent>
               {/* Email Verification Message */}

@@ -24,7 +24,7 @@ export default function VolunteerDashboardLayout({
         <SidebarInset>
           <DashboardContentHeader
             userType="volunteer"
-            userName={user?.name || "Impact Agent"}
+            userName={user?.name || "Candidate (Impact Agent)"}
             userAvatar={user?.image || undefined}
           />
           {user?.id && <NotificationListener userId={user.id} userType="volunteer" />}

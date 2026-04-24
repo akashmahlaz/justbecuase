@@ -69,7 +69,7 @@ async function DashboardContent({ dict }: { dict: any }) {
       {/* Key Metrics Row */}
       <div className="grid sm:grid-cols-2 lg:grid-cols-5 gap-4">
         <MetricCard
-          title={dict.admin?.dashboard?.totalImpactAgents || "Total Impact Agents"}
+          title={dict.admin?.dashboard?.totalImpactAgents || "Total Candidates (Impact Agents)"}
           value={analytics.totalVolunteers}
           icon={Users}
           subtext={(dict.admin?.dashboard?.thisMonth || "+{count} this month").replace("{count}", `${analytics.recentVolunteers}`)}
@@ -85,7 +85,7 @@ async function DashboardContent({ dict }: { dict: any }) {
           trendValue={analytics.recentNGOs > 0 ? `+${Math.round((analytics.recentNGOs / Math.max(analytics.totalNGOs - analytics.recentNGOs, 1)) * 100)}%` : "0%"}
         />
         <MetricCard
-          title={dict.admin?.dashboard?.activeOpportunities || "Active Opportunities"}
+          title={dict.admin?.dashboard?.activeOpportunities || "Active Jobs"}
           value={analytics.activeProjects}
           icon={FolderKanban}
           subtext={(dict.admin?.dashboard?.completed || "{count} completed").replace("{count}", `${analytics.completedProjects}`)}

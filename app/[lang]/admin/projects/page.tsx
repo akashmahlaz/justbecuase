@@ -15,9 +15,9 @@ export default async function AdminProjectsPage({ params }: { params: Promise<{ 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-foreground mb-2">{dict.admin?.projects?.title || "Manage Opportunities"}</h1>
+        <h1 className="text-2xl font-bold text-foreground mb-2">{dict.admin?.projects?.title || "Manage Jobs"}</h1>
         <p className="text-muted-foreground">
-          {dict.admin?.projects?.subtitle || "View and manage all impact agent opportunities"}
+          {dict.admin?.projects?.subtitle || "View and manage all candidate (impact agent) jobs"}
         </p>
       </div>
 
@@ -26,7 +26,7 @@ export default async function AdminProjectsPage({ params }: { params: Promise<{ 
         <Card>
           <CardContent className="p-4">
             <p className="text-2xl font-bold text-foreground">{analytics.activeProjects + analytics.completedProjects}</p>
-            <p className="text-sm text-muted-foreground">{dict.admin?.projects?.totalOpportunities || "Total Opportunities"}</p>
+            <p className="text-sm text-muted-foreground">{dict.admin?.projects?.totalOpportunities || "Total Jobs"}</p>
           </CardContent>
         </Card>
         <Card>
@@ -52,7 +52,7 @@ export default async function AdminProjectsPage({ params }: { params: Promise<{ 
       {/* Searchable Projects List */}
       <ProjectsSearchableList 
         projects={projectsData.data} 
-        title={dict.admin?.projects?.allOpportunities || "All Opportunities"}
+        title={dict.admin?.projects?.allOpportunities || "All Jobs"}
       />
     </div>
   )
