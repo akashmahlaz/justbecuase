@@ -85,7 +85,7 @@ export function ProjectCard({ project }: { project: Project }) {
           </div>
         )}
 
-        {/* NGO Info with HoverCard */}
+        {/* Enterprise Info with HoverCard */}
         <div className="flex items-center gap-3">
           <HoverCard>
             <HoverCardTrigger asChild>

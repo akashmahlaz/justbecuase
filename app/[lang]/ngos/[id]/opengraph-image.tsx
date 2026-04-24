@@ -1,12 +1,12 @@
 import { ImageResponse } from "next/og"
 import { getNGOById } from "@/lib/actions"
 
-export const alt = "NGO Profile - JustBeCause Network"
+export const alt = "Enterprise Profile - JustBeCause Network"
 export const size = { width: 1200, height: 630 }
 export const contentType = "image/png"
 
 export default async function Image({ params }: { params: { id: string; lang: string } }) {
-  let name = "NGO Profile"
+  let name = "Enterprise Profile"
   let description = ""
   let verified = false
 
@@ -39,7 +39,7 @@ export default async function Image({ params }: { params: { id: string; lang: st
           <div style={{ fontSize: "24px", fontWeight: 700, color: "#22d3ee" }}>
             JustBeCause Network
           </div>
-          <div style={{ fontSize: "18px", color: "#64748b" }}>· NGO Profile</div>
+          <div style={{ fontSize: "18px", color: "#64748b" }}>· Enterprise Profile</div>
         </div>
 
         <div

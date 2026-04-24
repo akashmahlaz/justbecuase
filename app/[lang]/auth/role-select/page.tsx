@@ -137,7 +137,7 @@ function RoleSelectContent() {
               <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
                 <Heart className="h-10 w-10 text-primary" />
               </div>
-              <CardTitle className="text-xl">{a.imImpactAgent || "I'm an Impact Agent"}</CardTitle>
+              <CardTitle className="text-xl">{a.imImpactAgent || "I'm an Candidate"}</CardTitle>
               <CardDescription>
                 {a.shareSkills || "Share your skills and make an impact"}
               </CardDescription>
@@ -145,8 +145,8 @@ function RoleSelectContent() {
             <CardContent className="text-center">
               <ul className="text-sm text-muted-foreground space-y-2 mb-6">
                 <li>✓ {a.agentBullet1 || "Create your skills-based profile"}</li>
-                <li>✓ {a.agentBullet2 || "Browse impact agent opportunities"}</li>
-                <li>✓ {a.agentBullet3 || "Connect with NGOs"}</li>
+                <li>✓ {a.agentBullet2 || "Browse candidate jobs"}</li>
+                <li>✓ {a.agentBullet3 || "Connect with Enterprises"}</li>
                 <li>✓ {a.trackImpact || "Track your social impact"}</li>
               </ul>
               <Button
@@ -160,13 +160,13 @@ function RoleSelectContent() {
                     {a.settingUp || "Setting up..."}
                   </>
                 ) : (
-                  a.continueAsImpactAgent || "Continue as Impact Agent"
+                  a.continueAsImpactAgent || "Continue as Candidate"
                 )}
               </Button>
             </CardContent>
           </Card>
 
-          {/* NGO Card */}
+          {/* Enterprise Card */}
           <Card
             className={`cursor-pointer transition-all hover:shadow-lg hover:border-secondary ${
               selectedRole === "ngo" ? "border-secondary ring-2 ring-secondary" : ""
@@ -177,16 +177,16 @@ function RoleSelectContent() {
               <div className="w-20 h-20 rounded-full bg-secondary/10 flex items-center justify-center mx-auto mb-4">
                 <Building2 className="h-10 w-10 text-secondary" />
               </div>
-              <CardTitle className="text-xl">{a.imNGO || "I'm an NGO"}</CardTitle>
+              <CardTitle className="text-xl">{a.imNGO || "I'm an Enterprise"}</CardTitle>
               <CardDescription>
-                {a.findProfessionals || "Find skilled impact agents for your cause"}
+                {a.findProfessionals || "Find skilled candidates for your cause"}
               </CardDescription>
             </CardHeader>
             <CardContent className="text-center">
               <ul className="text-sm text-muted-foreground space-y-2 mb-6">
                 <li>✓ {a.ngoBullet1 || "Create your organization profile"}</li>
-                <li>✓ {a.ngoBullet2 || "Post impact agent opportunities"}</li>
-                <li>✓ {a.ngoBullet3 || "Browse skilled impact agents"}</li>
+                <li>✓ {a.ngoBullet2 || "Post candidate jobs"}</li>
+                <li>✓ {a.ngoBullet3 || "Browse skilled candidates"}</li>
                 <li>✓ {a.trackImpact || "Manage applications"}</li>
               </ul>
               <Button
@@ -200,7 +200,7 @@ function RoleSelectContent() {
                     {a.settingUp || "Setting up..."}
                   </>
                 ) : (
-                  a.continueAsNGO || "Continue as NGO"
+                  a.continueAsNGO || "Continue as Enterprise"
                 )}
               </Button>
             </CardContent>

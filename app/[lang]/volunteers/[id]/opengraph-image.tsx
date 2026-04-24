@@ -1,19 +1,19 @@
 import { ImageResponse } from "next/og"
 import { getVolunteerProfileView } from "@/lib/actions"
 
-export const alt = "Impact Agent Profile - JustBeCause Network"
+export const alt = "Candidate Profile - JustBeCause Network"
 export const size = { width: 1200, height: 630 }
 export const contentType = "image/png"
 
 export default async function Image({ params }: { params: { id: string; lang: string } }) {
-  let name = "Impact Agent"
+  let name = "Candidate"
   let bio = ""
   let skills: string[] = []
 
   try {
     const volunteer = await getVolunteerProfileView(params.id)
     if (volunteer) {
-      name = volunteer.name || "Impact Agent"
+      name = volunteer.name || "Candidate"
       bio = (volunteer.bio || "").slice(0, 120)
       skills = (volunteer.skills || [])
         .slice(0, 4)
@@ -42,7 +42,7 @@ export default async function Image({ params }: { params: { id: string; lang: st
           <div style={{ fontSize: "24px", fontWeight: 700, color: "#22d3ee" }}>
             JustBeCause Network
           </div>
-          <div style={{ fontSize: "18px", color: "#64748b" }}>· Impact Agent</div>
+          <div style={{ fontSize: "18px", color: "#64748b" }}>· Candidate</div>
         </div>
 
         <div

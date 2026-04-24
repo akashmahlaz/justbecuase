@@ -17,7 +17,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (session.user.role !== "ngo") {
-      return NextResponse.json({ error: "Only NGOs can unlock profiles" }, { status: 403 })
+      return NextResponse.json({ error: "Only Enterprises can unlock profiles" }, { status: 403 })
     }
 
     const body = await request.json()
@@ -33,7 +33,7 @@ export async function POST(request: NextRequest) {
     } = body
 
     if (!volunteerId) {
-      return NextResponse.json({ error: "Impact agent ID required" }, { status: 400 })
+      return NextResponse.json({ error: "Candidate ID required" }, { status: 400 })
     }
 
     let paymentVerification: { success: boolean; paymentId: string }

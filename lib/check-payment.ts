@@ -15,7 +15,7 @@ async function checkPaymentSetup() {
     const settings = await db.collection("adminSettings").findOne({})
     if (settings) {
       console.log("  - Platform:", settings.platformName)
-      console.log("  - NGO Pro Price:", settings.ngoProPrice || 1, "(test price)")
+      console.log("  - Enterprise Pro Price:", settings.ngoProPrice || 1, "(test price)")
       console.log("  - Volunteer Pro Price:", settings.volunteerProPrice || 1, "(test price)")
       console.log("  - Currency:", settings.currency || "USD")
       console.log("  - Payments Enabled:", settings.enablePayments !== false)
@@ -23,18 +23,18 @@ async function checkPaymentSetup() {
       console.log("  ⚠️ No admin settings found - will use defaults")
     }
     
-    // Check NGO users
-    console.log("\n👥 Checking NGO Users...")
+    // Check Enterprise users
+    console.log("\n👥 Checking Enterprise Users...")
     const ngoUsers = await db.collection("user").find({ role: "ngo" }).toArray()
-    console.log(`  Found ${ngoUsers.length} NGO user(s)`)
+    console.log(`  Found ${ngoUsers.length} Enterprise user(s)`)
     for (const ngo of ngoUsers.slice(0, 3)) {
       console.log(`  - ${ngo.email} (role: ${ngo.role}, onboarded: ${ngo.isOnboarded})`)
     }
     
-    // Check NGO Profiles (now in user collection)
-    console.log("\n🏢 Checking NGO Profiles (from user collection)...")
+    // Check Enterprise Profiles (now in user collection)
+    console.log("\n🏢 Checking Enterprise Profiles (from user collection)...")
     const ngoProfiles = await db.collection("user").find({ role: "ngo" }).limit(3).toArray()
-    console.log(`  Found ${ngoProfiles.length} NGO profile(s)`)
+    console.log(`  Found ${ngoProfiles.length} Enterprise profile(s)`)
     for (const profile of ngoProfiles) {
       console.log(`  - ${profile.orgName || "Unnamed"} (unlocks remaining: ${profile.profileUnlocksRemaining || 0})`)
     }
@@ -57,7 +57,7 @@ async function checkPaymentSetup() {
     const unlocks = await db.collection("profileUnlocks").find({}).limit(5).toArray()
     console.log(`  Found ${unlocks.length} unlock(s)`)
     for (const unlock of unlocks) {
-      console.log(`  - NGO ${unlock.ngoId} unlocked volunteer ${unlock.volunteerId} for ${unlock.amountPaid} ${unlock.currency || "USD"}`)
+      console.log(`  - Enterprise ${unlock.ngoId} unlocked volunteer ${unlock.volunteerId} for ${unlock.amountPaid} ${unlock.currency || "USD"}`)
     }
     
     // Check Transactions
@@ -74,7 +74,7 @@ async function checkPaymentSetup() {
     console.log("=".repeat(50))
     
     if (ngoUsers.length === 0) {
-      console.log("⚠️ No NGO users - Create an NGO account first to test payments")
+      console.log("⚠️ No Enterprise users - Create an Enterprise account first to test payments")
     }
     if (volunteerProfiles.filter(v => v.volunteerType === "free" || v.volunteerType === "both").length === 0) {
       console.log("⚠️ No free volunteers - Create a volunteer with 'free' type to test profile locking")

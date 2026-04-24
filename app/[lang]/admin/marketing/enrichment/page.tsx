@@ -7,11 +7,11 @@ export default function EnrichmentPage() {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Building2 className="size-5 text-orange-600" />
-          NGO Enrichment
+          Enterprise Enrichment
         </CardTitle>
       </CardHeader>
       <CardContent className="text-muted-foreground">
-        Coming soon — Enrich existing NGO profiles with TheirStack company intelligence.
+        Coming soon — Enrich existing Enterprise profiles with TheirStack company intelligence.
       </CardContent>
     </Card>
   )

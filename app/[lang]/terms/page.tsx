@@ -60,11 +60,11 @@ export default function TermsPage() {
                   credentials.
                 </p>
                 <p>
-                  <strong>2.2 Account Types:</strong> The Platform offers two types of accounts: Impact Agent
-                  accounts and NGO/Nonprofit accounts. You may only create one account per entity.
+                  <strong>2.2 Account Types:</strong> The Platform offers two types of accounts: Candidate
+                  accounts and Enterprise/Nonprofit accounts. You may only create one account per entity.
                 </p>
                 <p>
-                  <strong>2.3 Verification:</strong> NGO accounts may be subject to verification to ensure they
+                  <strong>2.3 Verification:</strong> Enterprise accounts may be subject to verification to ensure they
                   represent legitimate nonprofit organizations.
                 </p>
               </CardContent>
@@ -89,20 +89,20 @@ export default function TermsPage() {
 
             <Card>
               <CardHeader>
-                <CardTitle>4. Impact Agent Services</CardTitle>
+                <CardTitle>4. Candidate Services</CardTitle>
               </CardHeader>
               <CardContent className="prose prose-sm max-w-none">
                 <p>
-                  <strong>4.1 Pro-Bono Services:</strong> The Platform primarily facilitates pro-bono impact agent
+                  <strong>4.1 Pro-Bono Services:</strong> The Platform primarily facilitates pro-bono candidate
                   services. Any paid arrangements must be clearly disclosed and agreed upon between parties.
                 </p>
                 <p>
                   <strong>4.2 No Employment Relationship:</strong> JustBeCause Network does not create an employment
-                  relationship between impact agents and NGOs. Users are responsible for their own tax and legal
+                  relationship between candidates and Enterprises. Users are responsible for their own tax and legal
                   obligations.
                 </p>
                 <p>
-                  <strong>4.3 Quality of Work:</strong> While we encourage high-quality impact agent work, we do not
+                  <strong>4.3 Quality of Work:</strong> While we encourage high-quality candidate work, we do not
                   guarantee the quality, completeness, or timeliness of services provided through the Platform.
                 </p>
               </CardContent>
@@ -123,7 +123,7 @@ export default function TermsPage() {
                 </p>
                 <p>
                   <strong>5.3 Work Product:</strong> Intellectual property rights for work created through
-                  volunteer projects should be agreed upon between impact agents and NGOs before project commencement.
+                  volunteer projects should be agreed upon between candidates and Enterprises before project commencement.
                 </p>
               </CardContent>
             </Card>
@@ -134,10 +134,10 @@ export default function TermsPage() {
               </CardHeader>
               <CardContent className="prose prose-sm max-w-none">
                 <p>
-                  JustBeCause Network is a platform connecting impact agents with NGOs. We are not responsible for:
+                  JustBeCause Network is a platform connecting candidates with Enterprises. We are not responsible for:
                 </p>
                 <ul className="list-disc pl-6 space-y-2">
-                  <li>The quality or outcome of impact agent work</li>
+                  <li>The quality or outcome of candidate work</li>
                   <li>Disputes between users</li>
                   <li>Loss or damage resulting from use of the Platform</li>
                   <li>Actions or omissions of users</li>

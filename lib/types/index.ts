@@ -73,9 +73,9 @@ export interface VolunteerProfile {
   
   // Work Preferences
   volunteerType: VolunteerType // "free" | "paid" | "both"
-  freeHoursPerMonth?: number // Free hours available per month for NGOs
+  freeHoursPerMonth?: number // Free hours available per month for Enterprises
   hourlyRate?: number // Only if paid
-  discountedRate?: number // Discounted rate for NGOs (low bono)
+  discountedRate?: number // Discounted rate for Enterprises (low bono)
   currency?: string
   workMode: WorkMode
   hoursPerWeek: string
@@ -90,8 +90,8 @@ export interface VolunteerProfile {
   // Saved/Bookmarked Projects
   savedProjects?: string[] // Array of project IDs
   
-  // Followed NGOs
-  followedNgos?: string[] // Array of NGO user IDs
+  // Followed Enterprises
+  followedNgos?: string[] // Array of Enterprise user IDs
   
   // Subscription (for application limits)
   subscriptionPlan: "free" | "pro"
@@ -106,7 +106,7 @@ export interface VolunteerProfile {
   
   // Privacy Settings
   privacy?: {
-    showProfile: boolean // Visible to NGOs
+    showProfile: boolean // Visible to Enterprises
     showInSearch: boolean // Show in volunteer search results
     emailNotifications: boolean
     applicationNotifications: boolean
@@ -120,7 +120,7 @@ export interface VolunteerProfile {
 }
 
 // ============================================
-// NGO PROFILE
+// Enterprise PROFILE
 // ============================================
 export interface RequiredSkill {
   categoryId: string
@@ -184,7 +184,7 @@ export interface NGOProfile {
   isActive: boolean
   isBanned?: boolean
   
-  // Verification Documents (for NGO verification)
+  // Verification Documents (for Enterprise verification)
   verificationDocuments?: {
     name: string
     url: string
@@ -216,7 +216,7 @@ export type ProjectType = "short-term" | "long-term" | "consultation" | "ongoing
 
 export interface Project {
   _id?: ObjectId
-  ngoId: string // Reference to NGO User
+  ngoId: string // Reference to Enterprise User
   ngoProfileId: string // Reference to NGOProfile
   
   // Basic Info
@@ -285,7 +285,7 @@ export interface Application {
   projectId: string
   volunteerId: string // User ID
   volunteerProfileId: string // VolunteerProfile ID
-  ngoId: string // NGO User ID
+  ngoId: string // Enterprise User ID
   
   // Application Details
   coverMessage?: string
@@ -293,8 +293,8 @@ export interface Application {
   // Status
   status: ApplicationStatus
   
-  // NGO Actions
-  isProfileUnlocked: boolean // Has NGO paid to unlock (for free volunteers)
+  // Enterprise Actions
+  isProfileUnlocked: boolean // Has Enterprise paid to unlock (for free volunteers)
   ngoNotes?: string
   
   // Timestamps
@@ -309,7 +309,7 @@ export interface Application {
 // ============================================
 export interface ProfileUnlock {
   _id?: ObjectId
-  ngoId: string // NGO who paid
+  ngoId: string // Enterprise who paid
   volunteerId: string // Volunteer whose profile was unlocked
   
   // Payment Details
@@ -406,7 +406,7 @@ export interface Conversation {
   lastMessage?: string
   lastMessageAt?: Date
   
-  // For NGO - is this volunteer profile unlocked?
+  // For Enterprise - is this volunteer profile unlocked?
   isUnlocked: boolean
   
   // Enriched fields from getMyConversations
@@ -484,11 +484,11 @@ export interface SubscriptionPlanConfig {
   volunteerProPrice: number
   volunteerProFeatures: string[]
   
-  // NGO Free Plan
+  // Enterprise Free Plan
   ngoFreeProjectsPerMonth: number
   ngoFreeProfileUnlocksPerMonth: number
   
-  // NGO Pro Plan
+  // Enterprise Pro Plan
   ngoProPrice: number
   ngoProFeatures: string[]
 }
@@ -537,7 +537,7 @@ export interface AdminSettings {
   volunteerProApplicationsUnlimited: boolean
   volunteerProFeatures: string[]
   
-  // Subscription Plan Settings - NGO
+  // Subscription Plan Settings - Enterprise
   ngoFreeProjectsPerMonth: number
   ngoFreeProfileUnlocksPerMonth: number
   ngoProPrice: number
@@ -889,7 +889,7 @@ export interface VolunteerProfileView {
   rating: number
   isVerified: boolean
   
-  // Visible for PAID volunteers OR if NGO has unlocked
+  // Visible for PAID volunteers OR if Enterprise has unlocked
   name?: string | null // null = blurred
   avatar?: string | null
   bio?: string | null

@@ -57,7 +57,7 @@ export default function EditProjectPage({ params }: Props) {
     status: "active" as "draft" | "active" | "open" | "paused" | "completed" | "closed" | "cancelled",
   })
 
-  // Fetch project and NGO profile on mount
+  // Fetch project and Enterprise profile on mount
   useEffect(() => {
     async function loadData() {
       if (!user) return
@@ -101,7 +101,7 @@ export default function EditProjectPage({ params }: Props) {
           })
         }
       } catch (err) {
-        setError(dict.ngo?.projects?.edit?.loadError || "Failed to load opportunity")
+        setError(dict.ngo?.projects?.edit?.loadError || "Failed to load job")
       } finally {
         setIsLoading(false)
       }
@@ -142,7 +142,7 @@ export default function EditProjectPage({ params }: Props) {
           router.push(localePath("/ngo/projects", locale))
         }, 1500)
       } else {
-        setError(result.error || (dict.ngo?.projects?.edit?.updateError || "Failed to update opportunity"))
+        setError(result.error || (dict.ngo?.projects?.edit?.updateError || "Failed to update job"))
       }
     } catch (err) {
       setError(dict.ngo?.common?.unexpectedError || "An unexpected error occurred")
@@ -160,12 +160,12 @@ export default function EditProjectPage({ params }: Props) {
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
           <AlertCircle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-          <h2 className="text-xl font-semibold mb-2">{dict.ngo?.projects?.edit?.notFound || "Opportunity Not Found"}</h2>
+          <h2 className="text-xl font-semibold mb-2">{dict.ngo?.projects?.edit?.notFound || "Job Not Found"}</h2>
           <p className="text-muted-foreground mb-4">
-            {dict.ngo?.projects?.edit?.notFoundDesc || "The opportunity you're looking for doesn't exist or you don't have permission to edit it."}
+            {dict.ngo?.projects?.edit?.notFoundDesc || "The job you're looking for doesn't exist or you don't have permission to edit it."}
           </p>
           <Button asChild>
-            <LocaleLink href="/ngo/projects">{dict.ngo?.projects?.edit?.goToOpportunities || "Go to Opportunities"}</LocaleLink>
+            <LocaleLink href="/ngo/projects">{dict.ngo?.projects?.edit?.goToOpportunities || "Go to Jobs"}</LocaleLink>
           </Button>
         </div>
       </div>
@@ -181,22 +181,22 @@ export default function EditProjectPage({ params }: Props) {
             className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground mb-4"
           >
             <ArrowLeft className="h-4 w-4 mr-2" />
-            {dict.ngo?.projects?.edit?.backToOpportunities || "Back to Opportunities"}
+            {dict.ngo?.projects?.edit?.backToOpportunities || "Back to Jobs"}
           </LocaleLink>
-          <h1 className="text-3xl font-bold text-foreground">{dict.ngo?.projects?.edit?.title || "Edit Opportunity"}</h1>
-          <p className="text-muted-foreground">{dict.ngo?.projects?.edit?.subtitle || "Update your opportunity details"}</p>
+          <h1 className="text-3xl font-bold text-foreground">{dict.ngo?.projects?.edit?.title || "Edit Job"}</h1>
+          <p className="text-muted-foreground">{dict.ngo?.projects?.edit?.subtitle || "Update your job details"}</p>
         </div>
 
         <Card>
           <CardHeader>
-            <CardTitle>{dict.ngo?.postProject?.opportunityDetails || "Opportunity Details"}</CardTitle>
-            <CardDescription>{dict.ngo?.projects?.edit?.makeChanges || "Make changes to your opportunity and save when done"}</CardDescription>
+            <CardTitle>{dict.ngo?.postProject?.opportunityDetails || "Job Details"}</CardTitle>
+            <CardDescription>{dict.ngo?.projects?.edit?.makeChanges || "Make changes to your job and save when done"}</CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-6">
               {/* Status */}
               <div className="space-y-2">
-                <Label htmlFor="status">{dict.ngo?.projects?.edit?.status || "Opportunity Status"}</Label>
+                <Label htmlFor="status">{dict.ngo?.projects?.edit?.status || "Job Status"}</Label>
                 <Select
                   value={formData.status}
                   onValueChange={(value: any) => setFormData({ ...formData, status: value })}
@@ -218,7 +218,7 @@ export default function EditProjectPage({ params }: Props) {
 
               {/* Title */}
               <div className="space-y-2">
-                <Label htmlFor="title">{dict.ngo?.common?.opportunityTitle || "Opportunity Title"}</Label>
+                <Label htmlFor="title">{dict.ngo?.common?.opportunityTitle || "Job Title"}</Label>
                 <Input
                   id="title"
                   placeholder="e.g., Social Media Strategy for Environmental Campaign"
@@ -230,7 +230,7 @@ export default function EditProjectPage({ params }: Props) {
 
               {/* Description */}
               <div className="space-y-2">
-                <Label htmlFor="description">{dict.ngo?.common?.opportunityDescription || "Opportunity Description"}</Label>
+                <Label htmlFor="description">{dict.ngo?.common?.opportunityDescription || "Job Description"}</Label>
                 <Textarea
                   id="description"
                   placeholder="Describe what you need help with, the background, and any specific requirements..."
@@ -371,7 +371,7 @@ export default function EditProjectPage({ params }: Props) {
 
               {/* Opportunity Type */}
               <div className="space-y-2">
-                <Label htmlFor="projectType">{dict.ngo?.projects?.edit?.opportunityType || "Opportunity Type"}</Label>
+                <Label htmlFor="projectType">{dict.ngo?.projects?.edit?.opportunityType || "Job Type"}</Label>
                 <Select
                   value={formData.projectType}
                   onValueChange={(value: "short-term" | "long-term" | "consultation" | "ongoing") =>
@@ -379,7 +379,7 @@ export default function EditProjectPage({ params }: Props) {
                   }
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder={dict.ngo?.projects?.edit?.selectType || "Select opportunity type"} />
+                    <SelectValue placeholder={dict.ngo?.projects?.edit?.selectType || "Select job type"} />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="short-term">{dict.ngo?.common?.shortTerm || "Short-term"}</SelectItem>
@@ -401,7 +401,7 @@ export default function EditProjectPage({ params }: Props) {
               {success && (
                 <div className="p-4 bg-green-50 border border-green-200 rounded-lg text-green-600 flex items-center gap-2">
                   <CheckCircle className="h-4 w-4" />
-                  {dict.ngo?.projects?.edit?.updateSuccess || "Opportunity updated successfully! Redirecting..."}
+                  {dict.ngo?.projects?.edit?.updateSuccess || "Job updated successfully! Redirecting..."}
                 </div>
               )}
 
@@ -415,7 +415,7 @@ export default function EditProjectPage({ params }: Props) {
                 >
                   <LocaleLink href={`/ngo/projects/${id}/delete`}>
                     <Trash2 className="h-4 w-4 mr-2" />
-                    {dict.ngo?.projects?.edit?.deleteOpportunity || "Delete Opportunity"}
+                    {dict.ngo?.projects?.edit?.deleteOpportunity || "Delete Job"}
                   </LocaleLink>
                 </Button>
                 

@@ -255,7 +255,7 @@ export function UserActions({
                 disabled={currentRole === "volunteer"}
               >
                 <Heart className="h-4 w-4" />
-                Impact Agent
+                Candidate
                 {currentRole === "volunteer" && <CheckCircle className="h-3 w-3 ml-auto text-green-600" />}
               </DropdownMenuItem>
               <DropdownMenuItem 
@@ -264,7 +264,7 @@ export function UserActions({
                 disabled={currentRole === "ngo"}
               >
                 <Building2 className="h-4 w-4" />
-                NGO
+                Enterprise
                 {currentRole === "ngo" && <CheckCircle className="h-3 w-3 ml-auto text-green-600" />}
               </DropdownMenuItem>
               <DropdownMenuSeparator />

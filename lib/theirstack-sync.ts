@@ -102,7 +102,7 @@ export function buildTheirStackSyncQuery(options: TheirStackSyncOptions = {}): J
   // Per Xoel (TheirStack co-founder, Apr 13 2026):
   // - Do NOT stack industry_id_or + company_description_pattern_or + job_description_contains_or
   //   — they AND together and return almost nothing.
-  // - Use company_description_pattern_or alone (broadest NGO net).
+  // - Use company_description_pattern_or alone (broadest Enterprise net).
   // - Removed property_exists_or: ["hiring_team"] — too restrictive, filters out most results.
   return {
     page: 0,

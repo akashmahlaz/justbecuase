@@ -85,7 +85,7 @@ async function syncUserNames() {
     
     console.log(`\n📊 Migration Summary:`)
     console.log(`   - Volunteer profiles updated: ${volunteerUpdates}`)
-    console.log(`   - NGO profiles updated: ${ngoUpdates}`)
+    console.log(`   - Enterprise profiles updated: ${ngoUpdates}`)
     console.log(`\n✅ Migration completed successfully!`)
     
   } catch (error) {

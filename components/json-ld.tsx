@@ -8,7 +8,7 @@ export function OrganizationJsonLd() {
     url: SITE_URL,
     logo: `${SITE_URL}/logo-main.png`,
     description:
-      "Connect your skills with meaningful causes. A platform matching skilled professionals with NGOs and nonprofits worldwide.",
+      "Connect your skills with meaningful causes. A platform matching skilled professionals with Enterprises and nonprofits worldwide.",
     sameAs: [
       "https://www.linkedin.com/in/just-because-network-07599a3a9/",
       "https://twitter.com/justbecausenet",
@@ -37,7 +37,7 @@ export function WebSiteJsonLd() {
     "@type": "WebSite",
     name: "JustBeCause Network",
     url: SITE_URL,
-    description: "Skills-based volunteering platform connecting professionals with NGOs and nonprofits worldwide.",
+    description: "Skills-based volunteering platform connecting professionals with Enterprises and nonprofits worldwide.",
     potentialAction: {
       "@type": "SearchAction",
       target: {

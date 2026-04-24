@@ -9,11 +9,11 @@ export const seoConfig = {
   name: SITE_NAME,
   title: "JustBeCause Network - Skills-Based Impact Platform",
   description:
-    "Connect your skills with meaningful causes. Join thousands of professionals making an impact worldwide through skills-based volunteering with NGOs and nonprofits.",
+    "Connect your skills with meaningful causes. Join thousands of professionals making an impact worldwide through skills-based volunteering with Enterprises and nonprofits.",
   keywords: [
     "skills-based volunteering",
-    "impact agent",
-    "NGO volunteering",
+    "candidate",
+    "Enterprise volunteering",
     "nonprofit volunteer platform",
     "social impact",
     "JustBeCause Network",
@@ -22,7 +22,7 @@ export const seoConfig = {
     "skilled volunteering",
     "CSR platform",
     "volunteer opportunities",
-    "NGO project matching",
+    "Enterprise project matching",
     "social good platform",
     "professional volunteering",
     "impact marketplace",
@@ -222,7 +222,7 @@ export function projectJsonLd(project: {
   }
 }
 
-/** JSON-LD for a person (volunteer/impact agent profile) */
+/** JSON-LD for a person (volunteer/candidate profile) */
 export function volunteerJsonLd(volunteer: {
   name: string
   title?: string
@@ -251,7 +251,7 @@ export function volunteerJsonLd(volunteer: {
   }
 }
 
-/** JSON-LD for an NGO profile */
+/** JSON-LD for an Enterprise profile */
 export function ngoJsonLd(ngo: {
   name: string
   description?: string
@@ -263,7 +263,7 @@ export function ngoJsonLd(ngo: {
 }) {
   return {
     "@context": "https://schema.org",
-    "@type": "NGO",
+    "@type": "Enterprise",
     name: ngo.name,
     url: absoluteUrl(`/${ngo.lang}/ngos/${ngo.id}`),
     ...(ngo.description && { description: ngo.description }),

@@ -44,7 +44,7 @@ export function MissionSection() {
             transition={{ delay: 0.2 }}
             className="text-lg md:text-xl text-muted-foreground mb-10 max-w-2xl mx-auto text-pretty"
           >
-            {h.missionDesc || "We believe everyone has the power to make a difference. JustBeCause Network connects skilled professionals with NGOs and social enterprises that need expertise — not just goodwill."}
+            {h.missionDesc || "We believe everyone has the power to make a difference. JustBeCause Network connects skilled professionals with Enterprises and social enterprises that need expertise — not just goodwill."}
           </motion.p>
 
           {/* Registration Buttons */}
@@ -62,7 +62,7 @@ export function MissionSection() {
             >
               <LocaleLink href="/auth/signup?role=volunteer" className="flex items-center gap-2">
                 <Users className="h-5 w-5" />
-                {h.registerAsAgent || "Register as Impact Agent"}
+                {h.registerAsAgent || "Register as Candidate"}
                 <ArrowRight className="h-4 w-4" />
               </LocaleLink>
             </Button>
@@ -74,7 +74,7 @@ export function MissionSection() {
             >
               <LocaleLink href="/auth/signup?role=ngo" className="flex items-center gap-2">
                 <Building2 className="h-5 w-5" />
-                {h.registerAsNGO || "Register as NGO"}
+                {h.registerAsNGO || "Register as Enterprise"}
               </LocaleLink>
             </Button>
           </motion.div>

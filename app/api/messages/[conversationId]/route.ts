@@ -185,7 +185,7 @@ export async function POST(
     let senderRole = "volunteer"
     const senderUser = await userCollection.findOne(userIdQuery(session.user.id))
     if (senderUser) {
-      // For NGOs, prefer orgName/organizationName
+      // For Enterprises, prefer orgName/organizationName
       if (senderUser.role === "ngo") {
         senderName = senderUser.orgName || senderUser.organizationName || senderUser.name || senderName
         senderRole = "ngo"

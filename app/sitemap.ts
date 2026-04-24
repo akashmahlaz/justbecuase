@@ -59,7 +59,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     console.error("[sitemap] Failed to fetch projects:", e)
   }
 
-  // Dynamic NGO pages
+  // Dynamic Enterprise pages
   let ngoEntries: MetadataRoute.Sitemap = []
   try {
     const ngos = await ngoProfilesDb.findMany({ isActive: true }, { limit: 5000 } as any)
@@ -77,7 +77,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       }))
     )
   } catch (e) {
-    console.error("[sitemap] Failed to fetch NGOs:", e)
+    console.error("[sitemap] Failed to fetch Enterprises:", e)
   }
 
   // Dynamic blog pages

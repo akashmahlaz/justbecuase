@@ -24,7 +24,7 @@ export default function NGODashboardLayout({
         <SidebarInset>
           <DashboardContentHeader
             userType="ngo"
-            userName={user?.name || "NGO"}
+            userName={user?.name || "Enterprise"}
             userAvatar={user?.image || undefined}
           />
           {user?.id && <NotificationListener userId={user.id} userType="ngo" />}

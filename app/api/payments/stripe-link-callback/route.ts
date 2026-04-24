@@ -10,7 +10,7 @@ import Stripe from "stripe"
 // This endpoint handles the redirect back from Stripe Payment Links
 // Configure this URL in your Payment Link settings: "After payment" → "Redirect to website"
 // 
-// FOR NGO PRO:
+// FOR Enterprise PRO:
 //   URL: http://localhost:3000/api/payments/stripe-link-callback?type=subscription&plan=ngo-pro
 //   OR for production: https://yourdomain.com/api/payments/stripe-link-callback?type=subscription&plan=ngo-pro
 //
@@ -95,9 +95,9 @@ export async function GET(request: NextRequest) {
       console.log("📦 Effective plan:", effectivePlan)
 
       if (effectivePlan.includes("ngo") || userRole === "ngo") {
-        console.log("🏢 Updating NGO subscription...")
+        console.log("🏢 Updating Enterprise subscription...")
         const ngoProfile = await ngoProfilesDb.findByUserId(userId)
-        console.log("📄 Found NGO profile:", ngoProfile ? "YES" : "NO", ngoProfile?._id)
+        console.log("📄 Found Enterprise profile:", ngoProfile ? "YES" : "NO", ngoProfile?._id)
         
         if (ngoProfile && ngoProfile._id) {
           await ngoProfilesDb.update(ngoProfile._id.toString(), {
@@ -105,7 +105,7 @@ export async function GET(request: NextRequest) {
             subscriptionExpiry: expiryDate,
             monthlyUnlocksUsed: 0, // Reset unlocks
           })
-          console.log("✅ NGO subscription updated to PRO!")
+          console.log("✅ Enterprise subscription updated to PRO!")
           
           // Also create a transaction record
           try {
@@ -121,7 +121,7 @@ export async function GET(request: NextRequest) {
               paymentId: checkoutSessionId || `stripe_link_${Date.now()}`,
               status: "completed",
               paymentStatus: "completed",
-              description: "NGO Pro Subscription via Stripe Payment Link",
+              description: "Enterprise Pro Subscription via Stripe Payment Link",
               createdAt: new Date(),
             })
             console.log("✅ Transaction record created")
@@ -129,7 +129,7 @@ export async function GET(request: NextRequest) {
             console.error("⚠️ Failed to create transaction:", txError)
           }
         } else {
-          console.log("❌ NGO profile not found!")
+          console.log("❌ Enterprise profile not found!")
         }
         return NextResponse.redirect(new URL("/ngo/dashboard?subscription=success", request.url))
         
@@ -160,7 +160,7 @@ export async function GET(request: NextRequest) {
               paymentId: checkoutSessionId || `stripe_link_${Date.now()}`,
               status: "completed",
               paymentStatus: "completed",
-              description: "Impact Agent Pro Subscription via Stripe Payment Link",
+              description: "Candidate Pro Subscription via Stripe Payment Link",
               createdAt: new Date(),
             })
             console.log("✅ Transaction record created")

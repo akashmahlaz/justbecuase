@@ -1,4 +1,4 @@
-﻿"use client"
+"use client"
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
@@ -93,7 +93,7 @@ export function Navbar() {
     { href: "/projects", label: dict.nav.browseOpportunities, icon: Search },
     { href: "/for-volunteers", label: dict.nav.forImpactAgents, icon: Users },
     { href: "/for-ngos", label: dict.nav.forNGOs, icon: Building2 },
-    { href: "/impact-agents", label: dict.nav?.impactAgents || "Impact Agents", icon: Users },
+    { href: "/impact-agents", label: dict.nav?.impactAgents || "Candidates", icon: Users },
     { href: "/about", label: dict.nav.aboutUs, icon: Info },
   ]
 

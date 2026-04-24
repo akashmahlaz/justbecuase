@@ -188,7 +188,7 @@ function deepSkillMatch(
 }
 
 /**
- * Skill match from volunteer's perspective (seeing opportunities)
+ * Skill match from volunteer's perspective (seeing jobs)
  * Answers: "How well do my skills fit this project?"
  */
 function volunteerSkillFit(
@@ -497,7 +497,7 @@ function urgencyScore(deadline?: Date | string): number {
 }
 
 /**
- * NGO quality score
+ * Enterprise quality score
  */
 function ngoQualityScore(project: Project): number {
   let score = 50
@@ -567,7 +567,7 @@ function composeFinalScore(
 // ============================================
 
 /**
- * Match volunteers to a project (for NGO view)
+ * Match volunteers to a project (for Enterprise view)
  * Returns sorted list of volunteers with match scores
  *
  * Handles edge case: 50,000+ volunteers with same skills
@@ -672,11 +672,11 @@ export function matchOpportunitiesToVolunteer(
       project.experienceLevel
     )
 
-    // Tiebreaker: urgency + NGO quality
+    // Tiebreaker: urgency + Enterprise quality
     const tiebreaker = urgencyScore(project.deadline) * 0.5 + ngoQualityScore(project) * 0.5
 
     // Compose final (volunteer view doesn't penalize missing must-haves as hard
-    // because the volunteer should still SEE relevant opportunities)
+    // because the volunteer should still SEE relevant jobs)
     const missedMustHaves = skill.totalMustHaves - skill.mustHavesMet
     const score = composeFinalScore(
       skill.score,
@@ -710,7 +710,7 @@ export function matchOpportunitiesToVolunteer(
 }
 
 /**
- * Get recommended volunteers for an NGO based on their typical needs
+ * Get recommended volunteers for an Enterprise based on their typical needs
  */
 export function getRecommendedVolunteers(
   ngoTypicalSkills: RequiredSkill[],
@@ -768,7 +768,7 @@ export function getRecommendedVolunteers(
 }
 
 /**
- * Get recommended opportunities for a volunteer
+ * Get recommended jobs for a volunteer
  */
 export function getRecommendedOpportunities(
   volunteer: VolunteerProfile,
@@ -949,7 +949,7 @@ export interface PersonalizedScoringInput {
   project: Project & { ngo?: { name: string; logo?: string; verified: boolean; city?: string; country?: string; coordinates?: Coordinates } }
   ngoProfile?: NGOProfile | null
   volunteerCoords?: Coordinates | null  // From profile or IP geolocation
-  ngoCoords?: Coordinates | null         // From NGO profile or IP geolocation
+  ngoCoords?: Coordinates | null         // From Enterprise profile or IP geolocation
 }
 
 /**
@@ -960,11 +960,11 @@ export interface PersonalizedScoringInput {
  * | Signal           | Weight | Why                                              |
  * |------------------|--------|--------------------------------------------------|
  * | Skill match      | 35%    | Skills are the #1 predictor of fit               |
- * | Geo distance     | 20%    | Closer NGOs = easier collaboration               |
+ * | Geo distance     | 20%    | Closer Enterprises = easier collaboration               |
  * | Cause alignment  | 15%    | Shared mission = higher motivation               |
  * | Work mode match  | 10%    | Remote vs onsite compatibility                   |
  * | Freshness        | 8%     | Newer & urgent posts get attention               |
- * | NGO quality      | 7%     | Verified NGOs with good track records            |
+ * | Enterprise quality      | 7%     | Verified Enterprises with good track records            |
  * | Experience fit   | 5%     | Beginner/intermediate/expert alignment            |
  */
 export function scorePersonalizedOpportunity(
@@ -1012,7 +1012,7 @@ export function scorePersonalizedOpportunity(
   // ------- 5. FRESHNESS + URGENCY (8%) -------
   const freshness = freshnessScore(project)
 
-  // ------- 6. NGO QUALITY (7%) -------
+  // ------- 6. Enterprise QUALITY (7%) -------
   let ngoQuality = 50
   const ngo = ngoProfile || (project as any).ngo
   if (ngo) {
@@ -1080,7 +1080,7 @@ export function scorePersonalizedOpportunity(
     reasons.push("Same country")
   }
 
-  if (project.workMode === "remote") reasons.push("Remote opportunity")
+  if (project.workMode === "remote") reasons.push("Remote job")
 
   if (causeAlign >= 70) reasons.push("Aligned with your causes")
   else if (causeAlign >= 40) reasons.push("Related to your interests")

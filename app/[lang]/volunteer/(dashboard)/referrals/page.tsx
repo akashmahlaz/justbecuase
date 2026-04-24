@@ -90,7 +90,7 @@ export default function ReferralPage() {
       try {
         await navigator.share({
           title: dict.volunteer?.referrals?.shareTitle || "Join JustBeCause Network",
-          text: dict.volunteer?.referrals?.shareText || "Join me on JustBeCause — connect with NGOs and make a real impact!",
+          text: dict.volunteer?.referrals?.shareText || "Join me on JustBeCause — connect with Enterprises and make a real impact!",
           url,
         })
       } catch {}

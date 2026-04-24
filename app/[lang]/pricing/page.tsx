@@ -81,7 +81,7 @@ export default function PricingPage() {
   
   // Show only the plans relevant to the user's role
   // If user is logged in as volunteer, they can only see/buy volunteer plans
-  // If user is logged in as NGO, they can only see/buy NGO plans
+  // If user is logged in as Enterprise, they can only see/buy Enterprise plans
   // If not logged in, show both tabs for browsing
   const showBothTabs = !user || (userRole !== "volunteer" && userRole !== "ngo")
   const forcedTab = userRole === "volunteer" ? "volunteer" : userRole === "ngo" ? "ngo" : null
@@ -91,7 +91,7 @@ export default function PricingPage() {
     {
       id: "ngo-free",
       name: p.free || "Free",
-      description: p.ngoFreeDesc || "Perfect for small NGOs just getting started",
+      description: p.ngoFreeDesc || "Perfect for small Enterprises just getting started",
       price: 0,
       priceDisplay: `${currencySymbol}0`,
       period: p.forever || "forever",
@@ -99,34 +99,34 @@ export default function PricingPage() {
       icon: Building2,
       features: (p.ngoFreeFeatures || [
         `Post up to ${platformSettings?.ngoFreeProjectsPerMonth || 3} projects per month`,
-        "Browse impact agent profiles",
-        "View paid impact agent profiles",
-        "Basic impact agent matching",
+        "Browse candidate profiles",
+        "View paid candidate profiles",
+        "Basic candidate matching",
         "Email support",
       ]).map((f: string) => f.replace("{count}", String(platformSettings?.ngoFreeProjectsPerMonth || 3))),
       limitations: p.ngoFreeLimitations || [
-        "Cannot unlock FREE impact agent profiles",
-        "Upgrade to Pro to unlock impact agents",
+        "Cannot unlock FREE candidate profiles",
+        "Upgrade to Pro to unlock candidates",
       ],
       popular: false,
     },
     {
       id: "ngo-pro",
       name: p.pro || "Pro",
-      description: p.ngoProDesc || "Unlock unlimited FREE impact agent profiles",
+      description: p.ngoProDesc || "Unlock unlimited FREE candidate profiles",
       price: billingCycle === "yearly" ? ngoProYearlyPrice : ngoProPrice,
       priceDisplay: formatPrice(billingCycle === "yearly" ? ngoProYearlyPrice : ngoProPrice, currency),
       period: billingCycle === "yearly" ? (p.perYear || "per year") : (p.perMonth || "per month"),
       savingsPercent: billingCycle === "yearly" ? ngoYearlySavingsPercent : 0,
       icon: Zap,
       features: platformSettings?.ngoProFeatures || p.ngoProFeaturesDefault || [
-        "Unlimited opportunities",
-        "Unlock UNLIMITED free impact agent profiles",
-        "View all paid impact agent profiles",
+        "Unlimited jobs",
+        "Unlock UNLIMITED free candidate profiles",
+        "View all paid candidate profiles",
         "Advanced AI-powered matching",
         "Priority support",
-        "Opportunity analytics & reports",
-        "Featured NGO badge",
+        "Job analytics & reports",
+        "Featured Enterprise badge",
       ],
       limitations: [],
       popular: true,
@@ -144,7 +144,7 @@ export default function PricingPage() {
       savingsPercent: 0,
       icon: User,
       features: (p.volFreeFeatures || [
-        "Browse all opportunities",
+        "Browse all jobs",
         `${platformSettings?.volunteerFreeApplicationsPerMonth || 3} applications per month`,
         "Basic profile visibility",
         "Email notifications",
@@ -168,8 +168,8 @@ export default function PricingPage() {
         "Unlimited job applications",
         "Featured profile badge",
         "Priority in search results",
-        "Direct message NGOs",
-        "Early access to opportunities",
+        "Direct message Enterprises",
+        "Early access to jobs",
         "Profile analytics",
         "Certificate downloads",
       ],
@@ -301,11 +301,11 @@ export default function PricingPage() {
             {user && forcedTab && (
               <div className="text-center mb-8 p-4 bg-muted/50 rounded-lg max-w-2xl mx-auto">
                 <p className="text-muted-foreground">
-                  {(p.loggedInAs || "You're logged in as {role}.").replace("{role}", userRole === "ngo" ? (p.anNGO || "an NGO") : (p.anImpactAgent || "an impact agent"))}
+                  {(p.loggedInAs || "You're logged in as {role}.").replace("{role}", userRole === "ngo" ? (p.anNGO || "an Enterprise") : (p.anImpactAgent || "an candidate"))}
                   {" "}
                   {userRole === "ngo" 
-                    ? (p.ngoUpgradeHint || "Upgrade your NGO subscription below.")
-                    : (p.volunteerUpgradeHint || "Upgrade your impact agent subscription below.")}
+                    ? (p.ngoUpgradeHint || "Upgrade your Enterprise subscription below.")
+                    : (p.volunteerUpgradeHint || "Upgrade your candidate subscription below.")}
                 </p>
               </div>
             )}
@@ -317,11 +317,11 @@ export default function PricingPage() {
                   <TabsList className="grid w-full max-w-md grid-cols-2">
                     <TabsTrigger value="ngo" className="flex items-center gap-2">
                       <Building2 className="h-4 w-4" />
-                      {p.forNGOs || "For NGOs"}
+                      {p.forNGOs || "For Enterprises"}
                     </TabsTrigger>
                     <TabsTrigger value="volunteer" className="flex items-center gap-2">
                       <User className="h-4 w-4" />
-                      {p.forImpactAgents || "For Impact Agents"}
+                      {p.forImpactAgents || "For Candidates"}
                     </TabsTrigger>
                   </TabsList>
                 </div>
@@ -413,14 +413,14 @@ export default function PricingPage() {
             
             <div className="space-y-6">
               <div className="p-6 bg-background rounded-lg border">
-                <h3 className="font-semibold text-foreground mb-2">{p.faqProfileUnlock || "What is a profile unlock? (NGOs)"}</h3>
+                <h3 className="font-semibold text-foreground mb-2">{p.faqProfileUnlock || "What is a profile unlock? (Enterprises)"}</h3>
                 <p className="text-muted-foreground">
-                  {p.faqProfileUnlockAnswer || "All NGOs can browse and view impact agent profiles for free. NGO Pro subscribers get additional features like priority matching and advanced filters."}
+                  {p.faqProfileUnlockAnswer || "All Enterprises can browse and view candidate profiles for free. Enterprise Pro subscribers get additional features like priority matching and advanced filters."}
                 </p>
               </div>
               
               <div className="p-6 bg-background rounded-lg border">
-                <h3 className="font-semibold text-foreground mb-2">{p.faqApplication || "What counts as an application? (Impact Agents)"}</h3>
+                <h3 className="font-semibold text-foreground mb-2">{p.faqApplication || "What counts as an application? (Candidates)"}</h3>
                 <p className="text-muted-foreground">
                   {(p.faqApplicationAnswer || "Each time you apply to a project/opportunity, it counts as one application. Free plan includes {count} applications per month.").replace("{count}", String(platformSettings?.volunteerFreeApplicationsPerMonth || 3))}
                 </p>

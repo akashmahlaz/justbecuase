@@ -18,9 +18,9 @@ export default async function AdminNGOsPage({ params }: { params: Promise<{ lang
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-foreground mb-2">{dict.admin?.ngos?.title || "Manage NGOs"}</h1>
+        <h1 className="text-2xl font-bold text-foreground mb-2">{dict.admin?.ngos?.title || "Manage Enterprises"}</h1>
         <p className="text-muted-foreground">
-          {dict.admin?.ngos?.subtitle || "View and manage all NGO profiles"}
+          {dict.admin?.ngos?.subtitle || "View and manage all Enterprise profiles"}
         </p>
       </div>
 
@@ -29,7 +29,7 @@ export default async function AdminNGOsPage({ params }: { params: Promise<{ lang
         <Card>
           <CardContent className="p-4">
             <p className="text-2xl font-bold text-foreground">{total}</p>
-            <p className="text-sm text-muted-foreground">{dict.admin?.ngos?.totalNgos || "Total NGOs"}</p>
+            <p className="text-sm text-muted-foreground">{dict.admin?.ngos?.totalNgos || "Total Enterprises"}</p>
           </CardContent>
         </Card>
         <Card>
@@ -52,10 +52,10 @@ export default async function AdminNGOsPage({ params }: { params: Promise<{ lang
         </Card>
       </div>
 
-      {/* Searchable NGOs List */}
+      {/* Searchable Enterprises List */}
       <NGOsSearchableList 
         ngos={ngos} 
-        title={dict.admin?.ngos?.allNgos || "All NGOs"}
+        title={dict.admin?.ngos?.allNgos || "All Enterprises"}
       />
     </div>
   )

@@ -211,9 +211,9 @@ export async function fetchAllJobs(limit = 1000, offset = 0): Promise<{ jobs: Rw
 }
 
 // ============================================
-// Fetch ALL published humanitarian/NGO jobs (no remote filter)
+// Fetch ALL published humanitarian/Enterprise jobs (no remote filter)
 // ============================================
-// ReliefWeb only lists humanitarian/NGO jobs, so ALL jobs are NGO-relevant.
+// ReliefWeb only lists humanitarian/Enterprise jobs, so ALL jobs are Enterprise-relevant.
 // This fetches every active listing for maximum coverage.
 export async function fetchAllJobsUnfiltered(): Promise<{ jobs: RwApiItem[]; total: number }> {
   const allJobs: RwApiItem[] = []

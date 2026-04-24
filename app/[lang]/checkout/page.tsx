@@ -141,7 +141,7 @@ function CheckoutOrchestrator() {
     if (planId === "ngo-pro") {
       return {
         id: "ngo-pro",
-        name: dict.checkout?.ngoPlanName || "NGO Pro Plan",
+        name: dict.checkout?.ngoPlanName || "Enterprise Pro Plan",
         description: dict.checkout?.ngoPlanDesc || "Unlimited projects and profile unlocks for your organization",
         price: billingCycle === "yearly" ? ngoProYearlyPrice : ngoProPrice,
         features: platformSettings?.ngoProFeatures || [
@@ -150,7 +150,7 @@ function CheckoutOrchestrator() {
           dict.checkout?.ngoFeature3 || "Advanced AI-powered matching",
           dict.checkout?.ngoFeature4 || "Priority support",
           dict.checkout?.ngoFeature5 || "Project analytics & reports",
-          dict.checkout?.ngoFeature6 || "Featured NGO badge",
+          dict.checkout?.ngoFeature6 || "Featured Enterprise badge",
         ],
         icon: Zap,
       }
@@ -158,15 +158,15 @@ function CheckoutOrchestrator() {
     if (planId === "volunteer-pro") {
       return {
         id: "volunteer-pro",
-        name: dict.checkout?.agentPlanName || "Impact Agent Pro Plan",
+        name: dict.checkout?.agentPlanName || "Candidate Pro Plan",
         description: dict.checkout?.agentPlanDesc || "Unlimited applications and premium features",
         price: billingCycle === "yearly" ? volunteerProYearlyPrice : volunteerProPrice,
         features: platformSettings?.volunteerProFeatures || [
           dict.checkout?.agentFeature1 || "Unlimited job applications",
           dict.checkout?.agentFeature2 || "Featured profile badge",
           dict.checkout?.agentFeature3 || "Priority in search results",
-          dict.checkout?.agentFeature4 || "Direct message NGOs",
-          dict.checkout?.agentFeature5 || "Early access to opportunities",
+          dict.checkout?.agentFeature4 || "Direct message Enterprises",
+          dict.checkout?.agentFeature5 || "Early access to jobs",
           dict.checkout?.agentFeature6 || "Profile analytics",
           dict.checkout?.agentFeature7 || "Certificate downloads",
         ],
@@ -324,7 +324,7 @@ function CheckoutOrchestrator() {
   }
 
   if (!roleMatchesPlan) {
-    const expected = planId.startsWith("ngo-") ? (dict.checkout?.roleNGO || "NGO") : (dict.checkout?.roleAgent || "Impact Agent")
+    const expected = planId.startsWith("ngo-") ? (dict.checkout?.roleNGO || "Enterprise") : (dict.checkout?.roleAgent || "Candidate")
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center space-y-4">

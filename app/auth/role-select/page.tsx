@@ -119,7 +119,7 @@ function RoleSelectContent() {
               <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
                 <Heart className="h-10 w-10 text-primary" />
               </div>
-              <CardTitle className="text-xl">I'm an Impact Agent</CardTitle>
+              <CardTitle className="text-xl">I'm an Candidate</CardTitle>
               <CardDescription>
                 Share your skills and make an impact
               </CardDescription>
@@ -127,8 +127,8 @@ function RoleSelectContent() {
             <CardContent className="text-center">
               <ul className="text-sm text-muted-foreground space-y-2 mb-6">
                 <li>✓ Create your skills-based profile</li>
-                <li>✓ Browse impact agent opportunities</li>
-                <li>✓ Connect with NGOs</li>
+                <li>✓ Browse candidate jobs</li>
+                <li>✓ Connect with Enterprises</li>
                 <li>✓ Track your social impact</li>
               </ul>
               <Button
@@ -142,13 +142,13 @@ function RoleSelectContent() {
                     Setting up...
                   </>
                 ) : (
-                  "Continue as Impact Agent"
+                  "Continue as Candidate"
                 )}
               </Button>
             </CardContent>
           </Card>
 
-          {/* NGO Card */}
+          {/* Enterprise Card */}
           <Card
             className={`cursor-pointer transition-all hover:shadow-lg hover:border-secondary ${
               selectedRole === "ngo" ? "border-secondary ring-2 ring-secondary" : ""
@@ -159,16 +159,16 @@ function RoleSelectContent() {
               <div className="w-20 h-20 rounded-full bg-secondary/10 flex items-center justify-center mx-auto mb-4">
                 <Building2 className="h-10 w-10 text-secondary" />
               </div>
-              <CardTitle className="text-xl">I'm an NGO</CardTitle>
+              <CardTitle className="text-xl">I'm an Enterprise</CardTitle>
               <CardDescription>
-                Find skilled impact agents for your cause
+                Find skilled candidates for your cause
               </CardDescription>
             </CardHeader>
             <CardContent className="text-center">
               <ul className="text-sm text-muted-foreground space-y-2 mb-6">
                 <li>✓ Create your organization profile</li>
-                <li>✓ Post impact agent opportunities</li>
-                <li>✓ Browse skilled impact agents</li>
+                <li>✓ Post candidate opportunities</li>
+                <li>✓ Browse skilled candidates</li>
                 <li>✓ Manage applications</li>
               </ul>
               <Button
@@ -182,7 +182,7 @@ function RoleSelectContent() {
                     Setting up...
                   </>
                 ) : (
-                  "Continue as NGO"
+                  "Continue as Enterprise"
                 )}
               </Button>
             </CardContent>

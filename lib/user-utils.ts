@@ -53,11 +53,11 @@ export async function getUserInfo(userId: string): Promise<UserInfo | null> {
   // Determine user type from role field
   const role = user.role
   
-  // NGO users: use orgName if set, otherwise fall back to name
+  // Enterprise users: use orgName if set, otherwise fall back to name
   if (role === "ngo") {
     return {
       id: userId,
-      name: user.orgName || user.organizationName || user.name || "NGO",
+      name: user.orgName || user.organizationName || user.name || "Enterprise",
       email: user.email,
       image: user.logo || user.image || user.avatar,
       type: "ngo",
@@ -68,7 +68,7 @@ export async function getUserInfo(userId: string): Promise<UserInfo | null> {
   if (role === "volunteer") {
     return {
       id: userId,
-      name: user.name || "Impact Agent",
+      name: user.name || "Candidate",
       email: user.email,
       image: user.avatar || user.image,
       type: "volunteer",
@@ -145,7 +145,7 @@ export async function getUsersInfo(userIds: string[]): Promise<Map<string, UserI
     if (role === "ngo") {
       result.set(userId, {
         id: userId,
-        name: user.orgName || user.organizationName || user.name || "NGO",
+        name: user.orgName || user.organizationName || user.name || "Enterprise",
         email: user.email,
         image: user.logo || user.image || user.avatar,
         type: "ngo",
@@ -153,7 +153,7 @@ export async function getUsersInfo(userIds: string[]): Promise<Map<string, UserI
     } else if (role === "volunteer") {
       result.set(userId, {
         id: userId,
-        name: user.name || "Impact Agent",
+        name: user.name || "Candidate",
         email: user.email,
         image: user.avatar || user.image,
         type: "volunteer",

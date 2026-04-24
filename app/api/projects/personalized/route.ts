@@ -16,11 +16,11 @@ import type { NGOProfile } from "@/lib/types"
 //   3. Cause alignment    (15%)  — Shared mission with the project
 //   4. Work mode match    (10%)  — Remote/onsite/hybrid compatibility
 //   5. Freshness          (8%)   — Newer + urgent projects rank higher
-//   6. NGO quality        (7%)   — Verified, experienced organizations
+//   6. Enterprise quality        (7%)   — Verified, experienced organizations
 //   7. Experience fit     (5%)   — Beginner/intermediate/expert alignment
 //
 // Geo-location:
-//   - Primary: volunteer.coordinates + NGO profile coordinates
+//   - Primary: volunteer.coordinates + Enterprise profile coordinates
 //   - Fallback: IP-based geolocation via request headers (X-Forwarded-For)
 //   - Last resort: fuzzy city/country string matching
 // ============================================
@@ -95,7 +95,7 @@ export async function GET(request: NextRequest) {
       })
     }
 
-    // Collect unique NGO IDs and batch-load their profiles
+    // Collect unique Enterprise IDs and batch-load their profiles
     const ngoIds = [...new Set(allProjects.map(p => p.ngoId).filter(Boolean))]
     const ngoProfileMap = new Map<string, NGOProfile>()
     const ngoCoordMap = new Map<string, { lat: number; lng: number }>()
@@ -113,7 +113,7 @@ export async function GET(request: NextRequest) {
             city: profile.city,
             country: profile.country,
           }
-          // Extract NGO coordinates
+          // Extract Enterprise coordinates
           const coords = profile.coordinates
           if (coords && typeof coords.lat === "number" && typeof coords.lng === "number") {
             ngoCoordMap.set(ngoId, { lat: coords.lat, lng: coords.lng })
@@ -122,7 +122,7 @@ export async function GET(request: NextRequest) {
       })
     )
 
-    // Attach NGO info to projects
+    // Attach Enterprise info to projects
     const projectsWithNgo = allProjects.map(p => ({
       ...p,
       ngo: ngoInfoMap[p.ngoId] || { name: "Organization", verified: false },

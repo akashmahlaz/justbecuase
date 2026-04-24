@@ -31,12 +31,12 @@ const navItems = [
     icon: Users,
   },
   {
-    title: "Impact Agents",
+    title: "Candidates",
     href: "/admin/volunteers",
     icon: Heart,
   },
   {
-    title: "NGOs",
+    title: "Enterprises",
     href: "/admin/ngos",
     icon: Building2,
   },

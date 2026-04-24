@@ -416,7 +416,7 @@ export function getSynonymGroups() {
     // ======== Two-way synonyms (terms treated as equivalent) ========
 
     // Volunteer / platform terms
-    { objectID: "syn-volunteer", type: "synonym" as const, synonyms: ["volunteer", "volunteering", "impact agent", "talent"] },
+    { objectID: "syn-volunteer", type: "synonym" as const, synonyms: ["volunteer", "volunteering", "candidate", "talent"] },
 
     // Causes
     { objectID: "syn-education", type: "synonym" as const, synonyms: ["education", "teaching", "tutoring", "mentoring", "training"] },
@@ -498,10 +498,10 @@ export function getSynonymGroups() {
     { objectID: "syn-automation", type: "synonym" as const, synonyms: ["automation", "zapier", "make", "n8n", "workflow automation"] },
     { objectID: "syn-it", type: "synonym" as const, synonyms: ["it support", "tech support", "it setup", "technical support"] },
 
-    // NGO terms
+    // Enterprise terms
     { objectID: "syn-ngo", type: "synonym" as const, synonyms: ["ngo", "nonprofit", "non-profit", "organization", "charity"] },
     { objectID: "syn-remote", type: "synonym" as const, synonyms: ["remote", "work from home", "wfh", "virtual", "online"] },
-    { objectID: "syn-impact-agent", type: "synonym" as const, synonyms: ["impact agent", "volunteer", "talent", "volunteering"] },
+    { objectID: "syn-impact-agent", type: "synonym" as const, synonyms: ["candidate", "volunteer", "talent", "volunteering"] },
 
     // ======== One-way synonyms (input → expands to alternatives) ========
 
@@ -566,9 +566,9 @@ export async function syncNGOToAlgolia(user: any) {
     const client = getAlgoliaAdminClient()
     const record = transformNGORecord(user)
     await client.saveObject({ indexName: ALGOLIA_INDEXES.NGOS, body: record })
-    console.log(`[Algolia] Synced NGO ${record.objectID}`)
+    console.log(`[Algolia] Synced Enterprise ${record.objectID}`)
   } catch (err) {
-    console.error("[Algolia] Failed to sync NGO:", err)
+    console.error("[Algolia] Failed to sync Enterprise:", err)
   }
 }
 

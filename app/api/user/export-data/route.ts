@@ -97,7 +97,7 @@ export async function GET() {
       }))
 
     } else if (role === "ngo") {
-      // Get NGO profile from user collection (Better Auth stores _id as ObjectId)
+      // Get Enterprise profile from user collection (Better Auth stores _id as ObjectId)
       const profile = await db.collection("user").findOne(userIdQuery(userId))
       if (profile) {
         userData.profile = {

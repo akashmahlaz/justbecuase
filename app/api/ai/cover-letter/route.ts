@@ -39,7 +39,7 @@ export async function POST(req: Request) {
           keyStrengths: z.array(z.string()).describe("0-3 key strengths based on ACTUAL skill overlap. Can be empty if poor match."),
         }),
       }),
-      prompt: `Generate an honest cover letter for a volunteer applying to an NGO project.
+      prompt: `Generate an honest cover letter for a volunteer applying to an Enterprise project.
 
 PROJECT DETAILS:
 - Title: ${projectTitle}

@@ -480,7 +480,7 @@ export default function NGOSettingsPage() {
                       {dict.ngo?.settings?.skillsYouNeed || "Skills You Need"}
                     </CardTitle>
                     <CardDescription>
-                      {dict.ngo?.settings?.selectSkillsDesc || "Select skills your organization typically needs from impact agents"}
+                      {dict.ngo?.settings?.selectSkillsDesc || "Select skills your organization typically needs from candidates"}
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
@@ -508,7 +508,7 @@ export default function NGOSettingsPage() {
                   <CardHeader>
                     <CardTitle>{dict.ngo?.settings?.causesYouFocusOn || "Causes You Focus On"}</CardTitle>
                     <CardDescription>
-                      {dict.ngo?.settings?.selectCausesDesc || "Select causes to get matched with relevant impact agents"}
+                      {dict.ngo?.settings?.selectCausesDesc || "Select causes to get matched with relevant candidates"}
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
@@ -695,7 +695,7 @@ export default function NGOSettingsPage() {
                       <div>
                         <p className="font-medium">{dict.ngo?.settings?.publicProfile || "Public Profile"}</p>
                         <p className="text-sm text-muted-foreground">
-                          {dict.ngo?.settings?.publicProfileDesc || "Allow impact agents to see your organization profile"}
+                          {dict.ngo?.settings?.publicProfileDesc || "Allow candidates to see your organization profile"}
                         </p>
                       </div>
                       <Switch
@@ -709,7 +709,7 @@ export default function NGOSettingsPage() {
                       <div>
                         <p className="font-medium">{dict.ngo?.settings?.showInDirectory || "Show in Directory"}</p>
                         <p className="text-sm text-muted-foreground">
-                          {dict.ngo?.settings?.showInDirectoryDesc || "List your organization in the NGO directory"}
+                          {dict.ngo?.settings?.showInDirectoryDesc || "List your organization in the Enterprise directory"}
                         </p>
                       </div>
                       <Switch
@@ -797,7 +797,7 @@ export default function NGOSettingsPage() {
                               {dict.ngo?.settings?.deleteConfirmTitle || "Are you absolutely sure?"}
                             </p>
                             <p className="text-sm text-muted-foreground mt-1">
-                              {dict.ngo?.settings?.deleteConfirmDesc || "This action cannot be undone. This will permanently delete your organization account, all opportunities, applications, and remove all associated data."}
+                              {dict.ngo?.settings?.deleteConfirmDesc || "This action cannot be undone. This will permanently delete your organization account, all jobs, applications, and remove all associated data."}
                             </p>
                           </div>
                         </div>

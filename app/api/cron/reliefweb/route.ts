@@ -27,7 +27,7 @@ export async function GET(request: Request) {
     let totalUpdated = 0
     let totalProcessed = 0
 
-    // Fetch ALL published humanitarian/NGO jobs from ReliefWeb
+    // Fetch ALL published humanitarian/Enterprise jobs from ReliefWeb
     // Then filter to only keep remote jobs
     const { jobs, total } = await fetchAllJobsUnfiltered()
     let skippedNonRemote = 0

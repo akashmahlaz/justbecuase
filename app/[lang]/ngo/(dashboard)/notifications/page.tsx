@@ -27,7 +27,7 @@ export default async function NGONotificationsPage({ params }: { params: Promise
     redirect(`/${lang}/auth/signin`)
   }
 
-  // Role verification: Ensure user is an NGO
+  // Role verification: Ensure user is an Enterprise
   if (session.user.role !== "ngo") {
     if (session.user.role === "volunteer") {
       redirect(`/${lang}/volunteer/dashboard`)

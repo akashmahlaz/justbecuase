@@ -3,7 +3,7 @@ import { persist } from 'zustand/middleware'
 
 // User subscription state
 interface SubscriptionState {
-  // NGO subscription
+  // Enterprise subscription
   ngoSubscription: {
     plan: "free" | "pro"
     unlocksUsed: number
@@ -50,7 +50,7 @@ interface UserState {
     isOnboarded: boolean
   } | null
   
-  // Unlocked volunteer profiles (for NGOs)
+  // Unlocked volunteer profiles (for Enterprises)
   unlockedProfiles: string[]
   
   // Actions
@@ -174,7 +174,7 @@ interface PlatformSettingsState {
     volunteerProYearlyPrice?: number
     volunteerProFeatures: string[]
     
-    // NGO Plans
+    // Enterprise Plans
     ngoFreeProjectsPerMonth: number
     ngoFreeProfileUnlocksPerMonth: number
     ngoProPrice: number

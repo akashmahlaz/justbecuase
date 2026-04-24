@@ -157,7 +157,7 @@ export default function VolunteerOnboardingPage() {
     volunteerType: "free", // free, paid, both
     freeHoursPerMonth: 5, // Hours available to work for free per month
     hourlyRate: 0, // Hourly rate for paid work
-    discountedRate: 0, // Discounted rate for NGOs (low bono)
+    discountedRate: 0, // Discounted rate for Enterprises (low bono)
     currency: "USD",
     workMode: "remote", // remote, onsite, hybrid
     hoursPerWeek: "5-10",
@@ -478,7 +478,7 @@ export default function VolunteerOnboardingPage() {
     <div className="space-y-6">
       <div>
         <h2 className="text-xl font-semibold text-foreground mb-2">{dict.volunteer?.onboarding?.step1Title || "Tell us about yourself"}</h2>
-        <p className="text-muted-foreground">{dict.volunteer?.onboarding?.step1Subtitle || "Help NGOs understand who you are"}</p>
+        <p className="text-muted-foreground">{dict.volunteer?.onboarding?.step1Subtitle || "Help Enterprises understand who you are"}</p>
       </div>
 
       <div className="grid gap-4">
@@ -721,7 +721,7 @@ export default function VolunteerOnboardingPage() {
       <div>
         <h2 className="text-xl font-semibold text-foreground mb-2">{dict.volunteer?.onboarding?.step2Title || "What are your skills?"}</h2>
         <p className="text-muted-foreground">
-          {dict.volunteer?.onboarding?.step2Subtitle || "Select the skills you can offer to NGOs. You can add up to 10 skills."}
+          {dict.volunteer?.onboarding?.step2Subtitle || "Select the skills you can offer to Enterprises. You can add up to 10 skills."}
         </p>
       </div>
 
@@ -927,14 +927,14 @@ export default function VolunteerOnboardingPage() {
     <div className="space-y-6">
       <div>
         <h2 className="text-xl font-semibold text-foreground mb-2">{dict.volunteer?.onboarding?.step4Title || "Your work preferences"}</h2>
-        <p className="text-muted-foreground">{dict.volunteer?.onboarding?.step4Subtitle || "Help us match you with the right opportunities"}</p>
+        <p className="text-muted-foreground">{dict.volunteer?.onboarding?.step4Subtitle || "Help us match you with the right jobs"}</p>
       </div>
 
       <div className="space-y-6">
         <div className="space-y-3">
           <Label className="text-base font-medium flex items-center gap-2">
             <DollarSign className="h-4 w-4" />
-            {dict.volunteer?.common?.impactAgentType || "Impact Agent Type"}
+            {dict.volunteer?.common?.impactAgentType || "Candidate Type"}
           </Label>
           <RadioGroup
             value={workPreferences.volunteerType}
@@ -1001,7 +1001,7 @@ export default function VolunteerOnboardingPage() {
                 <h3 className="font-medium text-foreground">{dict.volunteer?.common?.freeHoursContribution || "Free Hours Contribution"}</h3>
               </div>
               <p className="text-sm text-muted-foreground">
-                {dict.volunteer?.onboarding?.freeHoursDesc || "Would you like to offer some free hours per month for NGOs? After these hours, your paid rate applies."}
+                {dict.volunteer?.onboarding?.freeHoursDesc || "Would you like to offer some free hours per month for Enterprises? After these hours, your paid rate applies."}
               </p>
               <div className="space-y-2">
                 <Label htmlFor="freeHoursPerMonth">{dict.volunteer?.common?.freeHoursPerMonth || "Free Hours per Month"}</Label>
@@ -1024,7 +1024,7 @@ export default function VolunteerOnboardingPage() {
                   <span className="text-sm text-muted-foreground">{dict.volunteer?.common?.hoursPerMonth || "hours/month"}</span>
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  {dict.volunteer?.onboarding?.freeHoursExample || "Example: If you set 5 free hours, NGOs can use your services for 5 hours at no charge, then your hourly rate applies."}
+                  {dict.volunteer?.onboarding?.freeHoursExample || "Example: If you set 5 free hours, Enterprises can use your services for 5 hours at no charge, then your hourly rate applies."}
                 </p>
               </div>
             </div>
@@ -1087,7 +1087,7 @@ export default function VolunteerOnboardingPage() {
                 </div>
                 
                 <div className="space-y-2">
-                  <Label htmlFor="discountedRate">{dict.volunteer?.common?.discountedRate || "Discounted Rate for NGOs"}</Label>
+                  <Label htmlFor="discountedRate">{dict.volunteer?.common?.discountedRate || "Discounted Rate for Enterprises"}</Label>
                   <div className="relative">
                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
                       {getCurrencySymbol(workPreferences.currency || "USD")}
@@ -1114,7 +1114,7 @@ export default function VolunteerOnboardingPage() {
                 <div className="flex items-center gap-2 text-sm text-green-600 bg-green-50 dark:bg-green-950/20 p-2 rounded">
                   <CheckCircle className="h-4 w-4" />
                   <span>
-                    {(dict.volunteer?.common?.ngoSavingsMessage || "NGOs save {percent}% with your discounted rate!").replace("{percent}", String(Math.round(((workPreferences.hourlyRate - workPreferences.discountedRate) / workPreferences.hourlyRate) * 100)))}
+                    {(dict.volunteer?.common?.ngoSavingsMessage || "Enterprises save {percent}% with your discounted rate!").replace("{percent}", String(Math.round(((workPreferences.hourlyRate - workPreferences.discountedRate) / workPreferences.hourlyRate) * 100)))}
                   </span>
                 </div>
               )}

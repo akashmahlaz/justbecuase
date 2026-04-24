@@ -45,7 +45,7 @@ export async function generateMetadata({
   const ngo = await getNGOById(id)
 
   if (!ngo) {
-    return { title: "NGO Not Found" }
+    return { title: "Enterprise Not Found" }
   }
 
   const title = ngo.orgName
@@ -81,18 +81,18 @@ export default async function NGOProfilePage({ params }: { params: Promise<{ id:
   const { lang, id } = await params
   const dict = await getDictionary(lang as Locale) as any;
   
-  // Get NGO profile from database
+  // Get Enterprise profile from database
   const ngo = await getNGOById(id)
   
   if (!ngo) {
     notFound()
   }
   
-  // Get NGO's projects
+  // Get Enterprise's projects
   const allProjects = await getActiveProjects(20)
   const ngoProjects = allProjects.filter(p => p.ngoId === id)
   
-  // Check if current user is following this NGO + get stats
+  // Check if current user is following this Enterprise + get stats
   const followStatsResult = await getFollowStats(id)
   const followStats = followStatsResult.success ? followStatsResult.data! : { followersCount: 0, followingCount: 0, isFollowing: false }
 
@@ -249,7 +249,7 @@ export default async function NGOProfilePage({ params }: { params: Promise<{ id:
                 <Card>
                   <CardContent className="py-12 text-center">
                     <FolderKanban className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                    <h3 className="font-semibold text-foreground mb-2">{dict.ngoDetail?.noOpenOpportunities || "No Open Opportunities"}</h3>
+                    <h3 className="font-semibold text-foreground mb-2">{dict.ngoDetail?.noOpenOpportunities || "No Open Jobs"}</h3>
                     <p className="text-muted-foreground">
                       {dict.ngoDetail?.noOpenOpportunitiesDesc || "This organization doesn't have any open opportunities at the moment."}
                     </p>
@@ -291,7 +291,7 @@ export default async function NGOProfilePage({ params }: { params: Promise<{ id:
                   <div className="grid grid-cols-2 gap-4">
                     <div className="text-center p-3 rounded-lg bg-muted/50">
                       <p className="text-xl font-bold text-foreground">{ngo.volunteersEngaged}</p>
-                      <p className="text-xs text-muted-foreground">{dict.ngoDetail?.impactAgents || "Impact Agents"}</p>
+                      <p className="text-xs text-muted-foreground">{dict.ngoDetail?.impactAgents || "Candidates"}</p>
                     </div>
                     <div className="text-center p-3 rounded-lg bg-muted/50">
                       <p className="text-xl font-bold text-foreground">

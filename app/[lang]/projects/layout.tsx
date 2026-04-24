@@ -1,11 +1,11 @@
 import type { Metadata } from "next"
 
 export const metadata: Metadata = {
-  title: "Browse Volunteer Opportunities & NGO Projects",
-  description: "Explore hundreds of volunteer opportunities from NGOs worldwide. Filter by skills, location, and cause area. Find the perfect project to make an impact with your expertise.",
+  title: "Browse Volunteer Jobs & Enterprise Projects",
+  description: "Explore hundreds of volunteer jobs from Enterprises worldwide. Filter by skills, location, and cause area. Find the perfect project to make an impact with your expertise.",
   keywords: [
     "volunteer projects",
-    "NGO opportunities",
+    "Enterprise jobs",
     "remote volunteer work",
     "social impact projects",
     "skills matching",
@@ -14,8 +14,8 @@ export const metadata: Metadata = {
     "online volunteering",
   ],
   openGraph: {
-    title: "Browse Opportunities | JustBeCause Network",
-    description: "Find the perfect volunteer opportunity matching your skills. Hundreds of NGO projects need your expertise.",
+    title: "Browse Jobs | JustBeCause Network",
+    description: "Find the perfect volunteer job matching your skills. Hundreds of Enterprise projects need your expertise.",
   },
 }
 

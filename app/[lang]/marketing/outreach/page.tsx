@@ -11,7 +11,7 @@ export default function OutreachPage() {
         </CardTitle>
       </CardHeader>
       <CardContent className="text-muted-foreground">
-        Coming soon — Generate personalized outreach emails for NGO partnerships.
+        Coming soon — Generate personalized outreach emails for Enterprise partnerships.
       </CardContent>
     </Card>
   )

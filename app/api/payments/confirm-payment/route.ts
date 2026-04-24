@@ -65,7 +65,7 @@ export async function POST(request: NextRequest) {
       const profile = await ngoProfilesDb.findByUserId(userId)
       if (!profile) {
         return NextResponse.json(
-          { error: "NGO profile not found. Please complete onboarding first." },
+          { error: "Enterprise profile not found. Please complete onboarding first." },
           { status: 400 }
         )
       }
@@ -78,7 +78,7 @@ export async function POST(request: NextRequest) {
       const profile = await volunteerProfilesDb.findByUserId(userId)
       if (!profile) {
         return NextResponse.json(
-          { error: "Impact Agent profile not found. Please complete onboarding first." },
+          { error: "Candidate profile not found. Please complete onboarding first." },
           { status: 400 }
         )
       }
@@ -160,7 +160,7 @@ export async function POST(request: NextRequest) {
       const userRecord = await db.collection("user").findOne(userIdQuery(userId))
       if (userRecord?.email) {
         const { sendEmail, getSubscriptionConfirmationEmailHtml } = await import("@/lib/email")
-        const planName = isNgoPlan ? "NGO Pro" : "Impact Agent Pro"
+        const planName = isNgoPlan ? "Enterprise Pro" : "Candidate Pro"
         const expiryFormatted = subscriptionExpiry.toLocaleDateString("en-US", {
           year: "numeric",
           month: "long",

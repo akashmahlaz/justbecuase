@@ -170,7 +170,7 @@ export function VolunteersSearchableList({ volunteers, title }: VolunteersSearch
               <table className="w-full">
                 <thead>
                   <tr className="border-b">
-                    <th className="text-left py-3 px-4 font-medium text-muted-foreground">Impact Agent</th>
+                    <th className="text-left py-3 px-4 font-medium text-muted-foreground">Candidate</th>
                     <th className="text-left py-3 px-4 font-medium text-muted-foreground">Location</th>
                     <th className="text-left py-3 px-4 font-medium text-muted-foreground">Type</th>
                     <th className="text-left py-3 px-4 font-medium text-muted-foreground">Skills</th>
@@ -180,7 +180,7 @@ export function VolunteersSearchableList({ volunteers, title }: VolunteersSearch
                 </thead>
                 <tbody>
                   {filteredVolunteers.map((volunteer) => {
-                    const name = volunteer.name || volunteer.bio?.slice(0, 20) || "Impact Agent"
+                    const name = volunteer.name || volunteer.bio?.slice(0, 20) || "Candidate"
                     const skills = volunteer.skills || []
                     return (
                       <tr key={volunteer.userId} className="border-b hover:bg-muted/50">
@@ -271,7 +271,7 @@ export function VolunteersSearchableList({ volunteers, title }: VolunteersSearch
             </div>
           ) : (
             <div className="text-center py-8 text-muted-foreground">
-              No impact agents found matching your criteria
+              No candidates found matching your criteria
             </div>
           )}
         </CardContent>

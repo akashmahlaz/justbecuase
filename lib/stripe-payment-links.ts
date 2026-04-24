@@ -6,12 +6,12 @@
 // Then add the URLs here
 
 // BUSINESS MODEL:
-// - NGO Pro: Can unlock UNLIMITED free volunteer profiles
+// - Enterprise Pro: Can unlock UNLIMITED free volunteer profiles
 // - Volunteer Pro: Can apply to UNLIMITED jobs
 // - NO individual profile unlock payment!
 
 export const STRIPE_PAYMENT_LINKS = {
-  // NGO Pro Subscription
+  // Enterprise Pro Subscription
   // For TESTING: Create with Price = $0.05 USD, Billing = Monthly
   // For PRODUCTION: Create with Price = $29.99 USD, Billing = Monthly
   // Redirect URL: https://yoursite.com/api/payments/stripe-link-callback?type=subscription&plan=ngo-pro
@@ -19,7 +19,7 @@ export const STRIPE_PAYMENT_LINKS = {
     url: "https://buy.stripe.com/00w4gAeb27bQ91U6jdcs801", // TEST LINK ($0.05)
     price: 0.05, // TEST PRICE in USD - change to 29.99 USD for production
     currency: "USD",
-    description: "NGO Pro - Unlock unlimited free impact agent profiles",
+    description: "Enterprise Pro - Unlock unlimited free candidate profiles",
   },
   
   // Volunteer Pro Subscription  
@@ -30,7 +30,7 @@ export const STRIPE_PAYMENT_LINKS = {
     url: "https://buy.stripe.com/aFafZid6YeEi3HAfTNcs800", // TEST LINK ($0.05)
     price: 0.05, // TEST PRICE in USD - change to 9.99 USD for production
     currency: "USD",
-    description: "Impact Agent Pro - Apply to unlimited jobs",
+    description: "Candidate Pro - Apply to unlimited jobs",
   },
 }
 
@@ -39,9 +39,9 @@ export const STRIPE_PAYMENT_LINKS = {
 // STEP 1: Go to https://dashboard.stripe.com/payment-links
 // STEP 2: Click "+ New payment link"
 // 
-// CREATE LINK 1 - NGO Pro:
+// CREATE LINK 1 - Enterprise Pro:
 //   - Click "Add new product" or select existing
-//   - Name: "NGO Pro Subscription (Test)"
+//   - Name: "Enterprise Pro Subscription (Test)"
 //   - Price: $1 (for testing) or $29.99 (production)
 //   - Billing: "Recurring" → "Monthly"
 //   - Under "After payment" → "Don't show confirmation page"
