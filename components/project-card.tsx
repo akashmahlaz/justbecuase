@@ -1,4 +1,4 @@
-﻿"use client"
+"use client"
 
 import LocaleLink from "@/components/locale-link"
 import { Badge } from "@/components/ui/badge"

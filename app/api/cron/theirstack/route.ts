@@ -1,4 +1,4 @@
-﻿// filepath: app/api/cron/theirstack/route.ts
+// filepath: app/api/cron/theirstack/route.ts
 import { NextResponse } from "next/server"
 import { runTheirStackSync } from "@/lib/theirstack-sync"
 

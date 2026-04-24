@@ -1,4 +1,4 @@
-﻿// ============================================
+// ============================================
 // CharityJob Scraper — UK's largest charity job board
 // ============================================
 // Scrapes from charityjob.co.uk — thousands of charity/NGO jobs

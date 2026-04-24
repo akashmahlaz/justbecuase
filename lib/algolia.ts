@@ -1,4 +1,4 @@
-﻿import { algoliasearch } from "algoliasearch"
+import { algoliasearch } from "algoliasearch"
 import type { SupportedLanguage } from "algoliasearch"
 import { skillCategories, causes as causesList } from "@/lib/skills-data"
 

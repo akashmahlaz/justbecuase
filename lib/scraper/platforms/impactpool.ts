@@ -1,4 +1,4 @@
-﻿// ============================================
+// ============================================
 // Impactpool Scraper — DOM-based extraction
 // ============================================
 // Scrapes from impactpool.org — jobs in UN, NGOs, and international development.

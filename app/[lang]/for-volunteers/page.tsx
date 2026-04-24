@@ -1,4 +1,4 @@
-﻿"use client"
+"use client"
 
 import LocaleLink from "@/components/locale-link"
 import { Navbar } from "@/components/navbar"

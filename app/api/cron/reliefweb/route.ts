@@ -1,4 +1,4 @@
-﻿import { NextResponse } from "next/server"
+import { NextResponse } from "next/server"
 import { fetchAllJobsUnfiltered, mapApiJobToOpportunity } from "@/lib/reliefweb-api"
 import { externalOpportunitiesDb } from "@/lib/scraper"
 import { sendEmail, getCronSyncEmailHtml } from "@/lib/email"

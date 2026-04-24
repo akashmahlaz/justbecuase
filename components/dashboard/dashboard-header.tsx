@@ -1,4 +1,4 @@
-﻿"use client"
+"use client"
 
 import LocaleLink from "@/components/locale-link"
 import Image from "next/image"

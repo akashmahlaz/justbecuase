@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { motion } from "motion/react";
 import { Users, CheckCircle2, Building2, Clock, DollarSign } from "lucide-react";

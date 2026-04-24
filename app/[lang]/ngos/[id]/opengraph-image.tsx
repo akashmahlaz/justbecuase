@@ -1,4 +1,4 @@
-﻿import { ImageResponse } from "next/og"
+import { ImageResponse } from "next/og"
 import { getNGOById } from "@/lib/actions"
 
 export const alt = "NGO Profile - JustBeCause Network"

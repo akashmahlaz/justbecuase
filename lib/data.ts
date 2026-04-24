@@ -1,4 +1,4 @@
-﻿// Sample data for the platform
+// Sample data for the platform
 export const sampleProjects = [
   {
     id: "3",

@@ -1,4 +1,4 @@
-﻿// ============================================
+// ============================================
 // Idealist Listings API Client
 // ============================================
 // Official API integration using approved API key from Bradley.

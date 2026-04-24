@@ -1,4 +1,4 @@
-﻿// @deprecated - This file is no longer used. Payment Links have been replaced by Stripe Checkout Sessions.
+// @deprecated - This file is no longer used. Payment Links have been replaced by Stripe Checkout Sessions.
 // See app/api/payments/create-subscription/route.ts for the new flow.
 //
 // Stripe Payment Links Configuration

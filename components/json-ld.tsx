@@ -1,4 +1,4 @@
-﻿const SITE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://justbecausenetwork.com"
+const SITE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://justbecausenetwork.com"
 
 export function OrganizationJsonLd() {
   const jsonLd = {
