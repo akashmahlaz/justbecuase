@@ -15,12 +15,15 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    // Check admin
+    // Check admin: accept either role=admin OR entry in admins collection
     await client.connect()
     const db = client.db(DB_NAME)
-    const admin = await db.collection("admins").findOne({ email: session.user.email })
+    const isRoleAdmin = (session.user as any)?.role === "admin"
+    const admin = isRoleAdmin
+      ? { email: session.user.email }
+      : await db.collection("admins").findOne({ email: session.user.email })
     if (!admin) {
-      console.warn(`[Admin Contact Inquiries] GET: ${session.user.email} not in admins collection`)
+      console.warn(`[Admin Contact Inquiries] GET: ${session.user.email} not admin (role=${(session.user as any)?.role})`)
       return NextResponse.json({ error: "Admin access required" }, { status: 403 })
     }
 
@@ -48,7 +51,10 @@ export async function PATCH(req: NextRequest) {
 
     await client.connect()
     const db = client.db(DB_NAME)
-    const admin = await db.collection("admins").findOne({ email: session.user.email })
+    const isRoleAdmin = (session.user as any)?.role === "admin"
+    const admin = isRoleAdmin
+      ? { email: session.user.email }
+      : await db.collection("admins").findOne({ email: session.user.email })
     if (!admin) {
       return NextResponse.json({ error: "Admin access required" }, { status: 403 })
     }

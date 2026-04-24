@@ -1,4 +1,10 @@
+import path from 'node:path'
+import { fileURLToPath } from 'node:url'
+
 /** @type {import('next').NextConfig} */
+
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = path.dirname(__filename)
 
 const nextConfig = {
   // Enable strict mode for better React debugging
@@ -47,9 +53,10 @@ const nextConfig = {
     },
   },
 
-  // Fix lockfile detection — tell Turbopack this is the project root
+  // Fix lockfile detection and module resolution on Windows by pinning
+  // the root to this config file's directory, not process cwd.
   turbopack: {
-    root: process.cwd(),
+    root: __dirname,
   },
 
   // SEO: Security & caching headers
