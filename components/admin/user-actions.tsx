@@ -9,9 +9,6 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-  DropdownMenuSub,
-  DropdownMenuSubContent,
-  DropdownMenuSubTrigger,
 } from "@/components/ui/dropdown-menu"
 import {
   Dialog,
@@ -242,43 +239,39 @@ export function UserActions({
             {isVerified ? "Unverify User" : "Verify User"}
           </DropdownMenuItem>
           
-          {/* Role Change Submenu */}
-          <DropdownMenuSub>
-            <DropdownMenuSubTrigger className="flex items-center gap-2">
-              <Shield className="h-4 w-4" />
-              Change Role
-            </DropdownMenuSubTrigger>
-            <DropdownMenuSubContent>
-              <DropdownMenuItem 
-                onClick={() => handleChangeRole("volunteer")}
-                className="flex items-center gap-2"
-                disabled={currentRole === "volunteer"}
-              >
-                <Heart className="h-4 w-4" />
-                Candidate
-                {currentRole === "volunteer" && <CheckCircle className="h-3 w-3 ml-auto text-green-600" />}
-              </DropdownMenuItem>
-              <DropdownMenuItem 
-                onClick={() => handleChangeRole("ngo")}
-                className="flex items-center gap-2"
-                disabled={currentRole === "ngo"}
-              >
-                <Building2 className="h-4 w-4" />
-                NGO
-                {currentRole === "ngo" && <CheckCircle className="h-3 w-3 ml-auto text-green-600" />}
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem 
-                onClick={() => handleChangeRole("admin")}
-                className="flex items-center gap-2 text-red-600"
-                disabled={currentRole === "admin"}
-              >
-                <Shield className="h-4 w-4" />
-                Admin
-                {currentRole === "admin" && <CheckCircle className="h-3 w-3 ml-auto text-green-600" />}
-              </DropdownMenuItem>
-            </DropdownMenuSubContent>
-          </DropdownMenuSub>
+          {/* Role Change - inline (submenu doesn't open on click in some setups) */}
+          <DropdownMenuSeparator />
+          <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground flex items-center gap-2">
+            <Shield className="h-3.5 w-3.5" />
+            Change Role
+          </div>
+          <DropdownMenuItem
+            onClick={() => handleChangeRole("volunteer")}
+            className="flex items-center gap-2 pl-6"
+            disabled={currentRole === "volunteer"}
+          >
+            <Heart className="h-4 w-4" />
+            Candidate
+            {currentRole === "volunteer" && <CheckCircle className="h-3 w-3 ml-auto text-green-600" />}
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            onClick={() => handleChangeRole("ngo")}
+            className="flex items-center gap-2 pl-6"
+            disabled={currentRole === "ngo"}
+          >
+            <Building2 className="h-4 w-4" />
+            NGO
+            {currentRole === "ngo" && <CheckCircle className="h-3 w-3 ml-auto text-green-600" />}
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            onClick={() => handleChangeRole("admin")}
+            className="flex items-center gap-2 pl-6 text-red-600"
+            disabled={currentRole === "admin"}
+          >
+            <Shield className="h-4 w-4" />
+            Admin
+            {currentRole === "admin" && <CheckCircle className="h-3 w-3 ml-auto text-green-600" />}
+          </DropdownMenuItem>
 
           <DropdownMenuSeparator />
           
