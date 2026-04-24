@@ -11,7 +11,7 @@ export default function HiringPulsePage() {
         </CardTitle>
       </CardHeader>
       <CardContent className="text-muted-foreground">
-        Coming soon — Track NGO hiring trends over time to identify partnership windows.
+        Coming soon — Track Enterprise hiring trends over time to identify partnership windows.
       </CardContent>
     </Card>
   )

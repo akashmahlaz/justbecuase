@@ -22,7 +22,7 @@ export async function POST(req: Request) {
     const isNGO = role === "ngo"
 
     const prompt = isNGO
-      ? `Write a brief, professional organization description for an NGO onboarding profile.
+      ? `Write a brief, professional organization description for an Enterprise onboarding profile.
 
 DETAILS:
 - Contact Person: ${name}

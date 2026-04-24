@@ -27,7 +27,7 @@ export default async function ApplicationsPage({
     redirect(`/${lang}/auth/signin`)
   }
 
-  // Role verification: Ensure user is an NGO
+  // Role verification: Ensure user is an Enterprise
   if (session.user.role !== "ngo") {
     if (session.user.role === "volunteer") {
       redirect(`/${lang}/volunteer/dashboard`)
@@ -49,7 +49,7 @@ export default async function ApplicationsPage({
     <main className="flex-1 p-6 lg:p-8">
           <div className="mb-8">
             <h1 className="text-2xl font-bold text-foreground mb-2">{dict.ngo?.applications?.title || "Applications"}</h1>
-            <p className="text-muted-foreground">{dict.ngo?.applications?.subtitle || "Review and manage impact agent applications for your opportunities"}</p>
+            <p className="text-muted-foreground">{dict.ngo?.applications?.subtitle || "Review and manage candidate applications for your jobs"}</p>
           </div>
 
           <Suspense fallback={<ApplicationsSkeleton />}>

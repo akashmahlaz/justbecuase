@@ -1,7 +1,7 @@
 // ============================================
 // Impactpool Scraper — DOM-based extraction
 // ============================================
-// Scrapes from impactpool.org — jobs in UN, NGOs, and international development.
+// Scrapes from impactpool.org — jobs in UN, Enterprises, and international development.
 // Uses proper CSS selectors on structured DOM elements:
 //   div[type="cardTitle"]         → Job title
 //   div[type="bodyEmphasis"] #1C1B16 → Organization (full name)

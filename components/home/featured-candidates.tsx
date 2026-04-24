@@ -71,7 +71,7 @@ export function FeaturedCandidates() {
               {home.browseFeaturedCandidates || "Browse our Featured Candidates"}
             </h2>
             <p className="text-muted-foreground leading-relaxed">
-              {home.featuredCandidatesDesc || "Hand-picked Impact Agents ready to contribute. Verified profiles, proven skills, real availability."}
+              {home.featuredCandidatesDesc || "Hand-picked Candidates ready to contribute. Verified profiles, proven skills, real availability."}
             </p>
           </div>
 
@@ -177,7 +177,7 @@ export function FeaturedCandidates() {
                       {/* Info */}
                       <div className="p-4">
                         <h3 className="text-base font-semibold text-foreground truncate group-hover:text-primary transition-colors">
-                          {candidate.name || "Impact Agent"}
+                          {candidate.name || "Candidate"}
                         </h3>
 
                         {/* Location & Rating */}

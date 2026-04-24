@@ -32,9 +32,9 @@ export async function POST(req: Request) {
           suggestedTimeCommitment: z.string().describe("Suggested hours per week (e.g., '5-10 hours/week')"),
         }),
       }),
-      prompt: `Help an NGO create a compelling project posting that will attract skilled volunteers.
+      prompt: `Help an Enterprise create a compelling project posting that will attract skilled volunteers.
 
-NGO CONTEXT:
+Enterprise CONTEXT:
 - Organization Name: ${orgName || "Not specified"}
 - Mission: ${orgMission || "Not specified"}
 - Causes: ${causes?.join(", ") || "Not specified"}

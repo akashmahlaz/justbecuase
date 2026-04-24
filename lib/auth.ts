@@ -139,7 +139,7 @@ export const auth = betterAuth({
         required: false,
         input: true,
       },
-      // Volunteer-specific fields (null if NGO)
+      // Volunteer-specific fields (null if Enterprise)
       bio: {
         type: "string",
         required: false,
@@ -193,7 +193,7 @@ export const auth = betterAuth({
         type: "number",
         required: false,
       },
-      // NGO-specific fields (null if Volunteer)
+      // Enterprise-specific fields (null if Volunteer)
       orgName: {
         type: "string",
         required: false,

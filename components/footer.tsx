@@ -58,11 +58,11 @@ export function Footer() {
 
           {/* For Volunteers */}
           <div>
-            <h4 className="font-semibold text-foreground mb-4">{footer.forImpactAgents || "For Impact Agents"}</h4>
+            <h4 className="font-semibold text-foreground mb-4">{footer.forImpactAgents || "For Candidates"}</h4>
             <ul className="space-y-3">
               <li>
                 <LocaleLink href="/projects" className="text-muted-foreground hover:text-foreground transition-colors">
-                  {footer.browseOpportunities || "Browse Opportunities"}
+                  {footer.browseOpportunities || "Browse Jobs"}
                 </LocaleLink>
               </li>
               <li>
@@ -86,9 +86,9 @@ export function Footer() {
             </ul>
           </div>
 
-          {/* For NGOs */}
+          {/* For Enterprises */}
           <div>
-            <h4 className="font-semibold text-foreground mb-4">{footer.forNGOs || "For NGOs"}</h4>
+            <h4 className="font-semibold text-foreground mb-4">{footer.forNGOs || "For Enterprises"}</h4>
             <ul className="space-y-3">
               <li>
                 <LocaleLink href="/for-ngos" className="text-muted-foreground hover:text-foreground transition-colors">
@@ -100,7 +100,7 @@ export function Footer() {
                   href="/ngo/post-project"
                   className="text-muted-foreground hover:text-foreground transition-colors"
                 >
-                  {footer.postOpportunity || "Post an Opportunity"}
+                  {footer.postOpportunity || "Post an Job"}
                 </LocaleLink>
               </li>
               <li>
@@ -139,7 +139,7 @@ export function Footer() {
           <div className="max-w-md mx-auto mb-8">
             <h4 className="font-semibold text-foreground mb-2 text-center">{footer.stayUpdated || "Stay Updated"}</h4>
             <p className="text-sm text-muted-foreground mb-4 text-center">
-              {footer.newsletterDesc || "Get the latest opportunities and impact stories delivered to your inbox."}
+              {footer.newsletterDesc || "Get the latest jobs and impact stories delivered to your inbox."}
             </p>
             <NewsletterSubscribe />
           </div>

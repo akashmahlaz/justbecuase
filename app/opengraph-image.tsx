@@ -95,11 +95,11 @@ export default function Image() {
         >
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
             <div style={{ fontSize: "28px", fontWeight: 700, color: "#22d3ee" }}>1000+</div>
-            <div style={{ fontSize: "14px", color: "#94a3b8" }}>Impact Agents</div>
+            <div style={{ fontSize: "14px", color: "#94a3b8" }}>Candidates</div>
           </div>
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
             <div style={{ fontSize: "28px", fontWeight: 700, color: "#22d3ee" }}>500+</div>
-            <div style={{ fontSize: "14px", color: "#94a3b8" }}>NGO Projects</div>
+            <div style={{ fontSize: "14px", color: "#94a3b8" }}>Enterprise Projects</div>
           </div>
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
             <div style={{ fontSize: "28px", fontWeight: 700, color: "#22d3ee" }}>6</div>

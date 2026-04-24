@@ -25,7 +25,7 @@ export async function GET() {
             "Unlimited job applications",
             "Featured profile badge",
             "Priority in search results",
-            "Direct message NGOs",
+            "Direct message Enterprises",
             "Early access to opportunities",
             "Profile analytics",
             "Certificate downloads",
@@ -40,13 +40,13 @@ export async function GET() {
             "Advanced AI-powered matching",
             "Priority support",
             "Project analytics & reports",
-            "Featured NGO badge",
-            "Bulk impact agent outreach",
+            "Featured Enterprise badge",
+            "Bulk candidate outreach",
           ],
           enablePayments: true,
           enableMessaging: true,
-          metaTitle: "JustBeCause Network - Connect NGOs with Impact Agents",
-          metaDescription: "Platform connecting NGOs with skilled impact agents for social impact",
+          metaTitle: "JustBeCause Network - Connect Enterprises with Candidates",
+          metaDescription: "Platform connecting Enterprises with skilled candidates for social impact",
         }
       })
     }

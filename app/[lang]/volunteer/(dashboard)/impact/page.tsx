@@ -77,7 +77,7 @@ export default async function ImpactDashboardPage({ params }: { params: Promise<
                   <div className="text-5xl">{levelInfo.icon}</div>
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-1">
-                      <h2 className="text-xl font-bold text-foreground">{levelInfo.level} {dict.volunteer?.impact?.impactAgent || "Impact Agent"}</h2>
+                      <h2 className="text-xl font-bold text-foreground">{levelInfo.level} {dict.volunteer?.impact?.impactAgent || "Candidate"}</h2>
                       <Badge className={`${levelInfo.color} text-white`}>{levelInfo.level}</Badge>
                     </div>
                     <p className="text-sm text-muted-foreground mb-3">
@@ -198,7 +198,7 @@ export default async function ImpactDashboardPage({ params }: { params: Promise<
                       <Star className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
                       <p className="text-sm text-muted-foreground">{dict.volunteer?.impact?.noReviews || "No reviews yet"}</p>
                       <p className="text-xs text-muted-foreground">
-                        {dict.volunteer?.impact?.noReviewsHint || "Complete projects to receive reviews from NGOs"}
+                        {dict.volunteer?.impact?.noReviewsHint || "Complete projects to receive reviews from Enterprises"}
                       </p>
                     </div>
                   ) : (
@@ -206,7 +206,7 @@ export default async function ImpactDashboardPage({ params }: { params: Promise<
                       {reviews.slice(0, 5).map((review: any, i: number) => (
                         <div key={i} className="border rounded-lg p-3">
                           <div className="flex items-center justify-between mb-1">
-                            <span className="text-sm font-medium">{review.reviewerName || "NGO"}</span>
+                            <span className="text-sm font-medium">{review.reviewerName || "Enterprise"}</span>
                             <div className="flex gap-0.5">
                               {[1, 2, 3, 4, 5].map((star) => (
                                 <Star

@@ -290,7 +290,7 @@ export async function fetchAllRemoteJobs(maxDetails = 500): Promise<IdealistJobD
 // ============================================
 // Fetch ALL published nonprofit jobs (all location types)
 // ============================================
-// Idealist is exclusively a nonprofit job board — every listing is NGO-relevant.
+// Idealist is exclusively a nonprofit job board — every listing is Enterprise-relevant.
 // This fetches all published listings regardless of location type for maximum coverage.
 export async function fetchAllNonprofitJobs(maxDetails = 5000): Promise<IdealistJobDetail[]> {
   if (!API_KEY) {

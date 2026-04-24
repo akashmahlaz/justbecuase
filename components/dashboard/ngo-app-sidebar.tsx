@@ -117,7 +117,7 @@ export function NGOAppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>
                   <Building2 className="size-4" />
                 </div>
                 <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-semibold">{d.ngoDashboard || "NGO Dashboard"}</span>
+                  <span className="truncate font-semibold">{d.ngoDashboard || "Enterprise Dashboard"}</span>
                   <span className="truncate text-xs text-muted-foreground">{d.manageOrganization || "Manage your organization"}</span>
                 </div>
               </LocaleLink>

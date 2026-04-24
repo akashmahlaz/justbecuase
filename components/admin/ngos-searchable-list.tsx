@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { UserActions } from "@/components/admin/user-actions"
 
-interface NGO {
+interface Enterprise {
   userId: string
   orgName?: string
   organizationName?: string
@@ -35,7 +35,7 @@ interface NGO {
 }
 
 interface NGOsSearchableListProps {
-  ngos: NGO[]
+  ngos: Enterprise[]
   title: string
 }
 
@@ -81,7 +81,7 @@ export function NGOsSearchableList({ ngos, title }: NGOsSearchableListProps) {
 
   const handleExport = () => {
     // Export to CSV
-    const headers = ["Organization", "Email", "Location", "Subscription", "Verified", "Opportunities Posted", "Joined"]
+    const headers = ["Organization", "Email", "Location", "Subscription", "Verified", "Jobs Posted", "Joined"]
     const rows = filteredNGOs.map(ngo => [
       ngo.orgName || ngo.organizationName || "",
       ngo.contactEmail || "",
@@ -153,7 +153,7 @@ export function NGOsSearchableList({ ngos, title }: NGOsSearchableListProps) {
         </CardContent>
       </Card>
 
-      {/* NGOs Table */}
+      {/* Enterprises Table */}
       <Card>
         <CardHeader className="pb-4">
           <CardTitle className="text-lg">{title} ({filteredNGOs.length})</CardTitle>
@@ -174,7 +174,7 @@ export function NGOsSearchableList({ ngos, title }: NGOsSearchableListProps) {
                 </thead>
                 <tbody>
                   {filteredNGOs.map((ngo) => {
-                    const orgName = ngo.orgName || ngo.organizationName || "Unnamed NGO"
+                    const orgName = ngo.orgName || ngo.organizationName || "Unnamed Enterprise"
                     return (
                       <tr key={ngo.userId} className="border-b hover:bg-muted/50">
                         <td className="py-3 px-4">
@@ -257,7 +257,7 @@ export function NGOsSearchableList({ ngos, title }: NGOsSearchableListProps) {
             </div>
           ) : (
             <div className="text-center py-8 text-muted-foreground">
-              No NGOs found matching your criteria
+              No Enterprises found matching your criteria
             </div>
           )}
         </CardContent>

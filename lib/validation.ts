@@ -121,7 +121,7 @@ export function validateVolunteerProfileData(data: {
 }
 
 /**
- * Validate NGO profile data
+ * Validate Enterprise profile data
  */
 export function validateNGOProfileData(data: {
   orgName?: string

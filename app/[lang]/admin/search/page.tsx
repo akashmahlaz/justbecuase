@@ -55,21 +55,21 @@ const COLLECTIONS: CollectionDef[] = [
     label: "Opportunities",
     collectionParam: ["projects"],
     icon: FolderKanban,
-    description: "All active/open volunteer opportunities",
+    description: "All active/open volunteer jobs",
   },
   {
     key: "volunteers",
-    label: "Impact Agents",
+    label: "Candidates",
     collectionParam: ["volunteers"],
     icon: Users,
     description: "All volunteer profiles",
   },
   {
     key: "ngos",
-    label: "NGOs",
+    label: "Enterprises",
     collectionParam: ["ngos"],
     icon: Building2,
-    description: "All NGO organization profiles",
+    description: "All Enterprise organization profiles",
   },
   {
     key: "blog",
@@ -88,8 +88,8 @@ const COLLECTIONS: CollectionDef[] = [
 ]
 
 const INDEX_LABEL_MAP: Record<string, string> = {
-  justbecause_volunteers: "Impact Agents",
-  justbecause_ngos: "NGOs",
+  justbecause_volunteers: "Candidates",
+  justbecause_ngos: "Enterprises",
   justbecause_projects: "Opportunities",
   justbecause_blog_posts: "Blog Posts",
   justbecause_pages: "Pages",
@@ -287,7 +287,7 @@ export default function AdminSearchPage() {
             <div>
               <p className="font-medium text-sm">Sync All Collections</p>
               <p className="text-xs text-muted-foreground mt-0.5">
-                Volunteers · NGOs · Opportunities · Blog · Pages
+                Volunteers · Enterprises · Opportunities · Blog · Pages
               </p>
               {syncResults["all"] && (
                 <SyncResultBadge result={syncResults["all"]} />

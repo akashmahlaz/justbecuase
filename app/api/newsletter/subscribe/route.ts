@@ -51,7 +51,7 @@ export async function POST(request: NextRequest) {
               <li>New impact opportunities</li>
               <li>Impact stories from our community</li>
               <li>Tips for skill-based impact work</li>
-              <li>NGO spotlights</li>
+              <li>Enterprise spotlights</li>
             </ul>
             <p>Stay tuned for inspiring stories and opportunities to make a difference!</p>
           </div>

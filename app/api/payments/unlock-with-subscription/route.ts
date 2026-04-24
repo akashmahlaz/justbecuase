@@ -14,20 +14,20 @@ export async function POST(request: NextRequest) {
     }
 
     if (session.user.role !== "ngo") {
-      return NextResponse.json({ error: "Only NGOs can unlock profiles" }, { status: 403 })
+      return NextResponse.json({ error: "Only Enterprises can unlock profiles" }, { status: 403 })
     }
 
     const body = await request.json()
     const { volunteerId } = body
 
     if (!volunteerId) {
-      return NextResponse.json({ error: "Impact agent ID required" }, { status: 400 })
+      return NextResponse.json({ error: "Candidate ID required" }, { status: 400 })
     }
 
-    // Get NGO profile to check subscription
+    // Get Enterprise profile to check subscription
     const ngoProfile = await ngoProfilesDb.findByUserId(session.user.id)
     if (!ngoProfile) {
-      return NextResponse.json({ error: "NGO profile not found" }, { status: 404 })
+      return NextResponse.json({ error: "Enterprise profile not found" }, { status: 404 })
     }
 
     // Check if Pro plan
@@ -41,14 +41,14 @@ export async function POST(request: NextRequest) {
     // Check if volunteer exists
     const volunteerProfile = await volunteerProfilesDb.findByUserId(volunteerId)
     if (!volunteerProfile) {
-      return NextResponse.json({ error: "Impact agent not found" }, { status: 404 })
+      return NextResponse.json({ error: "Candidate not found" }, { status: 404 })
     }
 
     // If volunteer is paid type, no unlock needed
     if (volunteerProfile.volunteerType === "paid") {
       return NextResponse.json({ 
         success: true, 
-        message: "Profile is already accessible (paid impact agent)" 
+        message: "Profile is already accessible (paid candidate)" 
       })
     }
 
@@ -87,7 +87,7 @@ export async function POST(request: NextRequest) {
         userId: volunteerId,
         type: "profile_viewed",
         title: "Your Profile Was Viewed",
-        message: `${ngoProfile.organizationName || "An NGO"} unlocked your profile`,
+        message: `${ngoProfile.organizationName || "An Enterprise"} unlocked your profile`,
         referenceId: session.user.id,
         referenceType: "ngo",
         isRead: false,

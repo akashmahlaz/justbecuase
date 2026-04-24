@@ -89,10 +89,10 @@ export async function POST(request: NextRequest) {
     const isPro = planId.endsWith("-pro")
 
     if (isNgoPlan && userRole === "ngo") {
-      // Update NGO profile
+      // Update Enterprise profile
       const profile = await ngoProfilesDb.findByUserId(userId)
       if (!profile) {
-        return NextResponse.json({ error: "NGO profile not found" }, { status: 404 })
+        return NextResponse.json({ error: "Enterprise profile not found" }, { status: 404 })
       }
 
       await ngoProfilesDb.update(userId, {
@@ -106,7 +106,7 @@ export async function POST(request: NextRequest) {
       // Update Volunteer profile
       const profile = await volunteerProfilesDb.findByUserId(userId)
       if (!profile) {
-        return NextResponse.json({ error: "Impact agent profile not found" }, { status: 404 })
+        return NextResponse.json({ error: "Candidate profile not found" }, { status: 404 })
       }
 
       await volunteerProfilesDb.update(userId, {
@@ -175,7 +175,7 @@ export async function POST(request: NextRequest) {
       const userRecord = await db.collection("user").findOne(userIdQuery(userId))
       if (userRecord?.email) {
         const { sendEmail, getSubscriptionConfirmationEmailHtml } = await import("@/lib/email")
-        const planName = isNgoPlan ? "NGO Pro" : "Impact Agent Pro"
+        const planName = isNgoPlan ? "Enterprise Pro" : "Candidate Pro"
         const locale = currency === "INR" ? "en-IN" : "en-US"
         const expiryFormatted = subscriptionExpiry.toLocaleDateString(locale, { year: "numeric", month: "long", day: "numeric" })
         const html = getSubscriptionConfirmationEmailHtml(

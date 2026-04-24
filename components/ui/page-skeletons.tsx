@@ -1,7 +1,7 @@
 import { Skeleton } from "@/components/ui/skeleton"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 
-// Settings page skeleton (NGO/Volunteer/Admin settings)
+// Settings page skeleton (Enterprise/Volunteer/Admin settings)
 export function SettingsPageSkeleton() {
   return (
     <main className="flex-1 p-6 lg:p-8">

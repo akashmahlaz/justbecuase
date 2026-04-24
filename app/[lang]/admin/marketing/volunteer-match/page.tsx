@@ -11,7 +11,7 @@ export default function VolunteerMatchPage() {
         </CardTitle>
       </CardHeader>
       <CardContent className="text-muted-foreground">
-        Coming soon — Match volunteers&apos; skills to NGO open positions discovered via TheirStack.
+        Coming soon — Match volunteers&apos; skills to Enterprise open positions discovered via TheirStack.
       </CardContent>
     </Card>
   )

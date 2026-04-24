@@ -36,11 +36,11 @@ import type { VolunteerProfileView } from "@/lib/types"
 interface VolunteersPageProps {
   /**
    * When true the component is being rendered inside another layout (e.g.
-   * NGO dashboard) so we should disable the global navbar/hero that normally
+   * Enterprise dashboard) so we should disable the global navbar/hero that normally
    * surrounds the search UI.
    */
   embed?: boolean
-  /** NGO subscription plan – passed from the NGO find-talent page */
+  /** Enterprise subscription plan – passed from the Enterprise find-talent page */
   subscriptionPlan?: "free" | "pro"
 }
 
@@ -306,7 +306,7 @@ export default function VolunteersPage({ embed, subscriptionPlan }: VolunteersPa
     <div className="space-y-6">
       {/* Volunteer Type */}
       <div>
-        <Label className="text-sm font-semibold text-foreground mb-3 block">{dict.volunteersListing?.impactAgentType || "Impact Agent Type"}</Label>
+        <Label className="text-sm font-semibold text-foreground mb-3 block">{dict.volunteersListing?.impactAgentType || "Candidate Type"}</Label>
         <RadioGroup
           value={selectedVolunteerType || "all"}
           onValueChange={(value) => setSelectedVolunteerType(value === "all" ? "" : value)}
@@ -314,7 +314,7 @@ export default function VolunteersPage({ embed, subscriptionPlan }: VolunteersPa
           <div className="flex items-center space-x-2">
             <RadioGroupItem value="all" id="type-all" />
             <Label htmlFor="type-all" className="text-sm font-normal cursor-pointer">
-              {dict.volunteersListing?.allImpactAgents || "All Impact Agents"}
+              {dict.volunteersListing?.allImpactAgents || "All Candidates"}
             </Label>
           </div>
           <div className="flex items-center space-x-2">
@@ -446,7 +446,7 @@ export default function VolunteersPage({ embed, subscriptionPlan }: VolunteersPa
             <div className="container mx-auto px-4 md:px-6">
               <div className="max-w-3xl mx-auto text-center">
                 <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
-                  {dict.volunteersListing?.title || "Find Skilled Impact Agents"}
+                  {dict.volunteersListing?.title || "Find Skilled Candidates"}
                 </h1>
                 <p className="text-lg text-muted-foreground mb-8">
                   {dict.volunteersListing?.subtitle || "Connect with talented professionals ready to contribute their skills to your cause"}
@@ -577,7 +577,7 @@ export default function VolunteersPage({ embed, subscriptionPlan }: VolunteersPa
             {/* Volunteers Grid */}
             <div className="flex-1 min-w-0">
               <p className="text-sm text-muted-foreground mb-4">
-                {(dict.volunteersListing?.showingTemplate || "Showing {shown} of {total} impact agents")
+                {(dict.volunteersListing?.showingTemplate || "Showing {shown} of {total} candidates")
                   .replace("{shown}", String(filteredVolunteers.length))
                   .replace("{total}", String(volunteers.length))}
                 {isUnifiedSearching && (
@@ -590,11 +590,11 @@ export default function VolunteersPage({ embed, subscriptionPlan }: VolunteersPa
               ) : filteredVolunteers.length === 0 ? (
                 <AIEmptyState
                   mode="empty"
-                  title={dict.volunteersListing?.noAgentsFound || "No impact agents found"}
+                  title={dict.volunteersListing?.noAgentsFound || "No candidates found"}
                   description={
                     hasActiveFilters || searchQuery
                       ? (dict.volunteersListing?.tryAdjusting || "Try adjusting your filters or search terms")
-                      : (dict.volunteersListing?.checkBackLater || "Check back later for new impact agents")
+                      : (dict.volunteersListing?.checkBackLater || "Check back later for new candidates")
                   }
                   action={
                     (hasActiveFilters || searchQuery) ? (

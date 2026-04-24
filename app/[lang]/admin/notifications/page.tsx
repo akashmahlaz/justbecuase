@@ -109,7 +109,7 @@ export default function AdminNotificationsPage() {
       <div>
         <h1 className="text-2xl font-bold text-foreground mb-2">{dict.admin?.notifications?.title || "Send Notifications"}</h1>
         <p className="text-muted-foreground">
-          {dict.admin?.notifications?.subtitle || "Send notifications to users, impact agents, or NGOs"}
+          {dict.admin?.notifications?.subtitle || "Send notifications to users, candidates, or Enterprises"}
         </p>
       </div>
 
@@ -143,13 +143,13 @@ export default function AdminNotificationsPage() {
                   <SelectItem value="volunteers">
                     <div className="flex items-center gap-2">
                       <User className="h-4 w-4" />
-                      {dict.admin?.notifications?.allImpactAgents || "All Impact Agents"}
+                      {dict.admin?.notifications?.allImpactAgents || "All Candidates"}
                     </div>
                   </SelectItem>
                   <SelectItem value="ngos">
                     <div className="flex items-center gap-2">
                       <Building2 className="h-4 w-4" />
-                      {dict.admin?.notifications?.allNgos || "All NGOs"}
+                      {dict.admin?.notifications?.allNgos || "All Enterprises"}
                     </div>
                   </SelectItem>
                   <SelectItem value="specific">
@@ -187,7 +187,7 @@ export default function AdminNotificationsPage() {
                   <SelectItem value="application_rejected">{dict.admin?.notifications?.applicationRejected || "Application Rejected"}</SelectItem>
                   <SelectItem value="profile_viewed">{dict.admin?.notifications?.profileViewed || "Profile Viewed"}</SelectItem>
                   <SelectItem value="profile_unlocked">{dict.admin?.notifications?.profileUnlocked || "Profile Unlocked"}</SelectItem>
-                  <SelectItem value="project_match">{dict.admin?.notifications?.opportunityMatch || "Opportunity Match"}</SelectItem>
+                  <SelectItem value="project_match">{dict.admin?.notifications?.opportunityMatch || "Job Match"}</SelectItem>
                 </SelectContent>
               </Select>
             </div>

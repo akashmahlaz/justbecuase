@@ -27,7 +27,7 @@ export interface ScrapedOpportunity {
   title: string
   description: string
   shortDescription?: string
-  organization: string // NGO/Org name from source
+  organization: string // Enterprise/Org name from source
   organizationUrl?: string
   organizationLogo?: string
 

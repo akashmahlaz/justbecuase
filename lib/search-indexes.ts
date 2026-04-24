@@ -556,7 +556,7 @@ function buildCausesSearchText(causes: any): string {
 }
 
 /**
- * Build searchable text from typicalSkillsNeeded (NGO) or skillsRequired (Project)
+ * Build searchable text from typicalSkillsNeeded (Enterprise) or skillsRequired (Project)
  * These are stored as arrays of objects: [{categoryId, subskillId, ...}]
  */
 function buildObjectSkillsSearchText(skillsArr: any): string {
@@ -726,7 +726,7 @@ function computeRelevanceScore(doc: any, searchTerms: string[]): number {
       }
     }
 
-    // --- Score TYPICAL SKILLS NEEDED (NGO) / skillsRequired (Project) as object arrays ---
+    // --- Score TYPICAL SKILLS NEEDED (Enterprise) / skillsRequired (Project) as object arrays ---
     const objectSkillsText = buildObjectSkillsSearchText(doc.typicalSkillsNeeded || doc.skillsRequired)
     if (objectSkillsText) {
       if (objectSkillsText.includes(termLower)) {
@@ -830,7 +830,7 @@ function findMatchedField(doc: any, searchTerms: string[]): string | undefined {
     // Check causes
     const causesText = buildCausesSearchText(doc.causes)
     if (causesText && causesText.includes(termLower)) return "causes"
-    // Check typical skills needed (NGO object array)
+    // Check typical skills needed (Enterprise object array)
     const typicalText = buildObjectSkillsSearchText(doc.typicalSkillsNeeded)
     if (typicalText && typicalText.includes(termLower)) return "typicalSkillsNeeded"
     // Check languages
@@ -887,7 +887,7 @@ function mapUserToResult(user: any, searchTerms: string[]): SearchResult {
       const causeIds = parseCauses(user.causes)
       subtitle = causeIds.map(getCauseDisplayName).join(", ") || subtitle
     } else if (matchedField === "volunteerType") {
-      subtitle = `Impact Agent Type: ${user.volunteerType}` + (user.headline ? ` · ${user.headline}` : "")
+      subtitle = `Candidate Type: ${user.volunteerType}` + (user.headline ? ` · ${user.headline}` : "")
     } else if (matchedField === "hoursPerWeek") {
       subtitle = `${user.hoursPerWeek} hrs/week` + (user.headline ? ` · ${user.headline}` : "")
     } else if (matchedField === "freeHoursPerMonth" && (user.volunteerType === "both")) {
@@ -902,7 +902,7 @@ function mapUserToResult(user: any, searchTerms: string[]): SearchResult {
     return {
       type: "volunteer",
       id: user._id.toString(),
-      title: user.name || "Impact Agent",
+      title: user.name || "Candidate",
       subtitle,
       location: user.location || user.city,
       skills: parseSkillDisplayNames(user.skills),
@@ -911,7 +911,7 @@ function mapUserToResult(user: any, searchTerms: string[]): SearchResult {
       matchedField,
     }
   }
-  // NGO
+  // Enterprise
   let subtitle = user.description?.slice(0, 80)
   if (matchedField === "causes") {
     const causeIds = parseCauses(user.causes)
@@ -985,7 +985,7 @@ const USER_PROJECTION = {
   hourlyRate: 1, discountedRate: 1, currency: 1,
   // Contact/links
   phone: 1, linkedIn: 1, portfolio: 1,
-  // NGO-specific
+  // Enterprise-specific
   website: 1, yearFounded: 1, teamSize: 1,
   registrationNumber: 1, typicalSkillsNeeded: 1,
   // Stats
@@ -1132,7 +1132,7 @@ function buildUserRegexConditions(searchTerms: string[], prefixOnly = false): an
     conditions.push({ portfolio: containsRegex })
     conditions.push({ website: containsRegex })
 
-    // NGO metadata
+    // Enterprise metadata
     conditions.push({ yearFounded: containsRegex })
     conditions.push({ teamSize: containsRegex })
     conditions.push({ registrationNumber: containsRegex })
@@ -1145,7 +1145,7 @@ function buildUserRegexConditions(searchTerms: string[], prefixOnly = false): an
     conditions.push({ languages: containsRegex })
     conditions.push({ interests: containsRegex })
 
-    // NGO typicalSkillsNeeded (array of objects - dot notation)
+    // Enterprise typicalSkillsNeeded (array of objects - dot notation)
     conditions.push({ "typicalSkillsNeeded.subskillId": containsRegex })
     conditions.push({ "typicalSkillsNeeded.categoryId": containsRegex })
   }
@@ -1392,7 +1392,7 @@ function buildUserFuzzyConditions(searchTerms: string[]): any[] {
     conditions.push({ yearFounded: regex })
     conditions.push({ teamSize: regex })
 
-    // NGO object skills
+    // Enterprise object skills
     conditions.push({ "typicalSkillsNeeded.subskillId": regex })
     conditions.push({ "typicalSkillsNeeded.categoryId": regex })
   }
@@ -1710,7 +1710,7 @@ export async function getSearchSuggestions(params: SearchSuggestionsParams): Pro
     userOrConditions.push({ rating: num })
   }
 
-  // Only search users if we need volunteers or NGOs
+  // Only search users if we need volunteers or Enterprises
   const users = (searchVolunteers || searchNgos)
     ? await db.collection("user")
       .find({
@@ -1733,7 +1733,7 @@ export async function getSearchSuggestions(params: SearchSuggestionsParams): Pro
 
   for (const user of users) {
     const isNgo = user.role === "ngo"
-    let subtitle = user.headline || user.bio?.slice(0, 60) || (isNgo ? "Organization" : "Impact Agent")
+    let subtitle = user.headline || user.bio?.slice(0, 60) || (isNgo ? "Organization" : "Candidate")
     if (isNgo) subtitle = user.description?.slice(0, 60) || "Organization"
 
     // If a skill matched, show it
@@ -1754,7 +1754,7 @@ export async function getSearchSuggestions(params: SearchSuggestionsParams): Pro
     }
     // Show work details if relevant
     if (user.volunteerType && trimmed.toLowerCase().includes("free") && user.volunteerType === "free") {
-      subtitle = `Free impact agent (Pro Bono)`
+      subtitle = `Free candidate (Pro Bono)`
     } else if (user.volunteerType === "both" && trimmed.toLowerCase().includes("free")) {
       subtitle = `Open to Both · ${user.freeHoursPerMonth || 0} free hrs/month`
     }
@@ -1788,7 +1788,7 @@ export async function getSearchSuggestions(params: SearchSuggestionsParams): Pro
     }
   }
 
-  // Add cause suggestions (relevant to NGOs and opportunities)
+  // Add cause suggestions (relevant to Enterprises and opportunities)
   if (suggestions.length < limit && (searchNgos || searchOpportunities)) {
     for (const cause of CAUSE_LIST) {
       if (suggestions.length >= limit) break

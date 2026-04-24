@@ -75,27 +75,27 @@ export function ContactVolunteerButton({
       <DialogTrigger asChild>
         <Button variant={variant} className={className}>
           <MessageSquare className="h-4 w-4 mr-2" />
-          Contact Impact Agent
+          Contact Candidate
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Message {volunteerName}</DialogTitle>
           <DialogDescription>
-            Send a message to start a conversation with this impact agent.
+            Send a message to start a conversation with this candidate.
           </DialogDescription>
         </DialogHeader>
         
         <div className="space-y-4 py-4">
           <Textarea
-            placeholder="Hi! I came across your profile and would love to discuss a potential opportunity..."
+            placeholder="Hi! I came across your profile and would love to discuss a potential job..."
             value={message}
             onChange={(e) => setMessage(e.target.value)}
             rows={5}
             className="resize-none"
           />
           <p className="text-xs text-muted-foreground">
-            Be specific about what you're looking for and how this impact agent can help.
+            Be specific about what you're looking for and how this candidate can help.
           </p>
         </div>
 

@@ -62,7 +62,7 @@ export const sampleProjects = [
       logo: "/paw-print-logo.png",
       verified: true,
     },
-    description: "Review and update our impact agent agreements and liability waivers to ensure legal compliance.",
+    description: "Review and update our candidate agreements and liability waivers to ensure legal compliance.",
     skills: ["Legal", "Contract Review", "Compliance"],
     timeCommitment: "5-10 hours",
     projectType: "short-term",
@@ -162,7 +162,7 @@ export interface Testimonial {
   role: string
   organization: string
   avatar: string
-  type: "NGO" | "Volunteer"
+  type: "Enterprise" | "Volunteer"
   tag: string
 }
 
@@ -174,7 +174,7 @@ export const featuredTestimonial: Testimonial = {
   role: "Executive Director",
   organization: "WaterBridge Foundation",
   avatar: "https://i.pravatar.cc/150?u=amira",
-  type: "NGO",
+  type: "Enterprise",
   tag: "Impact",
 }
 
@@ -198,7 +198,7 @@ export const testimonialRow1: Testimonial[] = [
     role: "Programs Director",
     organization: "GreenLeaf Initiative",
     avatar: "https://i.pravatar.cc/150?u=fatima",
-    type: "NGO",
+    type: "Enterprise",
     tag: "Data",
   },
   {
@@ -220,7 +220,7 @@ export const testimonialRow1: Testimonial[] = [
     role: "Founder",
     organization: "SafeHaven Trust",
     avatar: "https://i.pravatar.cc/150?u=priya",
-    type: "NGO",
+    type: "Enterprise",
     tag: "Legal",
   },
   {
@@ -231,7 +231,7 @@ export const testimonialRow1: Testimonial[] = [
     role: "COO",
     organization: "Nordic Aid Alliance",
     avatar: "https://i.pravatar.cc/150?u=lena",
-    type: "NGO",
+    type: "Enterprise",
     tag: "Tech",
   },
 ]
@@ -239,8 +239,8 @@ export const testimonialRow1: Testimonial[] = [
 export const testimonialRow2: Testimonial[] = [
   {
     id: 7,
-    quote: "After retiring from corporate law, I was looking for purpose. JustBecause connected me with an anti-trafficking NGO that needed exactly my expertise.",
-    highlight: "an anti-trafficking NGO that needed exactly my expertise",
+    quote: "After retiring from corporate law, I was looking for purpose. JustBecause connected me with an anti-trafficking Enterprise that needed exactly my expertise.",
+    highlight: "an anti-trafficking Enterprise that needed exactly my expertise",
     author: "Margaret Okonkwo",
     role: "Legal Consultant",
     organization: "Pro-bono Volunteer",
@@ -256,7 +256,7 @@ export const testimonialRow2: Testimonial[] = [
     role: "Development Director",
     organization: "EduForward Foundation",
     avatar: "https://i.pravatar.cc/150?u=tomas",
-    type: "NGO",
+    type: "Enterprise",
     tag: "Fundraising",
   },
   {
@@ -278,13 +278,13 @@ export const testimonialRow2: Testimonial[] = [
     role: "Executive Director",
     organization: "Youth Forward Africa",
     avatar: "https://i.pravatar.cc/150?u=james",
-    type: "NGO",
+    type: "Enterprise",
     tag: "Finance",
   },
   {
     id: 11,
-    quote: "The skill-matching is remarkable. I listed graphic design and within 48 hours three NGOs reached out. Now I design impact reports that actually get read.",
-    highlight: "within 48 hours three NGOs reached out",
+    quote: "The skill-matching is remarkable. I listed graphic design and within 48 hours three Enterprises reached out. Now I design impact reports that actually get read.",
+    highlight: "within 48 hours three Enterprises reached out",
     author: "Sophie Laurent",
     role: "Graphic Designer",
     organization: "Pro-bono Volunteer",

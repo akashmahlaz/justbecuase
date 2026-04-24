@@ -51,7 +51,7 @@ export default async function NGOFindTalentPage({ params }: { params: Promise<{ 
               {dict.ngo?.findTalent?.title || "Find Talent"}
             </h1>
             <p className="text-sm text-muted-foreground">
-              {dict.ngo?.findTalent?.subtitle || "Browse skilled impact agents to help with your opportunities"}
+              {dict.ngo?.findTalent?.subtitle || "Browse skilled candidates to help with your jobs"}
             </p>
           </div>
         </div>

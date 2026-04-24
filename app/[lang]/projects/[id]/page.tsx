@@ -65,7 +65,7 @@ export async function generateMetadata({
   const isExternal = id.startsWith("ext-")
 
   let title = "Opportunity"
-  let description = "View this opportunity on JustBeCause Network"
+  let description = "View this job on JustBeCause Network"
   let ogImage: string | undefined
 
   if (isExternal) {
@@ -141,7 +141,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
     notFound()
   }
   
-  // Get NGO profile
+  // Get Enterprise profile
   const ngo = await getNGOById(project.ngoId)
 
   // Check if user has applied
@@ -295,7 +295,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <FileText className="h-5 w-5 text-primary" />
-                    {dict.projectDetail?.opportunityDescription || "Opportunity Description"}
+                    {dict.projectDetail?.opportunityDescription || "Job Description"}
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="prose prose-slate max-w-none">
@@ -381,7 +381,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                       <FileText className="h-5 w-5 text-primary" />
-                      {dict.projectDetail?.opportunityDocuments || "Opportunity Documents"}
+                      {dict.projectDetail?.opportunityDocuments || "Job Documents"}
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
@@ -518,7 +518,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
                     />
                   ) : (
                     <Button className="w-full" disabled>
-                      {project.status === "completed" ? (dict.projectDetail?.opportunityCompleted || "Opportunity Completed") : 
+                      {project.status === "completed" ? (dict.projectDetail?.opportunityCompleted || "Job Completed") : 
                        project.status === "closed" ? (dict.projectDetail?.applicationsClosed || "Applications Closed") : 
                        (dict.projectDetail?.notAccepting || "Not Accepting Applications")}
                     </Button>
@@ -544,7 +544,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
                   <div className="flex items-center gap-3">
                     <div className="flex items-center gap-3 text-sm text-muted-foreground">
                       <Eye className="h-4 w-4" />
-                      <span>{(dict.projectDetail?.viewedCount || "{count} people viewed this opportunity").replace("{count}", String(project.viewsCount))}</span>
+                      <span>{(dict.projectDetail?.viewedCount || "{count} people viewed this job").replace("{count}", String(project.viewsCount))}</span>
                     </div>
                   </div>
                   {project.applicantsCount > 10 && (
@@ -565,7 +565,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
               {similarProjects.length > 0 && (
                 <Card>
                   <CardHeader>
-                    <CardTitle className="text-lg">{dict.projectDetail?.similarOpportunities || "Similar Opportunities"}</CardTitle>
+                    <CardTitle className="text-lg">{dict.projectDetail?.similarOpportunities || "Similar Jobs"}</CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
                     {similarProjects.map((p) => (
@@ -728,7 +728,7 @@ function ExternalOpportunityView({ opportunity, lang, dict }: { opportunity: any
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <FileText className="h-5 w-5 text-primary" />
-                    {dict.projectDetail?.opportunityDescription || "Opportunity Description"}
+                    {dict.projectDetail?.opportunityDescription || "Job Description"}
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="prose prose-slate dark:prose-invert max-w-none">

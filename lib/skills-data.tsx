@@ -161,7 +161,7 @@ export const skillCategories = [
     icon: <Scale className="h-4 w-4" />,
     subskills: [
       { id: "legal-advisory", name: "Legal Advisory / Pro Bono Counsel" },
-      { id: "ngo-registration", name: "NGO Registration (Trust / Society / Section 8)" },
+      { id: "ngo-registration", name: "Enterprise Registration (Trust / Society / Section 8)" },
       { id: "fcra-compliance", name: "FCRA Compliance" },
       { id: "contract-drafting", name: "Contract Drafting & Review" },
       { id: "policy-drafting", name: "Policy Drafting (HR / Privacy / Governance)" },

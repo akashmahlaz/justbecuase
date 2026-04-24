@@ -48,8 +48,8 @@ interface Coupon {
 }
 
 const PLAN_OPTIONS = [
-  { value: "ngo-pro", label: "NGO Pro" },
-  { value: "volunteer-pro", label: "Impact Agent Pro" },
+  { value: "ngo-pro", label: "Enterprise Pro" },
+  { value: "volunteer-pro", label: "Candidate Pro" },
 ]
 
 export default function AdminCouponsPage() {
@@ -209,7 +209,7 @@ export default function AdminCouponsPage() {
   const isExpired = (date: string) => new Date(date) < new Date()
 
   const planLabels: Record<string, string> = {
-    "ngo-pro": dict.admin?.coupons?.ngoPro || "NGO Pro",
+    "ngo-pro": dict.admin?.coupons?.ngoPro || "Enterprise Pro",
     "volunteer-pro": dict.admin?.coupons?.agentPro || "Agent Pro",
   }
 

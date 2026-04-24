@@ -16,7 +16,7 @@ export async function VolunteersList({ filters }: VolunteersListProps) {
   if (volunteers.length === 0) {
     return (
       <div className="text-center py-16">
-        <h3 className="text-lg font-medium text-foreground mb-2">No impact agents found</h3>
+        <h3 className="text-lg font-medium text-foreground mb-2">No candidates found</h3>
         <p className="text-muted-foreground">
           Try adjusting your filters or check back later
         </p>
@@ -28,7 +28,7 @@ export async function VolunteersList({ filters }: VolunteersListProps) {
     <div>
       <div className="flex items-center justify-between mb-6">
         <p className="text-muted-foreground">
-          Showing <span className="font-medium text-foreground">{volunteers.length}</span> impact agents
+          Showing <span className="font-medium text-foreground">{volunteers.length}</span> candidates
         </p>
         <select className="text-sm border rounded-md px-3 py-1.5 bg-background">
           <option>Best Match</option>

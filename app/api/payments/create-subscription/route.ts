@@ -7,8 +7,8 @@ import { toStripeAmount } from "@/lib/currency"
 
 // Plan display names for Stripe checkout
 const PLAN_NAMES: Record<string, string> = {
-  "ngo-pro": "NGO Pro Plan",
-  "volunteer-pro": "Impact Agent Pro Plan",
+  "ngo-pro": "Enterprise Pro Plan",
+  "volunteer-pro": "Candidate Pro Plan",
 }
 
 // Create a Stripe Checkout Session for subscription

@@ -157,14 +157,14 @@ export default function PostProjectPage() {
     setDocuments(prev => prev.filter((_, i) => i !== index))
   }
 
-  // Fetch NGO profile on mount
+  // Fetch Enterprise profile on mount
   useEffect(() => {
     async function loadProfile() {
       if (!user) return
       const profile = await getNGOProfile()
       if (profile) {
         setNgoProfile(profile)
-        // Pre-fill causes from NGO profile
+        // Pre-fill causes from Enterprise profile
         if (profile.causes) {
           setFormData(prev => ({ ...prev, causes: profile.causes || [] }))
         }
@@ -213,7 +213,7 @@ export default function PostProjectPage() {
       if (result.success) {
         router.push(localePath("/ngo/projects", locale))
       } else {
-        setError(result.error || (dict.ngo?.postProject?.createError || "Failed to create opportunity"))
+        setError(result.error || (dict.ngo?.postProject?.createError || "Failed to create job"))
       }
     } catch (err) {
       setError(dict.ngo?.common?.unexpectedError || "An unexpected error occurred")
@@ -274,7 +274,7 @@ export default function PostProjectPage() {
                 }}
                 className="bg-transparent"
               >
-                {dict.ngo?.postProject?.createCustom || "Or create a custom opportunity"}
+                {dict.ngo?.postProject?.createCustom || "Or create a custom job"}
               </Button>
             </div>
           </div>
@@ -289,8 +289,8 @@ export default function PostProjectPage() {
                   <ArrowLeft className="h-4 w-4" />
                 </Button>
                 <div>
-                  <CardTitle>{dict.ngo?.postProject?.opportunityDetails || "Opportunity Details"}</CardTitle>
-                  <CardDescription>{dict.ngo?.postProject?.provideInfo || "Provide information about your opportunity"}</CardDescription>
+                  <CardTitle>{dict.ngo?.postProject?.opportunityDetails || "Job Details"}</CardTitle>
+                  <CardDescription>{dict.ngo?.postProject?.provideInfo || "Provide information about your job"}</CardDescription>
                 </div>
               </div>
             </CardHeader>
@@ -303,7 +303,7 @@ export default function PostProjectPage() {
                 className="space-y-6"
               >
                 <div className="space-y-2">
-                  <Label htmlFor="title">{dict.ngo?.common?.opportunityTitle || "Opportunity Title"}</Label>
+                  <Label htmlFor="title">{dict.ngo?.common?.opportunityTitle || "Job Title"}</Label>
                   <Input
                     id="title"
                     placeholder={dict.ngo?.postProject?.titlePlaceholder || "e.g., Social Media Strategy for Environmental Campaign"}
@@ -314,7 +314,7 @@ export default function PostProjectPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="description">{dict.ngo?.common?.opportunityDescription || "Opportunity Description"}</Label>
+                  <Label htmlFor="description">{dict.ngo?.common?.opportunityDescription || "Job Description"}</Label>
                   <Textarea
                     id="description"
                     placeholder={dict.ngo?.postProject?.descriptionPlaceholder || "Describe what you need help with, the background, and any specific requirements..."}
@@ -429,7 +429,7 @@ export default function PostProjectPage() {
                   <Label htmlFor="deliverables">{dict.ngo?.postProject?.expectedDeliverables || "Expected Deliverables"}</Label>
                   <Textarea
                     id="deliverables"
-                    placeholder={dict.ngo?.postProject?.deliverablesPlaceholder || "List the specific outputs you expect from this opportunity..."}
+                    placeholder={dict.ngo?.postProject?.deliverablesPlaceholder || "List the specific outputs you expect from this job..."}
                     value={formData.deliverables}
                     onChange={(e) => setFormData({ ...formData, deliverables: e.target.value })}
                     rows={3}
@@ -491,7 +491,7 @@ export default function PostProjectPage() {
                     {dict.ngo?.common?.back || "Back"}
                   </Button>
                   <Button type="submit" className="bg-primary hover:bg-primary/90">
-                    {dict.ngo?.postProject?.reviewOpportunity || "Review Opportunity"}
+                    {dict.ngo?.postProject?.reviewOpportunity || "Review Job"}
                     <ArrowRight className="ml-2 h-4 w-4" />
                   </Button>
                 </div>
@@ -509,7 +509,7 @@ export default function PostProjectPage() {
                   <ArrowLeft className="h-4 w-4" />
                 </Button>
                 <div>
-                  <CardTitle>{dict.ngo?.postProject?.reviewTitle || "Review Your Opportunity"}</CardTitle>
+                  <CardTitle>{dict.ngo?.postProject?.reviewTitle || "Review Your Job"}</CardTitle>
                   <CardDescription>{dict.ngo?.postProject?.reviewSubtitle || "Make sure everything looks good before posting"}</CardDescription>
                 </div>
               </div>
@@ -517,7 +517,7 @@ export default function PostProjectPage() {
             <CardContent>
               <div className="space-y-6">
                 <div className="p-6 rounded-xl border border-border bg-muted/30">
-                  <h3 className="text-xl font-semibold text-foreground mb-4">{formData.title || (dict.ngo?.postProject?.untitled || "Untitled Opportunity")}</h3>
+                  <h3 className="text-xl font-semibold text-foreground mb-4">{formData.title || (dict.ngo?.postProject?.untitled || "Untitled Job")}</h3>
 
                   <div className="grid gap-4">
                     <div>
@@ -576,7 +576,7 @@ export default function PostProjectPage() {
 
                 <div className="flex justify-end gap-4">
                   <Button type="button" variant="outline" onClick={() => setStep(2)} className="bg-transparent">
-                    {dict.ngo?.postProject?.editOpportunity || "Edit Opportunity"}
+                    {dict.ngo?.postProject?.editOpportunity || "Edit Job"}
                   </Button>
                   <Button onClick={handleSubmit} className="bg-primary hover:bg-primary/90" disabled={isLoading}>
                     {isLoading ? (

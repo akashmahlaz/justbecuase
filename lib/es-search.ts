@@ -4,7 +4,7 @@
 // Provides:
 // 1. Hybrid search — BM25 text match + semantic_text for NL understanding
 // 2. Autocomplete — Completion suggesters + prefix matching
-// 3. Cross-entity search — Volunteers, NGOs, Projects, Blog, Pages
+// 3. Cross-entity search — Volunteers, Enterprises, Projects, Blog, Pages
 // 4. Filters — workMode, volunteerType, causes, skills, location, etc.
 // ============================================
 
@@ -466,7 +466,7 @@ const ROLE_SUGGESTIONS: Array<{ text: string; subtitle: string; id: string }> = 
   { text: "Project Manager", subtitle: "Notion, Trello, Asana", id: "skill:planning-support" },
   { text: "UX/UI Designer", subtitle: "Figma, User Experience, Prototyping", id: "skill:website" },
   { text: "Mobile Developer", subtitle: "React Native, Flutter", id: "skill:website" },
-  { text: "Legal Advisor", subtitle: "NGO Registration, FCRA, Contracts", id: "skill:legal" },
+  { text: "Legal Advisor", subtitle: "Enterprise Registration, FCRA, Contracts", id: "skill:legal" },
   { text: "Photographer", subtitle: "Event, Documentary, Photo Editing", id: "skill:content-creation" },
   { text: "Translator", subtitle: "Translation, Localization", id: "skill:communication" },
   { text: "Digital Marketer", subtitle: "SEO, Social Media, Ads, Analytics", id: "skill:digital-marketing" },
@@ -926,7 +926,7 @@ const ROLE_TO_SKILLS: Record<string, string[]> = {
   "field worker": ["Event On-Ground Support", "Logistics", "Telecalling"],
   "field coordinator": ["Event On-Ground Support", "Logistics", "Volunteer Recruitment"],
 
-  // ── NGO-specific / Social sector roles ──────────────────────────────
+  // ── Enterprise-specific / Social sector roles ──────────────────────────────
   "teacher": ["Training & Workshop Facilitation", "Public Speaking", "Content Creation"],
   "teaching": ["Training & Workshop Facilitation", "Public Speaking"],
   "tutor": ["Training & Workshop Facilitation", "Public Speaking"],
@@ -952,7 +952,7 @@ const ROLE_TO_SKILLS: Record<string, string[]> = {
   "legal advisor": ["Legal Advisory", "Pro Bono Counsel", "Policy Drafting"],
   "legal": ["Legal Advisory", "Pro Bono Counsel", "Contract Drafting", "Policy Drafting"],
   "compliance officer": ["FCRA Compliance", "Tax Compliance", "Policy Drafting"],
-  "company secretary": ["NGO Registration", "Contract Drafting", "Policy Drafting"],
+  "company secretary": ["Enterprise Registration", "Contract Drafting", "Policy Drafting"],
 
   // ── Data & Technology roles ─────────────────────────────────────────
   "data analyst": ["Data Analysis", "Excel", "Google Sheets", "Power BI"],

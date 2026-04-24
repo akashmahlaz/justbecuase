@@ -47,8 +47,8 @@ export default function PrivacyPage() {
                   email address, phone number, location, and professional information.
                 </p>
                 <p>
-                  <strong>1.2 Profile Data:</strong> For impact agents, we collect skills, experience levels, work
-                  preferences, and causes of interest. For NGOs, we collect organization details, registration
+                  <strong>1.2 Profile Data:</strong> For candidates, we collect skills, experience levels, work
+                  preferences, and causes of interest. For Enterprises, we collect organization details, registration
                   information, and project requirements.
                 </p>
                 <p>
@@ -70,10 +70,10 @@ export default function PrivacyPage() {
                 <p>We use your information to:</p>
                 <ul className="list-disc pl-6 space-y-2">
                   <li>Provide and improve the Platform services</li>
-                  <li>Match impact agents with appropriate NGO opportunities</li>
+                  <li>Match candidates with appropriate Enterprise opportunities</li>
                   <li>Facilitate communication between users</li>
                   <li>Send notifications about opportunities, applications, and platform updates</li>
-                  <li>Verify NGO legitimacy and maintain platform security</li>
+                  <li>Verify Enterprise legitimacy and maintain platform security</li>
                   <li>Analyze platform usage to improve user experience</li>
                   <li>Comply with legal obligations</li>
                 </ul>
@@ -87,7 +87,7 @@ export default function PrivacyPage() {
               <CardContent className="prose prose-sm max-w-none">
                 <p>
                   <strong>3.1 Between Users:</strong> Your profile information is visible to other users to
-                  facilitate matching. Impact Agents can see NGO project details, and NGOs can see impact agent profiles
+                  facilitate matching. Candidates can see Enterprise project details, and Enterprises can see candidate profiles
                   who apply to their projects.
                 </p>
                 <p>

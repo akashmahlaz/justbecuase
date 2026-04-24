@@ -220,7 +220,7 @@ export async function GET(request: NextRequest) {
       const userRecord = await db.collection("user").findOne(userIdQuery(userId))
       if (userRecord?.email) {
         const { sendEmail, getSubscriptionConfirmationEmailHtml } = await import("@/lib/email")
-        const planName = isNgoPlan ? "NGO Pro" : "Impact Agent Pro"
+        const planName = isNgoPlan ? "Enterprise Pro" : "Candidate Pro"
         const expiryFormatted = subscriptionExpiry.toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })
         const html = getSubscriptionConfirmationEmailHtml(
           userRecord.name || "there",

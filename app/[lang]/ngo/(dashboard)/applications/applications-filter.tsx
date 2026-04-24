@@ -85,10 +85,10 @@ export function ApplicationsFilter({ applications, dict, initialProjectFilter }:
           <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
           <p className="text-muted-foreground mb-2">{dict.ngo?.applications?.noApplications || "No applications yet"}</p>
           <p className="text-sm text-muted-foreground">
-            {dict.ngo?.applications?.noApplicationsDesc || "When impact agents apply to your opportunities, they will appear here."}
+            {dict.ngo?.applications?.noApplicationsDesc || "When candidates apply to your jobs, they will appear here."}
           </p>
           <Button variant="link" asChild className="mt-2">
-            <Link href="/ngo/post-project">{dict.ngo?.common?.postOpportunity || "Post an Opportunity"}</Link>
+            <Link href="/ngo/post-project">{dict.ngo?.common?.postOpportunity || "Post an Job"}</Link>
           </Button>
         </CardContent>
       </Card>
@@ -167,14 +167,14 @@ export function ApplicationsFilter({ applications, dict, initialProjectFilter }:
                       <div className="flex flex-col sm:flex-row gap-4">
                         <img
                           src={application.volunteerProfile?.avatar || "/placeholder.svg?height=64&width=64"}
-                          alt="Impact Agent"
+                          alt="Candidate"
                           className="w-16 h-16 rounded-full object-cover shrink-0"
                         />
                         <div className="flex-1 min-w-0">
                           <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2 mb-2">
                             <div>
                               <h3 className="font-semibold text-foreground">
-                                {application.volunteerProfile?.name || (dict.ngo?.common?.impactAgent || "Impact Agent")}
+                                {application.volunteerProfile?.name || (dict.ngo?.common?.impactAgent || "Candidate")}
                               </h3>
                               <p className="text-sm text-muted-foreground">
                                 {application.volunteerProfile?.location || (dict.ngo?.applications?.locationNotSpecified || "Location not specified")}

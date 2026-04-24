@@ -184,7 +184,7 @@ function ImpactAgentsContent() {
           setAgents(data.volunteers || [])
         }
       } catch (error) {
-        console.error("Failed to fetch impact agents:", error)
+        console.error("Failed to fetch candidates:", error)
       } finally {
         setLoading(false)
       }
@@ -333,10 +333,10 @@ function ImpactAgentsContent() {
           <div className="container mx-auto px-4 md:px-6 py-10 md:py-14">
             <div className="max-w-2xl">
               <TextAnimate animation="blurInUp" by="word" as="h1" className="text-3xl md:text-4xl font-bold text-foreground mb-3">
-                {vl.title ? vl.title.replace("Volunteers", "Impact Agents") : "Discover Impact Agents"}
+                {vl.title ? vl.title.replace("Volunteers", "Candidates") : "Discover Candidates"}
               </TextAnimate>
               <p className="text-muted-foreground text-lg mb-6">
-                Connect with skilled professionals ready to make a difference — browse, search, and find the right impact agent for your cause.
+                Connect with skilled professionals ready to make a difference — browse, search, and find the right candidate for your cause.
               </p>
               <div className="max-w-xl">
                 <UnifiedSearchBar
@@ -452,7 +452,7 @@ function ImpactAgentsContent() {
                   <p className="text-sm font-semibold text-foreground">
                     <NumberTicker value={agents.length} />
                   </p>
-                  <p className="text-xs text-muted-foreground">Impact Agents</p>
+                  <p className="text-xs text-muted-foreground">Candidates</p>
                 </div>
               </div>
             </div>
@@ -557,7 +557,7 @@ function ImpactAgentsContent() {
               <span className="font-semibold text-foreground">
                 <NumberTicker value={agents.length} />
               </span>{" "}
-              impact agents
+              candidates
               {isUnifiedSearching && <Loader2 className="inline h-4 w-4 animate-spin ml-2" />}
             </p>
           </div>
@@ -584,11 +584,11 @@ function ImpactAgentsContent() {
           ) : filteredAgents.length === 0 ? (
             <AIEmptyState
               mode="empty"
-              title={vl.noAgentsFound || "No impact agents found"}
+              title={vl.noAgentsFound || "No candidates found"}
               description={
                 hasActiveFilters || searchQuery
                   ? (vl.tryAdjusting || "Try adjusting your filters or search terms")
-                  : (vl.checkBackLater || "Check back later for new impact agents")
+                  : (vl.checkBackLater || "Check back later for new candidates")
               }
               action={
                 (hasActiveFilters || searchQuery) ? (

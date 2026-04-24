@@ -22,7 +22,7 @@ export default async function AdminUsersPage({ params }: { params: Promise<{ lan
   const allUsers = [
     ...volunteersData.data.map(v => ({
       id: v.userId,
-      name: v.name || "Unnamed Impact Agent",
+      name: v.name || "Unnamed Candidate",
       email: v.phone || "No email",
       role: "volunteer" as const,
       avatar: v.avatar,
@@ -34,7 +34,7 @@ export default async function AdminUsersPage({ params }: { params: Promise<{ lan
     })),
     ...ngosData.data.map(n => ({
       id: n.userId,
-      name: n.organizationName || n.orgName || "Unnamed NGO",
+      name: n.organizationName || n.orgName || "Unnamed Enterprise",
       email: n.contactEmail || "No email",
       role: "ngo" as const,
       avatar: n.logo,
@@ -79,7 +79,7 @@ export default async function AdminUsersPage({ params }: { params: Promise<{ lan
             </div>
             <div>
               <p className="text-2xl font-bold text-foreground">{stats.totalVolunteers}</p>
-              <p className="text-sm text-muted-foreground">{dict.admin?.users?.impactAgents || "Impact Agents"}</p>
+              <p className="text-sm text-muted-foreground">{dict.admin?.users?.impactAgents || "Candidates"}</p>
             </div>
           </CardContent>
         </Card>
@@ -90,7 +90,7 @@ export default async function AdminUsersPage({ params }: { params: Promise<{ lan
             </div>
             <div>
               <p className="text-2xl font-bold text-foreground">{stats.totalNGOs}</p>
-              <p className="text-sm text-muted-foreground">{dict.admin?.users?.ngos || "NGOs"}</p>
+              <p className="text-sm text-muted-foreground">{dict.admin?.users?.ngos || "Enterprises"}</p>
             </div>
           </CardContent>
         </Card>

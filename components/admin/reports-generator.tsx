@@ -27,7 +27,7 @@ export function ReportsGenerator({ volunteers, ngos, projects, analytics }: Repo
           // Generate user registration report
           const allUsers = [
             ...volunteers.map(v => ({
-              type: "Impact Agent",
+              type: "Candidate",
               name: v.name || v.bio?.slice(0, 30) || "Unnamed",
               contact: v.phone || "N/A",
               location: `${v.city || ""}, ${v.country || ""}`,
@@ -35,7 +35,7 @@ export function ReportsGenerator({ volunteers, ngos, projects, analytics }: Repo
               createdAt: v.createdAt ? new Date(v.createdAt).toLocaleDateString() : "N/A"
             })),
             ...ngos.map(n => ({
-              type: "NGO",
+              type: "Enterprise",
               name: n.orgName || n.organizationName || "Unnamed",
               contact: n.contactEmail || "N/A",
               location: `${n.city || ""}, ${n.country || ""}`,
@@ -52,9 +52,9 @@ export function ReportsGenerator({ volunteers, ngos, projects, analytics }: Repo
           break
           
         case "ngo-activity":
-          // Generate NGO activity report
+          // Generate Enterprise activity report
           csvContent = [
-            ["Organization", "Email", "Location", "Subscription", "Opportunities Posted", "Opportunities Completed", "Verified"].join(","),
+            ["Organization", "Email", "Location", "Subscription", "Jobs Posted", "Jobs Completed", "Verified"].join(","),
             ...ngos.map(n => [
               n.orgName || n.organizationName || "Unnamed",
               n.contactEmail || "N/A",
@@ -111,13 +111,13 @@ export function ReportsGenerator({ volunteers, ngos, projects, analytics }: Repo
           csvContent = [
             "Metric,Value",
             `Total Volunteers,${volunteers.length}`,
-            `Total NGOs,${ngos.length}`,
+            `Total Enterprises,${ngos.length}`,
             `Total Opportunities,${projects.length}`,
             `Active Opportunities,${analytics.activeProjects}`,
             `Completed Opportunities,${analytics.completedProjects}`,
             `Total Applications,${analytics.totalApplications}`,
             `Verified Volunteers,${volunteers.filter((v: any) => v.isVerified).length}`,
-            `Verified NGOs,${ngos.filter((n: any) => n.isVerified).length}`
+            `Verified Enterprises,${ngos.filter((n: any) => n.isVerified).length}`
           ].join("\n")
           fileName = "platform-health-report"
           break
@@ -145,7 +145,7 @@ export function ReportsGenerator({ volunteers, ngos, projects, analytics }: Repo
 
   const reports = [
     { id: "user-registration", title: "User Registration Report", description: "All user signups with details" },
-    { id: "ngo-activity", title: "NGO Activity Report", description: "NGO opportunities and engagement" },
+    { id: "ngo-activity", title: "Enterprise Activity Report", description: "Enterprise jobs and engagement" },
     { id: "volunteer-activity", title: "Volunteer Activity Report", description: "Volunteer applications and matches" },
     { id: "revenue", title: "Revenue Report", description: "All payments and transactions" },
     { id: "matching", title: "Matching Report", description: "Skill matching statistics" },

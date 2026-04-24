@@ -40,7 +40,7 @@ export default function NotFound() {
             <Button asChild variant="outline">
               <LocaleLink href="/projects">
                 <Search className="h-4 w-4 mr-2" />
-                {e.browseOpportunities || "Browse Opportunities"}
+                {e.browseOpportunities || "Browse Jobs"}
               </LocaleLink>
             </Button>
           </div>
@@ -55,10 +55,10 @@ export default function NotFound() {
                 {e.contactSupport || "Contact Support"}
               </LocaleLink>
               <LocaleLink href="/for-volunteers" className="text-primary hover:underline">
-                {nav.forImpactAgents || "For Impact Agents"}
+                {nav.forImpactAgents || "For Candidates"}
               </LocaleLink>
               <LocaleLink href="/for-ngos" className="text-primary hover:underline">
-                {nav.forNGOs || "For NGOs"}
+                {nav.forNGOs || "For Enterprises"}
               </LocaleLink>
             </div>
           </div>

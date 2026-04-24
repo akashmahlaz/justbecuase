@@ -69,7 +69,7 @@ async function DashboardContent({ dict }: { dict: any }) {
       {/* Key Metrics Row */}
       <div className="grid sm:grid-cols-2 lg:grid-cols-5 gap-4">
         <MetricCard
-          title={dict.admin?.dashboard?.totalImpactAgents || "Total Impact Agents"}
+          title={dict.admin?.dashboard?.totalImpactAgents || "Total Candidates"}
           value={analytics.totalVolunteers}
           icon={Users}
           subtext={(dict.admin?.dashboard?.thisMonth || "+{count} this month").replace("{count}", `${analytics.recentVolunteers}`)}
@@ -77,7 +77,7 @@ async function DashboardContent({ dict }: { dict: any }) {
           trendValue={analytics.recentVolunteers > 0 ? `+${Math.round((analytics.recentVolunteers / Math.max(analytics.totalVolunteers - analytics.recentVolunteers, 1)) * 100)}%` : "0%"}
         />
         <MetricCard
-          title={dict.admin?.dashboard?.totalNgos || "Total NGOs"}
+          title={dict.admin?.dashboard?.totalNgos || "Total Enterprises"}
           value={analytics.totalNGOs}
           icon={Building2}
           subtext={(dict.admin?.dashboard?.thisMonth || "+{count} this month").replace("{count}", `${analytics.recentNGOs}`)}
@@ -85,7 +85,7 @@ async function DashboardContent({ dict }: { dict: any }) {
           trendValue={analytics.recentNGOs > 0 ? `+${Math.round((analytics.recentNGOs / Math.max(analytics.totalNGOs - analytics.recentNGOs, 1)) * 100)}%` : "0%"}
         />
         <MetricCard
-          title={dict.admin?.dashboard?.activeOpportunities || "Active Opportunities"}
+          title={dict.admin?.dashboard?.activeOpportunities || "Active Jobs"}
           value={analytics.activeProjects}
           icon={FolderKanban}
           subtext={(dict.admin?.dashboard?.completed || "{count} completed").replace("{count}", `${analytics.completedProjects}`)}
@@ -120,18 +120,18 @@ async function DashboardContent({ dict }: { dict: any }) {
                   <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center gap-2">
                       <Shield className="h-5 w-5 text-green-600" />
-                      <span className="font-medium">{dict.admin?.dashboard?.ngoVerificationRate || "NGO Verification Rate"}</span>
+                      <span className="font-medium">{dict.admin?.dashboard?.ngoVerificationRate || "Enterprise Verification Rate"}</span>
                     </div>
                     <span className="text-2xl font-bold text-green-600">{analytics.ngoVerificationRate}%</span>
                   </div>
                   <Progress value={analytics.ngoVerificationRate} className="h-2" />
                   <p className="text-xs text-muted-foreground mt-2">
-                    {(dict.admin?.dashboard?.ngosVerified || "{verified} of {total} NGOs verified").replace("{verified}", `${analytics.verifiedNGOs}`).replace("{total}", `${analytics.totalNGOs}`)}
+                    {(dict.admin?.dashboard?.ngosVerified || "{verified} of {total} Enterprises verified").replace("{verified}", `${analytics.verifiedNGOs}`).replace("{total}", `${analytics.totalNGOs}`)}
                   </p>
                 </CardContent>
               </Card>
             </TooltipTrigger>
-            <TooltipContent>Percentage of registered NGOs that have been verified</TooltipContent>
+            <TooltipContent>Percentage of registered Enterprises that have been verified</TooltipContent>
           </Tooltip>
           
           <Tooltip>
@@ -173,7 +173,7 @@ async function DashboardContent({ dict }: { dict: any }) {
                 </CardContent>
               </Card>
             </TooltipTrigger>
-            <TooltipContent>Percentage of applications that get accepted by NGOs</TooltipContent>
+            <TooltipContent>Percentage of applications that get accepted by Enterprises</TooltipContent>
           </Tooltip>
         </div>
       </TooltipProvider>
@@ -246,7 +246,7 @@ async function DashboardContent({ dict }: { dict: any }) {
                     <div className="flex items-center gap-3">
                       <AlertCircle className="h-5 w-5 text-yellow-600" />
                       <div>
-                        <p className="font-medium text-foreground">{dict.admin?.dashboard?.pendingNgoVerifications || "Pending NGO Verifications"}</p>
+                        <p className="font-medium text-foreground">{dict.admin?.dashboard?.pendingNgoVerifications || "Pending Enterprise Verifications"}</p>
                         <p className="text-sm text-muted-foreground">{dict.admin?.dashboard?.reviewAndVerify || "Review and verify"}</p>
                       </div>
                     </div>
@@ -262,7 +262,7 @@ async function DashboardContent({ dict }: { dict: any }) {
                       <Clock className="h-5 w-5 text-blue-600" />
                       <div>
                         <p className="font-medium text-foreground">{dict.admin?.dashboard?.pendingApplications || "Pending Applications"}</p>
-                        <p className="text-sm text-muted-foreground">{dict.admin?.dashboard?.awaitingNgoResponse || "Awaiting NGO response"}</p>
+                        <p className="text-sm text-muted-foreground">{dict.admin?.dashboard?.awaitingNgoResponse || "Awaiting Enterprise response"}</p>
                       </div>
                     </div>
                     <Badge variant="secondary">{analytics.pendingApplications}</Badge>

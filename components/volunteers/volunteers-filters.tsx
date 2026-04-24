@@ -84,7 +84,7 @@ export function VolunteersFilters() {
       <CardContent className="space-y-6">
         {/* Volunteer Type */}
         <div>
-          <Label className="text-sm font-medium mb-3 block">Impact Agent Type</Label>
+          <Label className="text-sm font-medium mb-3 block">Candidate Type</Label>
           <RadioGroup 
             value={volunteerType} 
             onValueChange={(value) => updateFilters({ type: value })}
@@ -92,19 +92,19 @@ export function VolunteersFilters() {
             <div className="flex items-center space-x-2">
               <RadioGroupItem value="all" id="type-all" />
               <Label htmlFor="type-all" className="text-sm font-normal cursor-pointer">
-                All Impact Agents
+                All Candidates
               </Label>
             </div>
             <div className="flex items-center space-x-2">
               <RadioGroupItem value="free" id="type-free" />
               <Label htmlFor="type-free" className="text-sm font-normal cursor-pointer">
-                Free Impact Agents
+                Free Candidates
               </Label>
             </div>
             <div className="flex items-center space-x-2">
               <RadioGroupItem value="paid" id="type-paid" />
               <Label htmlFor="type-paid" className="text-sm font-normal cursor-pointer">
-                Paid Impact Agents
+                Paid Candidates
               </Label>
             </div>
             <div className="flex items-center space-x-2">

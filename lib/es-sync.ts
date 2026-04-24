@@ -17,7 +17,7 @@ import type { BulkOperationContainer, BulkUpdateAction } from "@elastic/elastics
 
 const DB_NAME = "justbecause"
 
-// The actual MongoDB collection where all users (volunteers, NGOs, admins) live
+// The actual MongoDB collection where all users (volunteers, Enterprises, admins) live
 const USER_COLLECTION = "user"
 
 // ============================================
@@ -96,7 +96,7 @@ function transformVolunteer(doc: any): Record<string, any> | null {
   const { causeIds, causeNames } = denormalizeCauses(doc.causes)
 
   // Build semantic content — a rich natural language blob for semantic_text
-  // This drives NL search: NGOs search like "web developer expert 10 years",
+  // This drives NL search: Enterprises search like "web developer expert 10 years",
   // "free volunteer for education", "cheap designer", "marketing remote Mumbai"
   const parts: string[] = []
   if (doc.name) parts.push(`${doc.name} is a volunteer`)
@@ -139,7 +139,7 @@ function transformVolunteer(doc: any): Record<string, any> | null {
   // Location
   if (doc.location || doc.city) parts.push(`Located in ${doc.city || doc.location || ""}, ${doc.country || ""}`.trim())
 
-  // Pricing / cost — critical for NGO queries like "free volunteer", "cheap", "affordable", "budget"
+  // Pricing / cost — critical for Enterprise queries like "free volunteer", "cheap", "affordable", "budget"
   if (doc.volunteerType === "free") {
     parts.push("Available for free, pro-bono, no cost, voluntary work. Budget-friendly, affordable, zero cost")
   } else if (doc.volunteerType === "paid") {
@@ -150,15 +150,15 @@ function transformVolunteer(doc: any): Record<string, any> | null {
     else if (rate > 300 && rate <= 800) parts.push("Mid-range rate, reasonable pricing")
     else if (rate > 800) parts.push("Premium rate, high-end professional")
     if (doc.discountedRate && doc.discountedRate < rate) {
-      parts.push(`Offers discounted rate of ${doc.discountedRate} ${curr} per hour for NGOs. Low bono available`)
+      parts.push(`Offers discounted rate of ${doc.discountedRate} ${curr} per hour for Enterprises. Low bono available`)
     }
   } else if (doc.volunteerType === "both") {
     const rate = doc.hourlyRate || 0
     const curr = doc.currency || "INR"
     parts.push("Available for both free pro-bono and paid work. Flexible pricing, affordable")
     if (rate > 0) parts.push(`Paid rate: ${rate} ${curr} per hour`)
-    if (doc.freeHoursPerMonth) parts.push(`Offers ${doc.freeHoursPerMonth} free hours per month for NGOs`)
-    if (doc.discountedRate) parts.push(`Discounted NGO rate: ${doc.discountedRate} ${curr}/hr`)
+    if (doc.freeHoursPerMonth) parts.push(`Offers ${doc.freeHoursPerMonth} free hours per month for Enterprises`)
+    if (doc.discountedRate) parts.push(`Discounted Enterprise rate: ${doc.discountedRate} ${curr}/hr`)
   }
 
   // Work mode + availability — for "remote", "onsite", "weekends", "flexible"
@@ -246,19 +246,19 @@ function transformNgo(doc: any): Record<string, any> | null {
 
   const parts: string[] = []
   const orgName = doc.orgName || doc.organizationName || ""
-  if (orgName) parts.push(`${orgName} is a non-profit organization, NGO`)
+  if (orgName) parts.push(`${orgName} is a non-profit organization, Enterprise`)
   if (doc.description) parts.push(doc.description)
   if (doc.mission) parts.push(`Mission: ${doc.mission}`)
   if (causeNames.length > 0) parts.push(`Works in ${causeNames.join(", ")}`)
   if (skillNames.length > 0) parts.push(`Looking for volunteers with skills in ${skillNames.join(", ")}`)
   if (doc.city || doc.address) parts.push(`Located in ${doc.city || ""}, ${doc.country || ""}`.trim())
 
-  // Work mode — volunteers search "remote NGO", "onsite NGO near me"
+  // Work mode — volunteers search "remote Enterprise", "onsite Enterprise near me"
   if (doc.acceptRemoteVolunteers && doc.acceptOnsiteVolunteers) parts.push("Accepts both remote and on-site volunteers, hybrid friendly")
   else if (doc.acceptRemoteVolunteers) parts.push("Accepts remote volunteers, work from anywhere")
   else if (doc.acceptOnsiteVolunteers) parts.push("On-site volunteers only, in-person work")
 
-  // Scale / credibility — volunteers search "established NGO", "large organization"
+  // Scale / credibility — volunteers search "established Enterprise", "large organization"
   if (doc.yearFounded) {
     const age = new Date().getFullYear() - parseInt(doc.yearFounded)
     if (age > 10) parts.push(`Founded in ${doc.yearFounded}, established organization with ${age}+ years of experience`)
@@ -273,7 +273,7 @@ function transformNgo(doc: any): Record<string, any> | null {
   const posted = doc.projectsPosted || 0
   if (posted >= 10) parts.push(`Prolific with ${posted} projects posted, many opportunities available`)
   else if (posted > 0) parts.push(`Has posted ${posted} project${posted > 1 ? "s" : ""}`)
-  if (doc.isVerified) parts.push("Verified organization, identity confirmed, trusted NGO")
+  if (doc.isVerified) parts.push("Verified organization, identity confirmed, trusted Enterprise")
   if (doc.website) parts.push(`Website: ${doc.website}`)
 
   const suggestInputs: string[] = []
@@ -452,20 +452,20 @@ const STATIC_PAGES = [
   {
     slug: "/about",
     title: "About JustBeCause Network",
-    description: "Learn about our mission to connect skilled professionals with NGOs",
-    content: "JustBeCause Network is a skills-based volunteering platform that connects talented professionals with NGOs and nonprofits. Our mission is to bridge the skill gap in the social sector by making it easy for skilled volunteers to find meaningful opportunities and for organizations to access the talent they need.",
+    description: "Learn about our mission to connect skilled professionals with Enterprises",
+    content: "JustBeCause Network is a skills-based volunteering platform that connects talented professionals with Enterprises and nonprofits. Our mission is to bridge the skill gap in the social sector by making it easy for skilled volunteers to find meaningful opportunities and for organizations to access the talent they need.",
     section: "info",
   },
   {
     slug: "/for-volunteers",
-    title: "For Volunteers — Impact Agents",
+    title: "For Volunteers — Candidates",
     description: "How to volunteer your skills and make a real impact",
-    content: "Join as a volunteer impact agent and use your professional skills to help NGOs grow. Whether you are a marketer, designer, developer, writer, or finance professional, your skills can make a real difference. Browse opportunities, apply with one click, and track your social impact.",
+    content: "Join as a volunteer candidate and use your professional skills to help Enterprises grow. Whether you are a marketer, designer, developer, writer, or finance professional, your skills can make a real difference. Browse opportunities, apply with one click, and track your social impact.",
     section: "info",
   },
   {
     slug: "/for-ngos",
-    title: "For NGOs — Find Skilled Volunteers",
+    title: "For Enterprises — Find Skilled Volunteers",
     description: "Post opportunities and find skilled professionals to help your cause",
     content: "Post volunteer opportunities and find verified skilled professionals. Whether you need a website redesign, grant writer, social media manager, or event planner, JustBeCause helps you connect with the right talent. Post projects, review applications, and manage your volunteer team.",
     section: "info",
@@ -473,7 +473,7 @@ const STATIC_PAGES = [
   {
     slug: "/pricing",
     title: "Pricing Plans",
-    description: "Free and Pro plans for volunteers and NGOs",
+    description: "Free and Pro plans for volunteers and Enterprises",
     content: "JustBeCause offers free and pro subscription plans. The free plan includes basic features for posting opportunities and applying. Pro plans offer unlimited applications, advanced matching, priority support, and analytics dashboards.",
     section: "info",
   },
@@ -567,7 +567,7 @@ export async function bulkSyncToElasticsearch(options?: {
         banned: { $ne: true },
       }).toArray()
 
-      console.log(`[ES Sync] Found ${ngos.length} NGO users in MongoDB`)
+      console.log(`[ES Sync] Found ${ngos.length} Enterprise users in MongoDB`)
 
       const operations: Array<BulkOperationContainer | BulkUpdateAction | Record<string, any>> = []
       let count = 0
@@ -586,21 +586,21 @@ export async function bulkSyncToElasticsearch(options?: {
         const result = await esClient.bulk({ operations, refresh: true })
         if (result.errors) {
           const errItems = result.items.filter(item => item.index?.error)
-          errors.push(...errItems.map(item => `NGO ${item.index?._id}: ${item.index?.error?.reason}`))
+          errors.push(...errItems.map(item => `Enterprise ${item.index?._id}: ${item.index?.error?.reason}`))
         }
       }
       synced.ngos = count
-      console.log(`[ES Sync] Synced ${count} NGOs`)
+      console.log(`[ES Sync] Synced ${count} Enterprises`)
     } catch (err: any) {
-      errors.push(`NGOs sync failed: ${err.message}`)
-      console.error("[ES Sync] NGOs error:", err)
+      errors.push(`Enterprises sync failed: ${err.message}`)
+      console.error("[ES Sync] Enterprises error:", err)
     }
   }
 
   // ---- PROJECTS ----
   if (collections.includes("projects")) {
     try {
-      // Get NGO name map for denormalization — NGOs are in the user collection
+      // Get Enterprise name map for denormalization — Enterprises are in the user collection
       const ngoUsers = await db.collection(USER_COLLECTION).find(
         { role: "ngo" },
         { projection: { _id: 1, orgName: 1, organizationName: 1, name: 1 } }
@@ -750,7 +750,7 @@ export async function syncSingleDocument(
       objId = documentId
     }
 
-    // Volunteers and NGOs live in the 'user' collection
+    // Volunteers and Enterprises live in the 'user' collection
     const isUserCollection = collection === "volunteer" || collection === "ngo"
     const mongoCollection = isUserCollection ? USER_COLLECTION : collection
     const doc = await db.collection(mongoCollection).findOne({ _id: objId })
@@ -780,7 +780,7 @@ export async function syncSingleDocument(
         indexName = ES_INDEXES.NGOS
         break
       case "projects": {
-        // Fetch NGO name from user collection
+        // Fetch Enterprise name from user collection
         const ngoNameMap = new Map<string, string>()
         const ngoRef = doc.ngoProfileId || doc.ngoId
         if (ngoRef) {
@@ -839,7 +839,7 @@ export function startChangeStreams(): void {
   changeStreamActive = true
   console.log("[ES Change Streams] Starting real-time sync...")
 
-  // Watch the user collection for volunteer/NGO changes
+  // Watch the user collection for volunteer/Enterprise changes
   try {
     const userChangeStream = db.collection(USER_COLLECTION).watch(
       [{ $match: { operationType: { $in: ["insert", "update", "replace", "delete"] } } }],
@@ -873,7 +873,7 @@ export function startChangeStreams(): void {
       console.error("[ES Change Stream] user stream error:", err)
     })
 
-    console.log("[ES Change Streams] Watching user collection (volunteers & NGOs)")
+    console.log("[ES Change Streams] Watching user collection (volunteers & Enterprises)")
   } catch (err: any) {
     console.error("[ES Change Streams] Failed to watch user collection:", err?.message)
   }

@@ -45,7 +45,7 @@ import { Linkedin } from "@/components/ui/brand-icons"
 import type { TheirStackJob, CreditBalance } from "@/lib/theirstack"
 
 // ============================================
-// NGO Industry IDs (from TheirStack docs)
+// Enterprise Industry IDs (from TheirStack docs)
 // ============================================
 const NGO_INDUSTRY_IDS = [
   { id: 70, label: "Non-profit Organization Management" },
@@ -59,11 +59,11 @@ const NGO_INDUSTRY_IDS = [
   { id: 139, label: "Government Relations" },
 ]
 
-// Preset NGO search patterns
+// Preset Enterprise search patterns
 const NGO_PATTERNS = [
   "nonprofit",
   "non-profit",
-  "NGO",
+  "Enterprise",
   "charitable",
   "social impact",
   "humanitarian",
@@ -344,10 +344,10 @@ export default function ProspectingPage() {
           <div>
             <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
               <Target className="size-6 text-orange-600" />
-              NGO Prospecting Pipeline
+              Enterprise Prospecting Pipeline
             </h1>
             <p className="text-sm text-muted-foreground mt-1">
-              Find NGOs with open positions to partner with JustBeCause
+              Find Enterprises with open positions to partner with JustBeCause
             </p>
           </div>
 
@@ -419,7 +419,7 @@ export default function ProspectingPage() {
             {/* Description patterns */}
             <div className="space-y-2">
               <Label className="text-sm font-medium">
-                NGO Description Patterns
+                Enterprise Description Patterns
               </Label>
               <p className="text-xs text-muted-foreground">
                 Company descriptions matching any of these terms

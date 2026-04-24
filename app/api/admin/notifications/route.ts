@@ -98,7 +98,7 @@ export async function POST(request: NextRequest) {
       const volunteers = await db.collection("user").find({ role: "volunteer" }).toArray()
       targetUserIds = volunteers.map((v) => v.id)
     } else if (userType === "ngos") {
-      // Get all NGOs from user collection
+      // Get all Enterprises from user collection
       const ngos = await db.collection("user").find({ role: "ngo" }).toArray()
       targetUserIds = ngos.map((n) => n.id)
     } else if (userType === "specific" && userIds && Array.isArray(userIds)) {

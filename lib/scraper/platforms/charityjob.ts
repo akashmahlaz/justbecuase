@@ -1,7 +1,7 @@
 // ============================================
 // CharityJob Scraper — UK's largest charity job board
 // ============================================
-// Scrapes from charityjob.co.uk — thousands of charity/NGO jobs
+// Scrapes from charityjob.co.uk — thousands of charity/Enterprise jobs
 // Note: The ?homeworking=1 filter is weak — still shows on-site and hybrid posts.
 // We apply strong client-side filtering: only accept cards containing "(Remote)" in location.
 // Uses the same platform key "devex" in the registry for backward compat.

@@ -12,13 +12,13 @@ interface UnlockProfileButtonProps {
   onSuccess?: () => void
   onError?: (error: string) => void
   className?: string
-  subscriptionPlan?: "free" | "pro" // NGO's current plan
+  subscriptionPlan?: "free" | "pro" // Enterprise's current plan
   isAlreadyUnlocked?: boolean // Whether this profile is already unlocked
 }
 
 // BUSINESS MODEL:
-// - NGO Pro subscription = Can unlock UNLIMITED free volunteer profiles
-// - NGO Free = Cannot unlock any profiles, must upgrade to Pro
+// - Enterprise Pro subscription = Can unlock UNLIMITED free volunteer profiles
+// - Enterprise Free = Cannot unlock any profiles, must upgrade to Pro
 // - NO individual profile unlock payment (removed)
 
 export function UnlockProfileButton({
@@ -50,7 +50,7 @@ export function UnlockProfileButton({
       }
 
       toast.success("Profile unlocked!", {
-        description: `You can now view ${volunteerName || "the impact agent"}'s full profile.`,
+        description: `You can now view ${volunteerName || "the candidate"}'s full profile.`,
       })
       
       onSuccess?.()

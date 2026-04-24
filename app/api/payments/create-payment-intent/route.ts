@@ -6,8 +6,8 @@ import { adminSettingsDb, couponsDb, couponUsagesDb } from "@/lib/database"
 import { toStripeAmount } from "@/lib/currency"
 
 const PLAN_NAMES: Record<string, string> = {
-  "ngo-pro": "NGO Pro Plan",
-  "volunteer-pro": "Impact Agent Pro Plan",
+  "ngo-pro": "Enterprise Pro Plan",
+  "volunteer-pro": "Candidate Pro Plan",
 }
 
 /**

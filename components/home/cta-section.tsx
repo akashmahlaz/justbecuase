@@ -1,4 +1,4 @@
-﻿"use client"
+"use client"
 
 import Image from "next/image"
 import { ArrowRight } from "lucide-react"
@@ -43,7 +43,7 @@ export function CTASection() {
                 className="h-12 px-8 font-semibold rounded-full"
               >
                 <LocaleLink href="/auth/signup">
-                  {home.ctaButton || "Join as an Impact Agent"}
+                  {home.ctaButton || "Join as an Candidate"}
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </LocaleLink>
               </Button>
@@ -53,7 +53,7 @@ export function CTASection() {
                 variant="outline"
                 className="h-12 px-8 font-semibold rounded-full"
               >
-                <LocaleLink href="/for-ngos">{home.ctaPartnerNGO || "Partner as an NGO"}</LocaleLink>
+                <LocaleLink href="/for-ngos">{home.ctaPartnerNGO || "Partner as an Enterprise"}</LocaleLink>
               </Button>
             </div>
           </div>

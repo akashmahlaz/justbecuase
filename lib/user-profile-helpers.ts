@@ -28,7 +28,7 @@ export async function getVolunteerProfileFromUser(userId: string) {
 }
 
 /**
- * Get NGO profile by userId (from user collection)
+ * Get Enterprise profile by userId (from user collection)
  */
 export async function getNGOProfileFromUser(userId: string) {
   const db = await getDb()
@@ -68,7 +68,7 @@ export async function updateVolunteerProfileInUser(userId: string, updates: any)
 }
 
 /**
- * Update NGO profile (updates user collection)
+ * Update Enterprise profile (updates user collection)
  */
 export async function updateNGOProfileInUser(userId: string, updates: any) {
   const db = await getDb()
@@ -96,7 +96,7 @@ export async function createVolunteerProfileInUser(profileData: any) {
 }
 
 /**
- * Create NGO profile (actually updates user with profile data)
+ * Create Enterprise profile (actually updates user with profile data)
  */
 export async function createNGOProfileInUser(profileData: any) {
   const { userId, ...data } = profileData
@@ -112,7 +112,7 @@ export async function countVolunteers(filter: any = {}) {
 }
 
 /**
- * Count NGOs
+ * Count Enterprises
  */
 export async function countNGOs(filter: any = {}) {
   const db = await getDb()
@@ -136,7 +136,7 @@ export async function findVolunteers(filter: any = {}) {
 }
 
 /**
- * Find NGOs with filters
+ * Find Enterprises with filters
  */
 export async function findNGOs(filter: any = {}) {
   const db = await getDb()

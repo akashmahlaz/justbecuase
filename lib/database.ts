@@ -273,11 +273,11 @@ export const passwordResetDb = {
 }
 
 // ============================================
-// NGO PROFILES
+// Enterprise PROFILES
 // ============================================
 /**
  * SIMPLIFIED: Now reads from user collection directly
- * All NGO data is stored in the user collection
+ * All Enterprise data is stored in the user collection
  */
 export const ngoProfilesDb = {
   async create(profile: Omit<NGOProfile, "_id">): Promise<string> {
@@ -1067,17 +1067,17 @@ export const adminSettingsDb = {
           "Unlimited job applications",
           "Featured profile badge",
           "Priority in search results",
-          "Direct message NGOs",
-          "Early access to opportunities",
+          "Direct message Enterprises",
+          "Early access to jobs",
           "Profile analytics",
           "Certificate downloads",
         ],
         
-        // NGO Free Plan
+        // Enterprise Free Plan
         ngoFreeProjectsPerMonth: 3,
         ngoFreeProfileUnlocksPerMonth: 0,
         
-        // NGO Pro Plan - Production price
+        // Enterprise Pro Plan - Production price
         ngoProPrice: 2999,
         ngoProProjectsUnlimited: true,
         ngoProUnlocksUnlimited: true,
@@ -1087,8 +1087,8 @@ export const adminSettingsDb = {
           "Advanced AI-powered matching",
           "Priority support",
           "Project analytics & reports",
-          "Featured NGO badge",
-          "Bulk impact agent outreach",
+          "Featured Enterprise badge",
+          "Bulk candidate outreach",
         ],
         
         // Features Toggle
@@ -1107,8 +1107,8 @@ export const adminSettingsDb = {
         maintenanceMode: false,
         
         // SEO
-        metaTitle: "JustBeCause Network - Connect NGOs with Impact Agents",
-        metaDescription: "Platform connecting NGOs with skilled impact agents for social impact",
+        metaTitle: "JustBeCause Network - Connect Enterprises with Candidates",
+        metaDescription: "Platform connecting Enterprises with skilled candidates for social impact",
         
         updatedAt: new Date(),
         updatedBy: adminUserId,
