@@ -2188,18 +2188,40 @@ export async function adminChangeUserRole(
     await requireRole(["admin"])
 
     const db = await getDb()
+    const users = db.collection("user")
 
-    // Update user role in auth system (Better Auth stores _id as ObjectId)
-    const result = await db.collection("user").updateOne(
-      userIdQuery(userId),
-      { $set: { role: newRole, updatedAt: new Date() } }
-    )
+    console.log(`[adminChangeUserRole] userId=${userId}, newRole=${newRole}`)
 
-    if (result.modifiedCount === 0) {
+    // Locate the user. Better Auth may store _id as ObjectId OR id as string.
+    let userDoc = await users.findOne(userIdQuery(userId))
+    if (!userDoc) {
+      userDoc = await users.findOne({ id: userId })
+    }
+    if (!userDoc) {
+      console.error(`[adminChangeUserRole] User not found for userId=${userId}`)
       return { success: false, error: "User not found" }
     }
 
+    const matchQuery = userDoc._id ? { _id: userDoc._id } : { id: userDoc.id }
+
+    // Update role. Use matchedCount (modifiedCount can be 0 when role is unchanged).
+    const result = await users.updateOne(
+      matchQuery,
+      { $set: { role: newRole, updatedAt: new Date() } }
+    )
+    console.log(`[adminChangeUserRole] matched=${result.matchedCount}, modified=${result.modifiedCount}`)
+
+    if (result.matchedCount === 0) {
+      return { success: false, error: "User not found" }
+    }
+
+    // Invalidate every page that lists or depends on user role
     revalidatePath("/admin/users")
+    revalidatePath("/admin/volunteers")
+    revalidatePath("/admin/ngos")
+    revalidatePath("/admin/dashboard")
+    revalidatePath("/admin")
+
     return { success: true, data: true }
   } catch (error) {
     console.error("Admin change role error:", error)
