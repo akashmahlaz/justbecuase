@@ -30,10 +30,16 @@ export async function GET() {
       return NextResponse.json({ ...result, error: "Unauthorized" }, { status: 401 })
     }
     const db = await getDb()
-    const admin = await db.collection("admins").findOne({ email: session.user.email })
+    const isRoleAdmin = (session.user as any)?.role === "admin"
+    const admin = isRoleAdmin
+      ? { email: session.user.email }
+      : await db.collection("admins").findOne({ email: session.user.email })
     if (!admin) {
       return NextResponse.json(
-        { ...result, error: `Not an admin. Logged in as ${session.user.email}` },
+        {
+          ...result,
+          error: `Not an admin. Logged in as ${session.user.email} (role=${(session.user as any)?.role})`,
+        },
         { status: 403 }
       )
     }

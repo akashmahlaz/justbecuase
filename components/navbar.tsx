@@ -88,13 +88,17 @@ export function Navbar() {
 
   const initials = user?.name?.[0]?.toUpperCase() || "U"
 
-  // â­ Role-based nav
+  // ⭐ Role-based nav (top-level flat links)
   const baseLinks = [
-    { href: "/projects", label: dict.nav.browseOpportunities, icon: Search },
-    { href: "/for-volunteers", label: dict.nav.forImpactAgents, icon: Users },
-    { href: "/for-ngos", label: dict.nav.forNGOs, icon: Building2 },
-    { href: "/impact-agents", label: dict.nav?.impactAgents || "Candidates", icon: Users },
-    { href: "/about", label: dict.nav.aboutUs, icon: Info },
+    { href: "/projects", label: dict.nav?.browseOpportunities || "Browse Jobs", icon: Search },
+    { href: "/impact-agents", label: dict.nav?.browseImpactAgents || dict.nav?.impactAgents || "Browse Candidates", icon: Users },
+    { href: "/about", label: dict.nav?.aboutUs || "About", icon: Info },
+  ]
+
+  // Marketing landing pages, grouped under "Solutions"
+  const solutionsLinks = [
+    { href: "/for-ngos", label: dict.nav?.forNGOs || "For NGOs", icon: Building2, desc: "Find skilled volunteers for your mission" },
+    { href: "/for-volunteers", label: dict.nav?.forVolunteers || dict.nav?.forImpactAgents || "For Volunteers", icon: UserPlus, desc: "Use your skills for causes that matter" },
   ]
 
   const adminLinks = [{ href: "/admin", label: dict.nav?.adminPanel || "Admin Panel", icon: LayoutDashboard }]
@@ -121,7 +125,64 @@ export function Navbar() {
 
         {/* DESKTOP NAV */}
         <nav className="hidden md:flex items-center gap-6">
-          {[...baseLinks, ...roleLinks].map((link) => (
+          {/* Browse Jobs */}
+          <LocaleLink
+            href={baseLinks[0].href}
+            className={`text-sm font-medium transition ${pathname.endsWith(baseLinks[0].href) || pathname.includes(baseLinks[0].href + "/")
+                ? "text-primary font-semibold"
+                : "text-muted-foreground hover:text-foreground"
+              }`}
+          >
+            {baseLinks[0].label}
+          </LocaleLink>
+
+          {/* Browse Candidates */}
+          <LocaleLink
+            href={baseLinks[1].href}
+            className={`text-sm font-medium transition ${pathname.endsWith(baseLinks[1].href) || pathname.includes(baseLinks[1].href + "/")
+                ? "text-primary font-semibold"
+                : "text-muted-foreground hover:text-foreground"
+              }`}
+          >
+            {baseLinks[1].label}
+          </LocaleLink>
+
+          {/* Solutions dropdown */}
+          <DropdownMenu>
+            <DropdownMenuTrigger className="text-sm font-medium text-muted-foreground hover:text-foreground transition outline-none">
+              {dict.nav?.solutions || "Solutions"}
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="w-72">
+              {solutionsLinks.map((s) => {
+                const Icon = s.icon
+                return (
+                  <DropdownMenuItem key={s.href} asChild>
+                    <LocaleLink href={s.href} className="flex items-start gap-3 py-2.5">
+                      <Icon className="h-4 w-4 mt-0.5 text-primary shrink-0" />
+                      <div className="flex flex-col">
+                        <span className="text-sm font-medium">{s.label}</span>
+                        <span className="text-xs text-muted-foreground">{s.desc}</span>
+                      </div>
+                    </LocaleLink>
+                  </DropdownMenuItem>
+                )
+              })}
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          {/* About */}
+          <LocaleLink
+            href={baseLinks[2].href}
+            className={`text-sm font-medium transition ${pathname.endsWith(baseLinks[2].href) || pathname.includes(baseLinks[2].href + "/")
+                ? "text-primary font-semibold"
+                : "text-muted-foreground hover:text-foreground"
+              }`}
+          >
+            {baseLinks[2].label}
+          </LocaleLink>
+
+          {/* Role-specific (admin / dashboard) */}
+          {roleLinks.map((link) => (
             <LocaleLink
               key={link.href}
               href={link.href}
@@ -359,6 +420,32 @@ export function Navbar() {
                             : "text-foreground hover:bg-muted active:scale-[0.98]"
                         }`}
                         style={{ animationDelay: `${i * 50}ms` }}
+                      >
+                        <Icon className={`h-4.5 w-4.5 shrink-0 ${isActive ? "text-primary-foreground" : "text-muted-foreground"}`} />
+                        {link.label}
+                      </LocaleLink>
+                    </li>
+                  )
+                })}
+                {/* Solutions group */}
+                <li className="pt-3">
+                  <p className="px-3 pb-1.5 text-[10px] font-bold uppercase tracking-widest text-muted-foreground/70">
+                    {dict.nav?.solutions || "Solutions"}
+                  </p>
+                </li>
+                {solutionsLinks.map((link) => {
+                  const isActive = pathname.endsWith(link.href) || pathname.includes(link.href + "/")
+                  const Icon = link.icon
+                  return (
+                    <li key={link.href}>
+                      <LocaleLink
+                        href={link.href}
+                        onClick={closeMenu}
+                        className={`flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium transition-all duration-200 ${
+                          isActive
+                            ? "bg-primary text-primary-foreground shadow-sm"
+                            : "text-foreground hover:bg-muted active:scale-[0.98]"
+                        }`}
                       >
                         <Icon className={`h-4.5 w-4.5 shrink-0 ${isActive ? "text-primary-foreground" : "text-muted-foreground"}`} />
                         {link.label}
