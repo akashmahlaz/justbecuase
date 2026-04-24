@@ -174,7 +174,7 @@ export function ApplyButton({
               <Textarea
                 id="interest"
                 name="interest"
-                placeholder="Share what excites you about this job..."
+                placeholder="Share what excites you about this opportunity..."
                 className="mt-2"
                 rows={3}
                 required

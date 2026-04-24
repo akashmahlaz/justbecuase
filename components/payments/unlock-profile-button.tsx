@@ -50,7 +50,7 @@ export function UnlockProfileButton({
       }
 
       toast.success("Profile unlocked!", {
-        description: `You can now view ${volunteerName || "the candidate (impact agent)"}'s full profile.`,
+        description: `You can now view ${volunteerName || "the impact agent"}'s full profile.`,
       })
       
       onSuccess?.()

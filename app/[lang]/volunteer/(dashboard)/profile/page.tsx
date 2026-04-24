@@ -320,7 +320,7 @@ export default function VolunteerProfileEditPage() {
   }
 
   const profileCompletion = calculateCompletion()
-  const userName = formData.name || session.user.name || "Candidate (Impact Agent)"
+  const userName = formData.name || session.user.name || "Impact Agent"
   const userAvatar = profile?.avatar || session.user.image || undefined
 
   return (
@@ -454,7 +454,7 @@ export default function VolunteerProfileEditPage() {
                           />
                         </div>
                         <p className="text-xs text-muted-foreground">
-                          {dict.volunteer?.profile?.locationHint || "Your location helps match you with nearby jobs"}
+                          {dict.volunteer?.profile?.locationHint || "Your location helps match you with nearby opportunities"}
                         </p>
                       </div>
 
@@ -701,7 +701,7 @@ export default function VolunteerProfileEditPage() {
                       </div>
 
                       <div className="space-y-2">
-                        <Label>{dict.volunteer?.common?.impactAgentType || "Candidate (Impact Agent) Type"}</Label>
+                        <Label>{dict.volunteer?.common?.impactAgentType || "Impact Agent Type"}</Label>
                         <Badge variant="secondary" className="capitalize">
                           {profile?.volunteerType === "free" ? (dict.volunteer?.common?.proBonoOnly || "Pro-Bono Only") : 
                            profile?.volunteerType === "paid" ? (dict.volunteer?.common?.paidOnly || "Paid Only") : 

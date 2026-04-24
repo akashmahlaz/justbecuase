@@ -16,12 +16,12 @@ export async function generateMetadata({ params }: { params: Promise<{ lang: str
   return generatePageMetadata({
     title: "JustBeCause Network - Connect Your Skills with Meaningful Causes",
     description:
-      "Join thousands of skilled professionals making real-world impact. Browse volunteer jobs, connect with NGOs, and use your expertise for social good. Free skills-based volunteering platform.",
+      "Join thousands of skilled professionals making real-world impact. Browse volunteer opportunities, connect with NGOs, and use your expertise for social good. Free skills-based volunteering platform.",
     path: `/${lang}`,
     keywords: [
       "volunteer from home",
       "online volunteering",
-      "remote volunteer jobs",
+      "remote volunteer opportunities",
       "skilled volunteer matching",
       "NGO projects near me",
       "social impact careers",

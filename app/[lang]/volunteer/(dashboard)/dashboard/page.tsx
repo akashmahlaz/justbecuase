@@ -111,7 +111,7 @@ export default async function VolunteerDashboard({ params }: { params: Promise<{
             </Avatar>
             <div>
               <h1 className="text-2xl font-bold text-foreground">
-                Welcome back, {session.user.name?.split(" ")[0] || (dict.volunteer?.dashboard?.fallbackName || "Candidate (Impact Agent)")}!
+                Welcome back, {session.user.name?.split(" ")[0] || (dict.volunteer?.dashboard?.fallbackName || "Impact Agent")}!
               </h1>
               <p className="text-muted-foreground">{dict.volunteer?.dashboard?.subtitle || "Here's what's happening with your impact journey."}</p>
             </div>
@@ -165,7 +165,7 @@ export default async function VolunteerDashboard({ params }: { params: Promise<{
                   <div>
                     <CardTitle className="flex items-center gap-2">
                       <Sparkles className="h-5 w-5 text-primary" />
-                      {dict.volunteer?.dashboard?.recommendedOpportunities || "Recommended Jobs"}
+                      {dict.volunteer?.dashboard?.recommendedOpportunities || "Recommended Opportunities"}
                     </CardTitle>
                     <CardDescription className="mt-1">AI-matched to your skills and interests</CardDescription>
                   </div>
@@ -180,7 +180,7 @@ export default async function VolunteerDashboard({ params }: { params: Promise<{
                     <div className="mx-auto w-16 h-16 rounded-2xl bg-muted flex items-center justify-center">
                       <Briefcase className="h-8 w-8 text-muted-foreground" />
                     </div>
-                    <p className="text-muted-foreground">{dict.volunteer?.dashboard?.noMatchesYet || "No jobs matched yet"}</p>
+                    <p className="text-muted-foreground">{dict.volunteer?.dashboard?.noMatchesYet || "No opportunities matched yet"}</p>
                     <p className="text-sm text-muted-foreground">{dict.volunteer?.dashboard?.completeProfilePrompt || "Complete your profile to get personalized recommendations"}</p>
                     <Button variant="outline" size="sm" asChild>
                       <Link href="/volunteer/profile">{dict.volunteer?.common?.completeProfile || "Complete Profile"}</Link>

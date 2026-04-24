@@ -101,7 +101,7 @@ export default async function NGODashboard({ params }: { params: Promise<{ lang:
                 <h1 className="text-2xl font-bold text-foreground">
                   {dict.ngo?.dashboard?.welcome || "Welcome, "}{ngoProfile?.organizationName || session.user.name}
                 </h1>
-                <p className="text-sm text-muted-foreground">{dict.ngo?.dashboard?.subtitle || "Manage your jobs and connect with skilled candidates (impact agents)."}</p>
+                <p className="text-sm text-muted-foreground">{dict.ngo?.dashboard?.subtitle || "Manage your opportunities and connect with skilled impact agents."}</p>
                 {subscriptionStatus?.plan === "pro" && (
                   <Badge className="mt-1 bg-linear-to-r from-primary to-primary/70 text-white text-[10px]">
                     <Zap className="h-3 w-3 mr-1" /> PRO
@@ -119,7 +119,7 @@ export default async function NGODashboard({ params }: { params: Promise<{ lang:
               <Button asChild size="sm">
                 <Link href="/ngo/post-project">
                   <PlusCircle className="h-4 w-4 mr-2" />
-                  {dict.ngo?.common?.postNewOpportunity || "Post New Job"}
+                  {dict.ngo?.common?.postNewOpportunity || "Post New Opportunity"}
                 </Link>
               </Button>
             </div>
@@ -162,7 +162,7 @@ export default async function NGODashboard({ params }: { params: Promise<{ lang:
                 <CardHeader className="pb-3">
                   <div className="flex items-center justify-between">
                     <div>
-                      <CardTitle>{dict.ngo?.common?.activeOpportunities || "Active Jobs"}</CardTitle>
+                      <CardTitle>{dict.ngo?.common?.activeOpportunities || "Active Opportunities"}</CardTitle>
                       <CardDescription>{activeProjects.length} open {activeProjects.length === 1 ? "opportunity" : "opportunities"}</CardDescription>
                     </div>
                     <Button asChild variant="outline" size="sm">
@@ -174,9 +174,9 @@ export default async function NGODashboard({ params }: { params: Promise<{ lang:
                   {activeProjects.length === 0 ? (
                     <div className="text-center py-8">
                       <FolderKanban className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                      <p className="text-muted-foreground">{dict.ngo?.dashboard?.noActiveOpportunities || "No active jobs"}</p>
+                      <p className="text-muted-foreground">{dict.ngo?.dashboard?.noActiveOpportunities || "No active opportunities"}</p>
                       <Button variant="link" asChild>
-                        <Link href="/ngo/post-project">{dict.ngo?.dashboard?.createFirstOpportunity || "Create your first job"}</Link>
+                        <Link href="/ngo/post-project">{dict.ngo?.dashboard?.createFirstOpportunity || "Create your first opportunity"}</Link>
                       </Button>
                     </div>
                   ) : (
@@ -301,7 +301,7 @@ export default async function NGODashboard({ params }: { params: Promise<{ lang:
                                         </Avatar>
                                         <div className="flex-1 min-w-0">
                                           <p className="text-sm font-medium text-foreground truncate">
-                                            {application.volunteerProfile?.name || "Candidate (Impact Agent)"}
+                                            {application.volunteerProfile?.name || "Impact Agent"}
                                           </p>
                                           <p className="text-xs text-muted-foreground truncate">
                                             {application.project?.title || "Opportunity"}
@@ -328,7 +328,7 @@ export default async function NGODashboard({ params }: { params: Promise<{ lang:
                                           </AvatarFallback>
                                         </Avatar>
                                         <div>
-                                          <p className="text-sm font-semibold">{application.volunteerProfile?.name || "Candidate (Impact Agent)"}</p>
+                                          <p className="text-sm font-semibold">{application.volunteerProfile?.name || "Impact Agent"}</p>
                                           <p className="text-xs text-muted-foreground">{application.volunteerProfile?.headline || "Skilled professional"}</p>
                                           {application.volunteerProfile?.skills?.length > 0 && (
                                             <div className="flex flex-wrap gap-1 mt-2">
@@ -375,9 +375,9 @@ export default async function NGODashboard({ params }: { params: Promise<{ lang:
                   {recommendedVolunteers.length === 0 ? (
                     <div className="text-center py-6">
                       <Users className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
-                      <p className="text-sm text-muted-foreground">{dict.ngo?.dashboard?.noMatchingAgents || "No matching candidates (impact agents) yet"}</p>
+                      <p className="text-sm text-muted-foreground">{dict.ngo?.dashboard?.noMatchingAgents || "No matching impact agents yet"}</p>
                       <Button variant="link" size="sm" asChild>
-                        <Link href="/ngo/post-project">{dict.ngo?.common?.postOpportunity || "Post Job"}</Link>
+                        <Link href="/ngo/post-project">{dict.ngo?.common?.postOpportunity || "Post Opportunity"}</Link>
                       </Button>
                     </div>
                   ) : (
@@ -401,7 +401,7 @@ export default async function NGODashboard({ params }: { params: Promise<{ lang:
                                 </Avatar>
                                 <div className="flex-1 min-w-0">
                                   <p className="text-sm font-medium text-foreground truncate">
-                                    {match.volunteer.name || "Candidate (Impact Agent)"}
+                                    {match.volunteer.name || "Impact Agent"}
                                   </p>
                                   <p className="text-xs text-muted-foreground truncate">
                                     {match.volunteer.headline || "Skilled professional"}
@@ -470,13 +470,13 @@ export default async function NGODashboard({ params }: { params: Promise<{ lang:
                   <Button asChild variant="outline" className="w-full justify-start" size="sm">
                     <Link href="/ngo/post-project">
                       <PlusCircle className="h-4 w-4 mr-2" />
-                      {dict.ngo?.common?.postNewOpportunity || "Post New Job"}
+                      {dict.ngo?.common?.postNewOpportunity || "Post New Opportunity"}
                     </Link>
                   </Button>
                   <Button asChild variant="outline" className="w-full justify-start" size="sm">
                     <Link href="/ngo/find-talent">
                       <Users className="h-4 w-4 mr-2" />
-                      {dict.ngo?.dashboard?.browseImpactAgents || "Browse Candidates (Impact Agents)"}
+                      {dict.ngo?.dashboard?.browseImpactAgents || "Browse Impact Agents"}
                     </Link>
                   </Button>
                   <Button asChild variant="outline" className="w-full justify-start" size="sm">
@@ -528,7 +528,7 @@ export default async function NGODashboard({ params }: { params: Promise<{ lang:
                           <span className="text-sm font-medium">{dict.ngo?.dashboard?.freePlanNoUnlocks || "Free Plan - No Unlocks"}</span>
                         </div>
                         <p className="text-xs text-muted-foreground">
-                          {dict.ngo?.dashboard?.upgradeToPro || "Upgrade to Pro to unlock candidate (impact agent) profiles"}
+                          {dict.ngo?.dashboard?.upgradeToPro || "Upgrade to Pro to unlock impact agent profiles"}
                         </p>
                       </div>
                       <div className="p-3 bg-primary/5 rounded-lg border border-primary/20">
@@ -536,7 +536,7 @@ export default async function NGODashboard({ params }: { params: Promise<{ lang:
                           {dict.ngo?.dashboard?.upgradeForUnlimited || "Upgrade to Pro for unlimited unlocks"}
                         </p>
                         <p className="text-xs text-muted-foreground mb-3">
-                          {dict.ngo?.dashboard?.viewContactDetails || "View contact details of any candidate (impact agent)"}
+                          {dict.ngo?.dashboard?.viewContactDetails || "View contact details of any impact agent"}
                         </p>
                         <Button asChild size="sm" className="w-full">
                           <Link href={`/${lang}/pricing`}>
@@ -554,7 +554,7 @@ export default async function NGODashboard({ params }: { params: Promise<{ lang:
                         <span className="font-medium text-foreground">{dict.ngo?.dashboard?.proPlanActive || "Pro Plan Active"}</span>
                       </div>
                       <p className="text-sm text-muted-foreground">
-                        {dict.ngo?.dashboard?.unlimitedUnlocks || "Unlimited candidate (impact agent) profile unlocks"}
+                        {dict.ngo?.dashboard?.unlimitedUnlocks || "Unlimited impact agent profile unlocks"}
                       </p>
                       {subscriptionStatus?.expiryDate && (
                         <p className="text-xs text-muted-foreground mt-2">

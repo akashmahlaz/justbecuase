@@ -1,19 +1,19 @@
 import { ImageResponse } from "next/og"
 import { getVolunteerProfileView } from "@/lib/actions"
 
-export const alt = "Candidate (Impact Agent) Profile - JustBeCause Network"
+export const alt = "Impact Agent Profile - JustBeCause Network"
 export const size = { width: 1200, height: 630 }
 export const contentType = "image/png"
 
 export default async function Image({ params }: { params: { id: string; lang: string } }) {
-  let name = "Candidate (Impact Agent)"
+  let name = "Impact Agent"
   let bio = ""
   let skills: string[] = []
 
   try {
     const volunteer = await getVolunteerProfileView(params.id)
     if (volunteer) {
-      name = volunteer.name || "Candidate (Impact Agent)"
+      name = volunteer.name || "Impact Agent"
       bio = (volunteer.bio || "").slice(0, 120)
       skills = (volunteer.skills || [])
         .slice(0, 4)

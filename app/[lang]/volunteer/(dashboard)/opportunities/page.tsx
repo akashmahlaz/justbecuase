@@ -35,9 +35,9 @@ export default async function VolunteerOpportunitiesPage({ params }: { params: P
   return (
     <main className="flex-1 p-6 lg:p-8">
           <div className="mb-8">
-            <h1 className="text-2xl font-bold text-foreground mb-2">{dict.volunteer?.opportunities?.title || "Browse Jobs"}</h1>
+            <h1 className="text-2xl font-bold text-foreground mb-2">{dict.volunteer?.opportunities?.title || "Browse Opportunities"}</h1>
             <p className="text-muted-foreground">
-              {dict.volunteer?.opportunities?.subtitle || "Find candidate (impact agent) jobs that match your skills"}
+              {dict.volunteer?.opportunities?.subtitle || "Find impact agent opportunities that match your skills"}
             </p>
           </div>
 

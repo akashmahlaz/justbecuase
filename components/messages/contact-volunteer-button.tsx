@@ -88,7 +88,7 @@ export function ContactVolunteerButton({
         
         <div className="space-y-4 py-4">
           <Textarea
-            placeholder="Hi! I came across your profile and would love to discuss a potential job..."
+            placeholder="Hi! I came across your profile and would love to discuss a potential opportunity..."
             value={message}
             onChange={(e) => setMessage(e.target.value)}
             rows={5}

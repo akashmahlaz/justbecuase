@@ -41,7 +41,7 @@ export function FeaturedProjects() {
     return (
       <section className="relative py-24 bg-background overflow-hidden">
         <div className="container mx-auto px-4 md:px-6 text-center py-12">
-          <p className="text-muted-foreground mb-4">{home.failedToLoad || "Failed to load featured jobs."}</p>
+          <p className="text-muted-foreground mb-4">{home.failedToLoad || "Failed to load featured opportunities."}</p>
           <button onClick={() => { setError(false); setLoading(true); fetchFeatured().catch(() => setError(true)).finally(() => setLoading(false)) }} className="text-sm text-primary hover:underline">
             {home.retry || "Retry"}
           </button>
@@ -57,10 +57,10 @@ export function FeaturedProjects() {
         <header className="flex flex-col md:flex-row md:items-end justify-between mb-20 border-b border-border pb-8">
           <div className="max-w-2xl">
             <h2 className="text-3xl md:text-4xl font-semibold text-foreground tracking-tight mb-4">
-              {home.featuredProjects || "Featured Jobs"}
+              {home.featuredProjects || "Featured Opportunities"}
             </h2>
             <p className="text-muted-foreground leading-relaxed">
-              {home.featuredProjectsDesc || "A curated directory of high-impact jobs from verified NGOs worldwide. Designed for architects of social change."}
+              {home.featuredProjectsDesc || "A curated directory of high-impact opportunities from verified NGOs worldwide. Designed for architects of social change."}
             </p>
           </div>
 
@@ -69,7 +69,7 @@ export function FeaturedProjects() {
               href="/projects" 
               className="group flex items-center gap-3 text-xs uppercase tracking-widest font-bold text-foreground transition-all"
             >
-              {home.browseAllOpportunities || "Browse All Jobs"}
+              {home.browseAllOpportunities || "Browse All Opportunities"}
               <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-3" />
             </LocaleLink>
           </div>

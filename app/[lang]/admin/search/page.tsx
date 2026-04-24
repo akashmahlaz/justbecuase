@@ -55,11 +55,11 @@ const COLLECTIONS: CollectionDef[] = [
     label: "Opportunities",
     collectionParam: ["projects"],
     icon: FolderKanban,
-    description: "All active/open volunteer jobs",
+    description: "All active/open volunteer opportunities",
   },
   {
     key: "volunteers",
-    label: "Candidates (Impact Agents)",
+    label: "Impact Agents",
     collectionParam: ["volunteers"],
     icon: Users,
     description: "All volunteer profiles",
@@ -88,7 +88,7 @@ const COLLECTIONS: CollectionDef[] = [
 ]
 
 const INDEX_LABEL_MAP: Record<string, string> = {
-  justbecause_volunteers: "Candidates (Impact Agents)",
+  justbecause_volunteers: "Impact Agents",
   justbecause_ngos: "NGOs",
   justbecause_projects: "Opportunities",
   justbecause_blog_posts: "Blog Posts",
