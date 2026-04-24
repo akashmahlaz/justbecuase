@@ -4,8 +4,11 @@ import { sendEmail, getContactInquiryEmailHtml, getContactAcknowledgementEmailHt
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
-// Always notify the primary admin mailbox(es), regardless of team_members / admins collection state.
-const PRIMARY_ADMIN_EMAILS = (process.env.CONTACT_ADMIN_EMAILS || "admin@justbecausenetwork.com")
+// HARDCODED primary admin mailbox — always notified regardless of DB / env state.
+const HARDCODED_ADMIN_EMAIL = "admin@justbecausenetwork.com"
+
+// Optional extra recipients via env (comma-separated)
+const EXTRA_ADMIN_EMAILS = (process.env.CONTACT_ADMIN_EMAILS || "")
   .split(",")
   .map((e) => e.trim())
   .filter(Boolean)
@@ -59,8 +62,11 @@ export async function POST(req: NextRequest) {
   // 2. Collect notification recipients from multiple sources
   const teamEmails = new Set<string>()
 
-  // Always include the primary admin mailbox(es)
-  for (const e of PRIMARY_ADMIN_EMAILS) teamEmails.add(e.toLowerCase())
+  // ALWAYS add the hardcoded primary admin mailbox first
+  teamEmails.add(HARDCODED_ADMIN_EMAIL.toLowerCase())
+
+  // Optional extra recipients from env
+  for (const e of EXTRA_ADMIN_EMAILS) teamEmails.add(e.toLowerCase())
 
   // Active team members
   try {

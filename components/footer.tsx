@@ -26,7 +26,7 @@ export function Footer() {
               <Image src="/logo-main.png" alt="JBC Logo" width={200} height={98} className="h-16 w-auto" />
             </LocaleLink>
             <p className="text-muted-foreground mb-6 max-w-sm">
-              {platformSettings?.platformDescription || "Connecting Skills with Purpose. Turn your expertise into lasting impact."}
+              {platformSettings?.platformDescription || "Connecting Skills with Purpose."}
             </p>
             <div className="flex items-center gap-4">
               {(socialLinks?.linkedin || !socialLinks) && (

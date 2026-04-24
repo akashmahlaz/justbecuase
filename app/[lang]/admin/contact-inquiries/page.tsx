@@ -79,14 +79,22 @@ export default function AdminContactInquiriesPage() {
   const fetchInquiries = useCallback(async () => {
     try {
       const params = filterStatus !== "all" ? `?status=${filterStatus}` : ""
-      const res = await fetch(`/api/admin/contact-inquiries${params}`)
-      if (res.ok) {
-        const data = await res.json()
-        setInquiries(data.inquiries || [])
-        setStats(data.stats || { total: 0, new: 0, inProgress: 0, resolved: 0 })
+      const res = await fetch(`/api/admin/contact-inquiries${params}`, { cache: "no-store" })
+      const data = await res.json().catch(() => null)
+      if (!res.ok) {
+        const msg = data?.error || `Request failed (${res.status})`
+        console.error("[ContactInquiriesPage] fetch failed:", res.status, data)
+        toast.error(msg)
+        setInquiries([])
+        setStats({ total: 0, new: 0, inProgress: 0, resolved: 0 })
+        return
       }
-    } catch {
-      toast.error("Failed to load inquiries")
+      console.log("[ContactInquiriesPage] loaded", data?.inquiries?.length, "inquiries")
+      setInquiries(data?.inquiries || [])
+      setStats(data?.stats || { total: 0, new: 0, inProgress: 0, resolved: 0 })
+    } catch (err) {
+      console.error("[ContactInquiriesPage] fetch threw:", err)
+      toast.error("Failed to load inquiries (network error)")
     } finally {
       setLoading(false)
     }

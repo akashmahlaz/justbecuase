@@ -11,6 +11,7 @@ export async function GET(req: NextRequest) {
   try {
     const session = await auth.api.getSession({ headers: await headers() })
     if (!session?.user) {
+      console.warn("[Admin Contact Inquiries] GET: no session")
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
@@ -19,6 +20,7 @@ export async function GET(req: NextRequest) {
     const db = client.db(DB_NAME)
     const admin = await db.collection("admins").findOne({ email: session.user.email })
     if (!admin) {
+      console.warn(`[Admin Contact Inquiries] GET: ${session.user.email} not in admins collection`)
       return NextResponse.json({ error: "Admin access required" }, { status: 403 })
     }
 
@@ -28,6 +30,7 @@ export async function GET(req: NextRequest) {
       contactInquiriesDb.getStats(),
     ])
 
+    console.log(`[Admin Contact Inquiries] GET: returning ${inquiries.length} inquiries (total in DB: ${stats.total})`)
     return NextResponse.json({ inquiries, stats })
   } catch (error) {
     console.error("[Admin Contact Inquiries] GET error:", error)
