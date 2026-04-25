@@ -177,6 +177,41 @@ function mapResultType(type: string): string {
   return type === "project" ? "opportunity" : type
 }
 
+function asStringArray(value: unknown): string[] {
+  return Array.isArray(value)
+    ? value.filter((item): item is string => typeof item === "string" && item.trim().length > 0)
+    : []
+}
+
+function normalizeUnifiedResult(result: Record<string, any>): Record<string, any> {
+  const type = mapResultType(result.type || "")
+  const skillNames = asStringArray(result.skillNames).length > 0 ? asStringArray(result.skillNames) : asStringArray(result.skills)
+  const causeNames = asStringArray(result.causeNames).length > 0 ? asStringArray(result.causeNames) : asStringArray(result.causes)
+  const isVerified = result.isVerified ?? result.verified ?? false
+
+  return {
+    ...result,
+    type,
+    id: result.id || result.mongoId || result.userId || "",
+    mongoId: result.mongoId || result.id || result.userId || "",
+    userId: result.userId || result.mongoId || result.id || "",
+    title: result.title || result.name || result.orgName || "",
+    subtitle: result.subtitle || result.headline || "",
+    description: result.description || result.bio || result.mission || "",
+    avatar: result.avatar || result.logo || "",
+    location: result.location || "",
+    skills: skillNames,
+    skillNames,
+    causes: causeNames,
+    causeNames,
+    verified: isVerified === true,
+    isVerified: isVerified === true,
+    rating: result.rating ?? 0,
+    completedProjects: result.completedProjects ?? 0,
+    hoursContributed: result.hoursContributed ?? 0,
+  }
+}
+
 export async function GET(request: NextRequest) {
   const startTime = Date.now()
   try {
@@ -275,16 +310,17 @@ export async function GET(request: NextRequest) {
             console.log(`🟢 [Search API] Index "${ir.index}": ${ir.nbHits} total hits, ${ir.hits.length} returned, processingTimeMS=${ir.processingTimeMS}ms`)
             for (const hit of indexResult.hits as any[]) {
               const type = hit.type || (ir.index?.includes("volunteer") ? "volunteer" : ir.index?.includes("ngo") ? "ngo" : "opportunity")
+              const skillNames = asStringArray(hit.skillNames).length > 0 ? asStringArray(hit.skillNames) : asStringArray(hit.skills)
               let text = hit.name || hit.orgName || hit.title || ""
               let subtitle = hit.headline || hit.description?.slice(0, 60) || ""
               if (type === "opportunity") {
                 text = hit.title || ""
-                subtitle = [hit.workMode === "remote" ? "Remote" : hit.location, hit.skillNames?.slice(0, 2).join(", ")].filter(Boolean).join(" · ")
+                subtitle = [hit.workMode === "remote" ? "Remote" : hit.location, skillNames.slice(0, 2).join(", ")].filter(Boolean).join(" · ")
               } else if (type === "ngo") {
                 text = hit.name || hit.orgName || ""
                 subtitle = hit.description?.slice(0, 60) || "Organization"
               } else {
-                subtitle = hit.headline || hit.skillNames?.slice(0, 3).join(", ") || ""
+                subtitle = hit.headline || skillNames.slice(0, 3).join(", ") || ""
               }
               console.log(`   📌 [${type}] "${text}" — ${subtitle || "(no subtitle)"} [id: ${hit.objectID}]`)
               suggestions.push({
@@ -371,7 +407,7 @@ export async function GET(request: NextRequest) {
             const mappedType = type === "project" ? "opportunity" : type
 
             // Sort skills so query-matching ones appear first
-            let skills = hit.skillNames || undefined
+            let skills = asStringArray(hit.skillNames).length > 0 ? asStringArray(hit.skillNames) : asStringArray(hit.skills)
             if (skills && query) {
               const queryTerms = query.toLowerCase().split(/\s+/).filter((t: string) => t.length >= 2)
               skills = [...skills].sort((a: string, b: string) => {
@@ -407,14 +443,19 @@ export async function GET(request: NextRequest) {
               avatar: hit.avatar || hit.logo || undefined,
               location: [hit.city, hit.country].filter(Boolean).join(", ") || hit.location || undefined,
               skills,
+              skillNames: skills,
               verified: hit.isVerified || false,
+              isVerified: hit.isVerified || false,
               volunteerType: hit.volunteerType || undefined,
               workMode: hit.workMode || undefined,
               hoursPerWeek: hit.hoursPerWeek || undefined,
               hourlyRate: hit.hourlyRate || undefined,
               experienceLevel: hit.experienceLevel || undefined,
-              rating: hit.rating || undefined,
-              causes: hit.causeNames || undefined,
+              rating: hit.rating ?? 0,
+              completedProjects: hit.completedProjects ?? 0,
+              hoursContributed: hit.hoursContributed ?? 0,
+              causes: asStringArray(hit.causeNames),
+              causeNames: asStringArray(hit.causeNames),
               ngoName: hit.ngoName || undefined,
               status: hit.status || undefined,
             })
@@ -459,7 +500,7 @@ export async function GET(request: NextRequest) {
 
         return NextResponse.json({
           success: true,
-          results: finalResults.slice(0, limit),
+          results: finalResults.slice(0, limit).map(normalizeUnifiedResult),
           query: rawQuery,
           normalizedQuery: query,
           count: finalResults.length,
@@ -528,7 +569,7 @@ export async function GET(request: NextRequest) {
         const location = m.location || (locationParts.length > 0 ? locationParts.join(", ") : undefined)
 
         // Sort skills so query-matching ones appear first on cards
-        let skills = Array.isArray(m.skillNames) && m.skillNames.length > 0 ? m.skillNames : undefined
+        let skills = asStringArray(m.skillNames).length > 0 ? asStringArray(m.skillNames) : asStringArray(m.skills)
         if (skills && query) {
           const queryTerms = query.toLowerCase().split(/\s+/).filter((t: string) => t.length >= 2)
           skills = [...skills].sort((a: string, b: string) => {
@@ -554,13 +595,18 @@ export async function GET(request: NextRequest) {
           avatar: m.avatar || m.logo || undefined,
           location,
           skills,
+          skillNames: skills || [],
           verified: m.isVerified || false,
+          isVerified: m.isVerified || false,
           matchedField: r.highlights?.length > 0 ? r.highlights[0] : undefined,
           volunteerType: m.volunteerType || undefined,
           workMode: m.workMode || undefined,
           experienceLevel: m.experienceLevel || undefined,
-          rating: m.rating || undefined,
-          causes: Array.isArray(m.causeNames) && m.causeNames.length > 0 ? m.causeNames : undefined,
+          rating: m.rating ?? 0,
+          completedProjects: m.completedProjects ?? 0,
+          hoursContributed: m.hoursContributed ?? 0,
+          causes: asStringArray(m.causeNames),
+          causeNames: asStringArray(m.causeNames),
           ngoName: m.ngoName || undefined,
           status: m.status || undefined,
         }
@@ -584,7 +630,7 @@ export async function GET(request: NextRequest) {
           const mongoResults = await unifiedSearch({ query, types: mongoFallbackTypes, limit: Math.min(limit, 50) })
           return NextResponse.json({
             success: true,
-            results: mongoResults,
+            results: mongoResults.map(normalizeUnifiedResult),
             query,
             count: mongoResults.length,
             engine: "mongodb-fallback",
@@ -596,7 +642,7 @@ export async function GET(request: NextRequest) {
 
       return NextResponse.json({
         success: true,
-        results: finalResults,
+        results: finalResults.map(normalizeUnifiedResult),
         query,
         count: finalResults.length,
         took: result.took,
@@ -633,7 +679,7 @@ export async function GET(request: NextRequest) {
     trackEvent("search", "query", { metadata: { query, engine: "mongodb", count: results.length, took: Date.now() - startTime } })
     return NextResponse.json({
       success: true,
-      results,
+      results: results.map(normalizeUnifiedResult),
       query,
       count: results.length,
       engine: "mongodb",
@@ -671,7 +717,7 @@ export async function GET(request: NextRequest) {
         const results = await unifiedSearch({ query, types: fallbackTypes, limit: 20 })
         return NextResponse.json({
           success: true,
-          results,
+          results: results.map(normalizeUnifiedResult),
           query,
           count: results.length,
           engine: "mongodb-fallback",

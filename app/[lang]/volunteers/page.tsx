@@ -165,14 +165,22 @@ function ImpactAgentsContent() {
   // pre-loaded list (e.g. when there are more volunteers than the API cap).
   const mapSearchResultToAgent = (r: any): VolunteerProfileView => {
     const id = r.userId || r.mongoId || r.id || ""
-    const skillNames: string[] = Array.isArray(r.skills) ? r.skills : []
+    const skillNames: string[] = Array.isArray(r.skillNames)
+      ? r.skillNames
+      : Array.isArray(r.skills)
+        ? r.skills
+        : []
     // Search results expose human-readable skill / cause names. Convert
     // back to ids so the on-page Skill / Cause filter pills still match.
     const skills = skillNames.map((name: string) => {
       const ref = resolveSkillRefFromName(name)
       return { categoryId: ref.categoryId, subskillId: ref.subskillId, level: "intermediate" as any }
     })
-    const causeNames: string[] = Array.isArray(r.causes) ? r.causes : []
+    const causeNames: string[] = Array.isArray(r.causeNames)
+      ? r.causeNames
+      : Array.isArray(r.causes)
+        ? r.causes
+        : []
     const causeIds = causeNames.map(resolveCauseId).filter(Boolean)
     return {
       id,
@@ -185,13 +193,13 @@ function ImpactAgentsContent() {
       workMode: (r.workMode || "remote") as any,
       hoursPerWeek: r.hoursPerWeek || "",
       volunteerType: (r.volunteerType || "free") as any,
-      completedProjects: 0,
-      hoursContributed: 0,
-      rating: r.rating || 0,
-      isVerified: r.verified || false,
+      completedProjects: r.completedProjects ?? 0,
+      hoursContributed: r.hoursContributed ?? 0,
+      rating: r.rating ?? 0,
+      isVerified: r.isVerified ?? r.verified ?? false,
       name: r.title || null,
       avatar: r.avatar || null,
-      bio: r.description || r.subtitle || null,
+      bio: r.bio || r.description || r.subtitle || null,
       isUnlocked: false,
       canMessage: false,
     } as unknown as VolunteerProfileView

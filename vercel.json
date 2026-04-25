@@ -29,16 +29,8 @@
       "schedule": "0 9 * * 1"
     },
     {
-      "path": "/api/cron/reliefweb",
-      "schedule": "0 6 * * *"
-    },
-    {
-      "path": "/api/cron/theirstack",
-      "schedule": "0 6 * * *"
-    },
-    {
-      "path": "/api/cron/idealist",
-      "schedule": "0 7 * * *"
+      "path": "/api/cron/fetch-5k",
+      "schedule": "0 */6 * * *"
     }
   ]
 }

@@ -198,7 +198,7 @@ export function OpportunitiesSearchCard() {
                           <Card className="hover:border-primary/50 hover:shadow-lg transition-all duration-200 h-full">
                             <CardContent className="p-4">
                               <div className="flex items-start gap-3">
-                                <div className="flex-shrink-0">
+                                <div className="shrink-0">
                                   {result.avatar ? (
                                     <img
                                       src={result.avatar}
@@ -218,7 +218,7 @@ export function OpportunitiesSearchCard() {
                                       {result.title}
                                     </h3>
                                     {result.verified && (
-                                      <CheckCircle className="h-3.5 w-3.5 text-primary flex-shrink-0" />
+                                      <CheckCircle className="h-3.5 w-3.5 text-primary shrink-0" />
                                     )}
                                   </div>
                                   {result.subtitle && (

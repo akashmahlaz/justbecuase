@@ -12,6 +12,9 @@ const API_KEY = process.env.IDEALIST_API_KEY || ""
 const DEFAULT_MAX_PAGES = Number(process.env.IDEALIST_MAX_LISTING_PAGES || 800)
 const DEFAULT_MAX_DETAILS = Number(process.env.IDEALIST_MAX_DETAIL_FETCH || 5000)
 const DEFAULT_DETAIL_CONCURRENCY = Math.max(5, Math.min(50, Number(process.env.IDEALIST_DETAIL_CONCURRENCY || 40)))
+const LIST_TIMEOUT_MS = Number(process.env.IDEALIST_LIST_TIMEOUT_MS || 60000)
+const DETAIL_TIMEOUT_MS = Number(process.env.IDEALIST_DETAIL_TIMEOUT_MS || 30000)
+const RETRIES = Number(process.env.IDEALIST_FETCH_RETRIES || 2)
 
 function getHeaders() {
   return {
@@ -81,10 +84,7 @@ export async function fetchAllIdealistListings(maxPages = DEFAULT_MAX_PAGES): Pr
       ? `${API_BASE}/api/v1/listings/jobs?since=${encodeURIComponent(since)}`
       : `${API_BASE}/api/v1/listings/jobs`
 
-    const res = await fetch(url, {
-      headers: getHeaders(),
-      signal: AbortSignal.timeout(20000),
-    })
+    const res = await fetchWithRetry(url, { headers: getHeaders(), signal: AbortSignal.timeout(LIST_TIMEOUT_MS) }, RETRIES)
 
     if (!res.ok) {
       console.warn(`[Idealist List] HTTP ${res.status} at page ${page}`)
@@ -129,10 +129,11 @@ async function fetchDetailsBatch(
 
 async function fetchJobDetail(id: string): Promise<IdealistJobDetail | null> {
   try {
-    const res = await fetch(`${API_BASE}/api/v1/listings/jobs/${id}`, {
-      headers: getHeaders(),
-      signal: AbortSignal.timeout(15000),
-    })
+    const res = await fetchWithRetry(
+      `${API_BASE}/api/v1/listings/jobs/${id}`,
+      { headers: getHeaders(), signal: AbortSignal.timeout(DETAIL_TIMEOUT_MS) },
+      RETRIES
+    )
     if (res.status === 404) return null
     if (!res.ok) return null
     const data = await res.json() as { job: IdealistJobDetail }
@@ -202,9 +203,12 @@ function mapJobToOpp(d: IdealistJobDetail | IdealistListItem, detail?: IdealistJ
 // ============================================
 // Main: fetch all listings, then details in parallel — REMOTE ONLY
 // ============================================
-export async function fetchAllIdealistJobs(maxDetails = DEFAULT_MAX_DETAILS): Promise<Omit<ExternalOpportunity, "_id">[]> {
+export async function fetchAllIdealistJobs(
+  maxDetails = DEFAULT_MAX_DETAILS,
+  maxListingPages = DEFAULT_MAX_PAGES
+): Promise<Omit<ExternalOpportunity, "_id">[]> {
   console.log("[Idealist] Phase 1: fetching all listing IDs...")
-  const listings = await fetchAllIdealistListings()
+  const listings = await fetchAllIdealistListings(maxListingPages)
   console.log(`[Idealist] Got ${listings.length} listings`)
 
   // Sort by updated desc — fetch details for most recent first
@@ -366,4 +370,23 @@ function stripHtml(html: string): string {
 
 function sleep(ms: number) {
   return new Promise(resolve => setTimeout(resolve, ms))
+}
+
+async function fetchWithRetry(url: string, init: RequestInit, retries: number): Promise<Response> {
+  let lastError: unknown
+
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      const response = await fetch(url, init)
+      if (response.ok || response.status === 404 || attempt === retries) return response
+      lastError = new Error(`HTTP ${response.status}`)
+    } catch (error) {
+      lastError = error
+      if (attempt === retries) throw error
+    }
+
+    await sleep(500 * (attempt + 1))
+  }
+
+  throw lastError instanceof Error ? lastError : new Error(String(lastError))
 }
