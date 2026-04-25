@@ -114,6 +114,9 @@ function ImpactAgentsContent() {
       id,
       location: r.location || "",
       skills,
+      // Stash raw names so filters can still match if id resolution fails.
+      _rawSkillNames: skillNames,
+      _rawCauseNames: causeNames,
       causes: causeIds,
       workMode: (r.workMode || "remote") as any,
       hoursPerWeek: r.hoursPerWeek || "",
@@ -127,7 +130,7 @@ function ImpactAgentsContent() {
       bio: r.description || r.subtitle || null,
       isUnlocked: false,
       canMessage: false,
-    }
+    } as unknown as VolunteerProfileView
   }
 
   // Debounced unified search
@@ -247,17 +250,35 @@ function ImpactAgentsContent() {
       })
     }
 
-    // Skills
+    // Skills — match by id OR resolved name (search results may not resolve to ids)
     if (selectedSkills.length > 0) {
-      result = result.filter((v) => {
-        const ids = v.skills?.map((s) => s.categoryId).concat(v.skills?.map((s) => s.subskillId)) || []
-        return selectedSkills.some((sk) => ids.includes(sk))
+      const selectedNames = selectedSkills.map((sid) => {
+        for (const cat of skillCategories) {
+          if (cat.id === sid) return cat.name.toLowerCase()
+          const sub = cat.subskills.find((s) => s.id === sid)
+          if (sub) return sub.name.toLowerCase()
+        }
+        return sid.toLowerCase()
+      })
+      result = result.filter((v: any) => {
+        const ids = (v.skills?.map((s: any) => s.categoryId) || []).concat(v.skills?.map((s: any) => s.subskillId) || [])
+        if (selectedSkills.some((sk) => ids.includes(sk))) return true
+        const rawNames: string[] = (v._rawSkillNames || []).map((n: string) => n.toLowerCase())
+        return selectedNames.some((n) => rawNames.includes(n))
       })
     }
 
-    // Causes
+    // Causes — match by id OR raw name
     if (selectedCauses.length > 0) {
-      result = result.filter((v) => selectedCauses.some((c) => v.causes?.includes(c)))
+      const selectedCauseNames = selectedCauses.map((cid) => {
+        const c = causes.find((c) => c.id === cid)
+        return (c?.name || cid).toLowerCase()
+      })
+      result = result.filter((v: any) => {
+        if (selectedCauses.some((c) => v.causes?.includes(c))) return true
+        const rawNames: string[] = (v._rawCauseNames || []).map((n: string) => n.toLowerCase())
+        return selectedCauseNames.some((n) => rawNames.includes(n))
+      })
     }
 
     // Volunteer type
@@ -353,12 +374,12 @@ function ImpactAgentsContent() {
               {/* Inline Filters */}
               <div className="flex flex-wrap items-center gap-2 mt-4">
                 <FilterPopoverButton label={vl.skills || "Skills"} icon={SlidersHorizontal} count={selectedSkills.length}>
-                  <div className="flex flex-col gap-2 max-h-64 overflow-y-auto">
+                  <div className="flex flex-col gap-3 max-h-80 overflow-y-auto pr-1">
                     {skillCategories.map((category) => (
-                      <div key={category.id} className="space-y-1">
-                        <p className="text-xs font-medium text-muted-foreground">{category.name}</p>
-                        {category.subskills.slice(0, 4).map((skill) => (
-                          <div key={skill.id} className="flex items-center gap-2">
+                      <div key={category.id} className="space-y-1.5">
+                        <p className="text-xs font-semibold text-foreground sticky top-0 bg-popover py-1">{category.name}</p>
+                        {category.subskills.map((skill) => (
+                          <div key={skill.id} className="flex items-center gap-2 pl-1">
                             <Checkbox
                               id={`ia-skill-${skill.id}`}
                               checked={selectedSkills.includes(skill.id)}
