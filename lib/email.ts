@@ -700,7 +700,7 @@ export function getSubscriptionExpiryReminderEmailHtml(
 }
 
 /**
- * Email template for profile completeness nudge (sent to users who haven't completed onboarding)
+ * Email template for onboarding reminder (sent to users who haven't completed onboarding)
  */
 export function getProfileNudgeEmailHtml(
   recipientName: string,
@@ -722,17 +722,17 @@ export function getProfileNudgeEmailHtml(
     <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; background: #f3f4f6;">
       <div style="background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
         <div style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); padding: 30px; text-align: center;">
-          <h1 style="color: white; margin: 0; font-size: 24px;">Complete Your Profile</h1>
+          <h1 style="color: white; margin: 0; font-size: 24px;">Complete Your Onboarding</h1>
           <p style="color: #d1fae5; margin-top: 8px;">JustBeCause Network</p>
         </div>
         
         <div style="padding: 30px;">
           <p>Hi ${recipientName},</p>
-          <p>We noticed you signed up as a <strong>${roleLabel}</strong> but haven't completed your profile yet.</p>
-          <p>Finishing your profile takes just a few minutes, and it will allow you to ${benefits}.</p>
+          <p>You have not completed onboarding for your <strong>${roleLabel}</strong> account yet.</p>
+          <p>Finishing onboarding takes just a few minutes, and it will allow you to ${benefits}.</p>
           
           <div style="text-align: center; margin: 30px 0;">
-            <a href="https://justbecausenetwork.com${onboardingUrl}" style="display: inline-block; background: #10b981; color: white; padding: 14px 30px; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 16px;">Complete Your Profile</a>
+            <a href="https://justbecausenetwork.com${onboardingUrl}" style="display: inline-block; background: #10b981; color: white; padding: 14px 30px; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 16px;">Complete Onboarding</a>
           </div>
           
           <p style="color: #666; font-size: 14px;">The world needs your skills. Let's get started!</p>

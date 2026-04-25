@@ -9,6 +9,10 @@
       "schedule": "0 2 * * *"
     },
     {
+      "path": "/api/cron/profile-nudge",
+      "schedule": "0 10 * * *"
+    },
+    {
       "path": "/api/cron/subscription-reminder",
       "schedule": "0 9 * * *"
     },

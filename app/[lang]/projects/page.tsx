@@ -108,6 +108,7 @@ function ProjectsContent() {
   const [searchResultProjects, setSearchResultProjects] = useState<Project[] | null>(null)
   const [isUnifiedSearching, setIsUnifiedSearching] = useState(false)
   const unifiedAbortRef = useRef<AbortController | null>(null)
+  const projectsAbortRef = useRef<AbortController | null>(null)
 
   // Map a unified-search result row into the local Project shape so the
   // existing ProjectCard renders without changes. External opportunities
@@ -147,52 +148,11 @@ function ProjectsContent() {
 
   // Debounced unified search
   useEffect(() => {
-    const trimmed = searchQuery.trim()
-    if (trimmed.length < 2) {
-      setUnifiedMatchedIds(null)
-      setUnifiedRelevanceOrder(new Map())
-      setSearchResultProjects(null)
-      return
-    }
-
-    const timer = setTimeout(async () => {
-      unifiedAbortRef.current?.abort()
-      const controller = new AbortController()
-      unifiedAbortRef.current = controller
-
-      setIsUnifiedSearching(true)
-      try {
-        const res = await fetch(
-          `/api/unified-search?q=${encodeURIComponent(trimmed)}&types=opportunity&limit=100`,
-          { signal: controller.signal }
-        )
-        const data = await res.json()
-        if (data.success && !controller.signal.aborted) {
-          const rawResults = Array.isArray(data.results) ? data.results : []
-          const ids = rawResults.map((r: any) => {
-            const id = r.mongoId || r.id
-            return id?.startsWith("ext-") ? id.slice(4) : id
-          })
-          setUnifiedMatchedIds(ids)
-          const orderMap = new Map<string, number>()
-          ids.forEach((id: string, idx: number) => orderMap.set(id, ids.length - idx))
-          setUnifiedRelevanceOrder(orderMap)
-          // Render search results directly so global DB matches show even
-          // when the matching project is not on the current paginated page.
-          setSearchResultProjects(rawResults.map(mapSearchResultToProject))
-        }
-      } catch (err: any) {
-        if (err.name !== "AbortError") {
-          console.error("Unified search failed:", err)
-        }
-      } finally {
-        if (!controller.signal.aborted) {
-          setIsUnifiedSearching(false)
-        }
-      }
-    }, 300)
-
-    return () => clearTimeout(timer)
+    unifiedAbortRef.current?.abort()
+    setUnifiedMatchedIds(null)
+    setUnifiedRelevanceOrder(new Map())
+    setSearchResultProjects(null)
+    setIsUnifiedSearching(false)
   }, [searchQuery])
 
   useEffect(() => {
@@ -208,13 +168,17 @@ function ProjectsContent() {
   }, [searchParams])
 
   useEffect(() => {
+    projectsAbortRef.current?.abort()
+    const controller = new AbortController()
+    projectsAbortRef.current = controller
+
     async function fetchProjects() {
       try {
         setLoading(true)
         // Try personalized endpoint first (works for logged-in volunteers)
         let personalized = false
         try {
-          const pRes = await fetch("/api/projects/personalized")
+          const pRes = await fetch("/api/projects/personalized", { signal: controller.signal })
           if (pRes.ok) {
             const pData = await pRes.json()
             if (pData.success && pData.opportunities?.length > 0) {
@@ -225,8 +189,10 @@ function ProjectsContent() {
                 scoreMap.set(pid, { score: opp.score, matchReasons: opp.matchReasons || [] })
                 return { ...p, _id: p._id || { toString: () => pid }, id: pid, _source: "native" as const }
               })
-              setMatchScores(scoreMap)
-              setIsPersonalized(true)
+              if (!controller.signal.aborted) {
+                setMatchScores(scoreMap)
+                setIsPersonalized(true)
+              }
               personalized = true
               // Still load merged endpoint for external jobs alongside personalized native
               // Personalized scores are overlaid onto the merged list
@@ -236,10 +202,30 @@ function ProjectsContent() {
           // Personalized endpoint failed — fall back silently
         }
 
-        // Load merged paginated endpoint (native + external)
-        const res = await fetch(`/api/projects?page=${currentPage}&limit=${PROJECTS_PER_PAGE}`)
+        const params = new URLSearchParams({
+          page: String(currentPage),
+          limit: String(PROJECTS_PER_PAGE),
+          sort: activeTab === "trending" ? "popular" : sortBy,
+        })
+        const trimmedQuery = searchQuery.trim()
+        if (trimmedQuery) params.set("q", trimmedQuery)
+        if (selectedSkills.length > 0) {
+          const skillIds = selectedSkills.map((skill) => {
+            const category = skillCategories.find((category) => category.name === skill)
+            return category?.id || skill.toLowerCase().replace(/\s+/g, "-")
+          })
+          params.set("skills", skillIds.join(","))
+        }
+        if (selectedTimeCommitment.length > 0) params.set("timeCommitment", selectedTimeCommitment.join(","))
+        if (selectedLocation) params.set("workMode", selectedLocation)
+        if (selectedCompensation.length > 0) params.set("compensation", selectedCompensation.join(","))
+        if (selectedExperience.length > 0) params.set("experience", selectedExperience.join(","))
+
+        // Load merged paginated endpoint (native + external), filtered server-side.
+        const res = await fetch(`/api/projects?${params.toString()}`, { signal: controller.signal })
         if (res.ok) {
           const data = await res.json()
+          if (controller.signal.aborted) return
           const pageProjects: Project[] = (data.projects || []).map((p: any) => ({
             ...p,
             _id: p._id ? (typeof p._id === "string" ? { toString: () => p._id } : p._id) : { toString: () => p.id || "" },
@@ -251,15 +237,17 @@ function ProjectsContent() {
         } else if (!personalized) {
           setFetchError("Failed to load jobs")
         }
-      } catch (error) {
+      } catch (error: any) {
+        if (error?.name === "AbortError") return
         console.error("Failed to fetch projects:", error)
         setFetchError("Something went wrong loading jobs")
       } finally {
-        setLoading(false)
+        if (!controller.signal.aborted) setLoading(false)
       }
     }
     fetchProjects()
-  }, [currentPage])
+    return () => controller.abort()
+  }, [currentPage, searchQuery, selectedSkills, selectedTimeCommitment, selectedLocation, selectedCompensation, selectedExperience, sortBy, activeTab])
 
   const timeCommitments = ["1-2 hours", "5-10 hours", "10-15 hours", "15-25 hours", "25-40 hours", "40+ hours"]
   const locations = ["Remote", "On-site", "Hybrid"]
@@ -268,6 +256,13 @@ function ProjectsContent() {
   // on opportunity documents (see post-project / edit forms). Pills used
   // to be ["entry","mid","senior"] which never matched anything.
   const experienceLevels = ["beginner", "intermediate", "advanced", "expert"]
+
+  const experienceLabels: Record<string, string> = {
+    beginner: dict.ngo?.common?.beginner || "Beginner",
+    intermediate: dict.ngo?.common?.intermediate || "Intermediate",
+    advanced: dict.ngo?.common?.advanced || "Advanced",
+    expert: dict.ngo?.common?.expert || "Expert",
+  }
 
   const timeCommitmentLabels: Record<string, string> = {
     "1-2 hours": dict.projectsListing?.hours1to2 || "1-2 hours",
@@ -313,14 +308,7 @@ function ProjectsContent() {
 
   // Filter and sort projects
   const filteredProjects = useMemo(() => {
-    // When a search query is active and the unified-search API has returned
-    // results, use those as the source list (covers the entire DB + external
-    // scraped opportunities). Otherwise use the locally-paginated list.
-    const hasActiveSearch = searchQuery.trim().length >= 2
-    const sourceList: Project[] = hasActiveSearch && searchResultProjects !== null
-      ? searchResultProjects
-      : projects
-    let result = [...sourceList]
+    let result = [...projects]
 
     // Tab filter
     if (activeTab === "recommended" && isPersonalized && matchScores.size > 0) {
@@ -334,101 +322,15 @@ function ProjectsContent() {
         .slice(0, 20)
     }
     
-    // Search filter — powered by unified search API
-    if (hasActiveSearch && searchResultProjects === null) {
-      // API still loading — basic client-side fallback (title + skills only)
-      const queryTerms = searchQuery.toLowerCase().split(/\s+/).filter(t => t.length >= 2)
-      result = result.filter((project) => {
-        const title = project.title?.toLowerCase() || ""
-        const ngoName = project.ngo?.name?.toLowerCase() || ""
-        const skillTexts = project.skillsRequired?.map(s => 
-          `${s.categoryId} ${s.subskillId}`.toLowerCase()
-        ).join(" ") || ""
-        const searchable = `${title} ${ngoName} ${skillTexts}`
-        return queryTerms.some(term => searchable.includes(term))
-      })
-    }
-    // When search results are loaded we already filter by search relevance
-    // implicitly because sourceList === searchResultProjects.
+    // Search is handled by /api/projects so it covers native and external data
+    // consistently instead of filtering only the currently loaded page.
     
-    // Skills filter (by category)
-    if (selectedSkills.length > 0) {
-      result = result.filter((project) => {
-        const projectCategories = project.skillsRequired?.map(s => s.categoryId) || []
-        return selectedSkills.some(skill => {
-          const category = skillCategories.find(c => c.name === skill)
-          return projectCategories.includes(category?.id || skill.toLowerCase().replace(/\s+/g, '-'))
-        })
-      })
-    }
+    // Skills, time, work mode, compensation, experience, and search are all
+    // handled by /api/projects so filters apply to the full result set.
     
-    // Time commitment filter — uses numeric range overlap so stored
-    // values like "10-15 hours" match filter "10-15 hours" reliably,
-    // even when templates create non-standard ranges like "20-30 hours".
-    if (selectedTimeCommitment.length > 0) {
-      const parseRange = (s: string): [number, number] | null => {
-        const plus = s.match(/(\d+)\+/)
-        if (plus) return [parseInt(plus[1], 10), Infinity]
-        const range = s.match(/(\d+)\s*-\s*(\d+)/)
-        if (range) return [parseInt(range[1], 10), parseInt(range[2], 10)]
-        return null
-      }
-      const overlaps = (a: [number, number], b: [number, number]) =>
-        a[0] <= b[1] && b[0] <= a[1]
-
-      result = result.filter((project) => {
-        const projectTime = project.timeCommitment || ""
-        const projRange = parseRange(projectTime)
-        return selectedTimeCommitment.some(time => {
-          if (!projRange) return projectTime.toLowerCase().includes(time.toLowerCase())
-          const filterRange = parseRange(time)
-          if (!filterRange) return false
-          return overlaps(projRange, filterRange)
-        })
-      })
-    }
-    
-    // Location/Work mode filter
-    if (selectedLocation && selectedLocation !== "all") {
-      result = result.filter((project) => {
-        const workMode = project.workMode?.toLowerCase() || ""
-        const filterLocation = selectedLocation.toLowerCase()
-        
-        // Strict matching for work modes
-        if (filterLocation === "remote") {
-          return workMode === "remote"
-        } else if (filterLocation === "on-site" || filterLocation === "onsite") {
-          return workMode === "onsite" || workMode === "on-site"
-        } else if (filterLocation === "hybrid") {
-          return workMode === "hybrid"
-        }
-        
-        // For other location strings, do partial match on location field
-        const location = project.location?.toLowerCase() || ""
-        return location.includes(filterLocation)
-      })
-    }
-
-    // Compensation type filter — checks `compensationType` first
-    // (the proper field), falling back to `projectType` for legacy /
-    // external rows that overload it.
-    if (selectedCompensation.length > 0) {
-      result = result.filter((project) => {
-        const compType = (project.compensationType || project.projectType || "").toLowerCase()
-        return selectedCompensation.some(c => compType.includes(c.toLowerCase()))
-      })
-    }
-
-    // Experience level filter
-    if (selectedExperience.length > 0) {
-      result = result.filter((project) => {
-        const expLevel = (project as any).experienceLevel?.toLowerCase() || ""
-        return selectedExperience.some(e => expLevel.includes(e.toLowerCase()))
-      })
-    }
-    
-    // Sorting — auto-use relevance when searching
-    const effectiveSort = (searchQuery.trim().length >= 2 && unifiedMatchedIds !== null && sortBy === "bestMatch") ? "relevant" : sortBy
+    // Sorting is also requested from /api/projects; this keeps the current page
+    // stable if local personalized scores are available.
+    const effectiveSort = sortBy
     switch (effectiveSort) {
       case "newest":
         result.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
@@ -471,7 +373,7 @@ function ProjectsContent() {
     }
     
     return result
-  }, [projects, searchResultProjects, searchQuery, selectedSkills, selectedTimeCommitment, selectedLocation, selectedCompensation, selectedExperience, sortBy, unifiedMatchedIds, unifiedRelevanceOrder, isPersonalized, matchScores, activeTab])
+  }, [projects, selectedSkills, selectedTimeCommitment, selectedLocation, selectedCompensation, selectedExperience, sortBy, isPersonalized, matchScores, activeTab])
 
   const FilterPopoverButton = ({ label, icon: Icon, count, children }: { label: string; icon: React.ElementType; count: number; children: React.ReactNode }) => (
     <Popover>
@@ -604,7 +506,7 @@ function ProjectsContent() {
                           onCheckedChange={() => toggleExperience(exp)}
                         />
                         <label htmlFor={`pop-exp-${exp}`} className="text-sm cursor-pointer capitalize">
-                          {exp === "entry" ? "Entry Level" : exp === "mid" ? "Mid Level" : "Senior Level"}
+                          {experienceLabels[exp] || exp}
                         </label>
                       </div>
                     ))}
@@ -737,7 +639,7 @@ function ProjectsContent() {
               ))}
               {selectedExperience.map((exp) => (
                 <Badge key={exp} variant="secondary" className="flex items-center gap-1 capitalize">
-                  {exp === "entry" ? "Entry Level" : exp === "mid" ? "Mid Level" : "Senior Level"}
+                  {experienceLabels[exp] || exp}
                   <button onClick={() => toggleExperience(exp)}>
                     <X className="h-3 w-3" />
                   </button>

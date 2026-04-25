@@ -6,8 +6,8 @@ const CRON_SECRET = process.env.CRON_SECRET
 /**
  * POST /api/cron/profile-nudge
  * 
- * Sends profile completion nudge emails to users who signed up
- * but haven't completed onboarding within the last 24-48 hours.
+ * Sends onboarding reminder emails every 24 hours to users who signed up
+ * but have not completed onboarding yet.
  * 
  * Protected by CRON_SECRET header for secure invocation from
  * external cron services (e.g., Vercel Cron, GitHub Actions).
@@ -27,25 +27,25 @@ export async function POST(request: NextRequest) {
     const db = await getDb()
     const usersCollection = db.collection("user")
 
-    // Find users created 24-48 hours ago who don't have a profile yet
     const now = new Date()
     const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000)
-    const fortyEightHoursAgo = new Date(now.getTime() - 48 * 60 * 60 * 1000)
 
-    // Get users who registered between 24-48h ago
-    const recentUsers = await usersCollection.find({
-      createdAt: {
-        $gte: fortyEightHoursAgo,
-        $lte: twentyFourHoursAgo,
-      },
+    // Users are due once they are at least 24h old and either never
+    // received an onboarding reminder or received the last one >=24h ago.
+    const dueUsers = await usersCollection.find({
+      createdAt: { $lte: twentyFourHoursAgo },
       role: { $in: ["volunteer", "ngo"] },
-      // Skip users who already received a nudge
-      profileNudgeSent: { $ne: true },
-    }).limit(50).toArray()
+      isOnboarded: { $ne: true },
+      email: { $exists: true, $ne: "" },
+      $or: [
+        { onboardingReminderLastSentAt: { $exists: false } },
+        { onboardingReminderLastSentAt: { $lte: twentyFourHoursAgo } },
+      ],
+    }).limit(200).toArray()
 
     const results: { userId: string; email: string; role: string; status: string }[] = []
 
-    for (const user of recentUsers) {
+    for (const user of dueUsers) {
       const role = user.role as "volunteer" | "ngo"
       
       // All profile data is now stored in the unified "user" collection
@@ -53,7 +53,7 @@ export async function POST(request: NextRequest) {
       const userId = user.id || user._id?.toString()
       
       // Check profile completeness directly from the user document
-      const isComplete = role === "volunteer"
+      const isComplete = user.isOnboarded === true || (role === "volunteer"
         ? !!(user.name && (() => {
             // Skills may be a JSON string or array
             const skills = typeof user.skills === "string" 
@@ -66,7 +66,7 @@ export async function POST(request: NextRequest) {
               ? (() => { try { return JSON.parse(user.causes) } catch { return [] } })()
               : user.causes
             return Array.isArray(causes) && causes.length > 0
-          })())
+          })()))
 
       if (isComplete) {
         results.push({ userId, email: user.email, role, status: "skipped_complete" })
@@ -76,12 +76,12 @@ export async function POST(request: NextRequest) {
       // Check email notification preference
       const prefs = user.privacy
       if (prefs?.emailNotifications === false) {
-        results.push({ userId: user.id, email: user.email, role, status: "skipped_opted_out" })
+        results.push({ userId, email: user.email, role, status: "skipped_opted_out" })
         continue
       }
 
       if (!user.email) {
-        results.push({ userId: user.id, email: "none", role, status: "skipped_no_email" })
+        results.push({ userId, email: "none", role, status: "skipped_no_email" })
         continue
       }
 
@@ -89,7 +89,7 @@ export async function POST(request: NextRequest) {
       const recipientName = user.name || "there"
 
       if (dryRun) {
-        results.push({ userId: user.id, email: user.email, role, status: "would_send" })
+        results.push({ userId, email: user.email, role, status: "would_send" })
       } else {
         try {
           const { sendEmail, getProfileNudgeEmailHtml } = await import("@/lib/email")
@@ -97,21 +97,25 @@ export async function POST(request: NextRequest) {
           
           await sendEmail({
             to: user.email,
-            subject: "Complete your JustBeCause profile and start making an impact!",
+            subject: "You have not completed onboarding on JustBeCause Network",
             html,
-            text: `Hi ${recipientName}, we noticed you haven't completed your profile yet. Visit https://justbecausenetwork.com${onboardingUrl} to get started!`,
+            text: `Hi ${recipientName}, you have not completed onboarding on JustBeCause Network. Visit https://justbecausenetwork.com${onboardingUrl} to complete your profile and start using your account.`,
           })
 
-          // Mark user so we don't send again
+          // Mark only this 24h send window. They will be due again tomorrow
+          // if onboarding is still incomplete.
           await usersCollection.updateOne(
             { _id: user._id },
-            { $set: { profileNudgeSent: true, profileNudgeSentAt: new Date() } }
+            {
+              $set: { onboardingReminderLastSentAt: now },
+              $inc: { onboardingReminderCount: 1 },
+            }
           )
 
-          results.push({ userId: user.id, email: user.email, role, status: "sent" })
+          results.push({ userId, email: user.email, role, status: "sent" })
         } catch (emailErr) {
           console.error(`[profile-nudge] Failed to send to ${user.email}:`, emailErr)
-          results.push({ userId: user.id, email: user.email, role, status: "failed" })
+          results.push({ userId, email: user.email, role, status: "failed" })
         }
       }
     }
@@ -121,11 +125,16 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      summary: { total: recentUsers.length, sent, skipped, dryRun },
+      summary: { total: dueUsers.length, sent, skipped, dryRun },
       results,
     })
   } catch (error: any) {
     console.error("[profile-nudge] Cron error:", error)
     return NextResponse.json({ error: error.message || "Internal error" }, { status: 500 })
   }
+}
+
+// Also support GET for Vercel Cron.
+export async function GET(request: NextRequest) {
+  return POST(request)
 }
