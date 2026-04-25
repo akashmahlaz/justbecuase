@@ -492,26 +492,49 @@ function matchesNativeProject(project: any, filters: {
 
   if (hasSkillFilterConflict(filters)) return false
 
+  // Check both categoryId and subskillId for proper skill filter matching
+  const hasMatchingSkill = skillFilters.some((filterSkill) =>
+    projectSkills.some((projectSkill) =>
+      projectSkill === filterSkill ||
+      projectSkill === `website-${filterSkill}` ||
+      projectSkill.startsWith(`${filterSkill}-`)
+    )
+  )
+  if (!hasMatchingSkill) return false
+
   if (filters.query) {
     if (filters.querySkills.length > 0) {
-      if (!skillFilters.some((skill) => projectSkills.includes(skill))) return false
+      // Already validated skill match above
     } else {
+      // Use word boundary matching for better relevance
       const terms = filters.query.toLowerCase().split(/\s+/).filter((term) => term.length >= 2)
       const text = projectSearchText(project)
-      if (terms.length > 0 && !terms.every((term) => text.includes(term))) return false
+      // All terms must appear as complete words (not substrings)
+      const textLower = text.toLowerCase()
+      const allTermsMatch = terms.every((term) => {
+        // Check for word boundary match - term surrounded by non-alphanumeric or at start/end
+        const regex = new RegExp(`(?:^|[^a-z0-9])${escapeRegex(term)}(?:$|[^a-z0-9])`, 'i')
+        return regex.test(textLower)
+      })
+      if (terms.length > 0 && !allTermsMatch) return false
     }
-  }
-
-  if (filters.querySkills.length === 0 && skillFilters.length > 0) {
-    if (!skillFilters.some((skill) => projectSkills.includes(skill))) return false
   }
 
   if (!matchesTimeCommitment(project.timeCommitment, filters.timeCommitments)) return false
 
   if (filters.workMode) {
-    const workMode = (project.workMode || "").toLowerCase().replace("-", "")
-    const selected = filters.workMode.toLowerCase().replace("-", "")
-    if (workMode !== selected) return false
+    const normalize = (v: string) => v.toLowerCase().replace(/[-_\s]+/g, "")
+    const workMode = normalize(project.workMode || "")
+    const selected = normalize(filters.workMode)
+    // Match exact work modes: remote, onsite, hybrid
+    if (workMode !== selected && workMode !== "remote" && selected !== "remote") {
+      // Special case: "on-site" or "onsite" should match "on site" or "on-site"
+      if (!((workMode.includes("onsite") || workMode === "on site") && (selected.includes("onsite") || selected === "on site"))) {
+        if (!((workMode === "remote") && (selected === "remote" || selected === "hybrid"))) {
+          return false
+        }
+      }
+    }
   }
 
   if (filters.compensation.length > 0) {
