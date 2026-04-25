@@ -39,7 +39,6 @@ import { UnifiedSearchBar } from "@/components/unified-search-bar"
 import { AIEmptyState } from "@/components/ui/ai-empty-state"
 import { skillCategories, causes, resolveSkillRefFromName, resolveCauseId } from "@/lib/skills-data"
 import { useDictionary } from "@/components/dictionary-provider"
-import { useLocale } from "@/hooks/use-locale"
 import type { VolunteerProfileView } from "@/lib/types"
 import {
   SlidersHorizontal,
@@ -75,7 +74,6 @@ export default function ImpactAgentsPage() {
 
 function ImpactAgentsContent() {
   const dict = useDictionary()
-  const locale = useLocale()
   const vl = (dict as any).volunteersListing || {}
 
   const [agents, setAgents] = useState<VolunteerProfileView[]>([])
@@ -216,18 +214,31 @@ function ImpactAgentsContent() {
 
   // Filter and sort
   const filteredAgents = useMemo(() => {
-    // When a search query is active and the API has returned results, use
-    // the search results as the source list (covers entire DB). Merge in any
-    // pre-loaded agents with the same id so we keep enriched fields
-    // (avatar, bio, completedProjects, etc.) when available.
+    // When a search query is active, build the source list as the UNION of:
+    //   (a) the API search results (covers entire DB / Algolia index), and
+    //   (b) any pre-loaded agents that locally match the query on
+    //       name / bio / location / causes / skills.
+    // This is critical because the search index may not include every
+    // searchable field (e.g. "Singapore" may match a city not stored in the
+    // primary searchable attributes), so we'd otherwise drop results the
+    // user can clearly see should match.
     const hasActiveSearch = searchQuery.trim().length >= 3
     let result: VolunteerProfileView[]
-    if (hasActiveSearch && searchResultAgents !== null) {
-      const localById = new Map(agents.map((a) => [a.id, a]))
-      result = searchResultAgents.map((sr) => {
-        const local = localById.get(sr.id)
-        return local ? { ...sr, ...local } : sr
+    if (hasActiveSearch) {
+      const q = searchQuery.toLowerCase()
+      const localMatches = agents.filter((v) => {
+        const fields = [v.name, v.bio, v.location, ...(v.causes || [])].filter(Boolean).join(" ").toLowerCase()
+        const skillText = v.skills?.map((s: any) => `${s.categoryId} ${s.subskillId}`).join(" ").toLowerCase() || ""
+        return (fields + " " + skillText).includes(q)
       })
+      const apiMatches = searchResultAgents || []
+      // Dedupe by id, preferring local (richer) data when present
+      const localById = new Map(localMatches.map((a) => [a.id, a]))
+      const merged: VolunteerProfileView[] = [...localMatches]
+      for (const sr of apiMatches) {
+        if (!localById.has(sr.id)) merged.push(sr)
+      }
+      result = merged
     } else {
       result = [...agents]
     }
@@ -268,14 +279,19 @@ function ImpactAgentsContent() {
       })
     }
 
-    // Causes — match by id OR raw name
+    // Causes — match by id OR raw name (volunteer.causes may contain
+    // human-readable names like "Education" instead of ids like "education").
     if (selectedCauses.length > 0) {
       const selectedCauseNames = selectedCauses.map((cid) => {
         const c = causes.find((c) => c.id === cid)
         return (c?.name || cid).toLowerCase()
       })
       result = result.filter((v: any) => {
-        if (selectedCauses.some((c) => v.causes?.includes(c))) return true
+        const vCauses: string[] = Array.isArray(v.causes) ? v.causes : []
+        if (selectedCauses.some((c) => vCauses.includes(c))) return true
+        // Compare lowercased names against ids and known names
+        const lower = vCauses.map((c) => String(c).toLowerCase())
+        if (selectedCauseNames.some((n) => lower.includes(n))) return true
         const rawNames: string[] = (v._rawCauseNames || []).map((n: string) => n.toLowerCase())
         return selectedCauseNames.some((n) => rawNames.includes(n))
       })

@@ -1309,7 +1309,7 @@ export async function applyToProject(
         userId: project.ngoId,
         type: "new_application",
         title: "New Application Received",
-        message: `An candidate has applied to "${project.title}"`,
+        message: `A candidate has applied to "${project.title}"`,
         referenceId: applicationId,
         referenceType: "application",
         isRead: false,
@@ -1326,7 +1326,7 @@ export async function applyToProject(
       const ngoPrefs = ngoUserDb?.privacy
       if (ngoUserInfo?.email && ngoPrefs?.applicationNotifications !== false && ngoPrefs?.emailNotifications !== false) {
         const { sendEmail, getNewApplicationEmailHtml } = await import("@/lib/email")
-        const volunteerName = (await getUserInfo(user.id))?.name || "An Candidate"
+        const volunteerName = (await getUserInfo(user.id))?.name || "A Candidate"
         const html = getNewApplicationEmailHtml(
           ngoUserInfo.name,
           volunteerName,

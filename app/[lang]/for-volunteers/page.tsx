@@ -37,7 +37,7 @@ export default function ForVolunteersPage() {
   ]
 
   const faqs = [
-    { question: v.faq1Q || "Is it really free to join as an candidate?", answer: v.faq1A || "Yes! Signing up as an candidate is completely free." },
+    { question: v.faq1Q || "Is it really free to join as a candidate?", answer: v.faq1A || "Yes! Signing up as a candidate is completely free." },
     { question: v.faq2Q || "How much time do I need to commit?", answer: v.faq2A || "It's entirely up to you." },
     { question: v.faq3Q || "What types of skills are in demand?", answer: v.faq3A || "Everything from web development, design, and marketing to financial planning." },
     { question: v.faq4Q || "Will I get recognition for my work?", answer: v.faq4A || "Absolutely! NGOs can rate and review your contributions." },

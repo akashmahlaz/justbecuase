@@ -5,6 +5,10 @@
       "schedule": "0 3 * * *"
     },
     {
+      "path": "/api/cron/algolia-sync",
+      "schedule": "0 2 * * *"
+    },
+    {
       "path": "/api/cron/subscription-reminder",
       "schedule": "0 9 * * *"
     },

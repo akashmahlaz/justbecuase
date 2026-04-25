@@ -1,6 +1,5 @@
 "use client"
 
-import Image from "next/image"
 import LocaleLink from "@/components/locale-link"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -63,12 +62,18 @@ export function VolunteerCard({ volunteer }: VolunteerCardProps) {
         <div className="flex items-start gap-3">
           <div className="relative shrink-0">
             {volunteer.avatar ? (
-              <Image
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
                 src={volunteer.avatar}
                 alt={displayName}
                 width={52}
                 height={52}
-                className="w-13 h-13 rounded-full object-cover ring-2 ring-background shadow-sm"
+                referrerPolicy="no-referrer"
+                onError={(e) => {
+                  // Hide broken avatar so the initial fallback shows below
+                  ;(e.currentTarget as HTMLImageElement).style.display = "none"
+                }}
+                className="w-13 h-13 rounded-full object-cover ring-2 ring-background shadow-sm bg-muted"
               />
             ) : (
               <div className="w-13 h-13 rounded-full bg-gradient-to-br from-primary/25 to-secondary/25 flex items-center justify-center text-lg font-semibold text-primary ring-2 ring-background shadow-sm">
