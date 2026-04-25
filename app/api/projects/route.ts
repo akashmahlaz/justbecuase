@@ -214,29 +214,34 @@ function expandSkillIds(skills: string[]): string[] {
 
 const WEBSITE_SKILL_IDS = new Set(expandSkillIds(["website"]))
 const DATA_TECH_SKILL_IDS = new Set(expandSkillIds(["data-technology"]))
+// Title-level evidence — must be explicit about web/dev context.
+// Intentionally excludes bare /\bweb\b/ (too broad; matches "social web",
+// "web-based tools", etc.) and bare /\breact\b/ (matches any React-using
+// company's tech stack, not necessarily a dev role).
 const WEBSITE_EVIDENCE_PATTERNS = [
-  /\bweb\b/i,
+  /\bweb\s*(dev|developer|development|engineer|app|application|platform|portal|site|design)\b/i,
   /\bwebsite\b/i,
-  /\bfront\s*-?\s*end\b/i,
-  /\bback\s*-?\s*end\b/i,
+  /\bfront\s*-?\s*end\s*(dev|developer|engineer)?\b/i,
+  /\bback\s*-?\s*end\s*(dev|developer|engineer)?\b/i,
   /\bfull\s*-?\s*stack\b/i,
   /\bwordpress\b/i,
-  /\breact\b/i,
+  /\breact\s*(dev|developer|engineer|js|native)?\b/i,
   /\bnext\.?js\b/i,
   /\bnode\.?js\b/i,
-  /\bjavascript\b/i,
+  /\bjavascript\s*(dev|developer|engineer)?\b/i,
   /\btypescript\b/i,
-  /\bhtml\b/i,
-  /\bcss\b/i,
-  /\bmobile\s+app\b/i,
-  /\bapp\s+(developer|development)\b/i,
-  /\bux\b/i,
-  /\bui\b/i,
+  /\bhtml\s*\/\s*css\b/i,
+  /\bmobile\s+app\s*(dev|developer|development)?\b/i,
+  /\bapp\s+(developer|development|engineer)\b/i,
+  /\bux\s*\/\s*ui\b/i,
+  /\bui\s*\/\s*ux\b/i,
   /\bwebflow\b/i,
   /\bshopify\b/i,
-  /\bcms\b/i,
+  /\bcms\s*(dev|developer|manager)?\b/i,
   /\blanding\s+page\b/i,
-  /\be-?commerce\b/i,
+  /\be-?commerce\s*(dev|developer)?\b/i,
+  /\bsoftware\s+(engineer|developer|architect)\b/i,
+  /\bplatform\s+engineer\b/i,
 ]
 const WEBSITE_DESCRIPTION_EVIDENCE_PATTERNS = [
   /\bweb\s*(developer|development|application|app|platform|portal|site|design)\b/i,
@@ -504,7 +509,17 @@ function matchesNativeProject(project: any, filters: {
 
   if (filters.query) {
     if (filters.querySkills.length > 0) {
-      // Already validated skill match above
+      // Skill match validated above — but also require text to appear in the
+      // project so "grant writing" returns actual grant-writing projects,
+      // not all fundraising projects.
+      const terms = filters.query.toLowerCase().split(/\s+/).filter((term) => term.length >= 2)
+      const text = projectSearchText(project)
+      const textLower = text.toLowerCase()
+      const anyTermMatch = terms.some((term) => {
+        const regex = new RegExp(`(?:^|[^a-z0-9])${escapeRegex(term)}(?:$|[^a-z0-9])`, 'i')
+        return regex.test(textLower)
+      })
+      if (terms.length > 0 && !anyTermMatch) return false
     } else {
       // Use word boundary matching for better relevance
       const terms = filters.query.toLowerCase().split(/\s+/).filter((term) => term.length >= 2)
@@ -573,6 +588,22 @@ function buildExternalFilter(filters: {
       { city: regex },
       { country: regex },
     ]
+  } else if (filters.query && filters.querySkills.length > 0) {
+    // When the query maps to skill IDs, still apply text filter alongside
+    // skill filter — otherwise "grant writing" returns ALL fundraising jobs
+    // (341 results) instead of jobs that specifically mention "grant writing".
+    const regex = new RegExp(escapeRegex(filters.query), "i")
+    filter.$and = [
+      ...((filter.$and as any[]) || []),
+      {
+        $or: [
+          { title: regex },
+          { description: regex },
+          { shortDescription: regex },
+          { organization: regex },
+        ],
+      },
+    ]
   }
 
   if (hasSkillFilterConflict(filters)) {
@@ -599,16 +630,13 @@ function buildExternalFilter(filters: {
       const descriptionEvidencePatterns = evidencePatterns === WEBSITE_EVIDENCE_PATTERNS
         ? WEBSITE_DESCRIPTION_EVIDENCE_PATTERNS
         : evidencePatterns
-      const websiteEvidence = [
-        ...evidencePatterns.flatMap((pattern) => [
-          { title: pattern },
-          { skillTags: pattern },
-        ]),
-        ...descriptionEvidencePatterns.flatMap((pattern) => [
-          { description: pattern },
-          { shortDescription: pattern },
-        ]),
-      ]
+      // TITLE-ONLY evidence: TheirStack descriptions include a "Technologies:"
+      // line listing the company tech stack (e.g. "Technologies: React, Next.js")
+      // for every job — so description matching causes ALL tech-company jobs to
+      // pass the website evidence check regardless of actual role. The job TITLE
+      // is the only reliable signal: a "Social Media Lead" or "Grant Writer"
+      // will never have "Web Developer" or "React Engineer" in its title.
+      const websiteEvidence = evidencePatterns.map((pattern) => ({ title: pattern }))
 
       filter.$and = [
         ...((filter.$and as any[]) || []),
@@ -618,12 +646,10 @@ function buildExternalFilter(filters: {
 
     if (includesDataTechnologySkill(skillFilters)) {
       const evidencePatterns = dataTechnologyEvidencePatternsFor(filters, skillFilters)
-      const dataTechEvidence = evidencePatterns.flatMap((pattern) => [
-        { title: pattern },
-        { description: pattern },
-        { shortDescription: pattern },
-        { skillTags: pattern },
-      ])
+      // Title-only for same reason as website: TheirStack appends
+      // "Technologies: Python, TensorFlow, ..." to every description,
+      // causing all tech-company jobs to pass description-level evidence.
+      const dataTechEvidence = evidencePatterns.map((pattern) => ({ title: pattern }))
       const idealistDataTechEvidence = IDEALIST_DATA_TECH_TAG_PATTERNS.map((pattern) => ({ skillTags: pattern }))
 
       filter.$and = [
