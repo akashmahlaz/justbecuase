@@ -22,10 +22,10 @@ export default async function AdminUsersPage({ params }: { params: Promise<{ lan
   const allUsers = [
     ...volunteersData.data.map(v => ({
       id: v.userId,
-      name: v.name || "Unnamed Candidate",
-      email: v.phone || "No email",
+      name: v.name || v.email || "Unnamed Candidate",
+      email: v.email || "No email",
       role: "volunteer" as const,
-      avatar: v.avatar,
+      avatar: v.avatar || v.image,
       createdAt: v.createdAt ? (v.createdAt instanceof Date ? v.createdAt.toISOString() : v.createdAt) : new Date().toISOString(),
       isVerified: v.isVerified,
       isActive: v.isActive !== false,
@@ -35,9 +35,9 @@ export default async function AdminUsersPage({ params }: { params: Promise<{ lan
     ...ngosData.data.map(n => ({
       id: n.userId,
       name: n.organizationName || n.orgName || "Unnamed NGO",
-      email: n.contactEmail || "No email",
+      email: n.email || n.contactEmail || "No email",
       role: "ngo" as const,
-      avatar: n.logo,
+      avatar: n.logo || n.image,
       createdAt: n.createdAt ? (n.createdAt instanceof Date ? n.createdAt.toISOString() : n.createdAt) : new Date().toISOString(),
       isVerified: n.isVerified,
       isActive: n.isActive !== false,

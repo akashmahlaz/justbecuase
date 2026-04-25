@@ -46,6 +46,8 @@ export interface VolunteerProfile {
   
   // Display name and avatar copied from auth user
   name?: string
+  email?: string
+  image?: string
   avatar?: string
   
   // Basic Info
@@ -135,6 +137,8 @@ export interface NGOProfile {
   // Organization Details
   orgName: string
   organizationName?: string // Alias for orgName
+  email?: string
+  image?: string
   contactEmail?: string
   contactPersonName?: string
   contactPhone?: string
