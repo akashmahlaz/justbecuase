@@ -43,7 +43,7 @@ export function CTASection() {
                 className="h-12 px-8 font-semibold rounded-full"
               >
                 <LocaleLink href="/auth/signup">
-                  {home.ctaButton || "Join as an Candidate"}
+                  {home.ctaButton || "Join as a Candidate"}
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </LocaleLink>
               </Button>

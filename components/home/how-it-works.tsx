@@ -95,7 +95,7 @@ export function HowItWorks() {
             <StepCards steps={volunteerSteps} color="primary" />
             <div className="mt-14 text-center">
               <Button asChild size="lg" className="h-12 px-10 rounded-full">
-                <LocaleLink href="/for-volunteers">{home.joinAsImpactAgent || "Join as an Candidate"}</LocaleLink>
+                <LocaleLink href="/for-volunteers">{home.joinAsImpactAgent || "Join as a Candidate"}</LocaleLink>
               </Button>
             </div>
           </TabsContent>

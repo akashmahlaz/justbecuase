@@ -77,7 +77,7 @@ export function FeaturedCandidates() {
 
           <div className="mt-8 md:mt-0">
             <LocaleLink
-              href="/impact-agents"
+              href="/volunteers"
               className="group flex items-center gap-3 text-xs uppercase tracking-widest font-bold text-foreground transition-all"
             >
               {home.browseAllCandidates || "Browse All Candidates"}

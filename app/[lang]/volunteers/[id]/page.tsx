@@ -12,9 +12,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { ShareButton } from "@/components/share-button"
 import { FollowButton } from "@/components/follow-button"
 import { FollowStatsDisplay } from "@/components/follow-stats-display"
-import { getVolunteerProfileView, getNGOSubscriptionStatus, getFollowStats, getCurrentUser, getReviewsForUser } from "@/lib/actions"
+import { getVolunteerProfileView, getFollowStats, getCurrentUser, getReviewsForUser } from "@/lib/actions"
 import { skillCategories } from "@/lib/skills-data"
-import { Star, MapPin, Clock, CheckCircle, ExternalLink, Award, TrendingUp, Lock, Crown, User, MessageSquare } from "lucide-react"
+import { Star, MapPin, CheckCircle, ExternalLink, Award, TrendingUp, User, MessageSquare } from "lucide-react"
 import { ContactVolunteerButton } from "@/components/messages/contact-volunteer-button"
 import { SkillEndorsements } from "@/components/endorsements/skill-endorsements"
 import { getCurrencySymbol } from "@/lib/currency"
@@ -83,9 +83,6 @@ export default async function VolunteerProfilePage({ params }: { params: Promise
   // Get volunteer profile with visibility rules applied
   const volunteer = await getVolunteerProfileView(id)
   
-  // Get NGO subscription status if viewing as NGO
-  const ngoSubscription = await getNGOSubscriptionStatus()
-
   // Get follow stats for this volunteer
   const followStatsResult = await getFollowStats(id)
   const followStats = followStatsResult.success ? followStatsResult.data! : { followersCount: 0, followingCount: 0, isFollowing: false }
@@ -102,8 +99,6 @@ export default async function VolunteerProfilePage({ params }: { params: Promise
   const reviewsResult = await getReviewsForUser(id)
   const reviews = reviewsResult.success ? reviewsResult.data || [] : []
 
-  const isLocked = !volunteer.isUnlocked
-
   return (
     <div className="min-h-screen flex flex-col bg-background">
       <Navbar />
@@ -113,39 +108,29 @@ export default async function VolunteerProfilePage({ params }: { params: Promise
         <div className="bg-gradient-to-r from-primary/10 to-secondary/10 py-12">
           <div className="container mx-auto px-4 md:px-6">
             <div className="flex flex-col md:flex-row items-center md:items-start gap-6">
-              {/* Avatar - blurred if locked */}
+              {/* Avatar */}
               <div className="relative flex-shrink-0">
-                {volunteer.avatar && !isLocked ? (
+                {volunteer.avatar ? (
                   <img
                     src={volunteer.avatar}
                     alt={volunteer.name || (dict.volunteerDetail?.impactAgent || "Candidate")}
-                    className="w-32 h-32 rounded-full object-cover border-4 border-background shadow-xl"
+                    referrerPolicy="no-referrer"
+                    className="w-32 h-32 rounded-full object-cover border-4 border-background shadow-xl bg-muted"
                   />
                 ) : (
                   <div className="w-32 h-32 rounded-full bg-muted flex items-center justify-center border-4 border-background shadow-xl">
-                    {isLocked ? (
-                      <Lock className="h-12 w-12 text-muted-foreground" />
-                    ) : (
-                      <User className="h-12 w-12 text-muted-foreground" />
-                    )}
+                    <User className="h-12 w-12 text-muted-foreground" />
                   </div>
                 )}
               </div>
               
               <div className="flex-1 text-center md:text-left">
                 <h1 className="text-3xl font-bold text-foreground mb-2">
-                  {isLocked ? (
-                    <span className="flex items-center gap-2 justify-center md:justify-start">
-                      <Lock className="h-5 w-5" />
-                      {dict.volunteerDetail?.profileLocked || "Profile Locked"}
-                    </span>
-                  ) : (
-                    volunteer.name || (dict.volunteerDetail?.impactAgent || "Candidate")
-                  )}
+                  {volunteer.name || (dict.volunteerDetail?.impactAgent || "Candidate")}
                 </h1>
 
                 {/* Bio as headline if available */}
-                {volunteer.bio && !isLocked && (
+                {volunteer.bio && (
                   <p className="text-lg text-muted-foreground mb-4">
                     {volunteer.bio.split("\n")[0]}
                   </p>
@@ -193,31 +178,20 @@ export default async function VolunteerProfilePage({ params }: { params: Promise
 
               {/* Action Buttons */}
               <div className="flex flex-col gap-2 min-w-[170px] w-full md:w-auto">
-                {!isLocked && (
-                  <FollowButton
-                    targetId={id}
-                    targetName={volunteer.name || (dict.volunteerDetail?.impactAgent || "Candidate")}
-                    isFollowing={followStats.isFollowing}
-                    followersCount={followStats.followersCount}
-                    showCount={false}
-                  />
-                )}
-                {!isLocked && (
-                  <FollowStatsDisplay
-                    userId={id}
-                    followersCount={followStats.followersCount}
-                    followingCount={followStats.followingCount}
-                    className="justify-center"
-                  />
-                )}
-                {isLocked ? (
-                  <Button asChild className="w-full">
-                    <Link href="/pricing">
-                      <Crown className="h-4 w-4 mr-2" />
-                      {dict.volunteerDetail?.subscribeToView || "Subscribe to View"}
-                    </Link>
-                  </Button>
-                ) : volunteer.canMessage ? (
+                <FollowButton
+                  targetId={id}
+                  targetName={volunteer.name || (dict.volunteerDetail?.impactAgent || "Candidate")}
+                  isFollowing={followStats.isFollowing}
+                  followersCount={followStats.followersCount}
+                  showCount={false}
+                />
+                <FollowStatsDisplay
+                  userId={id}
+                  followersCount={followStats.followersCount}
+                  followingCount={followStats.followingCount}
+                  className="justify-center"
+                />
+                {volunteer.canMessage ? (
                   <ContactVolunteerButton
                     volunteerId={volunteer.id}
                     volunteerName={volunteer.name || (dict.volunteerDetail?.impactAgent || "Candidate")}
@@ -226,7 +200,7 @@ export default async function VolunteerProfilePage({ params }: { params: Promise
                 ) : null}
                 <ShareButton
                   url={`/volunteers/${id}`}
-                  title={isLocked ? (dict.volunteerDetail?.shareTitle || "Skilled Candidate on JustBeCause") : (dict.volunteerDetail?.shareTitleWithName || "{name} - Candidate Profile").replace("{name}", volunteer.name)}
+                  title={(dict.volunteerDetail?.shareTitleWithName || "{name} - Candidate Profile").replace("{name}", volunteer.name)}
                   description={(dict.volunteerDetail?.shareDescription || "Discover this talented candidate with {projects} completed projects and a {rating} rating.").replace("{projects}", String(volunteer.completedProjects)).replace("{rating}", volunteer.rating.toFixed(1))}
                   variant="outline"
                   className="w-full"
@@ -240,47 +214,13 @@ export default async function VolunteerProfilePage({ params }: { params: Promise
           <div className="grid lg:grid-cols-3 gap-8">
             {/* Main Content */}
             <div className="lg:col-span-2 space-y-8">
-              {/* Locked State Info */}
-              {isLocked && (
-                <Card className="border-amber-200 bg-amber-50/50">
-                  <CardContent className="pt-6">
-                    <div className="flex items-start gap-4">
-                      <Crown className="h-8 w-8 text-amber-600 flex-shrink-0" />
-                      <div>
-                        <h3 className="font-semibold text-foreground mb-2">
-                          {dict.volunteerDetail?.proRequired || "Pro Subscription Required"}
-                        </h3>
-                        <p className="text-muted-foreground mb-4">
-                          {dict.volunteerDetail?.proRequiredDesc || "This is a free candidate. Subscribe to our Pro plan to view their full profile, contact details, portfolio, and connect with them directly."}
-                        </p>
-                        <Button asChild>
-                          <Link href="/pricing">
-                            {dict.volunteerDetail?.upgradeToPro || "Upgrade to Pro"}
-                          </Link>
-                        </Button>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
-
               {/* About */}
               <Card>
                 <CardHeader>
                   <CardTitle>{dict.volunteerDetail?.aboutTitle || "About"}</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  {isLocked ? (
-                    <div className="space-y-2">
-                      <div className="h-4 bg-muted rounded w-full animate-pulse" />
-                      <div className="h-4 bg-muted rounded w-5/6 animate-pulse" />
-                      <div className="h-4 bg-muted rounded w-4/5 animate-pulse" />
-                      <p className="text-sm text-muted-foreground mt-4 flex items-center gap-2">
-                        <Lock className="h-4 w-4" />
-                        {dict.volunteerDetail?.subscribeToBio || "Subscribe to Pro to view full bio"}
-                      </p>
-                    </div>
-                  ) : volunteer.bio ? (
+                  {volunteer.bio ? (
                     <p className="text-foreground leading-relaxed whitespace-pre-line">
                       {volunteer.bio}
                     </p>
@@ -411,7 +351,7 @@ export default async function VolunteerProfilePage({ params }: { params: Promise
                     <span className="text-sm text-muted-foreground">{dict.volunteerDetail?.hoursPerWeek || "Hours/Week"}</span>
                     <span className="text-sm font-medium">{volunteer.hoursPerWeek}</span>
                   </div>
-                  {volunteer.hourlyRate && !isLocked && volunteer.volunteerType !== "free" && (
+                  {volunteer.hourlyRate && volunteer.canMessage && volunteer.volunteerType !== "free" && (
                     <div className="flex items-center justify-between">
                       <span className="text-sm text-muted-foreground">{dict.volunteerDetail?.hourlyRate || "Hourly Rate"}</span>
                       <span className="text-sm font-medium">
@@ -419,7 +359,7 @@ export default async function VolunteerProfilePage({ params }: { params: Promise
                       </span>
                     </div>
                   )}
-                  {volunteer.discountedRate && !isLocked && volunteer.volunteerType !== "free" && (
+                  {volunteer.discountedRate && volunteer.canMessage && volunteer.volunteerType !== "free" && (
                     <div className="flex items-center justify-between">
                       <span className="text-sm text-muted-foreground">{dict.volunteerDetail?.ngoDiscountRate || "NGO Discounted Rate"}</span>
                       <span className="text-sm font-medium text-green-600">
@@ -492,7 +432,7 @@ export default async function VolunteerProfilePage({ params }: { params: Promise
               </Card>
 
               {/* Links - only if unlocked */}
-              {!isLocked && (volunteer.linkedinUrl || volunteer.portfolioUrl) && (
+              {volunteer.canMessage && (volunteer.linkedinUrl || volunteer.portfolioUrl) && (
                 <Card>
                   <CardHeader>
                     <CardTitle>{dict.volunteerDetail?.connect || "Connect"}</CardTitle>

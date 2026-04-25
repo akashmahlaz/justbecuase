@@ -94,8 +94,9 @@ export function userIdQuery(userId: string): Record<string, any> {
   try {
     return { _id: new ObjectId(userId) }
   } catch {
-    // If userId is not a valid ObjectId, fall back to string id field
-    return { id: userId }
+    // Better Auth stores user docs with _id as a string when not an ObjectId.
+    // There is no separate `id` field, so we must still query `_id`.
+    return { _id: userId }
   }
 }
 
@@ -115,7 +116,7 @@ export function userIdBatchQuery(userIds: string[]): Record<string, any> {
   }
   const conditions: Record<string, any>[] = []
   if (objectIds.length > 0) conditions.push({ _id: { $in: objectIds } })
-  if (stringIds.length > 0) conditions.push({ id: { $in: stringIds } })
+  if (stringIds.length > 0) conditions.push({ _id: { $in: stringIds } })
   if (conditions.length === 0) return { _id: null } // match nothing
   if (conditions.length === 1) return conditions[0]
   return { $or: conditions }
