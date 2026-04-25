@@ -4,7 +4,7 @@ import { use } from "react"
 import { ChatView } from "@/components/stream/chat-view"
 
 interface Props {
-  params: Promise<{ id: string }>
+  params: Promise<{ id: string; lang: string }>
 }
 
 export default function VolunteerMessageThreadPage({ params }: Props) {
