@@ -98,6 +98,11 @@ export default async function VolunteerProfilePage({ params }: { params: Promise
   // Get reviews for this volunteer
   const reviewsResult = await getReviewsForUser(id)
   const reviews = reviewsResult.success ? reviewsResult.data || [] : []
+  const rating = volunteer.rating ?? 0
+  const completedProjects = volunteer.completedProjects ?? 0
+  const hoursContributed = volunteer.hoursContributed ?? 0
+  const skills = volunteer.skills ?? []
+  const causes = volunteer.causes ?? []
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
@@ -105,11 +110,11 @@ export default async function VolunteerProfilePage({ params }: { params: Promise
 
       <main className="flex-1">
         {/* Header */}
-        <div className="bg-gradient-to-r from-primary/10 to-secondary/10 py-12">
+        <div className="bg-linear-to-r from-primary/10 to-secondary/10 py-12">
           <div className="container mx-auto px-4 md:px-6">
             <div className="flex flex-col md:flex-row items-center md:items-start gap-6">
               {/* Avatar */}
-              <div className="relative flex-shrink-0">
+              <div className="relative shrink-0">
                 {volunteer.avatar ? (
                   <img
                     src={volunteer.avatar}
@@ -143,11 +148,11 @@ export default async function VolunteerProfilePage({ params }: { params: Promise
                   </div>
                   <div className="flex items-center gap-1 text-foreground">
                     <Star className="h-4 w-4 text-yellow-500 fill-yellow-500" />
-                    {(dict.volunteerDetail?.ratingLabel || "{rating} rating").replace("{rating}", volunteer.rating.toFixed(1))}
+                    {(dict.volunteerDetail?.ratingLabel || "{rating} rating").replace("{rating}", rating.toFixed(1))}
                   </div>
                   <div className="flex items-center gap-1 text-foreground">
                     <CheckCircle className="h-4 w-4 text-success" />
-                    {(dict.volunteerDetail?.opportunitiesCompleted || "{count} jobs completed").replace("{count}", String(volunteer.completedProjects))}
+                    {(dict.volunteerDetail?.opportunitiesCompleted || "{count} jobs completed").replace("{count}", String(completedProjects))}
                   </div>
                   {volunteer.volunteerType === "paid" && (
                     <Badge variant="secondary">{dict.volunteerDetail?.paidBadge || "Paid"}</Badge>
@@ -165,19 +170,19 @@ export default async function VolunteerProfilePage({ params }: { params: Promise
 
                 {/* Skills - always visible */}
                 <div className="flex flex-wrap justify-center md:justify-start gap-2">
-                  {volunteer.skills.slice(0, 6).map((skill, index) => (
+                  {skills.slice(0, 6).map((skill, index) => (
                     <Badge key={index} className="bg-primary/10 text-primary border-0">
                       {getSkillName(skill.categoryId, skill.subskillId)}
                     </Badge>
                   ))}
-                  {volunteer.skills.length > 6 && (
-                    <Badge variant="outline">{(dict.volunteerDetail?.plusMore || "+{count} more").replace("{count}", String(volunteer.skills.length - 6))}</Badge>
+                  {skills.length > 6 && (
+                    <Badge variant="outline">{(dict.volunteerDetail?.plusMore || "+{count} more").replace("{count}", String(skills.length - 6))}</Badge>
                   )}
                 </div>
               </div>
 
               {/* Action Buttons */}
-              <div className="flex flex-col gap-2 min-w-[170px] w-full md:w-auto">
+              <div className="flex flex-col gap-2 min-w-42.5 w-full md:w-auto">
                 <FollowButton
                   targetId={id}
                   targetName={volunteer.name || (dict.volunteerDetail?.impactAgent || "Candidate")}
@@ -201,7 +206,7 @@ export default async function VolunteerProfilePage({ params }: { params: Promise
                 <ShareButton
                   url={`/volunteers/${id}`}
                   title={(dict.volunteerDetail?.shareTitleWithName || "{name} - Candidate Profile").replace("{name}", volunteer.name)}
-                  description={(dict.volunteerDetail?.shareDescription || "Discover this talented candidate with {projects} completed projects and a {rating} rating.").replace("{projects}", String(volunteer.completedProjects)).replace("{rating}", volunteer.rating.toFixed(1))}
+                  description={(dict.volunteerDetail?.shareDescription || "Discover this talented candidate with {projects} completed projects and a {rating} rating.").replace("{projects}", String(completedProjects)).replace("{rating}", rating.toFixed(1))}
                   variant="outline"
                   className="w-full"
                 />
@@ -239,7 +244,7 @@ export default async function VolunteerProfilePage({ params }: { params: Promise
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
-                    {volunteer.skills.map((skill, index) => (
+                    {skills.map((skill, index) => (
                       <div key={index} className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
                         <span className="font-medium text-foreground">
                           {getSkillName(skill.categoryId, skill.subskillId)}
@@ -249,18 +254,18 @@ export default async function VolunteerProfilePage({ params }: { params: Promise
                         </Badge>
                       </div>
                     ))}
-                    {volunteer.skills.length === 0 && (
+                    {skills.length === 0 && (
                       <p className="text-muted-foreground italic">
                         {dict.volunteerDetail?.noSkillsYet || "No skills listed yet."}
                       </p>
                     )}
                   </div>
                   {/* Skill Endorsements */}
-                  {volunteer.skills.length > 0 && (
+                  {skills.length > 0 && (
                     <div className="mt-6 pt-6 border-t">
                       <SkillEndorsements
                         userId={id}
-                        skills={volunteer.skills.map(s => ({
+                        skills={skills.map(s => ({
                           categoryId: s.categoryId,
                           subskillId: s.subskillId,
                           name: getSkillName(s.categoryId, s.subskillId),
@@ -294,12 +299,12 @@ export default async function VolunteerProfilePage({ params }: { params: Promise
                 </CardHeader>
                 <CardContent>
                   <div className="flex flex-wrap gap-2">
-                    {volunteer.causes.map((cause, index) => (
+                    {causes.map((cause, index) => (
                       <Badge key={index} variant="secondary" className="text-sm py-1 px-3">
                         {cause}
                       </Badge>
                     ))}
-                    {volunteer.causes.length === 0 && (
+                    {causes.length === 0 && (
                       <p className="text-muted-foreground italic">
                         {dict.volunteerDetail?.noCausesYet || "No causes specified yet."}
                       </p>
@@ -322,16 +327,16 @@ export default async function VolunteerProfilePage({ params }: { params: Promise
                 <CardContent className="space-y-4">
                   <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
                     <span className="text-sm text-muted-foreground">{dict.volunteerDetail?.hoursContributed || "Hours Contributed"}</span>
-                    <span className="font-semibold text-foreground">{volunteer.hoursContributed}</span>
+                    <span className="font-semibold text-foreground">{hoursContributed}</span>
                   </div>
                   <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
                     <span className="text-sm text-muted-foreground">{dict.volunteerDetail?.projectsCompleted || "Projects Completed"}</span>
-                    <span className="font-semibold text-foreground">{volunteer.completedProjects}</span>
+                    <span className="font-semibold text-foreground">{completedProjects}</span>
                   </div>
                   <div className="flex items-center justify-between p-3 rounded-lg bg-primary/10">
                     <span className="text-sm text-primary">{dict.volunteerDetail?.estimatedValue || "Estimated Value"}</span>
                     <span className="font-semibold text-primary">
-                      ${(volunteer.hoursContributed * 2000).toLocaleString()}
+                      ${(hoursContributed * 2000).toLocaleString()}
                     </span>
                   </div>
                 </CardContent>
@@ -379,18 +384,18 @@ export default async function VolunteerProfilePage({ params }: { params: Promise
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
-                  {volunteer.rating >= 4.5 && (
+                  {rating >= 4.5 && (
                     <div className="flex items-center gap-3 p-3 rounded-lg bg-yellow-50 dark:bg-yellow-900/20">
                       <div className="w-10 h-10 rounded-full bg-yellow-100 dark:bg-yellow-800 flex items-center justify-center">
                         <Star className="h-5 w-5 text-yellow-600" />
                       </div>
                       <div>
                         <p className="font-medium text-foreground">{dict.volunteerDetail?.topRated || "Top Rated"}</p>
-                        <p className="text-xs text-muted-foreground">{(dict.volunteerDetail?.topRatedDesc || "{rating}+ rating").replace("{rating}", volunteer.rating.toFixed(1))}</p>
+                        <p className="text-xs text-muted-foreground">{(dict.volunteerDetail?.topRatedDesc || "{rating}+ rating").replace("{rating}", rating.toFixed(1))}</p>
                       </div>
                     </div>
                   )}
-                  {volunteer.hoursContributed >= 100 && (
+                  {hoursContributed >= 100 && (
                     <div className="flex items-center gap-3 p-3 rounded-lg bg-blue-50 dark:bg-blue-900/20">
                       <div className="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-800 flex items-center justify-center">
                         <Clock className="h-5 w-5 text-blue-600" />
@@ -401,7 +406,7 @@ export default async function VolunteerProfilePage({ params }: { params: Promise
                       </div>
                     </div>
                   )}
-                  {volunteer.completedProjects >= 10 && (
+                  {completedProjects >= 10 && (
                     <div className="flex items-center gap-3 p-3 rounded-lg bg-green-50 dark:bg-green-900/20">
                       <div className="w-10 h-10 rounded-full bg-green-100 dark:bg-green-800 flex items-center justify-center">
                         <CheckCircle className="h-5 w-5 text-green-600" />
@@ -423,7 +428,7 @@ export default async function VolunteerProfilePage({ params }: { params: Promise
                       </div>
                     </div>
                   )}
-                  {volunteer.rating < 4.5 && volunteer.hoursContributed < 100 && volunteer.completedProjects < 10 && !volunteer.isVerified && (
+                  {rating < 4.5 && hoursContributed < 100 && completedProjects < 10 && !volunteer.isVerified && (
                     <p className="text-muted-foreground italic text-sm">
                       {dict.volunteerDetail?.noAchievements || "No achievements yet. Complete projects to earn badges!"}
                     </p>

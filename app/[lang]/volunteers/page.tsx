@@ -37,7 +37,7 @@ import { ScrollProgress } from "@/components/ui/scroll-progress"
 import { Skeleton } from "@/components/ui/skeleton"
 import { UnifiedSearchBar } from "@/components/unified-search-bar"
 import { AIEmptyState } from "@/components/ui/ai-empty-state"
-import { skillCategories, causes, resolveSkillRefFromName, resolveCauseId } from "@/lib/skills-data"
+import { skillCategories, causes, resolveSkillRefFromName, resolveCauseId, resolveSkillName } from "@/lib/skills-data"
 import { useDictionary } from "@/components/dictionary-provider"
 import type { VolunteerProfileView } from "@/lib/types"
 import {
@@ -57,6 +57,72 @@ import {
   Globe,
   Award,
 } from "lucide-react"
+
+const normalizeSearchText = (value: string) =>
+  value
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+
+const getCauseDisplayName = (value: string) =>
+  causes.find((cause) => cause.id === value)?.name || value
+
+function getVolunteerSearchText(volunteer: VolunteerProfileView & Record<string, any>) {
+  const skillText = (volunteer.skills || [])
+    .flatMap((skill: any) => [
+      skill?.categoryId,
+      skill?.subskillId,
+      skill?.subskillId ? resolveSkillName(skill.subskillId) : "",
+      ...(volunteer._rawSkillNames || []),
+    ])
+    .filter(Boolean)
+    .join(" ")
+
+  const causeText = [
+    ...(volunteer.causes || []),
+    ...(volunteer.causes || []).map((cause: string) => getCauseDisplayName(cause)),
+    ...(volunteer._rawCauseNames || []),
+  ].filter(Boolean).join(" ")
+
+  return normalizeSearchText([
+    volunteer.name,
+    volunteer.bio,
+    volunteer.location,
+    volunteer.workMode,
+    volunteer.volunteerType,
+    skillText,
+    causeText,
+  ].filter(Boolean).join(" "))
+}
+
+function volunteerMatchesQuery(volunteer: VolunteerProfileView & Record<string, any>, query: string) {
+  const normalizedQuery = normalizeSearchText(query)
+  if (!normalizedQuery) return true
+  const searchable = getVolunteerSearchText(volunteer)
+  if (searchable.includes(normalizedQuery)) return true
+  const terms = normalizedQuery.split(" ").filter((term) => term.length >= 2)
+  return terms.length > 0 && terms.every((term) => searchable.includes(term))
+}
+
+function parseHoursUpperBound(value: string | null | undefined) {
+  if (!value) return 0
+  const numbers = String(value).match(/\d+/g)?.map((n) => Number.parseInt(n, 10)).filter(Number.isFinite) || []
+  return numbers.length > 0 ? Math.max(...numbers) : 0
+}
+
+function skillExperienceScore(volunteer: VolunteerProfileView & Record<string, any>) {
+  const levelWeights: Record<string, number> = {
+    beginner: 1,
+    intermediate: 2,
+    advanced: 3,
+    expert: 4,
+  }
+  return (volunteer.skills || []).reduce((total: number, skill: any) => {
+    const level = String(skill?.level || "").toLowerCase()
+    return total + (levelWeights[level] || 1)
+  }, 0)
+}
 
 export default function ImpactAgentsPage() {
   return (
@@ -204,6 +270,8 @@ function ImpactAgentsContent() {
     setSelectedVolunteerType("")
     setSelectedWorkMode("")
     setSearchQuery("")
+    setActiveTab("all")
+    setSortBy("best-match")
   }
 
   const hasActiveFilters =
@@ -225,12 +293,7 @@ function ImpactAgentsContent() {
     const hasActiveSearch = searchQuery.trim().length >= 3
     let result: VolunteerProfileView[]
     if (hasActiveSearch) {
-      const q = searchQuery.toLowerCase()
-      const localMatches = agents.filter((v) => {
-        const fields = [v.name, v.bio, v.location, ...(v.causes || [])].filter(Boolean).join(" ").toLowerCase()
-        const skillText = v.skills?.map((s: any) => `${s.categoryId} ${s.subskillId}`).join(" ").toLowerCase() || ""
-        return (fields + " " + skillText).includes(q)
-      })
+      const localMatches = agents.filter((v: any) => volunteerMatchesQuery(v, searchQuery))
       const apiMatches = searchResultAgents || []
       // Dedupe by id, preferring local (richer) data when present
       const localById = new Map(localMatches.map((a) => [a.id, a]))
@@ -246,12 +309,7 @@ function ImpactAgentsContent() {
     // Search — when API results are loaded, we already used them as the
     // source list above. Only run a local fallback while the API is in flight.
     if (searchQuery.trim().length >= 3 && searchResultAgents === null) {
-      const query = searchQuery.toLowerCase()
-      result = result.filter((v) => {
-        const fields = [v.name, v.bio, v.location, ...(v.causes || [])].filter(Boolean).join(" ").toLowerCase()
-        const skillText = v.skills?.map((s) => `${s.categoryId} ${s.subskillId}`).join(" ").toLowerCase() || ""
-        return (fields + " " + skillText).includes(query)
-      })
+      result = result.filter((v: any) => volunteerMatchesQuery(v, searchQuery))
     }
 
     // Skills — match by id OR resolved name (search results may not resolve to ids)
@@ -297,7 +355,8 @@ function ImpactAgentsContent() {
 
     // Work mode
     if (selectedWorkMode && selectedWorkMode !== "all") {
-      result = result.filter((v) => v.workMode === selectedWorkMode)
+      const selectedMode = normalizeSearchText(selectedWorkMode).replace(/\s+/g, "")
+      result = result.filter((v) => normalizeSearchText(String(v.workMode || "")).replace(/\s+/g, "") === selectedMode)
     }
 
     // Sort
@@ -319,6 +378,8 @@ function ImpactAgentsContent() {
         result.sort((a, b) => {
           const d = (b.rating || 0) - (a.rating || 0)
           if (d !== 0) return d
+          const e = skillExperienceScore(b as any) - skillExperienceScore(a as any)
+          if (e !== 0) return e
           const c = completeness(b) - completeness(a)
           if (c !== 0) return c
           return byName(a, b)
@@ -328,6 +389,8 @@ function ImpactAgentsContent() {
         result.sort((a, b) => {
           const d = (b.completedProjects || 0) - (a.completedProjects || 0)
           if (d !== 0) return d
+          const e = skillExperienceScore(b as any) - skillExperienceScore(a as any)
+          if (e !== 0) return e
           const c = completeness(b) - completeness(a)
           if (c !== 0) return c
           return byName(a, b)
@@ -337,6 +400,8 @@ function ImpactAgentsContent() {
         result.sort((a, b) => {
           const d = (b.hoursContributed || 0) - (a.hoursContributed || 0)
           if (d !== 0) return d
+          const h = parseHoursUpperBound(b.hoursPerWeek) - parseHoursUpperBound(a.hoursPerWeek)
+          if (h !== 0) return h
           const c = completeness(b) - completeness(a)
           if (c !== 0) return c
           return byName(a, b)
@@ -347,6 +412,8 @@ function ImpactAgentsContent() {
           const score = (v: any) =>
             (v.completedProjects || 0) * 10 +
             (v.hoursContributed || 0) / 10 +
+            parseHoursUpperBound(v.hoursPerWeek) / 5 +
+            skillExperienceScore(v) / 4 +
             (v.rating || 0)
           const d = score(b) - score(a)
           if (d !== 0) return d
@@ -368,14 +435,18 @@ function ImpactAgentsContent() {
           result.sort((a, b) => {
             const sa =
               completeness(a) * 100 +
+              skillExperienceScore(a as any) * 4 +
               (a.completedProjects || 0) * 5 +
               (a.rating || 0) * 3 +
-              (a.hoursContributed || 0) / 20
+              (a.hoursContributed || 0) / 20 +
+              parseHoursUpperBound(a.hoursPerWeek) / 5
             const sb =
               completeness(b) * 100 +
+              skillExperienceScore(b as any) * 4 +
               (b.completedProjects || 0) * 5 +
               (b.rating || 0) * 3 +
-              (b.hoursContributed || 0) / 20
+              (b.hoursContributed || 0) / 20 +
+              parseHoursUpperBound(b.hoursPerWeek) / 5
             const d = sb - sa
             if (d !== 0) return d
             return byName(a, b)
