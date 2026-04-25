@@ -243,28 +243,6 @@ function ImpactAgentsContent() {
       result = [...agents]
     }
 
-    // Tab filter
-    //   - top-rated: show every candidate, sorted by rating desc, with
-    //     unrated profiles falling back to completedProjects then
-    //     hoursContributed so the order is still meaningful on a fresh
-    //     platform where most ratings are 0.
-    //   - most-active: composite activity score (projects + hours/10)
-    //     so candidates with any activity surface above empty profiles.
-    //     No artificial slice — show all matches.
-    if (activeTab === "top-rated") {
-      result = [...result].sort((a, b) => {
-        const rd = (b.rating || 0) - (a.rating || 0)
-        if (rd !== 0) return rd
-        const pd = (b.completedProjects || 0) - (a.completedProjects || 0)
-        if (pd !== 0) return pd
-        return (b.hoursContributed || 0) - (a.hoursContributed || 0)
-      })
-    } else if (activeTab === "most-active") {
-      const score = (v: any) =>
-        (v.completedProjects || 0) * 10 + (v.hoursContributed || 0) / 10 + (v.rating || 0)
-      result = [...result].sort((a, b) => score(b) - score(a))
-    }
-
     // Search — when API results are loaded, we already used them as the
     // source list above. Only run a local fallback while the API is in flight.
     if (searchQuery.trim().length >= 3 && searchResultAgents === null) {
@@ -333,26 +311,48 @@ function ImpactAgentsContent() {
       (v.bio ? 2 : 0) +
       (v.avatar ? 1 : 0)
 
-    switch (sortBy) {
+    const byName = (a: any, b: any) => String(a.name || "").localeCompare(String(b.name || ""))
+    const effectiveSort = sortBy
+
+    switch (effectiveSort) {
       case "rating":
         result.sort((a, b) => {
           const d = (b.rating || 0) - (a.rating || 0)
           if (d !== 0) return d
-          return completeness(b) - completeness(a)
+          const c = completeness(b) - completeness(a)
+          if (c !== 0) return c
+          return byName(a, b)
         })
         break
       case "experienced":
         result.sort((a, b) => {
           const d = (b.completedProjects || 0) - (a.completedProjects || 0)
           if (d !== 0) return d
-          return completeness(b) - completeness(a)
+          const c = completeness(b) - completeness(a)
+          if (c !== 0) return c
+          return byName(a, b)
         })
         break
       case "hours":
         result.sort((a, b) => {
           const d = (b.hoursContributed || 0) - (a.hoursContributed || 0)
           if (d !== 0) return d
-          return completeness(b) - completeness(a)
+          const c = completeness(b) - completeness(a)
+          if (c !== 0) return c
+          return byName(a, b)
+        })
+        break
+      case "active":
+        result.sort((a, b) => {
+          const score = (v: any) =>
+            (v.completedProjects || 0) * 10 +
+            (v.hoursContributed || 0) / 10 +
+            (v.rating || 0)
+          const d = score(b) - score(a)
+          if (d !== 0) return d
+          const c = completeness(b) - completeness(a)
+          if (c !== 0) return c
+          return byName(a, b)
         })
         break
       case "best-match":
@@ -376,7 +376,9 @@ function ImpactAgentsContent() {
               (b.completedProjects || 0) * 5 +
               (b.rating || 0) * 3 +
               (b.hoursContributed || 0) / 20
-            return sb - sa
+            const d = sb - sa
+            if (d !== 0) return d
+            return byName(a, b)
           })
         }
         break
@@ -555,7 +557,15 @@ function ImpactAgentsContent() {
         <div className="container mx-auto px-4 md:px-6 py-8">
           {/* Controls Bar */}
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-            <Tabs value={activeTab} onValueChange={setActiveTab}>
+            <Tabs
+              value={activeTab}
+              onValueChange={(value) => {
+                setActiveTab(value)
+                if (value === "top-rated") setSortBy("rating")
+                else if (value === "most-active") setSortBy("active")
+                else setSortBy("best-match")
+              }}
+            >
               <TabsList>
                 <TabsTrigger value="all" className="gap-1.5">
                   <Search className="h-3.5 w-3.5" />
@@ -573,13 +583,22 @@ function ImpactAgentsContent() {
             </Tabs>
 
             <div className="flex items-center gap-2">
-              <Select value={sortBy} onValueChange={setSortBy}>
+              <Select
+                value={sortBy}
+                onValueChange={(value) => {
+                  setSortBy(value)
+                  if (value === "rating") setActiveTab("top-rated")
+                  else if (value === "active") setActiveTab("most-active")
+                  else setActiveTab("all")
+                }}
+              >
                 <SelectTrigger className="w-32 sm:w-44">
                   <SelectValue placeholder={vl.sortBy || "Sort by"} />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="best-match">{vl.bestMatch || "Best Match"}</SelectItem>
                   <SelectItem value="rating">{vl.highestRated || "Highest Rated"}</SelectItem>
+                  <SelectItem value="active">{vl.mostActive || "Most Active"}</SelectItem>
                   <SelectItem value="experienced">{vl.mostExperienced || "Most Experienced"}</SelectItem>
                   <SelectItem value="hours">{vl.mostHours || "Most Hours"}</SelectItem>
                 </SelectContent>
