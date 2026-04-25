@@ -203,7 +203,7 @@ function MatchBreakdown({ breakdown, distanceKm, reasons }: {
   ]
 
   return (
-    <div className="space-y-3 p-1 min-w-[220px]">
+    <div className="space-y-3 p-1 min-w-55">
       <p className="text-xs font-semibold text-foreground">Match Breakdown</p>
       <div className="space-y-1.5">
         {signals.map((s) => (
@@ -300,7 +300,11 @@ export function OpportunitiesBrowser() {
    * (including external scraped opportunities prefixed with `ext-`).
    */
   function mapSearchResultToProject(r: any): Project {
-    const skillNames: string[] = Array.isArray(r.skills) ? r.skills : []
+    const skillNames: string[] = Array.isArray(r.skillNames)
+      ? r.skillNames
+      : Array.isArray(r.skills)
+        ? r.skills
+        : []
     // Search results expose skill NAMES; the on-page Skills filter compares
     // against category IDs so we resolve names back to ids here.
     const skillsRequired = skillNames.map((name: string) => {
@@ -326,10 +330,10 @@ export function OpportunitiesBrowser() {
       ngo: {
         name: r.ngoName || r.subtitle || "",
         logo: r.avatar || undefined,
-        verified: !!r.verified,
+        verified: !!(r.isVerified ?? r.verified),
       },
       skills: skillNames,
-      causes: Array.isArray(r.causes) ? r.causes : [],
+      causes: Array.isArray(r.causeNames) ? r.causeNames : Array.isArray(r.causes) ? r.causes : [],
       experienceLevel: r.experienceLevel,
     }
   }
@@ -976,11 +980,11 @@ export function OpportunitiesBrowser() {
                             {project.ngo.name?.[0]?.toUpperCase()}
                           </div>
                         )}
-                        <span className="text-xs text-muted-foreground truncate max-w-[160px]">
+                        <span className="text-xs text-muted-foreground truncate max-w-40">
                           {project.ngo.name}
                         </span>
                         {project.ngo.verified && (
-                          <CheckCircle className="h-3 w-3 text-primary flex-shrink-0" />
+                          <CheckCircle className="h-3 w-3 text-primary shrink-0" />
                         )}
                       </div>
                     )}
@@ -1007,7 +1011,7 @@ export function OpportunitiesBrowser() {
                     {/* Meta */}
                     <div className="space-y-1.5 text-sm text-muted-foreground mb-3">
                       <div className="flex items-center gap-2">
-                        <MapPin className="h-3.5 w-3.5 flex-shrink-0" />
+                        <MapPin className="h-3.5 w-3.5 shrink-0" />
                         <span className="truncate">
                           {project.workMode === "remote"
                             ? (common?.remote || "Remote")
@@ -1020,18 +1024,18 @@ export function OpportunitiesBrowser() {
                         </span>
                       </div>
                       <div className="flex items-center gap-2">
-                        <Clock className="h-3.5 w-3.5 flex-shrink-0" />
+                        <Clock className="h-3.5 w-3.5 shrink-0" />
                         {project.timeCommitment}
                       </div>
                       {project.deadline && (
                         <div className="flex items-center gap-2">
-                          <Calendar className="h-3.5 w-3.5 flex-shrink-0" />
+                          <Calendar className="h-3.5 w-3.5 shrink-0" />
                           {common?.deadline || "Deadline:"}{" "}
                           {new Date(project.deadline).toLocaleDateString()}
                         </div>
                       )}
                       <div className="flex items-center gap-2">
-                        <Users className="h-3.5 w-3.5 flex-shrink-0" />
+                        <Users className="h-3.5 w-3.5 shrink-0" />
                         {project.applicantsCount || 0} {common?.applicants || "applicants"}
                       </div>
                     </div>

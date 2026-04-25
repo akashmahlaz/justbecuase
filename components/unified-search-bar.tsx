@@ -308,16 +308,21 @@ export function UnifiedSearchBar({
 
           for (const hit of indexResult.hits as any[]) {
             const type = hit.type || (ir.index?.includes("volunteer") ? "volunteer" : ir.index?.includes("ngo") ? "ngo" : "opportunity")
+            const skillNames = Array.isArray(hit.skillNames)
+              ? hit.skillNames
+              : Array.isArray(hit.skills)
+                ? hit.skills
+                : []
             let text = hit.name || hit.orgName || hit.title || ""
             let subtitle = ""
             if (type === "opportunity") {
               text = hit.title || ""
-              subtitle = [hit.workMode === "remote" ? "Remote" : hit.location, hit.skillNames?.slice(0, 2).join(", ")].filter(Boolean).join(" · ")
+              subtitle = [hit.workMode === "remote" ? "Remote" : hit.location, skillNames.slice(0, 2).join(", ")].filter(Boolean).join(" · ")
             } else if (type === "ngo") {
               text = hit.name || hit.orgName || ""
               subtitle = hit.description?.slice(0, 60) || "Organization"
             } else {
-              subtitle = hit.headline || hit.skillNames?.slice(0, 3).join(", ") || ""
+              subtitle = hit.headline || skillNames.slice(0, 3).join(", ") || ""
             }
             console.log(`   📌 [${type}] "${text}" — ${subtitle || "(no subtitle)"} [id: ${hit.objectID}]`)
             algSuggestions.push({ text, type, id: hit.objectID, subtitle })
@@ -638,7 +643,7 @@ export function UnifiedSearchBar({
               exit={{ opacity: 0, y: -4, scale: 0.98 }}
               transition={{ duration: 0.15 }}
               role="listbox"
-              className="absolute z-[60] w-full mt-1 bg-background border border-border rounded-xl shadow-xl overflow-hidden max-h-[400px] overflow-y-auto"
+              className="absolute z-60 w-full mt-1 bg-background border border-border rounded-xl shadow-xl overflow-hidden max-h-100 overflow-y-auto"
             >
               {/* Suggestions (when typing) */}
               {searchQuery.trim().length >= 3 && (

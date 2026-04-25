@@ -144,7 +144,7 @@ export function mapTheirStackToOpportunity(job: TheirStackJob): Omit<ExternalOpp
     skillTags: job.technology_slugs?.slice(0, 10) ?? [],
     skillsRequired:
       job.technology_slugs?.slice(0, 5).map((tech) => ({
-        categoryId: "technology",
+        categoryId: "data-technology",
         subskillId: tech,
         priority: "nice-to-have" as const,
       })) ?? [],

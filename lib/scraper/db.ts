@@ -64,13 +64,14 @@ export const externalOpportunitiesDb = {
   async upsert(opp: Omit<ExternalOpportunity, "_id">): Promise<{ isNew: boolean }> {
     const db = await getDb()
     const collection = db.collection<ExternalOpportunity>(COLLECTIONS.EXTERNAL_OPPORTUNITIES)
+    const { scrapedAt, ...updateFields } = opp
 
     // Single round-trip upsert using MongoDB's native upsert
     const result = await collection.updateOne(
       { sourceplatform: opp.sourceplatform, externalId: opp.externalId },
       {
-        $set: { ...opp, updatedAt: new Date() },
-        $setOnInsert: { scrapedAt: new Date() },
+        $set: { ...updateFields, updatedAt: new Date() },
+        $setOnInsert: { scrapedAt: scrapedAt ?? new Date() },
       },
       { upsert: true }
     )
@@ -83,16 +84,20 @@ export const externalOpportunitiesDb = {
     const db = await getDb()
     const collection = db.collection<ExternalOpportunity>(COLLECTIONS.EXTERNAL_OPPORTUNITIES)
 
-    const ops = opps.map(opp => ({
-      updateOne: {
-        filter: { sourceplatform: opp.sourceplatform, externalId: opp.externalId },
-        update: {
-          $set: { ...opp, updatedAt: new Date() },
-          $setOnInsert: { scrapedAt: new Date() },
+    const ops = opps.map(opp => {
+      const { scrapedAt, ...updateFields } = opp
+
+      return {
+        updateOne: {
+          filter: { sourceplatform: opp.sourceplatform, externalId: opp.externalId },
+          update: {
+            $set: { ...updateFields, updatedAt: new Date() },
+            $setOnInsert: { scrapedAt: scrapedAt ?? new Date() },
+          },
+          upsert: true,
         },
-        upsert: true,
-      },
-    }))
+      }
+    })
 
     const result = await collection.bulkWrite(ops, { ordered: false })
     return { inserted: result.upsertedCount || 0, updated: result.modifiedCount || 0 }

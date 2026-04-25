@@ -117,7 +117,11 @@ function ProjectsContent() {
     const rawId = r.mongoId || r.id || ""
     const isExternal = !!r.isExternal || (typeof rawId === "string" && rawId.startsWith("ext-"))
     const cleanId = isExternal && rawId.startsWith("ext-") ? rawId.slice(4) : rawId
-    const skillNames: string[] = Array.isArray(r.skills) ? r.skills : []
+    const skillNames: string[] = Array.isArray(r.skillNames)
+      ? r.skillNames
+      : Array.isArray(r.skills)
+        ? r.skills
+        : []
     return {
       _id: { toString: () => cleanId },
       id: cleanId,
@@ -137,7 +141,7 @@ function ProjectsContent() {
       compensationType: r.compensationType || (isExternal ? r.projectType : undefined),
       applicantsCount: 0,
       createdAt: new Date(),
-      ngo: { name: r.ngoName || "Organization", verified: r.verified || false },
+      ngo: { name: r.ngoName || "Organization", verified: r.isVerified ?? r.verified ?? false },
       skills: skillNames,
       externalUrl: r.url && isExternal ? r.url : undefined,
       _source: isExternal ? "external" : "native",

@@ -7,6 +7,8 @@
 // Free tier: 200 API credits total
 
 const API_BASE = "https://api.theirstack.com"
+const REQUEST_TIMEOUT_MS = Number(process.env.THEIRSTACK_TIMEOUT_MS || 60000)
+const REQUEST_RETRIES = Number(process.env.THEIRSTACK_RETRIES || 2)
 
 function getToken(): string {
   const token = process.env.THEIRSTACK_API_KEY
@@ -148,12 +150,12 @@ export async function searchJobs(
   if (body.page === undefined) body.page = 0
   if (body.limit === undefined) body.limit = 25
 
-  const res = await fetch(`${API_BASE}/v1/jobs/search`, {
+  const res = await fetchWithRetry(`${API_BASE}/v1/jobs/search`, {
     method: "POST",
     headers: headers(),
     body: JSON.stringify(body),
-    signal: AbortSignal.timeout(30000),
-  })
+    signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+  }, REQUEST_RETRIES)
 
   if (!res.ok) {
     const err = await res.json().catch(() => ({}))
@@ -202,12 +204,12 @@ export async function searchCompanies(
   if (body.page === undefined) body.page = 0
   if (body.limit === undefined) body.limit = 25
 
-  const res = await fetch(`${API_BASE}/v1/companies/search`, {
+  const res = await fetchWithRetry(`${API_BASE}/v1/companies/search`, {
     method: "POST",
     headers: headers(),
     body: JSON.stringify(body),
-    signal: AbortSignal.timeout(30000),
-  })
+    signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+  }, REQUEST_RETRIES)
 
   if (!res.ok) {
     const err = await res.json().catch(() => ({}))
@@ -224,10 +226,10 @@ export async function searchCompanies(
 // ============================================
 
 export async function getCreditBalance(): Promise<CreditBalance> {
-  const res = await fetch(`${API_BASE}/v0/billing/credit-balance`, {
+  const res = await fetchWithRetry(`${API_BASE}/v0/billing/credit-balance`, {
     headers: headers(),
-    signal: AbortSignal.timeout(10000),
-  })
+    signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+  }, REQUEST_RETRIES)
 
   if (!res.ok) {
     throw new Error(`TheirStack credit balance failed (${res.status})`)
@@ -242,4 +244,27 @@ export async function getCreditBalance(): Promise<CreditBalance> {
 
 export function estimateCredits(type: "jobs" | "companies", limit: number): number {
   return type === "jobs" ? limit : limit * 3
+}
+
+function sleep(ms: number) {
+  return new Promise(resolve => setTimeout(resolve, ms))
+}
+
+async function fetchWithRetry(url: string, init: RequestInit, retries: number): Promise<Response> {
+  let lastError: unknown
+
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      const response = await fetch(url, init)
+      if (response.ok || attempt === retries) return response
+      lastError = new Error(`HTTP ${response.status}`)
+    } catch (error) {
+      lastError = error
+      if (attempt === retries) throw error
+    }
+
+    await sleep(750 * (attempt + 1))
+  }
+
+  throw lastError instanceof Error ? lastError : new Error(String(lastError))
 }
