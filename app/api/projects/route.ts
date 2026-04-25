@@ -37,11 +37,14 @@ const SKILL_QUERY_ALIASES: Array<{ ids: string[]; patterns: RegExp[] }> = [
     patterns: [
       /\bweb\s*(dev|development|developer|programming)?\b/i,
       /\bwebsite\b/i,
+      /\bweb\s*design\b/i,
       /\bapp\s*development\b/i,
       /\bfrontend\b/i,
       /\bfront\s*end\b/i,
       /\bbackend\b/i,
       /\bback\s*end\b/i,
+      /\bux\b/i,
+      /\bui\b/i,
       /\bwordpress\b/i,
       /\breact\b/i,
       /\bnext\.?js\b/i,
@@ -67,11 +70,11 @@ const SKILL_QUERY_ALIASES: Array<{ ids: string[]; patterns: RegExp[] }> = [
   },
   {
     ids: ["content-creation"],
-    patterns: [/\bcontent\b/i, /\bdesign\b/i, /\bgraphic\s*design\b/i, /\bvideo\b/i, /\bphotography\b/i, /\bbranding\b/i],
+    patterns: [/\bcontent\b/i, /\bgraphic\s*design\b/i, /\bvideo\b/i, /\bphotography\b/i, /\bbranding\b/i, /\bpresentation\s*design\b/i],
   },
   {
     ids: ["communication"],
-    patterns: [/\bwriting\b/i, /\bcopywriting\b/i, /\bcommunications?\b/i, /\bnewsletter\b/i, /\btranslation\b/i],
+    patterns: [/\bcopywriting\b/i, /\bcommunications?\b/i, /\bnewsletter\b/i, /\btranslation\b/i, /\bproposal\s*writing\b/i, /\bpress\s*release\b/i, /\bblog\s*(writing|article)?\b/i],
   },
   {
     ids: ["planning-support"],
@@ -83,7 +86,7 @@ const SKILL_QUERY_ALIASES: Array<{ ids: string[]; patterns: RegExp[] }> = [
   },
   {
     ids: ["data-technology"],
-    patterns: [/\bdata\b/i, /\banalytics?\b/i, /\bmachine\s*learning\b/i, /\bai\b/i, /\bchatbot\b/i, /\bcybersecurity\b/i],
+    patterns: [/\bdata\s*&\s*technology\b/i, /\bdata\s*(analysis|visualization)\b/i, /\banalytics?\b/i, /\bmachine\s*learning\b/i, /\bai\b/i, /\bchatbot\b/i, /\bcybersecurity\b/i],
   },
 ]
 
@@ -231,6 +234,22 @@ function skillIdsFromQuery(query: string): string[] {
   return expandSkillIds([...ids])
 }
 
+function effectiveSkillFilters(filters: { skills: string[]; querySkills: string[] }): string[] {
+  const selectedSkills = expandSkillIds(filters.skills)
+  const querySkills = expandSkillIds(filters.querySkills)
+
+  if (selectedSkills.length > 0 && querySkills.length > 0) {
+    const querySet = new Set(querySkills)
+    return selectedSkills.filter((skill) => querySet.has(skill))
+  }
+
+  return selectedSkills.length > 0 ? selectedSkills : querySkills
+}
+
+function hasSkillFilterConflict(filters: { skills: string[]; querySkills: string[] }): boolean {
+  return filters.skills.length > 0 && filters.querySkills.length > 0 && effectiveSkillFilters(filters).length === 0
+}
+
 function parseRange(value: string): [number, number] | null {
   const plus = value.match(/(\d+)\s*\+/)
   if (plus) return [Number.parseInt(plus[1], 10), Number.POSITIVE_INFINITY]
@@ -330,10 +349,13 @@ function matchesNativeProject(project: any, filters: {
     skill.subskillId,
     skill.skillId,
   ].filter(Boolean))
+  const skillFilters = effectiveSkillFilters(filters)
+
+  if (hasSkillFilterConflict(filters)) return false
 
   if (filters.query) {
     if (filters.querySkills.length > 0) {
-      if (!filters.querySkills.some((skill) => projectSkills.includes(skill))) return false
+      if (!skillFilters.some((skill) => projectSkills.includes(skill))) return false
     } else {
       const terms = filters.query.toLowerCase().split(/\s+/).filter((term) => term.length >= 2)
       const text = projectSearchText(project)
@@ -341,9 +363,8 @@ function matchesNativeProject(project: any, filters: {
     }
   }
 
-  const selectedSkills = expandSkillIds(filters.skills)
-  if (selectedSkills.length > 0) {
-    if (!selectedSkills.some((skill) => projectSkills.includes(skill))) return false
+  if (filters.querySkills.length === 0 && skillFilters.length > 0) {
+    if (!skillFilters.some((skill) => projectSkills.includes(skill))) return false
   }
 
   if (!matchesTimeCommitment(project.timeCommitment, filters.timeCommitments)) return false
@@ -392,7 +413,12 @@ function buildExternalFilter(filters: {
     ]
   }
 
-  const skillFilters = expandSkillIds([...new Set([...filters.querySkills, ...filters.skills])])
+  if (hasSkillFilterConflict(filters)) {
+    filter._id = { $exists: false }
+    return filter
+  }
+
+  const skillFilters = effectiveSkillFilters(filters)
   if (skillFilters.length > 0) {
     filter.$and = [
       ...((filter.$and as any[]) || []),

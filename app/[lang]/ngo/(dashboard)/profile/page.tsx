@@ -105,8 +105,8 @@ export default function NGOProfilePage() {
             address: profileData.address || "",
             city: profileData.city || "",
             country: profileData.country || "",
-            contactPersonName: profileData.contactPersonName || "",
-            contactEmail: profileData.contactEmail || "",
+            contactPersonName: profileData.contactPersonName || user.name || "",
+            contactEmail: profileData.contactEmail || user.email || "",
             yearFounded: profileData.yearFounded || "",
             teamSize: profileData.teamSize || "",
             registrationNumber: profileData.registrationNumber || "",
@@ -276,6 +276,7 @@ export default function NGOProfilePage() {
     try {
       const result = await updateNGOProfile({
         ...formData,
+        contactEmail: formData.contactEmail || user?.email || "",
         causes: selectedCauses,
       })
 
@@ -533,7 +534,7 @@ export default function NGOProfilePage() {
                               href={doc.url} 
                               target="_blank" 
                               rel="noopener noreferrer"
-                              className="text-sm font-medium hover:underline text-primary truncate max-w-[200px]"
+                              className="text-sm font-medium hover:underline text-primary truncate max-w-50"
                             >
                               {doc.name}
                             </a>

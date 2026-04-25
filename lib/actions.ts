@@ -1612,21 +1612,26 @@ export async function getVolunteerProfileView(
 
   // Get the best name available
   const displayName = volunteerProfile.name || volunteerUser?.name || "Candidate"
+  const skills = Array.isArray(volunteerProfile.skills) ? volunteerProfile.skills : []
+  const causes = Array.isArray(volunteerProfile.causes) ? volunteerProfile.causes : []
+  const completedProjects = volunteerProfile.completedProjects ?? 0
+  const hoursContributed = volunteerProfile.hoursContributed ?? 0
+  const rating = volunteerProfile.rating ?? 0
 
   // Build the view based on unlock status
   const view: VolunteerProfileView = {
     id: volunteerProfile.userId,
-    location: volunteerProfile.city || volunteerProfile.location,
-    skills: volunteerProfile.skills,
-    causes: volunteerProfile.causes,
-    workMode: volunteerProfile.workMode,
-    hoursPerWeek: volunteerProfile.hoursPerWeek,
-    volunteerType: volunteerProfile.volunteerType,
+    location: volunteerProfile.city || volunteerProfile.location || "",
+    skills,
+    causes,
+    workMode: volunteerProfile.workMode || "remote",
+    hoursPerWeek: volunteerProfile.hoursPerWeek || "Flexible",
+    volunteerType: volunteerProfile.volunteerType || "free",
     freeHoursPerMonth: volunteerProfile.volunteerType === "both" ? volunteerProfile.freeHoursPerMonth : undefined,
-    completedProjects: volunteerProfile.completedProjects,
-    hoursContributed: volunteerProfile.hoursContributed,
-    rating: volunteerProfile.rating,
-    isVerified: volunteerProfile.isVerified,
+    completedProjects,
+    hoursContributed,
+    rating,
+    isVerified: volunteerProfile.isVerified === true,
     isUnlocked,
     canMessage: canSeeContact,
 
