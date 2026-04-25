@@ -94,7 +94,7 @@ const CAREER_CATEGORY_TO_SKILL: Record<string, string> = {
   "Advocacy/Communications": "communication",
   "Human Resources": "planning-support",
   "Information Management": "data-technology",
-  "Information and Communications Technology": "website",
+  "Information and Communications Technology": "data-technology",
 }
 
 // Maps ReliefWeb career_categories.name → specific subskill IDs on our platform
@@ -107,7 +107,7 @@ const CAREER_CATEGORY_TO_SUBSKILL: Record<string, string> = {
   "Advocacy/Communications": "donor-communications",
   "Human Resources": "hr-recruitment",
   "Information Management": "data-analysis",
-  "Information and Communications Technology": "react-nextjs",
+  "Information and Communications Technology": "it-support",
 }
 
 // Maps ReliefWeb theme.name → our causes[].id
@@ -311,7 +311,7 @@ export function mapApiJobToOpportunity(item: RwApiItem): Omit<ExternalOpportunit
   // Map career_categories → platform causes (cause IDs) and skillsRequired
   const rwCategories = (f.career_categories || []).map((c) => c.name)
   const causes = mapCauses(rwCategories, f.theme || [])
-  const { skillTags, skillsRequired } = mapSkills(rwCategories, f.theme || [])
+  const { skillTags, skillsRequired } = mapSkills(rwCategories, f.theme || [], `${f.title || ""} ${f.body || ""}`)
 
   // Map type → projectType + compensationType
   const { projectType, compensationType } = mapJobType(type?.name)
@@ -389,7 +389,21 @@ function mapCauses(rwCategories: string[], rwThemes: { name: string }[]): string
 }
 
 /** Map ReliefWeb categories + themes → platform skill tags and skillsRequired */
-function mapSkills(rwCategories: string[], rwThemes: { name: string }[]): {
+function inferWebsiteSubskill(text: string): string | null {
+  const lower = text.toLowerCase()
+  if (/\bwordpress\b/.test(lower)) return "wordpress-development"
+  if (/\b(react|next\.?js)\b/.test(lower)) return "react-nextjs"
+  if (/\bnode\.?js\b/.test(lower)) return "nodejs-backend"
+  if (/\b(shopify|e-?commerce)\b/.test(lower)) return "shopify-ecommerce"
+  if (/\bwebflow\b/.test(lower)) return "webflow-nocode"
+  if (/\bmobile\s+app\b|\bapp\s+(developer|development)\b/.test(lower)) return "mobile-app-development"
+  if (/\bux\b|\bui\b/.test(lower)) return "ux-ui"
+  if (/\bhtml\b|\bcss\b/.test(lower)) return "html-css"
+  if (/\b(web\s*(developer|development|application|app|platform|portal|site|design)|website|front\s*-?\s*end|back\s*-?\s*end|full\s*-?\s*stack)\b/.test(lower)) return "react-nextjs"
+  return null
+}
+
+function mapSkills(rwCategories: string[], rwThemes: { name: string }[], text = ""): {
   skillTags: string[]
   skillsRequired: { categoryId: string; subskillId: string; priority: "must-have" | "nice-to-have" }[]
 } {
@@ -399,8 +413,9 @@ function mapSkills(rwCategories: string[], rwThemes: { name: string }[]): {
 
   // Map career categories → skill category + subskill
   for (const cat of rwCategories) {
-    const categoryId = CAREER_CATEGORY_TO_SKILL[cat]
-    const subskillId = CAREER_CATEGORY_TO_SUBSKILL[cat]
+    const inferredWebsiteSubskill = cat === "Information and Communications Technology" ? inferWebsiteSubskill(text) : null
+    const categoryId = inferredWebsiteSubskill ? "website" : CAREER_CATEGORY_TO_SKILL[cat]
+    const subskillId = inferredWebsiteSubskill || CAREER_CATEGORY_TO_SUBSKILL[cat]
     if (categoryId && subskillId && !seen.has(subskillId)) {
       seen.add(subskillId)
       skillsRequired.push({ categoryId, subskillId, priority: "nice-to-have" })

@@ -16,26 +16,9 @@ function splitParam(value: string | null): string[] {
 
 const SKILL_QUERY_ALIASES: Array<{ ids: string[]; patterns: RegExp[] }> = [
   {
-    ids: [
-      "website",
-      "wordpress-development",
-      "html-css",
-      "website-security",
-      "cms-maintenance",
-      "website-redesign",
-      "landing-page-optimization",
-      "react-nextjs",
-      "nodejs-backend",
-      "shopify-ecommerce",
-      "webflow-nocode",
-      "mobile-app-development",
-      "api-integration",
-      "database-management",
-      "devops-hosting",
-      "python-scripting",
-    ],
+    ids: ["website"],
     patterns: [
-      /\bweb\s*(dev|development|developer|programming)?\b/i,
+      /\bweb\s*(dev|developement|development|developer|programming)?\b/i,
       /\bwebsite\b/i,
       /\bweb\s*design\b/i,
       /\bapp\s*development\b/i,
@@ -43,19 +26,18 @@ const SKILL_QUERY_ALIASES: Array<{ ids: string[]; patterns: RegExp[] }> = [
       /\bfront\s*end\b/i,
       /\bbackend\b/i,
       /\bback\s*end\b/i,
-      /\bux\b/i,
-      /\bui\b/i,
-      /\bwordpress\b/i,
-      /\breact\b/i,
-      /\bnext\.?js\b/i,
-      /\bnode\.?js\b/i,
-      /\bwebflow\b/i,
-      /\bshopify\b/i,
-      /\bapi\b/i,
-      /\bdatabase\b/i,
-      /\bdevops\b/i,
     ],
   },
+  { ids: ["ux-ui"], patterns: [/\bux\b/i, /\bui\b/i, /\bux\s*\/\s*ui\b/i] },
+  { ids: ["wordpress-development"], patterns: [/\bwordpress\b/i] },
+  { ids: ["react-nextjs"], patterns: [/\breact\b/i, /\bnext\.?js\b/i] },
+  { ids: ["nodejs-backend"], patterns: [/\bnode\.?js\b/i] },
+  { ids: ["webflow-nocode"], patterns: [/\bwebflow\b/i, /\bno\s*code\b/i] },
+  { ids: ["shopify-ecommerce"], patterns: [/\bshopify\b/i, /\be-?commerce\b/i] },
+  { ids: ["api-integration"], patterns: [/\bapi\b/i] },
+  { ids: ["database-management"], patterns: [/\bdatabase\b/i] },
+  { ids: ["devops-hosting"], patterns: [/\bdevops\b/i, /\bhosting\b/i] },
+  { ids: ["python-scripting"], patterns: [/\bpython\b/i, /\bscripting\b/i, /\bautomation\b/i] },
   {
     ids: ["digital-marketing"],
     patterns: [/\bdigital\s*marketing\b/i, /\bseo\b/i, /\bgoogle\s*ads\b/i, /\bsocial\s*media\b/i],
@@ -221,6 +203,91 @@ function expandSkillIds(skills: string[]): string[] {
     ids.forEach((id) => expanded.add(id))
   }
   return [...expanded]
+}
+
+const WEBSITE_SKILL_IDS = new Set(expandSkillIds(["website"]))
+const WEBSITE_EVIDENCE_PATTERNS = [
+  /\bweb\b/i,
+  /\bwebsite\b/i,
+  /\bfront\s*-?\s*end\b/i,
+  /\bback\s*-?\s*end\b/i,
+  /\bfull\s*-?\s*stack\b/i,
+  /\bwordpress\b/i,
+  /\breact\b/i,
+  /\bnext\.?js\b/i,
+  /\bnode\.?js\b/i,
+  /\bjavascript\b/i,
+  /\btypescript\b/i,
+  /\bhtml\b/i,
+  /\bcss\b/i,
+  /\bmobile\s+app\b/i,
+  /\bapp\s+(developer|development)\b/i,
+  /\bux\b/i,
+  /\bui\b/i,
+  /\bwebflow\b/i,
+  /\bshopify\b/i,
+  /\bcms\b/i,
+  /\blanding\s+page\b/i,
+  /\be-?commerce\b/i,
+]
+const WEBSITE_DESCRIPTION_EVIDENCE_PATTERNS = [
+  /\bweb\s*(developer|development|application|app|platform|portal|site|design)\b/i,
+  /\bwebsite\b/i,
+  /\bfront\s*-?\s*end\b/i,
+  /\bback\s*-?\s*end\b/i,
+  /\bfull\s*-?\s*stack\b/i,
+  /\bwordpress\b/i,
+  /\breact\b/i,
+  /\bnext\.?js\b/i,
+  /\bnode\.?js\b/i,
+  /\bjavascript\b/i,
+  /\btypescript\b/i,
+  /\bhtml\b/i,
+  /\bcss\b/i,
+  /\bmobile\s+app\b/i,
+  /\bux\s*\/\s*ui\b/i,
+  /\bwebflow\b/i,
+  /\bshopify\b/i,
+  /\blanding\s+page\b/i,
+  /\be-?commerce\b/i,
+]
+
+function includesWebsiteSkill(skills: string[]) {
+  return skills.some((skill) => WEBSITE_SKILL_IDS.has(skill))
+}
+
+function websiteEvidencePatternsFor(filters: { query: string }, skillFilters: string[]) {
+  const query = filters.query.toLowerCase()
+
+  if (skillFilters.includes("react-nextjs") && /\b(react|next\.?js)\b/i.test(query)) {
+    return [/\breact\b/i, /\bnext\.?js\b/i]
+  }
+  if (skillFilters.includes("wordpress-development") && /\bwordpress\b/i.test(query)) {
+    return [/\bwordpress\b/i]
+  }
+  if (skillFilters.includes("nodejs-backend") && /\bnode\.?js\b/i.test(query)) {
+    return [/\bnode\.?js\b/i]
+  }
+  if (skillFilters.includes("webflow-nocode") && /\b(webflow|no\s*code)\b/i.test(query)) {
+    return [/\bwebflow\b/i, /\bno\s*code\b/i]
+  }
+  if (skillFilters.includes("shopify-ecommerce") && /\b(shopify|e-?commerce)\b/i.test(query)) {
+    return [/\bshopify\b/i, /\be-?commerce\b/i]
+  }
+  if (skillFilters.includes("api-integration") && /\bapi\b/i.test(query)) {
+    return [/\bapi\b/i]
+  }
+  if (skillFilters.includes("database-management") && /\bdatabase\b/i.test(query)) {
+    return [/\bdatabase\b/i]
+  }
+  if (skillFilters.includes("devops-hosting") && /\b(devops|hosting)\b/i.test(query)) {
+    return [/\bdevops\b/i, /\bhosting\b/i]
+  }
+  if (skillFilters.includes("python-scripting") && /\b(python|scripting|automation)\b/i.test(query)) {
+    return [/\bpython\b/i, /\bscripting\b/i, /\bautomation\b/i]
+  }
+
+  return WEBSITE_EVIDENCE_PATTERNS
 }
 
 function skillIdsFromQuery(query: string): string[] {
@@ -430,6 +497,28 @@ function buildExternalFilter(filters: {
         ],
       },
     ]
+
+    if (includesWebsiteSkill(skillFilters)) {
+      const evidencePatterns = websiteEvidencePatternsFor(filters, skillFilters)
+      const descriptionEvidencePatterns = evidencePatterns === WEBSITE_EVIDENCE_PATTERNS
+        ? WEBSITE_DESCRIPTION_EVIDENCE_PATTERNS
+        : evidencePatterns
+      const websiteEvidence = [
+        ...evidencePatterns.flatMap((pattern) => [
+          { title: pattern },
+          { skillTags: pattern },
+        ]),
+        ...descriptionEvidencePatterns.flatMap((pattern) => [
+          { description: pattern },
+          { shortDescription: pattern },
+        ]),
+      ]
+
+      filter.$and = [
+        ...((filter.$and as any[]) || []),
+        { $or: websiteEvidence },
+      ]
+    }
   }
 
   if (filters.timeCommitments.length > 0) {
