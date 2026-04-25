@@ -19,6 +19,7 @@ interface NGO {
   userId: string
   orgName?: string
   organizationName?: string
+  email?: string
   contactEmail?: string
   website?: string
   city?: string
@@ -55,9 +56,10 @@ export function NGOsSearchableList({ ngos, title }: NGOsSearchableListProps) {
       // Search filter
       const searchLower = searchQuery.toLowerCase()
       const orgName = ngo.orgName || ngo.organizationName || ""
+      const email = ngo.contactEmail || ngo.email || ""
       const matchesSearch = !searchQuery || 
         orgName.toLowerCase().includes(searchLower) ||
-        (ngo.contactEmail && ngo.contactEmail.toLowerCase().includes(searchLower)) ||
+        email.toLowerCase().includes(searchLower) ||
         (ngo.city && ngo.city.toLowerCase().includes(searchLower)) ||
         (ngo.country && ngo.country.toLowerCase().includes(searchLower))
 
@@ -84,7 +86,7 @@ export function NGOsSearchableList({ ngos, title }: NGOsSearchableListProps) {
     const headers = ["Organization", "Email", "Location", "Subscription", "Verified", "Jobs Posted", "Joined"]
     const rows = filteredNGOs.map(ngo => [
       ngo.orgName || ngo.organizationName || "",
-      ngo.contactEmail || "",
+      ngo.contactEmail || ngo.email || "",
       `${ngo.city || ""}, ${ngo.country || ""}`,
       ngo.subscriptionTier || ngo.subscriptionPlan || "free",
       ngo.isVerified ? "Yes" : "No",
@@ -175,6 +177,7 @@ export function NGOsSearchableList({ ngos, title }: NGOsSearchableListProps) {
                 <tbody>
                   {filteredNGOs.map((ngo) => {
                     const orgName = ngo.orgName || ngo.organizationName || "Unnamed NGO"
+                    const email = ngo.contactEmail || ngo.email
                     return (
                       <tr key={ngo.userId} className="border-b hover:bg-muted/50">
                         <td className="py-3 px-4">
@@ -197,6 +200,14 @@ export function NGOsSearchableList({ ngos, title }: NGOsSearchableListProps) {
                                 >
                                   <Globe className="h-3 w-3" />
                                   Website
+                                </a>
+                              )}
+                              {!ngo.website && email && (
+                                <a
+                                  href={`mailto:${email}`}
+                                  className="text-sm text-primary"
+                                >
+                                  {email}
                                 </a>
                               )}
                             </div>

@@ -19,6 +19,7 @@ import { useLocale } from "@/hooks/use-locale"
 interface Volunteer {
   userId: string
   name?: string
+  email?: string
   phone?: string
   bio?: string
   avatar?: string
@@ -58,6 +59,7 @@ export function VolunteersSearchableList({ volunteers, title }: VolunteersSearch
       const location = volunteer.location || `${volunteer.city || ""} ${volunteer.country || ""}`
       const matchesSearch = !searchQuery || 
         name.toLowerCase().includes(searchLower) ||
+        (volunteer.email && volunteer.email.toLowerCase().includes(searchLower)) ||
         (volunteer.phone && volunteer.phone.toLowerCase().includes(searchLower)) ||
         location.toLowerCase().includes(searchLower)
 
@@ -81,9 +83,10 @@ export function VolunteersSearchableList({ volunteers, title }: VolunteersSearch
 
   const handleExport = () => {
     // Export to CSV
-    const headers = ["Name", "Phone", "Location", "Type", "Verified", "Status", "Joined"]
+    const headers = ["Name", "Email", "Phone", "Location", "Type", "Verified", "Status", "Joined"]
     const rows = filteredVolunteers.map(volunteer => [
       volunteer.name || volunteer.bio?.slice(0, 30) || "Unnamed",
+      volunteer.email || "",
       volunteer.phone || "",
       `${volunteer.city || ""}, ${volunteer.country || ""}`,
       volunteer.volunteerType || "free",
@@ -123,7 +126,7 @@ export function VolunteersSearchableList({ volunteers, title }: VolunteersSearch
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input 
-                placeholder="Search by name, phone, or location..." 
+                placeholder="Search by name, email, phone, or location..." 
                 className="pl-9"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
@@ -195,7 +198,7 @@ export function VolunteersSearchableList({ volunteers, title }: VolunteersSearch
                             </div>
                             <div>
                               <p className="font-medium text-foreground">{name}</p>
-                              <p className="text-sm text-muted-foreground">{volunteer.phone || "No phone"}</p>
+                              <p className="text-sm text-muted-foreground">{volunteer.email || volunteer.phone || "No contact"}</p>
                             </div>
                           </div>
                         </td>

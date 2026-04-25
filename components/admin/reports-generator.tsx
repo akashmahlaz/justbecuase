@@ -29,7 +29,7 @@ export function ReportsGenerator({ volunteers, ngos, projects, analytics }: Repo
             ...volunteers.map(v => ({
               type: "Candidate",
               name: v.name || v.bio?.slice(0, 30) || "Unnamed",
-              contact: v.phone || "N/A",
+              contact: v.email || v.phone || "N/A",
               location: `${v.city || ""}, ${v.country || ""}`,
               verified: v.isVerified ? "Yes" : "No",
               createdAt: v.createdAt ? new Date(v.createdAt).toLocaleDateString() : "N/A"
@@ -37,7 +37,7 @@ export function ReportsGenerator({ volunteers, ngos, projects, analytics }: Repo
             ...ngos.map(n => ({
               type: "NGO",
               name: n.orgName || n.organizationName || "Unnamed",
-              contact: n.contactEmail || "N/A",
+              contact: n.email || n.contactEmail || "N/A",
               location: `${n.city || ""}, ${n.country || ""}`,
               verified: n.isVerified ? "Yes" : "No",
               createdAt: n.createdAt ? new Date(n.createdAt).toLocaleDateString() : "N/A"
@@ -57,7 +57,7 @@ export function ReportsGenerator({ volunteers, ngos, projects, analytics }: Repo
             ["Organization", "Email", "Location", "Subscription", "Jobs Posted", "Jobs Completed", "Verified"].join(","),
             ...ngos.map(n => [
               n.orgName || n.organizationName || "Unnamed",
-              n.contactEmail || "N/A",
+              n.email || n.contactEmail || "N/A",
               `${n.city || ""}, ${n.country || ""}`,
               n.subscriptionTier || n.subscriptionPlan || "free",
               n.projectsPosted || 0,
@@ -71,9 +71,10 @@ export function ReportsGenerator({ volunteers, ngos, projects, analytics }: Repo
         case "volunteer-activity":
           // Generate volunteer activity report
           csvContent = [
-            ["Name", "Phone", "Location", "Type", "Skills", "Verified", "Status"].join(","),
+            ["Name", "Email", "Phone", "Location", "Type", "Skills", "Verified", "Status"].join(","),
             ...volunteers.map(v => [
               v.name || v.bio?.slice(0, 30) || "Unnamed",
+              v.email || "N/A",
               v.phone || "N/A",
               `${v.city || ""}, ${v.country || ""}`,
               v.volunteerType || "free",
