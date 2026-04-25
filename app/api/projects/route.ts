@@ -52,11 +52,11 @@ const SKILL_QUERY_ALIASES: Array<{ ids: string[]; patterns: RegExp[] }> = [
   },
   {
     ids: ["content-creation"],
-    patterns: [/\bcontent\b/i, /\bgraphic\s*design\b/i, /\bvideo\b/i, /\bphotography\b/i, /\bbranding\b/i, /\bpresentation\s*design\b/i],
+    patterns: [/\bcontent\b/i, /\bgraphic\s*design\b/i, /\bvideo\b/i, /\bphotography\b/i, /\bbranding\b/i, /\bpresentation\s*design\b/i, /\bdesign\b/i],
   },
   {
     ids: ["communication"],
-    patterns: [/\bcopywriting\b/i, /\bcommunications?\b/i, /\bnewsletter\b/i, /\btranslation\b/i, /\bproposal\s*writing\b/i, /\bpress\s*release\b/i, /\bblog\s*(writing|article)?\b/i],
+    patterns: [/\bwriting\b/i, /\bwriter\b/i, /\bcopywriting\b/i, /\bcommunications?\b/i, /\bnewsletter\b/i, /\btranslation\b/i, /\bproposal\s*writing\b/i, /\bpress\s*release\b/i, /\bblog\s*(writing|article)?\b/i],
   },
   {
     ids: ["planning-support"],
@@ -68,8 +68,15 @@ const SKILL_QUERY_ALIASES: Array<{ ids: string[]; patterns: RegExp[] }> = [
   },
   {
     ids: ["data-technology"],
-    patterns: [/\bdata\s*&\s*technology\b/i, /\bdata\s*(analysis|visualization)\b/i, /\banalytics?\b/i, /\bmachine\s*learning\b/i, /\bai\b/i, /\bchatbot\b/i, /\bcybersecurity\b/i],
+    patterns: [/\bdata\s*&\s*technology\b/i, /\bdata\s+technology\b/i],
   },
+  { ids: ["data-analysis"], patterns: [/\bdata\b/i, /\bdata\s*(analysis|analytics?)\b/i, /\banalytics?\b/i] },
+  { ids: ["data-visualization"], patterns: [/\bdata\s*visualization\b/i, /\btableau\b/i, /\bpower\s*bi\b/i] },
+  { ids: ["ai-ml"], patterns: [/\bai\b/i, /\bmachine\s*learning\b/i, /\bml\b/i] },
+  { ids: ["chatbot-development"], patterns: [/\bchatbot\b/i] },
+  { ids: ["it-support"], patterns: [/\bit\s*support\b/i, /\binformation\s*technology\b/i] },
+  { ids: ["cybersecurity"], patterns: [/\bcybersecurity\b/i, /\bsecurity\s*(audit|hardening)?\b/i] },
+  { ids: ["automation-zapier"], patterns: [/\bzapier\b/i, /\bmake\b/i, /\bn8n\b/i] },
 ]
 
 const SKILL_FILTER_EXPANSIONS: Record<string, string[]> = {
@@ -206,6 +213,7 @@ function expandSkillIds(skills: string[]): string[] {
 }
 
 const WEBSITE_SKILL_IDS = new Set(expandSkillIds(["website"]))
+const DATA_TECH_SKILL_IDS = new Set(expandSkillIds(["data-technology"]))
 const WEBSITE_EVIDENCE_PATTERNS = [
   /\bweb\b/i,
   /\bwebsite\b/i,
@@ -254,6 +262,70 @@ const WEBSITE_DESCRIPTION_EVIDENCE_PATTERNS = [
 
 function includesWebsiteSkill(skills: string[]) {
   return skills.some((skill) => WEBSITE_SKILL_IDS.has(skill))
+}
+
+function includesDataTechnologySkill(skills: string[]) {
+  return skills.some((skill) => DATA_TECH_SKILL_IDS.has(skill))
+}
+
+const DATA_TECH_EVIDENCE_PATTERNS = [
+  /\bdata\b/i,
+  /\bdata\s+(analysis|analytics?|visualization|science|management)\b/i,
+  /\banalytics?\b/i,
+  /\btableau\b/i,
+  /\bpower\s*bi\b/i,
+  /\bai\b/i,
+  /\bmachine\s*learning\b/i,
+  /\bml\b/i,
+  /\bchatbot\b/i,
+  /\bit\s*support\b/i,
+  /\binformation\s*technology\b/i,
+  /\bcybersecurity\b/i,
+  /\bgoogle\s*workspace\b/i,
+  /\bmicrosoft\s*365\b/i,
+  /\bzapier\b/i,
+  /\bn8n\b/i,
+]
+
+const IDEALIST_DATA_TECH_TAG_PATTERNS = [
+  /\bdata\b/i,
+  /\banalytics?\b/i,
+  /\bcomputers?\b/i,
+  /\btechnology\b/i,
+  /^it$/i,
+  /\bengineering\b/i,
+  /\bai\b/i,
+]
+
+function dataTechnologyEvidencePatternsFor(filters: { query: string }, skillFilters: string[]) {
+  const query = filters.query.toLowerCase()
+
+  if (skillFilters.includes("data-analysis") && /\bdata\s+(analysis|analytics?)\b/i.test(query)) {
+    return [/\bdata\s+(analysis|analytics?)\b/i, /\banalytics?\b/i, /\bdata\s+management\b/i]
+  }
+  if (skillFilters.includes("data-analysis") && /\bdata\b/i.test(query)) {
+    return [/\bdata\b/i, /\banalytics?\b/i]
+  }
+  if (skillFilters.includes("data-visualization") && /\b(data\s*visualization|tableau|power\s*bi)\b/i.test(query)) {
+    return [/\bdata\s*visualization\b/i, /\btableau\b/i, /\bpower\s*bi\b/i]
+  }
+  if (skillFilters.includes("ai-ml") && /\b(ai|machine\s*learning|ml)\b/i.test(query)) {
+    return [/\bai\b/i, /\bmachine\s*learning\b/i, /\bml\b/i]
+  }
+  if (skillFilters.includes("chatbot-development") && /\bchatbot\b/i.test(query)) {
+    return [/\bchatbot\b/i]
+  }
+  if (skillFilters.includes("it-support") && /\b(it\s*support|information\s*technology)\b/i.test(query)) {
+    return [/\bit\s*support\b/i, /\binformation\s*technology\b/i]
+  }
+  if (skillFilters.includes("cybersecurity") && /\b(cybersecurity|security)\b/i.test(query)) {
+    return [/\bcybersecurity\b/i, /\bsecurity\s*(audit|hardening)?\b/i]
+  }
+  if (skillFilters.includes("automation-zapier") && /\b(zapier|make|n8n)\b/i.test(query)) {
+    return [/\bzapier\b/i, /\bmake\b/i, /\bn8n\b/i]
+  }
+
+  return DATA_TECH_EVIDENCE_PATTERNS
 }
 
 function websiteEvidencePatternsFor(filters: { query: string }, skillFilters: string[]) {
@@ -487,15 +559,16 @@ function buildExternalFilter(filters: {
 
   const skillFilters = effectiveSkillFilters(filters)
   if (skillFilters.length > 0) {
+    const categorySkillFilters = skillFilters.filter((skill) => skill !== "data-technology")
+    const skillMatchConditions = [
+      ...(categorySkillFilters.length > 0 ? [{ "skillsRequired.categoryId": { $in: categorySkillFilters } }] : []),
+      { "skillsRequired.subskillId": { $in: skillFilters } },
+      { skillTags: { $in: skillFilters.map((skill) => new RegExp(escapeRegex(skill), "i")) } },
+    ]
+
     filter.$and = [
       ...((filter.$and as any[]) || []),
-      {
-        $or: [
-          { "skillsRequired.categoryId": { $in: skillFilters } },
-          { "skillsRequired.subskillId": { $in: skillFilters } },
-          { skillTags: { $in: skillFilters.map((skill) => new RegExp(escapeRegex(skill), "i")) } },
-        ],
-      },
+      { $or: skillMatchConditions },
     ]
 
     if (includesWebsiteSkill(skillFilters)) {
@@ -517,6 +590,28 @@ function buildExternalFilter(filters: {
       filter.$and = [
         ...((filter.$and as any[]) || []),
         { $or: websiteEvidence },
+      ]
+    }
+
+    if (includesDataTechnologySkill(skillFilters)) {
+      const evidencePatterns = dataTechnologyEvidencePatternsFor(filters, skillFilters)
+      const dataTechEvidence = evidencePatterns.flatMap((pattern) => [
+        { title: pattern },
+        { description: pattern },
+        { shortDescription: pattern },
+        { skillTags: pattern },
+      ])
+      const idealistDataTechEvidence = IDEALIST_DATA_TECH_TAG_PATTERNS.map((pattern) => ({ skillTags: pattern }))
+
+      filter.$and = [
+        ...((filter.$and as any[]) || []),
+        { $or: dataTechEvidence },
+        {
+          $or: [
+            { sourceplatform: { $ne: "idealist-api" } },
+            { $or: idealistDataTechEvidence },
+          ],
+        },
       ]
     }
   }
@@ -557,7 +652,58 @@ function buildExternalFilter(filters: {
   return filter
 }
 
-function sortProjects(projects: any[], sort: string) {
+function textMatches(value: unknown, pattern: RegExp): boolean {
+  if (Array.isArray(value)) return value.some((item) => textMatches(item, pattern))
+  return typeof value === "string" && pattern.test(value)
+}
+
+function relevanceScore(project: any, filters: {
+  query: string
+  skills: string[]
+  querySkills: string[]
+  timeCommitments: string[]
+  workMode: string
+  compensation: string[]
+  experience: string[]
+}) {
+  const skillFilters = effectiveSkillFilters(filters)
+  if (!filters.query && skillFilters.length === 0) return 0
+
+  let score = 0
+  const query = filters.query.trim()
+  const queryRegex = query ? new RegExp(escapeRegex(query), "i") : null
+  const title = project.title || ""
+  const description = `${project.description || ""} ${project.shortDescription || ""}`
+  const skills = [
+    ...(project.skills || []),
+    ...(project.skillTags || []),
+    ...(project.skillsRequired || []).flatMap((skill: any) => [skill.categoryId, skill.subskillId]),
+  ].filter(Boolean)
+
+  if (queryRegex) {
+    if (textMatches(title, queryRegex)) score += 80
+    if (textMatches(skills, queryRegex)) score += 60
+    if (textMatches(description, queryRegex)) score += 20
+  }
+
+  for (const skill of skillFilters) {
+    const exactSkillPattern = new RegExp(`^${escapeRegex(skill)}$`, "i")
+    const looseSkillPattern = new RegExp(escapeRegex(skill), "i")
+    if (textMatches(skills, exactSkillPattern)) score += 70
+    if (textMatches(title, looseSkillPattern)) score += 40
+    if (textMatches(description, looseSkillPattern)) score += 10
+  }
+
+  if (includesDataTechnologySkill(skillFilters)) {
+    const strongDataTechSkills = new Set(["data-analysis", "data-visualization", "ai-ml", "chatbot-development", "it-support", "cybersecurity", "automation-zapier"])
+    if ((project.skillsRequired || []).some((skill: any) => strongDataTechSkills.has(skill.subskillId))) score += 50
+    if ((project.skillsRequired || []).some((skill: any) => skill.subskillId === "google-workspace")) score -= 25
+  }
+
+  return score
+}
+
+function sortProjects(projects: any[], sort: string, filters?: Parameters<typeof relevanceScore>[1]) {
   const sorted = [...projects]
   switch (sort) {
     case "popular":
@@ -569,9 +715,14 @@ function sortProjects(projects: any[], sort: string) {
         return new Date(a.deadline).getTime() - new Date(b.deadline).getTime()
       })
     case "newest":
+      return sorted.sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime())
     case "bestMatch":
     default:
-      return sorted.sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime())
+      return sorted.sort((a, b) => {
+        const relevanceDelta = (filters ? relevanceScore(b, filters) - relevanceScore(a, filters) : 0)
+        if (relevanceDelta !== 0) return relevanceDelta
+        return new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()
+      })
   }
 }
 
@@ -638,10 +789,10 @@ export async function GET(request: NextRequest) {
         const remainingSlots = limit - nativeSlice.length
         let extSlice: any[] = []
         if (remainingSlots > 0) {
-          const rawExt = await externalOpportunitiesDb.findAll(filter as any, Math.max(remainingSlots * 4, remainingSlots), 0)
-          extSlice = rawExt.map(mapExternalToProject).slice(0, remainingSlots)
+          const rawExt = await externalOpportunitiesDb.findAll(filter as any, Math.min(Math.max(remainingSlots * 20, 100), 200), 0)
+          extSlice = sortProjects(rawExt.map(mapExternalToProject), sort, filters).slice(0, remainingSlots)
         }
-        const projects = sortProjects([...nativeSlice, ...extSlice], sort)
+        const projects = sortProjects([...nativeSlice, ...extSlice], sort, filters)
         return NextResponse.json({
           projects,
           pagination: { page, limit, total: totalCombined, totalPages: Math.ceil(totalCombined / limit) },
@@ -650,8 +801,8 @@ export async function GET(request: NextRequest) {
       } else {
         // Past native — all external
         const extSkip = startIdx - nativeTotal
-        const rawExt = await externalOpportunitiesDb.findAll(filter as any, Math.max(limit * 4, limit), extSkip)
-        const projects = sortProjects(rawExt.map(mapExternalToProject).slice(0, limit), sort)
+        const rawExt = await externalOpportunitiesDb.findAll(filter as any, Math.min(Math.max(limit * 20, 100), 200), extSkip)
+        const projects = sortProjects(rawExt.map(mapExternalToProject), sort, filters).slice(0, limit)
         return NextResponse.json({
           projects,
           pagination: { page, limit, total: totalCombined, totalPages: Math.ceil(totalCombined / limit) },

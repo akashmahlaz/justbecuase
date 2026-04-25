@@ -13,6 +13,29 @@ for (const line of envContent.split("\n")) {
 const API_KEY = process.env.THEIRSTACK_API_KEY
 const MONGO_URI = process.env.MONGODB_URI
 
+function mapTheirStackSkills(job) {
+  const titleAndTags = [job.job_title, ...(job.technology_slugs || [])].filter(Boolean).join(" ").toLowerCase()
+  const description = (job.description || "").toLowerCase()
+  const text = `${titleAndTags} ${description}`
+  const matches = []
+  const add = (categoryId, subskillId) => {
+    if (!matches.some((skill) => skill.subskillId === subskillId)) {
+      matches.push({ categoryId, subskillId, priority: "nice-to-have" })
+    }
+  }
+
+  if (/\b(react|next\.?js)\b/.test(titleAndTags)) add("website", "react-nextjs")
+  if (/\bnode\.?js\b/.test(titleAndTags)) add("website", "nodejs-backend")
+  if (/\b(web\s*(developer|development|application|app|platform|portal|site|design)|website|front\s*-?\s*end|back\s*-?\s*end|full\s*-?\s*stack)\b/.test(titleAndTags)) add("website", "react-nextjs")
+  if (/\b(data\s*(analysis|analytics?|analyst)|analytics?|data-analytics|data-analysis|data-analyst|data-science)\b/.test(titleAndTags)) add("data-technology", "data-analysis")
+  if (/\b(data\s*visualization|tableau|power\s*bi|looker)\b/.test(titleAndTags)) add("data-technology", "data-visualization")
+  if (/\b(ai-ml|artificial-intelligence|machine-learning|machine\s+learning|\bai\b|\bml\b)\b/.test(titleAndTags)) add("data-technology", "ai-ml")
+  if (/\bit\s*support\b|\binformation\s*technology\b/.test(titleAndTags)) add("data-technology", "it-support")
+  if (/\bcybersecurity\b/.test(titleAndTags) || /\bcybersecurity\b/.test(description)) add("data-technology", "cybersecurity")
+
+  return matches
+}
+
 async function run() {
   const mongo = await MongoClient.connect(MONGO_URI)
   const db = mongo.db("justbecause")
@@ -110,11 +133,7 @@ async function run() {
       organizationUrl: job.company_domain ? `https://${job.company_domain}` : undefined,
       causes: [],
       skillTags: (job.technology_slugs || []).slice(0, 10),
-      skillsRequired: (job.technology_slugs || []).slice(0, 5).map((t) => ({
-        categoryId: "technology",
-        subskillId: t,
-        priority: "nice-to-have",
-      })),
+      skillsRequired: mapTheirStackSkills(job),
       experienceLevel: job.seniority || undefined,
       workMode,
       location,
