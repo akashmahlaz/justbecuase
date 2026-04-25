@@ -91,6 +91,33 @@ function resolveWorkMode(job: TheirStackJob): ExternalOpportunity["workMode"] {
   return "onsite"
 }
 
+function mapTheirStackSkills(job: TheirStackJob): ExternalOpportunity["skillsRequired"] {
+  const titleAndTags = [
+    job.job_title,
+    ...(job.technology_slugs || []),
+  ].filter(Boolean).join(" ").toLowerCase()
+  const description = (job.description || "").toLowerCase()
+  const text = `${titleAndTags} ${description}`
+
+  const matches: ExternalOpportunity["skillsRequired"] = []
+  const add = (categoryId: string, subskillId: string) => {
+    if (!matches.some((skill) => skill.subskillId === subskillId)) {
+      matches.push({ categoryId, subskillId, priority: "nice-to-have" })
+    }
+  }
+
+  if (/\b(react|next\.?js)\b/.test(titleAndTags)) add("website", "react-nextjs")
+  if (/\bnode\.?js\b/.test(titleAndTags)) add("website", "nodejs-backend")
+  if (/\b(web\s*(developer|development|application|app|platform|portal|site|design)|website|front\s*-?\s*end|back\s*-?\s*end|full\s*-?\s*stack)\b/.test(titleAndTags)) add("website", "react-nextjs")
+  if (/\b(data\s*(analysis|analytics?|analyst)|analytics?|data-analytics|data-analysis|data-analyst|data-science)\b/.test(titleAndTags)) add("data-technology", "data-analysis")
+  if (/\b(data\s*visualization|tableau|power\s*bi|looker)\b/.test(titleAndTags)) add("data-technology", "data-visualization")
+  if (/\b(ai-ml|artificial-intelligence|machine-learning|machine\s+learning|\bai\b|\bml\b)\b/.test(titleAndTags)) add("data-technology", "ai-ml")
+  if (/\b(it\s*support|information\s*technology|helpdesk|technical\s+support)\b/.test(titleAndTags)) add("data-technology", "it-support")
+  if (/\bcybersecurity\b/.test(titleAndTags) || /\bcybersecurity\b/.test(description)) add("data-technology", "cybersecurity")
+
+  return matches
+}
+
 export function buildTheirStackSyncQuery(options: TheirStackSyncOptions = {}): JobSearchParams {
   const {
     preview = false,
@@ -142,12 +169,7 @@ export function mapTheirStackToOpportunity(job: TheirStackJob): Omit<ExternalOpp
     organizationLogo: undefined,
     causes: [],
     skillTags: job.technology_slugs?.slice(0, 10) ?? [],
-    skillsRequired:
-      job.technology_slugs?.slice(0, 5).map((tech) => ({
-        categoryId: "data-technology",
-        subskillId: tech,
-        priority: "nice-to-have" as const,
-      })) ?? [],
+    skillsRequired: mapTheirStackSkills(job),
     experienceLevel: job.seniority ?? undefined,
     workMode,
     location,

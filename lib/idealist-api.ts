@@ -36,7 +36,7 @@ const FUNCTION_TO_SKILL: Record<string, string> = {
   DATA_MANAGEMENT: "data-technology",
   DEVELOPMENT_FUNDRAISING: "fundraising",
   EDUCATION: "planning-support",
-  ENGINEERING: "website",
+  ENGINEERING: "data-technology",
   ENVIRONMENTAL: "planning-support",
   EVENTS: "planning-support",
   FINANCE: "finance",
@@ -45,7 +45,7 @@ const FUNCTION_TO_SKILL: Record<string, string> = {
   GRAPHIC_DESIGN: "content-creation",
   HEALTH: "planning-support",
   HR: "planning-support",
-  IT: "website",
+  IT: "data-technology",
   LEGAL: "legal",
   MANAGEMENT: "planning-support",
   MARKETING: "digital-marketing",
@@ -54,7 +54,7 @@ const FUNCTION_TO_SKILL: Record<string, string> = {
   PR: "communication",
   PROGRAM: "planning-support",
   PROJECT_MGMT: "planning-support",
-  RESEARCH: "data-technology",
+  RESEARCH: "planning-support",
   SOCIAL_MEDIA: "digital-marketing",
   SOCIAL_WORK: "planning-support",
   TRANSLATION: "communication",
@@ -75,7 +75,7 @@ const FUNCTION_TO_SUBSKILL: Record<string, string> = {
   DATA_MANAGEMENT: "data-analysis",
   DEVELOPMENT_FUNDRAISING: "grant-writing",
   EDUCATION: "training-facilitation",
-  ENGINEERING: "react-nextjs",
+  ENGINEERING: "it-support",
   ENVIRONMENTAL: "research-surveys",
   EVENTS: "event-planning",
   FINANCE: "financial-reporting",
@@ -84,7 +84,7 @@ const FUNCTION_TO_SUBSKILL: Record<string, string> = {
   GRAPHIC_DESIGN: "graphic-design",
   HEALTH: "research-surveys",
   HR: "hr-recruitment",
-  IT: "react-nextjs",
+  IT: "it-support",
   LEGAL: "legal-advisory",
   MANAGEMENT: "project-management",
   MARKETING: "social-media-strategy",
@@ -93,7 +93,7 @@ const FUNCTION_TO_SUBSKILL: Record<string, string> = {
   PR: "press-release",
   PROGRAM: "project-management",
   PROJECT_MGMT: "project-management",
-  RESEARCH: "data-analysis",
+  RESEARCH: "research-surveys",
   SOCIAL_MEDIA: "social-media-strategy",
   SOCIAL_WORK: "volunteer-recruitment",
   TRANSLATION: "translation-localization",
@@ -393,7 +393,7 @@ export function mapJobToOpportunity(d: IdealistJobDetail): Omit<ExternalOpportun
   const sourceUrl = d.url?.en || `https://www.idealist.org/en/nonprofit-job/${d.id}`
 
   // Map functions → skills
-  const { skillTags, skillsRequired } = mapSkills(d.functions || [])
+  const { skillTags, skillsRequired } = mapSkills(d.functions || [], `${d.name || ""} ${plainDescription}`)
 
   // Map areasOfFocus → causes
   const causes = mapCauses(d.areasOfFocus || d.org?.areasOfFocus || [])
@@ -465,7 +465,21 @@ export function mapJobToOpportunity(d: IdealistJobDetail): Omit<ExternalOpportun
 // Helpers
 // ============================================
 
-function mapSkills(functions: string[]): {
+function inferWebsiteSubskill(text: string): string | null {
+  const lower = text.toLowerCase()
+  if (/\bwordpress\b/.test(lower)) return "wordpress-development"
+  if (/\b(react|next\.?js)\b/.test(lower)) return "react-nextjs"
+  if (/\bnode\.?js\b/.test(lower)) return "nodejs-backend"
+  if (/\b(shopify|e-?commerce)\b/.test(lower)) return "shopify-ecommerce"
+  if (/\bwebflow\b/.test(lower)) return "webflow-nocode"
+  if (/\bmobile\s+app\b|\bapp\s+(developer|development)\b/.test(lower)) return "mobile-app-development"
+  if (/\bux\b|\bui\b/.test(lower)) return "ux-ui"
+  if (/\bhtml\b|\bcss\b/.test(lower)) return "html-css"
+  if (/\b(web\s*(developer|development|application|app|platform|portal|site|design)|website|front\s*-?\s*end|back\s*-?\s*end|full\s*-?\s*stack)\b/.test(lower)) return "react-nextjs"
+  return null
+}
+
+function mapSkills(functions: string[], text = ""): {
   skillTags: string[]
   skillsRequired: { categoryId: string; subskillId: string; priority: "must-have" | "nice-to-have" }[]
 } {
@@ -474,8 +488,9 @@ function mapSkills(functions: string[]): {
   const seen = new Set<string>()
 
   for (const fn of functions) {
-    const categoryId = FUNCTION_TO_SKILL[fn]
-    const subskillId = FUNCTION_TO_SUBSKILL[fn]
+    const inferredWebsiteSubskill = (fn === "ENGINEERING" || fn === "IT") ? inferWebsiteSubskill(text) : null
+    const categoryId = inferredWebsiteSubskill ? "website" : FUNCTION_TO_SKILL[fn]
+    const subskillId = inferredWebsiteSubskill || FUNCTION_TO_SUBSKILL[fn]
     if (categoryId && subskillId && !seen.has(subskillId)) {
       seen.add(subskillId)
       skillsRequired.push({ categoryId, subskillId, priority: "nice-to-have" })

@@ -164,7 +164,7 @@ function mapJobToOpp(d: IdealistJobDetail | IdealistListItem, detail?: IdealistJ
   const endDate = isDetail ? detail.endDate : undefined
   const professionalLevel = isDetail ? detail.professionalLevel : undefined
 
-  const { skillTags, skillsRequired } = mapSkills(functions)
+  const { skillTags, skillsRequired } = mapSkills(functions, `${name || ""} ${desc || ""}`)
   const causes = mapCauses(areasOfFocus)
   const workMode = mapLocationType(locationType)
   const experienceLevel = mapExperienceLevel(professionalLevel)
@@ -288,24 +288,40 @@ function mapExperienceLevel(pl?: string | null): string | undefined {
   return undefined
 }
 
-function mapSkills(functions: string[]): {
+function inferWebsiteSubskill(text: string): string | null {
+  const lower = text.toLowerCase()
+  if (/\bwordpress\b/.test(lower)) return "wordpress-development"
+  if (/\b(react|next\.?js)\b/.test(lower)) return "react-nextjs"
+  if (/\bnode\.?js\b/.test(lower)) return "nodejs-backend"
+  if (/\b(shopify|e-?commerce)\b/.test(lower)) return "shopify-ecommerce"
+  if (/\bwebflow\b/.test(lower)) return "webflow-nocode"
+  if (/\bmobile\s+app\b|\bapp\s+(developer|development)\b/.test(lower)) return "mobile-app-development"
+  if (/\bux\b|\bui\b/.test(lower)) return "ux-ui"
+  if (/\bhtml\b|\bcss\b/.test(lower)) return "html-css"
+  if (/\b(web\s*(developer|development|application|app|platform|portal|site|design)|website|front\s*-?\s*end|back\s*-?\s*end|full\s*-?\s*stack)\b/.test(lower)) return "react-nextjs"
+  return null
+}
+
+function mapSkills(functions: string[], text = ""): {
   skillTags: string[]
   skillsRequired: { categoryId: string; subskillId: string; priority: "must-have" | "nice-to-have" }[]
 } {
   const FUNCTION_TO_SKILL: Record<string, string> = {
     ACCOUNTING: "finance", ADMIN: "planning-support", ADVOCACY: "communication",
     BOARD_MEMBER: "planning-support", COMMUNICATIONS: "communication",
+    COMMUNITY_OUTREACH: "digital-marketing",
     COMPUTERS_TECHNOLOGY: "data-technology", COUNSELING: "communication",
     CURRICULUM_DESIGN: "content-creation", DATA_MANAGEMENT: "data-technology",
     DEVELOPMENT_FUNDRAISING: "fundraising", EDUCATION: "planning-support",
-    ENGINEERING: "website", EVENTS: "planning-support", FINANCE: "finance",
+    ENGINEERING: "data-technology", ENVIRONMENTAL: "planning-support",
+    EVENTS: "planning-support", FINANCE: "finance",
     GENERAL: "planning-support", GRANT_WRITING: "fundraising",
     GRAPHIC_DESIGN: "content-creation", HEALTH: "planning-support",
-    HR: "planning-support", IT: "website", LEGAL: "legal",
+    HR: "planning-support", IT: "data-technology", LEGAL: "legal",
     MANAGEMENT: "planning-support", MARKETING: "digital-marketing",
     MEDIA: "content-creation", OTHER: "planning-support", PR: "communication",
     PROGRAM: "planning-support", PROJECT_MGMT: "planning-support",
-    RESEARCH: "data-technology", SOCIAL_MEDIA: "digital-marketing",
+    RESEARCH: "planning-support", SOCIAL_MEDIA: "digital-marketing",
     SOCIAL_WORK: "planning-support", TRANSLATION: "communication",
     VOLUNTEER_MGMT: "planning-support", WRITING_EDITING: "communication",
   }
@@ -316,13 +332,13 @@ function mapSkills(functions: string[]): {
     COMPUTERS_TECHNOLOGY: "it-support", COUNSELING: "public-speaking",
     CURRICULUM_DESIGN: "presentation-design", DATA_MANAGEMENT: "data-analysis",
     DEVELOPMENT_FUNDRAISING: "grant-writing", EDUCATION: "training-facilitation",
-    ENGINEERING: "react-nextjs", EVENTS: "event-planning", FINANCE: "financial-reporting",
+    ENGINEERING: "it-support", EVENTS: "event-planning", FINANCE: "financial-reporting",
     GENERAL: "data-entry", GRANT_WRITING: "grant-writing",
     GRAPHIC_DESIGN: "graphic-design", HEALTH: "research-surveys", HR: "hr-recruitment",
-    IT: "react-nextjs", LEGAL: "legal-advisory", MANAGEMENT: "project-management",
+    IT: "it-support", LEGAL: "legal-advisory", MANAGEMENT: "project-management",
     MARKETING: "social-media-strategy", MEDIA: "video-editing", OTHER: "data-entry",
     PR: "press-release", PROGRAM: "project-management", PROJECT_MGMT: "project-management",
-    RESEARCH: "data-analysis", SOCIAL_MEDIA: "social-media-strategy",
+    RESEARCH: "research-surveys", SOCIAL_MEDIA: "social-media-strategy",
     SOCIAL_WORK: "volunteer-recruitment", TRANSLATION: "translation-localization",
     VOLUNTEER_MGMT: "volunteer-recruitment", WRITING_EDITING: "blog-article-writing",
   }
@@ -330,8 +346,9 @@ function mapSkills(functions: string[]): {
   const skillsRequired: { categoryId: string; subskillId: string; priority: "must-have" | "nice-to-have" }[] = []
   const skillTags: string[] = []
   for (const fn of functions) {
-    const cat = FUNCTION_TO_SKILL[fn]
-    const sub = FUNCTION_TO_SUBSKILL[fn]
+    const inferredWebsiteSubskill = (fn === "ENGINEERING" || fn === "IT") ? inferWebsiteSubskill(text) : null
+    const cat = inferredWebsiteSubskill ? "website" : FUNCTION_TO_SKILL[fn]
+    const sub = inferredWebsiteSubskill || FUNCTION_TO_SUBSKILL[fn]
     if (cat && sub && !seen.has(sub)) {
       seen.add(sub)
       skillsRequired.push({ categoryId: cat, subskillId: sub, priority: "nice-to-have" })
