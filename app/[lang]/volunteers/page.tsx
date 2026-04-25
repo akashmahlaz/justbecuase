@@ -244,10 +244,25 @@ function ImpactAgentsContent() {
     }
 
     // Tab filter
+    //   - top-rated: show every candidate, sorted by rating desc, with
+    //     unrated profiles falling back to completedProjects then
+    //     hoursContributed so the order is still meaningful on a fresh
+    //     platform where most ratings are 0.
+    //   - most-active: composite activity score (projects + hours/10)
+    //     so candidates with any activity surface above empty profiles.
+    //     No artificial slice — show all matches.
     if (activeTab === "top-rated") {
-      result = result.filter((a) => (a.rating || 0) >= 4).sort((a, b) => (b.rating || 0) - (a.rating || 0))
+      result = [...result].sort((a, b) => {
+        const rd = (b.rating || 0) - (a.rating || 0)
+        if (rd !== 0) return rd
+        const pd = (b.completedProjects || 0) - (a.completedProjects || 0)
+        if (pd !== 0) return pd
+        return (b.hoursContributed || 0) - (a.hoursContributed || 0)
+      })
     } else if (activeTab === "most-active") {
-      result = result.sort((a, b) => (b.completedProjects || 0) - (a.completedProjects || 0)).slice(0, 50)
+      const score = (v: any) =>
+        (v.completedProjects || 0) * 10 + (v.hoursContributed || 0) / 10 + (v.rating || 0)
+      result = [...result].sort((a, b) => score(b) - score(a))
     }
 
     // Search — when API results are loaded, we already used them as the
@@ -308,20 +323,61 @@ function ImpactAgentsContent() {
     }
 
     // Sort
+    //
+    // For each sort the primary key may be 0 for many candidates on a
+    // fresh platform, so we tie-break on a profile-completeness signal
+    // (verified > has bio > has avatar) and finally rating, to avoid the
+    // appearance of a broken sort that doesn't reorder anything.
+    const completeness = (v: any) =>
+      (v.isVerified ? 4 : 0) +
+      (v.bio ? 2 : 0) +
+      (v.avatar ? 1 : 0)
+
     switch (sortBy) {
       case "rating":
-        result.sort((a, b) => (b.rating || 0) - (a.rating || 0))
+        result.sort((a, b) => {
+          const d = (b.rating || 0) - (a.rating || 0)
+          if (d !== 0) return d
+          return completeness(b) - completeness(a)
+        })
         break
       case "experienced":
-        result.sort((a, b) => (b.completedProjects || 0) - (a.completedProjects || 0))
+        result.sort((a, b) => {
+          const d = (b.completedProjects || 0) - (a.completedProjects || 0)
+          if (d !== 0) return d
+          return completeness(b) - completeness(a)
+        })
         break
       case "hours":
-        result.sort((a, b) => (b.hoursContributed || 0) - (a.hoursContributed || 0))
+        result.sort((a, b) => {
+          const d = (b.hoursContributed || 0) - (a.hoursContributed || 0)
+          if (d !== 0) return d
+          return completeness(b) - completeness(a)
+        })
         break
       case "best-match":
       default:
         if (searchQuery.trim() && unifiedMatchedIds !== null) {
-          result.sort((a, b) => (unifiedRelevanceOrder.get(b.id) || 0) - (unifiedRelevanceOrder.get(a.id) || 0))
+          result.sort(
+            (a, b) =>
+              (unifiedRelevanceOrder.get(b.id) || 0) - (unifiedRelevanceOrder.get(a.id) || 0)
+          )
+        } else {
+          // No active search — surface complete + active profiles first
+          // so "Best Match" actually reorders the list in a useful way.
+          result.sort((a, b) => {
+            const sa =
+              completeness(a) * 100 +
+              (a.completedProjects || 0) * 5 +
+              (a.rating || 0) * 3 +
+              (a.hoursContributed || 0) / 20
+            const sb =
+              completeness(b) * 100 +
+              (b.completedProjects || 0) * 5 +
+              (b.rating || 0) * 3 +
+              (b.hoursContributed || 0) / 20
+            return sb - sa
+          })
         }
         break
     }
