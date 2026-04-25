@@ -91,7 +91,7 @@ export function Navbar() {
   // ⭐ Role-based nav (top-level flat links)
   const baseLinks = [
     { href: "/projects", label: dict.nav?.browseOpportunities || "Browse Jobs", icon: Search },
-    { href: "/impact-agents", label: dict.nav?.browseImpactAgents || dict.nav?.impactAgents || "Browse Candidates", icon: Users },
+    { href: "/volunteers", label: dict.nav?.browseImpactAgents || dict.nav?.impactAgents || "Browse Candidates", icon: Users },
     { href: "/about", label: dict.nav?.aboutUs || "About", icon: Info },
   ]
 
