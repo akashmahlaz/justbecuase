@@ -27,7 +27,7 @@ import {
 } from "lucide-react"
 
 interface Props {
-  params: Promise<{ id: string }>
+  params: Promise<{ id: string; lang: string }>
 }
 
 export default function EditProjectPage({ params }: Props) {
