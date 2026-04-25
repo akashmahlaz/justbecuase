@@ -214,6 +214,8 @@ function expandSkillIds(skills: string[]): string[] {
 
 const WEBSITE_SKILL_IDS = new Set(expandSkillIds(["website"]))
 const DATA_TECH_SKILL_IDS = new Set(expandSkillIds(["data-technology"]))
+// The valid values for skillsRequired.categoryId in the DB
+const PARENT_CATEGORY_IDS = new Set(Object.keys(SKILL_FILTER_EXPANSIONS))
 // Title-level evidence — must be explicit about web/dev context.
 // Intentionally excludes bare /\bweb\b/ (too broad; matches "social web",
 // "web-based tools", etc.) and bare /\breact\b/ (matches any React-using
@@ -494,44 +496,36 @@ function matchesNativeProject(project: any, filters: {
     skill.skillId,
   ].filter(Boolean))
   const skillFilters = effectiveSkillFilters(filters)
+  const hasExplicitSkillFilter = filters.skills.length > 0
 
   if (hasSkillFilterConflict(filters)) return false
 
-  // Check both categoryId and subskillId for proper skill filter matching
-  const hasMatchingSkill = skillFilters.some((filterSkill) =>
-    projectSkills.some((projectSkill: string) =>
-      projectSkill === filterSkill ||
-      projectSkill === `website-${filterSkill}` ||
-      projectSkill.startsWith(`${filterSkill}-`)
+  // Only gate on skill match when user explicitly chose a skill filter chip.
+  // When a skill comes from the query text alone (querySkills), we still
+  // want text-matching native projects without any skillsRequired to appear.
+  if (skillFilters.length > 0 && hasExplicitSkillFilter) {
+    const hasMatchingSkill = skillFilters.some((filterSkill) =>
+      projectSkills.some((projectSkill: string) =>
+        projectSkill === filterSkill ||
+        projectSkill === `website-${filterSkill}` ||
+        projectSkill.startsWith(`${filterSkill}-`)
+      )
     )
-  )
-  if (!hasMatchingSkill) return false
+    if (!hasMatchingSkill) return false
+  }
 
   if (filters.query) {
-    if (filters.querySkills.length > 0) {
-      // Skill match validated above — but also require text to appear in the
-      // project so "grant writing" returns actual grant-writing projects,
-      // not all fundraising projects.
-      const terms = filters.query.toLowerCase().split(/\s+/).filter((term) => term.length >= 2)
+    const terms = filters.query.toLowerCase().split(/\s+/).filter((term) => term.length >= 2)
+    if (terms.length > 0) {
       const text = projectSearchText(project)
       const textLower = text.toLowerCase()
-      const anyTermMatch = terms.some((term) => {
-        const regex = new RegExp(`(?:^|[^a-z0-9])${escapeRegex(term)}(?:$|[^a-z0-9])`, 'i')
-        return regex.test(textLower)
-      })
-      if (terms.length > 0 && !anyTermMatch) return false
-    } else {
-      // Use word boundary matching for better relevance
-      const terms = filters.query.toLowerCase().split(/\s+/).filter((term) => term.length >= 2)
-      const text = projectSearchText(project)
-      // All terms must appear as complete words (not substrings)
-      const textLower = text.toLowerCase()
+      // Require ALL query terms to appear somewhere in the project text
+      // for high-precision results regardless of whether query mapped to skills.
       const allTermsMatch = terms.every((term) => {
-        // Check for word boundary match - term surrounded by non-alphanumeric or at start/end
         const regex = new RegExp(`(?:^|[^a-z0-9])${escapeRegex(term)}(?:$|[^a-z0-9])`, 'i')
         return regex.test(textLower)
       })
-      if (terms.length > 0 && !allTermsMatch) return false
+      if (!allTermsMatch) return false
     }
   }
 
@@ -589,9 +583,9 @@ function buildExternalFilter(filters: {
       { country: regex },
     ]
   } else if (filters.query && filters.querySkills.length > 0) {
-    // When the query maps to skill IDs, still apply text filter alongside
-    // skill filter — otherwise "grant writing" returns ALL fundraising jobs
-    // (341 results) instead of jobs that specifically mention "grant writing".
+    // Query maps to skill IDs — still require text to appear so specific
+    // queries like "grant writing" return grant-writing jobs, not ALL jobs
+    // tagged with any fundraising subskill.
     const regex = new RegExp(escapeRegex(filters.query), "i")
     filter.$and = [
       ...((filter.$and as any[]) || []),
@@ -613,11 +607,17 @@ function buildExternalFilter(filters: {
 
   const skillFilters = effectiveSkillFilters(filters)
   if (skillFilters.length > 0) {
-    const categorySkillFilters = skillFilters.filter((skill) => skill !== "data-technology")
+    // Only use actual parent category IDs (e.g. "website", "content-creation")
+    // for the categoryId query — subskill IDs (e.g. "react-nextjs") are never
+    // stored as categoryId in the DB. The subskillId path handles those.
+    // Also exclude skillTags from the OR: for TheirStack jobs skillTags are the
+    // company's technology stack, not the job's required skills, so they cause
+    // massive false-positive matches (a social-media job at a React company
+    // would match website filter via its "react" skillTag).
+    const parentCategoryFilters = skillFilters.filter((skill) => PARENT_CATEGORY_IDS.has(skill))
     const skillMatchConditions = [
-      ...(categorySkillFilters.length > 0 ? [{ "skillsRequired.categoryId": { $in: categorySkillFilters } }] : []),
+      ...(parentCategoryFilters.length > 0 ? [{ "skillsRequired.categoryId": { $in: parentCategoryFilters } }] : []),
       { "skillsRequired.subskillId": { $in: skillFilters } },
-      { skillTags: { $in: skillFilters.map((skill) => new RegExp(escapeRegex(skill), "i")) } },
     ]
 
     filter.$and = [
@@ -796,7 +796,10 @@ export async function GET(request: NextRequest) {
       compensation: splitParam(searchParams.get("compensation")),
       experience: splitParam(searchParams.get("experience")),
     }
-    const sort = searchParams.get("sort") || "newest"
+    // Default to bestMatch when a filter is active so relevant results bubble up.
+    // Fall back to newest for browsing (no filters/query).
+    const hasActiveFilter = !!(filters.query || filters.skills.length > 0 || filters.workMode || filters.timeCommitments.length > 0 || filters.compensation.length > 0 || filters.experience.length > 0)
+    const sort = searchParams.get("sort") || (hasActiveFilter ? "bestMatch" : "newest")
 
     // ---- Native projects ----
     let nativeProjects: any[] = []
