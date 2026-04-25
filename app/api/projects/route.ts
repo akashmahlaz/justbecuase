@@ -494,7 +494,7 @@ function matchesNativeProject(project: any, filters: {
 
   // Check both categoryId and subskillId for proper skill filter matching
   const hasMatchingSkill = skillFilters.some((filterSkill) =>
-    projectSkills.some((projectSkill) =>
+    projectSkills.some((projectSkill: string) =>
       projectSkill === filterSkill ||
       projectSkill === `website-${filterSkill}` ||
       projectSkill.startsWith(`${filterSkill}-`)
