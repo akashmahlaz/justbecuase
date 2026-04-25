@@ -2607,8 +2607,12 @@ export async function browseVolunteers(filters?: {
 
   // Filter in JavaScript since arrays are stored as JSON strings
   let filteredVolunteers = volunteers.filter(v => {
-    // Skip if explicitly inactive
+    // Public candidate discovery should match Algolia indexing rules:
+    // only onboarded, active, non-banned, searchable volunteer profiles.
+    if ((v as any).isOnboarded !== true) return false
     if (v.isActive === false) return false
+    if (v.isBanned === true) return false
+    if ((v as any).privacy?.showInSearch === false) return false
 
     // Apply filters
     if (filters?.skills?.length) {
