@@ -24,6 +24,8 @@ export interface ESSearchParams {
     volunteerType?: string
     causes?: string[]
     skills?: string[]
+    skillCategories?: string[]
+    skillCategoryNames?: string[]
     location?: string
     experienceLevel?: string
     isVerified?: boolean
@@ -75,6 +77,23 @@ const INDEX_TO_TYPE: Record<string, string> = {
   [ES_INDEXES.PROJECTS]: "project",
   [ES_INDEXES.BLOG_POSTS]: "blog",
   [ES_INDEXES.PAGES]: "page",
+}
+
+const SKILL_CATEGORY_ID_TO_NAME = new Map<string, string>(skillCategories.map((category) => [category.id, category.name]))
+
+function normalizeFilterArray(value: unknown): string[] {
+  return Array.isArray(value)
+    ? value.filter((item): item is string => typeof item === "string" && item.trim().length > 0)
+    : []
+}
+
+function normalizeSkillCategoryFilters(filters?: { skillCategories?: string[]; skillCategoryNames?: string[] }): string[] {
+  if (!filters) return []
+  const values = normalizeFilterArray(filters.skillCategoryNames).length > 0
+    ? normalizeFilterArray(filters.skillCategoryNames)
+    : normalizeFilterArray(filters.skillCategories)
+
+  return Array.from(new Set(values.map((value) => SKILL_CATEGORY_ID_TO_NAME.get(value) || value)))
 }
 
 // ============================================
@@ -2042,6 +2061,10 @@ export function buildSearchQuery(query: string, filters?: ESSearchParams["filter
     }
     if (filters.skills && filters.skills.length > 0) {
       filterClauses.push({ terms: { skillIds: filters.skills } })
+    }
+    const skillCategoryFilters = normalizeSkillCategoryFilters(filters)
+    if (skillCategoryFilters.length > 0) {
+      filterClauses.push({ terms: { "skillCategories.keyword": skillCategoryFilters } })
     }
     if (filters.location) {
       filterClauses.push({
