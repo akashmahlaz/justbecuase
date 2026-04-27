@@ -313,6 +313,27 @@ function getCauseDisplayName(causeId: string): string {
   return CAUSE_LIST.find(c => c.id === causeId)?.name || causeId.replace(/-/g, " ")
 }
 
+const SHORT_SEARCH_TERMS = new Set(["ai", "ml", "ux", "ui", "hr", "rfp", "seo", "ppc", "csr", "cms", "api"])
+const SEARCH_STOP_WORDS = new Set(["a", "an", "and", "for", "in", "of", "on", "the", "to", "with"])
+
+function getMeaningfulSearchTerms(searchTerms: string[]): string[] {
+  const meaningful = searchTerms.filter((term) => {
+    const normalized = term.toLowerCase().trim()
+    if (!normalized || SEARCH_STOP_WORDS.has(normalized)) return false
+    return normalized.length >= 3 || SHORT_SEARCH_TERMS.has(normalized)
+  })
+
+  return meaningful.length > 0 ? meaningful : searchTerms.filter((term) => term.length > 0)
+}
+
+function getSkillCategoryIds(skillIds: string[]): string[] {
+  return Array.from(new Set(
+    skillIds
+      .map((skillId) => SKILL_LOOKUP.get(skillId)?.categoryId)
+      .filter((categoryId): categoryId is string => Boolean(categoryId))
+  ))
+}
+
 // ============================================
 // INDEX MANAGEMENT
 // ============================================
@@ -614,6 +635,7 @@ function numericToString(val: any): string {
  */
 function computeRelevanceScore(doc: any, searchTerms: string[]): number {
   let score = 0
+  const scoringTerms = getMeaningfulSearchTerms(searchTerms)
 
   // Direct string fields with weights
   const fields = [
@@ -651,7 +673,7 @@ function computeRelevanceScore(doc: any, searchTerms: string[]): number {
     { key: "experienceLevel", weight: 2 },
   ]
 
-  for (const term of searchTerms) {
+  for (const term of scoringTerms) {
     const termLower = term.toLowerCase()
 
     // --- Score direct text fields ---
@@ -781,8 +803,8 @@ function computeRelevanceScore(doc: any, searchTerms: string[]): number {
   // If the doc didn't match direct terms well, check if it matches expanded synonyms
   // Synonym matches score lower than direct matches but still rank the result
   if (score < 5) {
-    const expandedTerms = expandWithSynonyms(searchTerms)
-    const synonymOnly = expandedTerms.filter(t => !searchTerms.includes(t))
+    const expandedTerms = expandWithSynonyms(scoringTerms)
+    const synonymOnly = expandedTerms.filter(t => !scoringTerms.includes(t))
 
     // Build a combined text blob for matching
     const contentBlob = [
@@ -1072,9 +1094,10 @@ function expandResultSkillIds(skillIds: string[]): string[] {
 function buildExternalOpportunityTermFilter(searchTerms: string[]): Record<string, any> {
   const andConditions: any[] = []
   const matchedSkillIds = expandResultSkillIds(findMatchingSkillIds(searchTerms))
+  const matchedSkillCategoryIds = getSkillCategoryIds(matchedSkillIds)
   const matchedCauseIds = findMatchingCauseIds(searchTerms)
 
-  for (const term of searchTerms) {
+  for (const term of getMeaningfulSearchTerms(searchTerms)) {
     if (term.length < 2) continue
     const regex = new RegExp(escapeRegex(term), "i")
     andConditions.push({
@@ -1112,7 +1135,7 @@ function buildExternalOpportunityTermFilter(searchTerms: string[]): Record<strin
     andConditions.push({
       $or: [
         { "skillsRequired.subskillId": { $in: matchedSkillIds } },
-        { "skillsRequired.categoryId": { $in: ["fundraising", ...matchedSkillIds] } },
+        ...(matchedSkillCategoryIds.length > 0 ? [{ "skillsRequired.categoryId": { $in: matchedSkillCategoryIds } }] : []),
         ...skillNamePatterns.flatMap((pattern) => [
           { skillTags: pattern },
           { title: pattern },
