@@ -7,6 +7,27 @@ function escapeRegex(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
 }
 
+function compactText(value: string): string {
+  return value.toLowerCase().replace(/[^a-z0-9]+/g, "")
+}
+
+function tokenBoundaryPattern(term: string): RegExp {
+  const compact = compactText(term)
+  if (compact.length <= 2) return new RegExp(`(?:^|[^a-z0-9])${escapeRegex(compact)}(?:$|[^a-z0-9])`, "i")
+  return new RegExp(escapeRegex(term).replace(/[\s._/-]+/g, "[^a-z0-9]*"), "i")
+}
+
+function meaningfulQueryTerms(query: string): string[] {
+  const stopWords = new Set(["a", "an", "and", "for", "in", "of", "on", "the", "to", "with"])
+  return Array.from(new Set(
+    query
+      .toLowerCase()
+      .split(/\s+/)
+      .map((term) => term.trim())
+      .filter((term) => term.length >= 2 && !stopWords.has(term))
+  ))
+}
+
 function splitParam(value: string | null): string[] {
   return (value || "")
     .split(",")
@@ -339,10 +360,10 @@ function websiteEvidencePatternsFor(filters: { query: string }, skillFilters: st
   const query = filters.query.toLowerCase()
 
   if (skillFilters.includes("react-nextjs") && /\b(react|next\.?js)\b/i.test(query)) {
-    return [/\breact\b/i, /\bnext\.?js\b/i]
+    return [/\breact\b/i, /\bnext\.?js\b/i, /\bfront\s*-?\s*end\b/i, /\bfrontend\b/i, /\bdeveloper\b/i, /\bengineer\b/i]
   }
   if (skillFilters.includes("wordpress-development") && /\bwordpress\b/i.test(query)) {
-    return [/\bwordpress\b/i]
+    return [/\bwordpress\b/i, /\bweb\s*(dev|developer|development|site|design)\b/i, /\bwebsite\b/i]
   }
   if (skillFilters.includes("nodejs-backend") && /\bnode\.?js\b/i.test(query)) {
     return [/\bnode\.?js\b/i]
@@ -583,21 +604,20 @@ function buildExternalFilter(filters: {
       { country: regex },
     ]
   } else if (filters.query && filters.querySkills.length > 0) {
-    // Query maps to skill IDs — still require text to appear so specific
-    // queries like "grant writing" return grant-writing jobs, not ALL jobs
-    // tagged with any fundraising subskill.
-    const regex = new RegExp(escapeRegex(filters.query), "i")
-    filter.$and = [
-      ...((filter.$and as any[]) || []),
-      {
-        $or: [
-          { title: regex },
-          { description: regex },
-          { shortDescription: regex },
-          { organization: regex },
-        ],
-      },
-    ]
+    // Query maps to skill IDs. Do not require the exact full phrase because
+    // skill names often contain punctuation or extra words: "react nextjs"
+    // should match "React / Next.js Development", and "wordpress development"
+    // should match a "Web Developer" tagged with wordpress-development.
+    const termPatterns = meaningfulQueryTerms(filters.query).map(tokenBoundaryPattern)
+    const textFields = ["title", "description", "shortDescription", "organization", "skillsRequired.subskillId", "skillsRequired.categoryId"]
+    if (termPatterns.length > 0) {
+      filter.$and = [
+        ...((filter.$and as any[]) || []),
+        ...termPatterns.map((pattern) => ({
+          $or: textFields.map((field) => ({ [field]: pattern })),
+        })),
+      ]
+    }
   }
 
   if (hasSkillFilterConflict(filters)) {
@@ -636,7 +656,10 @@ function buildExternalFilter(filters: {
       // pass the website evidence check regardless of actual role. The job TITLE
       // is the only reliable signal: a "Social Media Lead" or "Grant Writer"
       // will never have "Web Developer" or "React Engineer" in its title.
-      const websiteEvidence = evidencePatterns.map((pattern) => ({ title: pattern }))
+      const websiteEvidence = evidencePatterns.flatMap((pattern) => [
+        { title: pattern },
+        { "skillsRequired.subskillId": pattern },
+      ])
 
       filter.$and = [
         ...((filter.$and as any[]) || []),
@@ -649,7 +672,10 @@ function buildExternalFilter(filters: {
       // Title-only for same reason as website: TheirStack appends
       // "Technologies: Python, TensorFlow, ..." to every description,
       // causing all tech-company jobs to pass description-level evidence.
-      const dataTechEvidence = evidencePatterns.map((pattern) => ({ title: pattern }))
+      const dataTechEvidence = evidencePatterns.flatMap((pattern) => [
+        { title: pattern },
+        { "skillsRequired.subskillId": pattern },
+      ])
       const idealistDataTechEvidence = IDEALIST_DATA_TECH_TAG_PATTERNS.map((pattern) => ({ skillTags: pattern }))
 
       filter.$and = [
@@ -747,6 +773,16 @@ function relevanceScore(project: any, filters: {
     const strongDataTechSkills = new Set(["data-analysis", "data-visualization", "ai-ml", "chatbot-development", "it-support", "cybersecurity", "automation-zapier"])
     if ((project.skillsRequired || []).some((skill: any) => strongDataTechSkills.has(skill.subskillId))) score += 50
     if ((project.skillsRequired || []).some((skill: any) => skill.subskillId === "google-workspace")) score -= 25
+  }
+
+  if (includesWebsiteSkill(skillFilters)) {
+    const evidencePatterns = websiteEvidencePatternsFor(filters, skillFilters)
+    if (evidencePatterns.some((pattern) => textMatches(title, pattern))) score += 120
+  }
+
+  if (includesDataTechnologySkill(skillFilters)) {
+    const evidencePatterns = dataTechnologyEvidencePatternsFor(filters, skillFilters)
+    if (evidencePatterns.some((pattern) => textMatches(title, pattern))) score += 100
   }
 
   return score
