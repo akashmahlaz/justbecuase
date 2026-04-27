@@ -51,6 +51,8 @@ const SKILL_QUERY_ALIASES: Array<{ ids: string[]; patterns: RegExp[] }> = [
   },
   { ids: ["ux-ui"], patterns: [/\bux\b/i, /\bui\b/i, /\bux\s*\/\s*ui\b/i] },
   { ids: ["wordpress-development"], patterns: [/\bwordpress\b/i] },
+  { ids: ["html-css"], patterns: [/\bhtml\b/i, /\bcss\b/i, /\bhtml\s*(?:\/|&|and|-)?\s*css\b/i] },
+  { ids: ["cms-maintenance"], patterns: [/\bcms\b/i, /\bcms\s*maintenance\b/i] },
   { ids: ["react-nextjs"], patterns: [/\breact\b/i, /\bnext\.?js\b/i] },
   { ids: ["nodejs-backend"], patterns: [/\bnode\.?js\b/i] },
   { ids: ["webflow-nocode"], patterns: [/\bwebflow\b/i, /\bno\s*code\b/i] },
@@ -325,6 +327,23 @@ const IDEALIST_DATA_TECH_TAG_PATTERNS = [
   /\bai\b/i,
 ]
 
+const PROVIDER_TAG_SKILL_PATTERNS: Record<string, RegExp[]> = {
+  "html-css": [/^html$/i, /^css$/i, /\bhtml5\b/i, /\bcss3\b/i, /\btailwind\b/i, /\bbootstrap\b/i],
+  "cms-maintenance": [/\bcms\b/i, /\bcontent\s*management\b/i, /\bwordpress\b/i, /\bdrupal\b/i, /\bstrapi\b/i, /\bpayloadcms\b/i],
+}
+
+function providerTagPatternsFor(skills: string[]): RegExp[] {
+  if (skills.includes("website")) return []
+  return skills.flatMap((skill) => PROVIDER_TAG_SKILL_PATTERNS[skill] || [])
+}
+
+function providerCategoryFallbacksFor(skills: string[]): string[] {
+  if (skills.includes("website")) return []
+  const categories = new Set<string>()
+  if (skills.some((skill) => skill === "html-css" || skill === "cms-maintenance")) categories.add("website")
+  return [...categories]
+}
+
 function dataTechnologyEvidencePatternsFor(filters: { query: string }, skillFilters: string[]) {
   const query = filters.query.toLowerCase()
 
@@ -360,10 +379,16 @@ function websiteEvidencePatternsFor(filters: { query: string }, skillFilters: st
   const query = filters.query.toLowerCase()
 
   if (skillFilters.includes("react-nextjs") && /\b(react|next\.?js)\b/i.test(query)) {
-    return [/\breact\b/i, /\bnext\.?js\b/i, /\bfront\s*-?\s*end\b/i, /\bfrontend\b/i, /\bdeveloper\b/i, /\bengineer\b/i]
+    return [/\breact\b/i, /\bnext\.?js\b/i, /\bfront\s*-?\s*end\b/i, /\bfrontend\b/i, /\bfull\s*-?\s*stack\b/i, /\bweb\s*(dev|developer|development|engineer)\b/i, /\bapp\s*(dev|developer|development|engineer)\b/i, /\bsoftware\s+(developer|engineer)\b/i]
   }
   if (skillFilters.includes("wordpress-development") && /\bwordpress\b/i.test(query)) {
     return [/\bwordpress\b/i, /\bweb\s*(dev|developer|development|site|design)\b/i, /\bwebsite\b/i]
+  }
+  if (skillFilters.includes("html-css") && /\b(html|css)\b/i.test(query)) {
+    return [/\bhtml\b/i, /\bcss\b/i, /\bhtml\s*(?:\/|&|and|-)?\s*css\b/i, /\bfront\s*-?\s*end\b/i, /\bfrontend\b/i, /\bfull\s*-?\s*stack\b/i, /\bweb\s*(dev|developer|development|site|design)\b/i, /\bui\s*(dev|developer)\b/i, /\binterface\s*(dev|developer)\b/i, /\bangular\b/i]
+  }
+  if (skillFilters.includes("cms-maintenance") && /\bcms\b/i.test(query)) {
+    return [/\bcms\b/i, /\bcontent\s*management\b/i, /\bwordpress\b/i, /\bwebsite\b/i, /\bweb\s*(dev|developer|development|site)\b/i]
   }
   if (skillFilters.includes("nodejs-backend") && /\bnode\.?js\b/i.test(query)) {
     return [/\bnode\.?js\b/i]
@@ -609,13 +634,34 @@ function buildExternalFilter(filters: {
     // should match "React / Next.js Development", and "wordpress development"
     // should match a "Web Developer" tagged with wordpress-development.
     const termPatterns = meaningfulQueryTerms(filters.query).map(tokenBoundaryPattern)
-    const textFields = ["title", "description", "shortDescription", "organization", "skillsRequired.subskillId", "skillsRequired.categoryId"]
+    const queryEffectiveSkills = effectiveSkillFilters(filters)
+    const queryProviderTagPatterns = providerTagPatternsFor(queryEffectiveSkills)
+    const queryProviderCategoryFallbacks = providerCategoryFallbacksFor(queryEffectiveSkills)
+    const textFields = [
+      "title",
+      "description",
+      "shortDescription",
+      "organization",
+      "skillsRequired.subskillId",
+      "skillsRequired.categoryId",
+      ...(queryProviderTagPatterns.length > 0 ? ["skillTags"] : []),
+    ]
     if (termPatterns.length > 0) {
+      const termConditions = termPatterns.flatMap((pattern) => textFields.map((field) => ({ [field]: pattern })))
+      const queryTermFilters = queryProviderTagPatterns.length > 0 || queryProviderCategoryFallbacks.length > 0
+        ? [{
+          $or: [
+            ...termConditions,
+            ...queryProviderCategoryFallbacks.map((categoryId) => ({ "skillsRequired.categoryId": categoryId })),
+          ],
+        }]
+        : termPatterns.map((pattern) => ({
+          $or: textFields.map((field) => ({ [field]: pattern })),
+        }))
+
       filter.$and = [
         ...((filter.$and as any[]) || []),
-        ...termPatterns.map((pattern) => ({
-          $or: textFields.map((field) => ({ [field]: pattern })),
-        })),
+        ...queryTermFilters,
       ]
     }
   }
@@ -630,14 +676,18 @@ function buildExternalFilter(filters: {
     // Only use actual parent category IDs (e.g. "website", "content-creation")
     // for the categoryId query — subskill IDs (e.g. "react-nextjs") are never
     // stored as categoryId in the DB. The subskillId path handles those.
-    // Also exclude skillTags from the OR: for TheirStack jobs skillTags are the
-    // company's technology stack, not the job's required skills, so they cause
-    // massive false-positive matches (a social-media job at a React company
-    // would match website filter via its "react" skillTag).
+    // Keep skillTags out of broad category filters: for TheirStack jobs they are
+    // often the company's technology stack, not the job's required skills. Only
+    // narrow typed skills such as HTML/CSS and CMS use provider tags, and those
+    // still pass through website role evidence below.
     const parentCategoryFilters = skillFilters.filter((skill) => PARENT_CATEGORY_IDS.has(skill))
+    const queryProviderTagPatterns = filters.querySkills.length > 0 ? providerTagPatternsFor(skillFilters) : []
+    const queryProviderCategoryFallbacks = filters.querySkills.length > 0 ? providerCategoryFallbacksFor(skillFilters) : []
     const skillMatchConditions = [
       ...(parentCategoryFilters.length > 0 ? [{ "skillsRequired.categoryId": { $in: parentCategoryFilters } }] : []),
+      ...(queryProviderCategoryFallbacks.length > 0 ? [{ "skillsRequired.categoryId": { $in: queryProviderCategoryFallbacks } }] : []),
       { "skillsRequired.subskillId": { $in: skillFilters } },
+      ...queryProviderTagPatterns.map((pattern) => ({ skillTags: pattern })),
     ]
 
     filter.$and = [
@@ -778,6 +828,15 @@ function relevanceScore(project: any, filters: {
   if (includesWebsiteSkill(skillFilters)) {
     const evidencePatterns = websiteEvidencePatternsFor(filters, skillFilters)
     if (evidencePatterns.some((pattern) => textMatches(title, pattern))) score += 120
+
+    if (/\b(security|qa|quality\s+assurance|test|testing|sre|site\s+reliability|devops|infrastructure)\b/i.test(title) && !/\b(front\s*-?\s*end|frontend|full\s*-?\s*stack|web|website|react|next\.?js|wordpress|node\.?js)\b/i.test(title)) {
+      score -= 90
+    }
+
+    if (/\bweb\s*(dev|developer|development)\b|\bwebsite\b/i.test(query)) {
+      if (/\bweb\s*(dev|developer|development)\b|\bwebsite\b/i.test(title)) score += 180
+      if (/\bsoftware\s+engineer\b/i.test(title) && !/\b(full\s*-?\s*stack|front\s*-?\s*end|frontend|back\s*-?\s*end|backend|web|site|app)\b/i.test(title)) score -= 60
+    }
   }
 
   if (includesDataTechnologySkill(skillFilters)) {
