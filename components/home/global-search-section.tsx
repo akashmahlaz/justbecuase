@@ -221,9 +221,11 @@ export function GlobalSearchSection() {
       // Only update if this request wasn't cancelled
       if (!controller.signal.aborted) {
         if (data.success) {
-          let filtered = (data.results || []).filter(
-            (r: any) => r.type === "volunteer" || r.type === "ngo" || r.type === "job"
-          )
+          let filtered = (data.results || [])
+            .map((r: any) => ({ ...r, type: r.type === "job" ? "opportunity" : r.type }))
+            .filter(
+              (r: any) => r.type === "volunteer" || r.type === "ngo" || r.type === "opportunity"
+            )
           // Strictly enforce the selected type — only show results matching the tab
           if (type !== "all") {
             filtered = filtered.filter((r: any) => r.type === type)
@@ -388,7 +390,7 @@ export function GlobalSearchSection() {
     switch (result.type) {
       case "volunteer": return `/volunteers/${result.id}`
       case "ngo": return `/ngos/${result.id}`
-      case "opportunity": return `/projects/${result.id}`
+      case "opportunity": return result.id.startsWith("ext-") ? `/projects/ext/${result.id.slice(4)}` : `/projects/${result.id}`
       default: return "#"
     }
   }
