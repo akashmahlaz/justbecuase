@@ -140,6 +140,39 @@ function getMeaningfulQueryTerms(query: string): string[] {
   ))
 }
 
+function getRankQueryTerms(query: string): string[] {
+  const stopWords = new Set(["a", "an", "and", "for", "in", "of", "on", "the", "to", "with"])
+  return Array.from(new Set(
+    query
+      .toLowerCase()
+      .split(/\s+/)
+      .map(normalizeSearchToken)
+      .filter((term) => term.length >= 2 && !stopWords.has(term))
+  ))
+}
+
+function textContainsRankTerm(text: string, term: string): boolean {
+  if (term.length <= 2) {
+    return text
+      .toLowerCase()
+      .split(/[^a-z0-9]+/)
+      .includes(term)
+  }
+
+  return text.toLowerCase().includes(term)
+}
+
+function textContainsPhrase(text: string, phrase: string): boolean {
+  const normalizedPhrase = phrase.toLowerCase().trim().replace(/[^a-z0-9]+/g, " ").trim()
+  if (!normalizedPhrase) return false
+  const escaped = normalizedPhrase.split(/\s+/).map(escapeRegexForSearch).join("[^a-z0-9]+")
+  return new RegExp(`(^|[^a-z0-9])${escaped}($|[^a-z0-9])`, "i").test(text)
+}
+
+function escapeRegexForSearch(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+}
+
 function hasStrongLexicalMatch(result: Record<string, any>, query: string): boolean {
   const terms = getMeaningfulQueryTerms(query)
   if (terms.length <= 1) return true
@@ -166,6 +199,90 @@ function hasStrongLexicalMatch(result: Record<string, any>, query: string): bool
   }
 
   return matchedTerms >= Math.min(2, terms.length)
+}
+
+function getSearchTextParts(result: Record<string, any>): string[] {
+  return [
+    result.title,
+    result.subtitle,
+    result.description,
+    result.location,
+    result.ngoName,
+    ...(Array.isArray(result.skills) ? result.skills : []),
+    ...(Array.isArray(result.skillNames) ? result.skillNames : []),
+    ...(Array.isArray(result.causes) ? result.causes : []),
+    ...(Array.isArray(result.causeNames) ? result.causeNames : []),
+  ].filter((part): part is string => typeof part === "string" && part.trim().length > 0)
+}
+
+function computeRouteRelevance(result: Record<string, any>, query: string): number {
+  const phrase = query.toLowerCase().trim()
+  const terms = getRankQueryTerms(query)
+  const skills = [...asStringArray(result.skills), ...asStringArray(result.skillNames)]
+  const title = String(result.title || "").toLowerCase()
+  const subtitle = String(result.subtitle || "").toLowerCase()
+  const description = String(result.description || "").toLowerCase()
+  const fullText = getSearchTextParts(result).join(" ").toLowerCase()
+  let score = typeof result.score === "number" ? Math.min(result.score, 20) : 0
+
+  if (phrase) {
+    if (skills.some((skill) => textContainsPhrase(skill, phrase))) score += 140
+    if (textContainsPhrase(title, phrase)) score += 120
+    if (textContainsPhrase(subtitle, phrase)) score += 55
+    if (textContainsPhrase(description, phrase)) score += 35
+  }
+
+  if (terms.length > 0) {
+    if (skills.some((skill) => {
+      const normalizedSkill = skill.toLowerCase()
+      return terms.every((term) => textContainsRankTerm(normalizedSkill, term))
+    })) score += 115
+    if (terms.every((term) => textContainsRankTerm(title, term))) score += 80
+    if (terms.every((term) => textContainsRankTerm(fullText, term))) score += 45
+
+    for (const term of terms) {
+      if (skills.some((skill) => textContainsRankTerm(skill, term))) score += 28
+      if (textContainsRankTerm(title, term)) score += 18
+      if (textContainsRankTerm(subtitle, term)) score += 8
+      if (textContainsRankTerm(description, term)) score += 4
+    }
+  }
+
+  if (result.type === "opportunity") score += 4
+  return score
+}
+
+function hasUsableMultiTermEvidence(result: Record<string, any>, query: string): boolean {
+  const terms = getRankQueryTerms(query)
+  if (terms.length <= 1) return true
+
+  const phrase = query.toLowerCase().trim()
+  const parts = getSearchTextParts(result)
+  const fullText = parts.join(" ").toLowerCase()
+  const skills = [...asStringArray(result.skills), ...asStringArray(result.skillNames)]
+
+  return textContainsPhrase(fullText, phrase) ||
+    terms.every((term) => textContainsRankTerm(fullText, term)) ||
+    skills.some((skill) => {
+      const normalizedSkill = skill.toLowerCase()
+      return textContainsPhrase(normalizedSkill, phrase) || terms.every((term) => textContainsRankTerm(normalizedSkill, term))
+    })
+}
+
+function rankSearchResults(results: Record<string, any>[], query: string): Record<string, any>[] {
+  const sorted = [...results].sort((left, right) => computeRouteRelevance(right, query) - computeRouteRelevance(left, query))
+  const terms = getRankQueryTerms(query)
+  if (terms.length <= 1) return sorted
+
+  const strong = sorted.filter((result) => hasUsableMultiTermEvidence(result, query))
+  if (strong.length === 0) return []
+  if (terms.some((term) => term.length <= 2)) return strong
+
+  const strongKeys = new Set(strong.map((result) => `${result.type}:${result.id || result.mongoId || result.userId || result.title || ""}`))
+  return [
+    ...strong,
+    ...sorted.filter((result) => !strongKeys.has(`${result.type}:${result.id || result.mongoId || result.userId || result.title || ""}`)),
+  ]
 }
 
 function mapTypes(types: string[] | undefined): ("volunteer" | "ngo" | "project" | "blog" | "page")[] | undefined {
@@ -212,7 +329,7 @@ function normalizeUnifiedResult(result: Record<string, any>): Record<string, any
   }
 }
 
-function mergeSearchResults(primary: Record<string, any>[], supplemental: Record<string, any>[], limit: number): Record<string, any>[] {
+function mergeSearchResults(primary: Record<string, any>[], supplemental: Record<string, any>[]): Record<string, any>[] {
   const merged: Record<string, any>[] = []
   const seen = new Set<string>()
 
@@ -223,7 +340,6 @@ function mergeSearchResults(primary: Record<string, any>[], supplemental: Record
     if (!id || seen.has(key)) continue
     seen.add(key)
     merged.push({ ...result, type })
-    if (merged.length >= limit) break
   }
 
   return merged
@@ -506,12 +622,12 @@ export async function GET(request: NextRequest) {
           return true
         })
 
-        let responseResults = finalResults
-        if (finalResults.length < limit && mode !== "suggestions") {
+        let responseResults = rankSearchResults(finalResults, query).slice(0, limit)
+        if (mode !== "suggestions" && (finalResults.length < limit || getMeaningfulQueryTerms(query).length > 1)) {
           try {
             const mongoFallbackTypes = rawTypes as ("volunteer" | "ngo" | "opportunity")[] | undefined
-            const mongoResults = await unifiedSearch({ query, types: mongoFallbackTypes, limit: Math.min(limit, 50) })
-            responseResults = mergeSearchResults(finalResults, mongoResults, limit)
+            const mongoResults = await unifiedSearch({ query, types: mongoFallbackTypes, limit: Math.min(Math.max(limit * 2, 20), 50) })
+            responseResults = rankSearchResults(mergeSearchResults(finalResults, mongoResults), query).slice(0, limit)
             if (mongoResults.length > 0) {
               console.log(`🟡 [Search API] Supplemented Algolia ${finalResults.length}/${limit} with ${mongoResults.length} MongoDB results → ${responseResults.length}`)
             }
