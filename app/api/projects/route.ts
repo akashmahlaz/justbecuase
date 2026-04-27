@@ -55,40 +55,76 @@ const SKILL_QUERY_ALIASES: Array<{ ids: string[]; patterns: RegExp[] }> = [
   { ids: ["cms-maintenance"], patterns: [/\bcms\b/i, /\bcms\s*maintenance\b/i] },
   { ids: ["react-nextjs"], patterns: [/\breact\b/i, /\bnext\.?js\b/i] },
   { ids: ["nodejs-backend"], patterns: [/\bnode\.?js\b/i] },
-  { ids: ["webflow-nocode"], patterns: [/\bwebflow\b/i, /\bno\s*code\b/i] },
-  { ids: ["shopify-ecommerce"], patterns: [/\bshopify\b/i, /\be-?commerce\b/i] },
-  { ids: ["api-integration"], patterns: [/\bapi\b/i] },
+  { ids: ["webflow-nocode"], patterns: [/\bwebflow\b/i, /\bno\s*code\b/i, /\bno\s*code\s*(website|site|tool|app)\b/i] },
+  { ids: ["shopify-ecommerce"], patterns: [/\bshopify\b/i, /\be-?commerce\b/i, /\bonline\s*store\b/i] },
+  { ids: ["api-integration"], patterns: [/\bapi\b/i, /\bapi\s*integration\b/i, /\bintegration\b/i] },
   { ids: ["database-management"], patterns: [/\bdatabase\b/i] },
   { ids: ["devops-hosting"], patterns: [/\bdevops\b/i, /\bhosting\b/i] },
   { ids: ["python-scripting"], patterns: [/\bpython\b/i, /\bscripting\b/i, /\bautomation\b/i] },
+  { ids: ["automation-zapier"], patterns: [/\bautomation\b/i, /\bworkflow\s*automation\b/i] },
   {
     ids: ["digital-marketing"],
-    patterns: [/\bdigital\s*marketing\b/i, /\bseo\b/i, /\bgoogle\s*ads\b/i, /\bsocial\s*media\b/i],
+    patterns: [/\bdigital\s*marketing\b/i, /\bemail\s*marketing\b/i, /\bmailchimp\b/i, /\bcrm\b/i, /\bhubspot\b/i, /\bseo\b/i, /\bgoogle\s*ads\b/i, /\bsocial\s*media\b/i, /\bcontent\s*marketing\b/i, /\binfluencer\s*marketing\b/i],
   },
+  { ids: ["email-marketing"], patterns: [/\bemail\s*marketing\b/i, /\bmailchimp\b/i] },
+  { ids: ["crm-management"], patterns: [/\bcrm\b/i, /\bhubspot\b/i, /\bzoho\b/i, /\bsalesforce\b/i] },
+  { ids: ["seo-content"], patterns: [/\bseo\b/i] },
+  { ids: ["ppc-google-ads"], patterns: [/\bgoogle\s*ads\b/i, /\bppc\b/i, /\bpaid\s*search\b/i] },
+  { ids: ["social-media-strategy", "social-media-ads"], patterns: [/\bsocial\s*media\b/i] },
+  { ids: ["content-marketing"], patterns: [/\bcontent\s*marketing\b/i] },
+  { ids: ["influencer-marketing"], patterns: [/\binfluencer\s*marketing\b/i] },
+  { ids: ["analytics-reporting"], patterns: [/\banalytics\s*reporting\b/i, /\bga4\b/i, /\bmeta\s*insights\b/i] },
   {
     ids: ["fundraising"],
-    patterns: [/\bfundraising\b/i, /\bgrant\s*(writing|research)?\b/i, /\bcrowdfunding\b/i, /\bdonor\b/i],
+    patterns: [/\bfundraising\b/i, /\bcrowdfunding\b/i, /\bgrant\s*(writing|research)?\b/i, /\bdonor\b/i, /\bcsr\b/i, /\bsponsorship\b/i],
   },
+  { ids: ["grant-writing"], patterns: [/\bgrant\s*writing\b/i, /\bgrant\s*writer\b/i] },
+  { ids: ["grant-research"], patterns: [/\bgrant\s*research\b/i, /\bgrant\s*researcher\b/i] },
+  { ids: ["donor-management"], patterns: [/\bdonor\s*(database|management|crm)\b/i] },
+  { ids: ["corporate-sponsorship"], patterns: [/\bcorporate\s*sponsorship\b/i, /\bsponsorship\b/i] },
+  { ids: ["csr-partnerships"], patterns: [/\bcsr\s*partnerships?\b/i, /\bcsr\b/i] },
   {
     ids: ["finance"],
     patterns: [/\bfinance\b/i, /\baccounting\b/i, /\bbookkeeping\b/i, /\bpayroll\b/i, /\btax\b/i],
   },
   {
     ids: ["content-creation"],
-    patterns: [/\bcontent\b/i, /\bgraphic\s*design\b/i, /\bvideo\b/i, /\bphotography\b/i, /\bbranding\b/i, /\bpresentation\s*design\b/i, /\bdesign\b/i],
+    patterns: [/\bcontent\s*creation\b/i, /\bgraphic\s*design\b/i, /\bcanva\b/i, /\bfigma\b/i, /\bphotoshop\b/i, /\bvideo\b/i, /\bphotography\b/i, /\bbranding\b/i, /\bpresentation\s*design\b/i],
   },
+  { ids: ["graphic-design"], patterns: [/\bgraphic\s*design\b/i, /\bcanva\b/i, /\bfigma\b/i, /\bphotoshop\b/i] },
+  { ids: ["video-editing", "videography"], patterns: [/\bvideo\s*editing\b/i, /\bvideo\b/i, /\bvideography\b/i] },
+  { ids: ["photography"], patterns: [/\bphotography\b/i, /\bphotographer\b/i] },
+  { ids: ["branding-identity"], patterns: [/\bbranding\b/i, /\bbrand\s*identity\b/i] },
+  { ids: ["presentation-design"], patterns: [/\bpresentation\s*design\b/i, /\bpowerpoint\b/i, /\bgoogle\s*slides\b/i] },
   {
     ids: ["communication"],
-    patterns: [/\bwriting\b/i, /\bwriter\b/i, /\bcopywriting\b/i, /\bcommunications?\b/i, /\bnewsletter\b/i, /\btranslation\b/i, /\bproposal\s*writing\b/i, /\bpress\s*release\b/i, /\bblog\s*(writing|article)?\b/i],
+    patterns: [/\bcommunications?\b/i, /\bwriting\b/i, /\bwriter\b/i, /\bcopywriting\b/i, /\bnewsletter\b/i, /\btranslation\b/i, /\bproposal\s*writing\b/i, /\bpress\s*release\b/i, /\bblog\s*(writing|article)?\b/i, /\bannual\s*report\b/i],
   },
+  { ids: ["email-copywriting", "social-media-copywriting"], patterns: [/\bcopywriting\b/i, /\bcopywriter\b/i] },
+  { ids: ["newsletter-creation"], patterns: [/\bnewsletter\b/i] },
+  { ids: ["translation-localization"], patterns: [/\btranslation\b/i, /\blocalization\b/i] },
+  { ids: ["proposal-writing"], patterns: [/\bproposal\s*writing\b/i, /\brfp\s*writing\b/i] },
+  { ids: ["press-release"], patterns: [/\bpress\s*release\b/i, /\bmedia\s*outreach\b/i] },
+  { ids: ["blog-article-writing"], patterns: [/\bblog\s*(writing|article)?\b/i, /\barticle\s*writing\b/i] },
+  { ids: ["annual-report-writing"], patterns: [/\bannual\s*report\b/i] },
   {
     ids: ["planning-support"],
-    patterns: [/\boperations?\b/i, /\bproject\s*management\b/i, /\bevent\s*planning\b/i, /\blogistics\b/i, /\bdata\s*entry\b/i],
+    patterns: [/\boperations?\b/i, /\bproject\s*management\b/i, /\bprogram\s*management\b/i, /\bevent\s*planning\b/i, /\blogistics\b/i, /\bsupply\s*chain\b/i, /\bdata\s*entry\b/i, /\bvolunteer\s*(recruitment|management)\b/i, /\bresearch\s*surveys?\b/i, /\bmonitoring\s*(?:&|and)?\s*evaluation\b/i, /\bhr\s*recruitment\b/i, /\bhuman\s*resources?\b/i, /\btraining\b/i, /\btrainer\b/i, /\bcapacity\s*building\b/i],
   },
+  { ids: ["event-planning"], patterns: [/\bevent\s*planning\b/i, /\bevent\s*coordination\b/i] },
+  { ids: ["project-management"], patterns: [/\bproject\s*management\b/i, /\bprogram\s*management\b/i] },
+  { ids: ["data-entry"], patterns: [/\bdata\s*entry\b/i] },
+  { ids: ["logistics-management"], patterns: [/\blogistics\b/i, /\bsupply\s*chain\b/i] },
+  { ids: ["volunteer-recruitment"], patterns: [/\bvolunteer\s*recruitment\b/i, /\bvolunteer\s*management\b/i] },
+  { ids: ["research-surveys"], patterns: [/\bresearch\s*surveys?\b/i, /\bsurveys?\b/i] },
+  { ids: ["monitoring-evaluation"], patterns: [/\bmonitoring\s*(?:&|and)?\s*evaluation\b/i, /\bmonitoring\b/i, /\bevaluation\b/i, /\bm\s*&\s*e\b/i] },
+  { ids: ["hr-recruitment"], patterns: [/\bhr\s*recruitment\b/i, /\bhuman\s*resources?\b/i, /\brecruitment\b/i, /\bhiring\b/i] },
+  { ids: ["training-facilitation"], patterns: [/\btraining\s*facilitation\b/i, /\bfacilitation\b/i, /\bworkshop\s*facilitation\b/i, /\btraining\b/i, /\btrainer\b/i, /\bcapacity\s*building\b/i] },
   {
     ids: ["legal"],
     patterns: [/\blegal\b/i, /\bcompliance\b/i, /\bcontract\b/i, /\bpolicy\b/i, /\btrademark\b/i],
   },
+  { ids: ["ngo-registration"], patterns: [/\bngo\s*registration\b/i, /\bnonprofit\s*registration\b/i, /\bcharity\s*registration\b/i] },
   {
     ids: ["data-technology"],
     patterns: [/\bdata\s*&\s*technology\b/i, /\bdata\s+technology\b/i],
@@ -330,6 +366,11 @@ const IDEALIST_DATA_TECH_TAG_PATTERNS = [
 const PROVIDER_TAG_SKILL_PATTERNS: Record<string, RegExp[]> = {
   "html-css": [/^html$/i, /^css$/i, /\bhtml5\b/i, /\bcss3\b/i, /\btailwind\b/i, /\bbootstrap\b/i],
   "cms-maintenance": [/\bcms\b/i, /\bcontent\s*management\b/i, /\bwordpress\b/i, /\bdrupal\b/i, /\bstrapi\b/i, /\bpayloadcms\b/i],
+  "shopify-ecommerce": [/\bshopify\b/i, /\be-?commerce\b/i, /\bonline\s*store\b/i],
+  "webflow-nocode": [/\bwebflow\b/i, /\bno\s*code\b/i],
+  "api-integration": [/\bapi\b/i, /\brest\b/i, /\bgraphql\b/i, /\bintegration\b/i],
+  "database-management": [/\bdatabase\b/i, /\bmongodb\b/i, /\bpostgres(?:ql)?\b/i, /\bmysql\b/i, /\bairtable\b/i],
+  "python-scripting": [/\bpython\b/i, /\bscripting\b/i, /\bautomation\b/i],
 }
 
 function providerTagPatternsFor(skills: string[]): RegExp[] {
@@ -338,10 +379,21 @@ function providerTagPatternsFor(skills: string[]): RegExp[] {
 }
 
 function providerCategoryFallbacksFor(skills: string[]): string[] {
-  if (skills.includes("website")) return []
   const categories = new Set<string>()
-  if (skills.some((skill) => skill === "html-css" || skill === "cms-maintenance")) categories.add("website")
+  for (const skill of skills) {
+    for (const [categoryId, categorySkills] of Object.entries(SKILL_FILTER_EXPANSIONS)) {
+      if (skill !== categoryId && categorySkills.includes(skill)) categories.add(categoryId)
+    }
+  }
   return [...categories]
+}
+
+function queryFallbackEvidencePatternsFor(skills: string[]): RegExp[] {
+  const patterns: RegExp[] = []
+  if (skills.includes("webflow-nocode")) patterns.push(/\bweb\s*(design|designer|development|developer)\b/i, /\bwebsite\b/i, /\bno\s*code\b/i)
+  if (skills.includes("shopify-ecommerce")) patterns.push(/\be-?commerce\b/i, /\bonline\s*store\b/i, /\bwebsite\b/i)
+  if (skills.includes("ngo-registration")) patterns.push(/\bregistration\b/i, /\bnonprofit\b/i, /\btax-?exempt\b/i, /\bcharity\b/i)
+  return patterns
 }
 
 function dataTechnologyEvidencePatternsFor(filters: { query: string }, skillFilters: string[]) {
@@ -394,22 +446,22 @@ function websiteEvidencePatternsFor(filters: { query: string }, skillFilters: st
     return [/\bnode\.?js\b/i]
   }
   if (skillFilters.includes("webflow-nocode") && /\b(webflow|no\s*code)\b/i.test(query)) {
-    return [/\bwebflow\b/i, /\bno\s*code\b/i]
+    return [/\bwebflow\b/i, /\bno\s*code\b/i, /\bwebsite\b/i, /\bweb\s*(dev|developer|development|site|design)\b/i]
   }
   if (skillFilters.includes("shopify-ecommerce") && /\b(shopify|e-?commerce)\b/i.test(query)) {
-    return [/\bshopify\b/i, /\be-?commerce\b/i]
+    return [/\bshopify\b/i, /\be-?commerce\b/i, /\bonline\s*store\b/i, /\bwebsite\b/i, /\bweb\s*(dev|developer|development|site|design)\b/i]
   }
   if (skillFilters.includes("api-integration") && /\bapi\b/i.test(query)) {
-    return [/\bapi\b/i]
+    return [/\bapi\b/i, /\bintegration\b/i, /\bback\s*-?\s*end\b/i, /\bbackend\b/i, /\bfull\s*-?\s*stack\b/i, /\bsoftware\s+(developer|engineer)\b/i]
   }
   if (skillFilters.includes("database-management") && /\bdatabase\b/i.test(query)) {
-    return [/\bdatabase\b/i]
+    return [/\bdatabase\b/i, /\bdata\s*(engineer|developer|management)\b/i, /\bback\s*-?\s*end\b/i, /\bbackend\b/i, /\bfull\s*-?\s*stack\b/i]
   }
   if (skillFilters.includes("devops-hosting") && /\b(devops|hosting)\b/i.test(query)) {
     return [/\bdevops\b/i, /\bhosting\b/i]
   }
   if (skillFilters.includes("python-scripting") && /\b(python|scripting|automation)\b/i.test(query)) {
-    return [/\bpython\b/i, /\bscripting\b/i, /\bautomation\b/i]
+    return [/\bpython\b/i, /\bscripting\b/i, /\bautomation\b/i, /\bback\s*-?\s*end\b/i, /\bbackend\b/i, /\bsoftware\s+(developer|engineer)\b/i]
   }
 
   return WEBSITE_EVIDENCE_PATTERNS
@@ -637,6 +689,7 @@ function buildExternalFilter(filters: {
     const queryEffectiveSkills = effectiveSkillFilters(filters)
     const queryProviderTagPatterns = providerTagPatternsFor(queryEffectiveSkills)
     const queryProviderCategoryFallbacks = providerCategoryFallbacksFor(queryEffectiveSkills)
+    const queryFallbackEvidencePatterns = queryFallbackEvidencePatternsFor(queryEffectiveSkills)
     const textFields = [
       "title",
       "description",
@@ -647,13 +700,11 @@ function buildExternalFilter(filters: {
       ...(queryProviderTagPatterns.length > 0 ? ["skillTags"] : []),
     ]
     if (termPatterns.length > 0) {
-      const termConditions = termPatterns.flatMap((pattern) => textFields.map((field) => ({ [field]: pattern })))
-      const queryTermFilters = queryProviderTagPatterns.length > 0 || queryProviderCategoryFallbacks.length > 0
+      const evidencePatterns = [...termPatterns, ...queryFallbackEvidencePatterns]
+      const termConditions = evidencePatterns.flatMap((pattern) => textFields.map((field) => ({ [field]: pattern })))
+      const queryTermFilters = queryFallbackEvidencePatterns.length > 0
         ? [{
-          $or: [
-            ...termConditions,
-            ...queryProviderCategoryFallbacks.map((categoryId) => ({ "skillsRequired.categoryId": categoryId })),
-          ],
+          $or: termConditions,
         }]
         : termPatterns.map((pattern) => ({
           $or: textFields.map((field) => ({ [field]: pattern })),
@@ -683,17 +734,19 @@ function buildExternalFilter(filters: {
     const parentCategoryFilters = skillFilters.filter((skill) => PARENT_CATEGORY_IDS.has(skill))
     const queryProviderTagPatterns = filters.querySkills.length > 0 ? providerTagPatternsFor(skillFilters) : []
     const queryProviderCategoryFallbacks = filters.querySkills.length > 0 ? providerCategoryFallbacksFor(skillFilters) : []
-    const skillMatchConditions = [
-      ...(parentCategoryFilters.length > 0 ? [{ "skillsRequired.categoryId": { $in: parentCategoryFilters } }] : []),
-      ...(queryProviderCategoryFallbacks.length > 0 ? [{ "skillsRequired.categoryId": { $in: queryProviderCategoryFallbacks } }] : []),
-      { "skillsRequired.subskillId": { $in: skillFilters } },
-      ...queryProviderTagPatterns.map((pattern) => ({ skillTags: pattern })),
-    ]
+    if (filters.skills.length > 0) {
+      const skillMatchConditions = [
+        ...(parentCategoryFilters.length > 0 ? [{ "skillsRequired.categoryId": { $in: parentCategoryFilters } }] : []),
+        ...(queryProviderCategoryFallbacks.length > 0 ? [{ "skillsRequired.categoryId": { $in: queryProviderCategoryFallbacks } }] : []),
+        { "skillsRequired.subskillId": { $in: skillFilters } },
+        ...queryProviderTagPatterns.map((pattern) => ({ skillTags: pattern })),
+      ]
 
-    filter.$and = [
-      ...((filter.$and as any[]) || []),
-      { $or: skillMatchConditions },
-    ]
+      filter.$and = [
+        ...((filter.$and as any[]) || []),
+        { $or: skillMatchConditions },
+      ]
+    }
 
     if (includesWebsiteSkill(skillFilters)) {
       const evidencePatterns = websiteEvidencePatternsFor(filters, skillFilters)
@@ -809,6 +862,20 @@ function relevanceScore(project: any, filters: {
     if (textMatches(title, queryRegex)) score += 80
     if (textMatches(skills, queryRegex)) score += 60
     if (textMatches(description, queryRegex)) score += 20
+
+    const queryTerms = meaningfulQueryTerms(query).map(tokenBoundaryPattern)
+    if (queryTerms.length > 0) {
+      let titleTermMatches = 0
+      for (const pattern of queryTerms) {
+        if (textMatches(title, pattern)) {
+          score += 35
+          titleTermMatches += 1
+        }
+        if (textMatches(skills, pattern)) score += 20
+        if (textMatches(description, pattern)) score += 5
+      }
+      if (titleTermMatches === queryTerms.length) score += 70
+    }
   }
 
   for (const skill of skillFilters) {
