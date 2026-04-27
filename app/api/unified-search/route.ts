@@ -5,6 +5,7 @@ import { unifiedSearch, getSearchSuggestions } from "@/lib/search-indexes"
 import { trackEvent } from "@/lib/analytics"
 import { isESAvailable, markESFailed } from "@/lib/elasticsearch"
 import { getAlgoliaSearchClient, ALGOLIA_INDEXES } from "@/lib/algolia"
+import { skillCategories, causes as causeList } from "@/lib/skills-data"
 
 // ============================================
 // Unified Search API — Algolia-first, ES + MongoDB fallback
@@ -12,6 +13,35 @@ import { getAlgoliaSearchClient, ALGOLIA_INDEXES } from "@/lib/algolia"
 
 const ALGOLIA_ENABLED = !!(process.env.NEXT_PUBLIC_ALGOLIA_APP_ID && process.env.NEXT_PUBLIC_ALGOLIA_SEARCH_KEY)
 const ELASTICSEARCH_ENABLED = !!(process.env.ELASTICSEARCH_URL && process.env.ELASTICSEARCH_API_KEY)
+
+const SKILL_ID_TO_NAME = new Map<string, string>()
+const SKILL_NAME_TO_ID = new Map<string, string>()
+const SKILL_ID_TO_CATEGORY_ID = new Map<string, string>()
+const SKILL_ID_TO_CATEGORY_NAME = new Map<string, string>()
+const CATEGORY_ID_TO_NAME = new Map<string, string>()
+const CATEGORY_NAME_TO_ID = new Map<string, string>()
+const CAUSE_ID_TO_NAME = new Map<string, string>()
+const CAUSE_NAME_TO_ID = new Map<string, string>()
+
+function normalizeLookupKey(value: string): string {
+  return value.toLowerCase().trim()
+}
+
+for (const category of skillCategories) {
+  CATEGORY_ID_TO_NAME.set(category.id, category.name)
+  CATEGORY_NAME_TO_ID.set(normalizeLookupKey(category.name), category.id)
+  for (const subskill of category.subskills) {
+    SKILL_ID_TO_NAME.set(subskill.id, subskill.name)
+    SKILL_NAME_TO_ID.set(normalizeLookupKey(subskill.name), subskill.id)
+    SKILL_ID_TO_CATEGORY_ID.set(subskill.id, category.id)
+    SKILL_ID_TO_CATEGORY_NAME.set(subskill.id, category.name)
+  }
+}
+
+for (const cause of causeList) {
+  CAUSE_ID_TO_NAME.set(cause.id, cause.name)
+  CAUSE_NAME_TO_ID.set(normalizeLookupKey(cause.name), cause.id)
+}
 
 function parseHoursPerWeekUpperBound(value: unknown): number | null {
   if (typeof value === "number" && Number.isFinite(value)) return value
@@ -152,14 +182,17 @@ function getRankQueryTerms(query: string): string[] {
 }
 
 function textContainsRankTerm(text: string, term: string): boolean {
+  const normalizedText = text.toLowerCase().replace(/[^a-z0-9]+/g, " ")
+  const compactText = normalizedText.replace(/\s+/g, "")
+  const normalizedTerm = term.toLowerCase().replace(/[^a-z0-9]+/g, "")
+
   if (term.length <= 2) {
-    return text
-      .toLowerCase()
+    return normalizedText
       .split(/[^a-z0-9]+/)
-      .includes(term)
+      .includes(normalizedTerm)
   }
 
-  return text.toLowerCase().includes(term)
+  return normalizedText.includes(term.toLowerCase()) || compactText.includes(normalizedTerm)
 }
 
 function textContainsPhrase(text: string, phrase: string): boolean {
@@ -300,6 +333,109 @@ function asStringArray(value: unknown): string[] {
     : []
 }
 
+function normalizeFilterList(value: unknown): string[] {
+  if (Array.isArray(value)) {
+    return value
+      .filter((item): item is string => typeof item === "string" && item.trim().length > 0)
+      .map((item) => item.trim())
+  }
+  if (typeof value === "string" && value.trim().length > 0) return [value.trim()]
+  return []
+}
+
+function normalizeSearchFilters(filters: Record<string, any> | undefined): Record<string, any> | undefined {
+  if (!filters) return undefined
+
+  const normalized: Record<string, any> = { ...filters }
+  const skillIds = new Set<string>()
+  const skillNames = new Set<string>()
+  const skillCategoryIds = new Set<string>()
+  const skillCategoryNames = new Set<string>()
+  const causeIds = new Set<string>()
+  const causeNames = new Set<string>()
+
+  for (const value of normalizeFilterList(filters.skills)) {
+    const key = normalizeLookupKey(value)
+    const skillId = SKILL_ID_TO_NAME.has(value) ? value : SKILL_NAME_TO_ID.get(key)
+    const categoryId = CATEGORY_ID_TO_NAME.has(value) ? value : CATEGORY_NAME_TO_ID.get(key)
+
+    if (skillId) {
+      skillIds.add(skillId)
+      skillNames.add(SKILL_ID_TO_NAME.get(skillId) || value)
+      const parentCategoryId = SKILL_ID_TO_CATEGORY_ID.get(skillId)
+      const parentCategoryName = SKILL_ID_TO_CATEGORY_NAME.get(skillId)
+      if (parentCategoryId) skillCategoryIds.add(parentCategoryId)
+      if (parentCategoryName) skillCategoryNames.add(parentCategoryName)
+    } else if (categoryId) {
+      skillCategoryIds.add(categoryId)
+      skillCategoryNames.add(CATEGORY_ID_TO_NAME.get(categoryId) || value)
+    } else {
+      skillNames.add(value)
+    }
+  }
+
+  for (const value of normalizeFilterList(filters.skillCategories || filters.skillCategory || filters.categories)) {
+    const key = normalizeLookupKey(value)
+    const categoryId = CATEGORY_ID_TO_NAME.has(value) ? value : CATEGORY_NAME_TO_ID.get(key)
+    if (categoryId) {
+      skillCategoryIds.add(categoryId)
+      skillCategoryNames.add(CATEGORY_ID_TO_NAME.get(categoryId) || value)
+    } else {
+      skillCategoryNames.add(value)
+    }
+  }
+
+  for (const value of normalizeFilterList(filters.causes)) {
+    const key = normalizeLookupKey(value)
+    const causeId = CAUSE_ID_TO_NAME.has(value) ? value : CAUSE_NAME_TO_ID.get(key)
+    if (causeId) {
+      causeIds.add(causeId)
+      causeNames.add(CAUSE_ID_TO_NAME.get(causeId) || value)
+    } else {
+      causeNames.add(value)
+    }
+  }
+
+  if (skillIds.size > 0) normalized.skills = [...skillIds]
+  if (skillNames.size > 0) normalized.skillNames = [...skillNames]
+  if (skillCategoryIds.size > 0) normalized.skillCategories = [...skillCategoryIds]
+  if (skillCategoryNames.size > 0) normalized.skillCategoryNames = [...skillCategoryNames]
+  if (causeIds.size > 0) normalized.causes = [...causeIds]
+  if (causeNames.size > 0) normalized.causeNames = [...causeNames]
+
+  return normalized
+}
+
+function hasSearchFilters(filters: Record<string, any> | undefined): boolean {
+  if (!filters) return false
+  return Object.keys(filters).some((key) => {
+    const value = filters[key]
+    if (Array.isArray(value)) return value.length > 0
+    return value !== undefined && value !== null && value !== ""
+  })
+}
+
+function canMongoSupplementFilters(filters: Record<string, any> | undefined): boolean {
+  if (!hasSearchFilters(filters)) return true
+  const mongoSupportedKeys = new Set([
+    "skills",
+    "skillNames",
+    "skillCategories",
+    "skillCategory",
+    "skillCategoryNames",
+    "categories",
+    "causes",
+    "causeNames",
+  ])
+
+  return Object.keys(filters || {}).every((key) => {
+    const value = filters?.[key]
+    if (Array.isArray(value)) return value.length === 0 || mongoSupportedKeys.has(key)
+    if (value === undefined || value === null || value === "") return true
+    return mongoSupportedKeys.has(key)
+  })
+}
+
 function normalizeUnifiedResult(result: Record<string, any>): Record<string, any> {
   const type = mapResultType(result.type || "")
   const skillNames = asStringArray(result.skillNames).length > 0 ? asStringArray(result.skillNames) : asStringArray(result.skills)
@@ -397,6 +533,7 @@ export async function GET(request: NextRequest) {
     filters = Object.keys(inferredFilters).length > 0
       ? { ...inferredFilters, ...(filters || {}) }
       : filters
+    filters = normalizeSearchFilters(filters)
     if (filters) console.log(`🔍 [Search API] Filters:`, JSON.stringify(filters))
 
     // ---- ALGOLIA ENGINE (PRIMARY) ----
@@ -481,7 +618,7 @@ export async function GET(request: NextRequest) {
 
         // Full search — multi-index
         console.log(`🟢 [Search API] FULL SEARCH mode`)
-        const facetFilters: string[] = []
+        const facetFilters: Array<string | string[]> = []
         const numericFilters: string[] = []
         if (filters) {
           if (filters.workMode) facetFilters.push(`workMode:${filters.workMode}`)
@@ -495,12 +632,16 @@ export async function GET(request: NextRequest) {
             numericFilters.push(`rating>=${filters.minRating}`)
           }
           if (filters.causes) {
-            const causeList = Array.isArray(filters.causes) ? filters.causes : [filters.causes]
-            for (const c of causeList) facetFilters.push(`causeNames:${c}`)
+            const normalizedCauses = normalizeFilterList(filters.causeNames).length > 0 ? normalizeFilterList(filters.causeNames) : normalizeFilterList(filters.causes)
+            if (normalizedCauses.length > 0) facetFilters.push(normalizedCauses.map((cause) => `causeNames:${cause}`))
           }
           if (filters.skills) {
-            const skillList = Array.isArray(filters.skills) ? filters.skills : [filters.skills]
-            for (const s of skillList) facetFilters.push(`skillNames:${s}`)
+            const normalizedSkills = normalizeFilterList(filters.skillNames).length > 0 ? normalizeFilterList(filters.skillNames) : normalizeFilterList(filters.skills)
+            if (normalizedSkills.length > 0) facetFilters.push(normalizedSkills.map((skill) => `skillNames:${skill}`))
+          }
+          if (filters.skillCategories || filters.skillCategoryNames) {
+            const normalizedCategories = normalizeFilterList(filters.skillCategoryNames).length > 0 ? normalizeFilterList(filters.skillCategoryNames) : normalizeFilterList(filters.skillCategories)
+            if (normalizedCategories.length > 0) facetFilters.push(normalizedCategories.map((category) => `skillCategories:${category}`))
           }
         }
 
@@ -623,10 +764,10 @@ export async function GET(request: NextRequest) {
         })
 
         let responseResults = rankSearchResults(finalResults, query).slice(0, limit)
-        if (mode !== "suggestions" && (finalResults.length < limit || getMeaningfulQueryTerms(query).length > 1)) {
+        if (canMongoSupplementFilters(filters) && mode !== "suggestions" && (finalResults.length < limit || getMeaningfulQueryTerms(query).length > 1)) {
           try {
             const mongoFallbackTypes = rawTypes as ("volunteer" | "ngo" | "opportunity")[] | undefined
-            const mongoResults = await unifiedSearch({ query, types: mongoFallbackTypes, limit: Math.min(Math.max(limit * 2, 20), 50) })
+            const mongoResults = await unifiedSearch({ query, types: mongoFallbackTypes, filters, limit: Math.min(Math.max(limit * 2, 20), 50) })
             responseResults = rankSearchResults(mergeSearchResults(finalResults, mongoResults), query).slice(0, limit)
             if (mongoResults.length > 0) {
               console.log(`🟡 [Search API] Supplemented Algolia ${finalResults.length}/${limit} with ${mongoResults.length} MongoDB results → ${responseResults.length}`)

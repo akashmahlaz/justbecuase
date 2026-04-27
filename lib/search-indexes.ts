@@ -334,6 +334,75 @@ function getSkillCategoryIds(skillIds: string[]): string[] {
   ))
 }
 
+const SKILL_NAME_TO_CATEGORY_NAME = new Map<string, string>()
+const SKILL_NAME_TO_ID = new Map<string, string>()
+const CATEGORY_ID_TO_NAME = new Map<string, string>()
+const CAUSE_ID_TO_NAME = new Map<string, string>()
+
+for (const category of SKILL_CATEGORIES) {
+  CATEGORY_ID_TO_NAME.set(category.id, category.name)
+  for (const subskill of category.subskills) {
+    SKILL_NAME_TO_CATEGORY_NAME.set(subskill.name.toLowerCase(), category.name)
+    SKILL_NAME_TO_ID.set(subskill.name.toLowerCase(), subskill.id)
+  }
+}
+
+for (const cause of CAUSE_LIST) {
+  CAUSE_ID_TO_NAME.set(cause.id, cause.name)
+}
+
+function filterValueList(value: unknown): string[] {
+  if (Array.isArray(value)) return value.filter((item): item is string => typeof item === "string" && item.trim().length > 0)
+  if (typeof value === "string" && value.trim().length > 0) return [value]
+  return []
+}
+
+function resultMatchesFilters(result: SearchResult, filters?: Record<string, any>): boolean {
+  if (!filters) return true
+
+  const skillNames = (result.skills || []).map((skill) => skill.toLowerCase())
+  const resultSkillIds = new Set(skillNames.map((skill) => SKILL_NAME_TO_ID.get(skill)).filter(Boolean))
+  const resultCategoryNames = new Set(skillNames.map((skill) => SKILL_NAME_TO_CATEGORY_NAME.get(skill)).filter(Boolean))
+  for (const skill of skillNames) {
+    const categoryName = CATEGORY_ID_TO_NAME.get(skill)
+    if (categoryName) resultCategoryNames.add(categoryName)
+    if (Array.from(CATEGORY_ID_TO_NAME.values()).some((name) => name.toLowerCase() === skill)) resultCategoryNames.add(skill)
+  }
+  const resultCauseNames = new Set((result as any).causes?.map((cause: string) => cause.toLowerCase()) || [])
+
+  const requestedSkillIds = filterValueList(filters.skills)
+  const requestedSkillNames = filterValueList(filters.skillNames).map((skill) => skill.toLowerCase())
+  if (requestedSkillIds.length > 0 && !requestedSkillIds.some((skillId) => resultSkillIds.has(skillId) || skillNames.includes(getSkillDisplayName(skillId).toLowerCase()))) {
+    return false
+  }
+  if (requestedSkillNames.length > 0 && !requestedSkillNames.some((skillName) => skillNames.includes(skillName))) {
+    return false
+  }
+
+  const requestedCategoryNames = filterValueList(filters.skillCategoryNames)
+  const requestedCategoryIds = filterValueList(filters.skillCategories)
+  const normalizedCategoryNames = new Set([
+    ...requestedCategoryNames,
+    ...requestedCategoryIds.map((categoryId) => CATEGORY_ID_TO_NAME.get(categoryId) || categoryId),
+  ].map((category) => category.toLowerCase()))
+  if (normalizedCategoryNames.size > 0) {
+    const lowerResultCategories = new Set(Array.from(resultCategoryNames).map((category) => String(category).toLowerCase()))
+    if (!Array.from(normalizedCategoryNames).some((category) => lowerResultCategories.has(category))) return false
+  }
+
+  const requestedCauseNames = filterValueList(filters.causeNames)
+  const requestedCauseIds = filterValueList(filters.causes)
+  const normalizedCauseNames = new Set([
+    ...requestedCauseNames,
+    ...requestedCauseIds.map((causeId) => CAUSE_ID_TO_NAME.get(causeId) || causeId),
+  ].map((cause) => cause.toLowerCase()))
+  if (normalizedCauseNames.size > 0 && resultCauseNames.size > 0) {
+    if (!Array.from(normalizedCauseNames).some((cause) => resultCauseNames.has(cause))) return false
+  }
+
+  return true
+}
+
 // ============================================
 // INDEX MANAGEMENT
 // ============================================
@@ -449,6 +518,7 @@ export interface SearchResult {
   description?: string
   location?: string
   skills?: string[]
+  causes?: string[]
   score: number
   avatar?: string
   verified?: boolean
@@ -459,6 +529,7 @@ export interface UnifiedSearchParams {
   query: string
   types?: ("volunteer" | "ngo" | "opportunity")[]
   limit?: number
+  filters?: Record<string, any>
 }
 
 export interface SearchSuggestionsParams {
@@ -928,6 +999,7 @@ function mapUserToResult(user: any, searchTerms: string[]): SearchResult {
       subtitle,
       location: user.location || user.city,
       skills: parseSkillDisplayNames(user.skills),
+      causes: parseCauses(user.causes).map(getCauseDisplayName),
       score: user.score ?? computeRelevanceScore(user, searchTerms),
       avatar: user.image || user.avatar,
       matchedField,
@@ -954,6 +1026,7 @@ function mapUserToResult(user: any, searchTerms: string[]): SearchResult {
     title: user.organizationName || user.orgName || user.name || "Organization",
     subtitle,
     location: user.location || user.city,
+    causes: parseCauses(user.causes).map(getCauseDisplayName),
     score: user.score ?? computeRelevanceScore(user, searchTerms),
     avatar: user.logo || user.image,
     verified: user.isVerified,
@@ -985,6 +1058,7 @@ function mapProjectToResult(project: any, searchTerms: string[]): SearchResult {
     description: project.description?.slice(0, 100),
     location: project.workMode === "remote" ? "Remote" : project.location,
     skills,
+    causes: parseCauses(project.causes).map(getCauseDisplayName),
     score: project.score ?? computeRelevanceScore(project, searchTerms),
     matchedField: findMatchedField(project, searchTerms),
   }
@@ -1008,6 +1082,7 @@ function mapExternalOpportunityToResult(opportunity: any, searchTerms: string[])
     description: (opportunity.shortDescription || opportunity.description || "").slice(0, 100),
     location: opportunity.workMode === "remote" ? "Remote" : (opportunity.location || opportunity.country),
     skills,
+    causes: parseCauses(opportunity.causes).map(getCauseDisplayName),
     score: opportunity.score ?? computeRelevanceScore(opportunity, searchTerms),
     matchedField: findMatchedField(opportunity, searchTerms),
   }
@@ -1091,11 +1166,16 @@ function expandResultSkillIds(skillIds: string[]): string[] {
   return [...expanded]
 }
 
-function buildExternalOpportunityTermFilter(searchTerms: string[]): Record<string, any> {
+function buildExternalOpportunityTermFilter(searchTerms: string[], filters?: Record<string, any>): Record<string, any> {
   const andConditions: any[] = []
   const matchedSkillIds = expandResultSkillIds(findMatchingSkillIds(searchTerms))
   const matchedSkillCategoryIds = getSkillCategoryIds(matchedSkillIds)
   const matchedCauseIds = findMatchingCauseIds(searchTerms)
+  const requestedSkillIds = filterValueList(filters?.skills)
+  const requestedSkillNames = filterValueList(filters?.skillNames)
+  const requestedCategoryIds = filterValueList(filters?.skillCategories)
+  const requestedCategoryNames = filterValueList(filters?.skillCategoryNames)
+  const requestedCauseIds = filterValueList(filters?.causes)
 
   for (const term of getMeaningfulSearchTerms(searchTerms)) {
     if (term.length < 2) continue
@@ -1148,6 +1228,26 @@ function buildExternalOpportunityTermFilter(searchTerms: string[]): Record<strin
     })
   }
 
+  if (requestedSkillIds.length > 0 || requestedSkillNames.length > 0 || requestedCategoryIds.length > 0 || requestedCategoryNames.length > 0) {
+    const skillFilterPatterns = [...requestedSkillIds, ...requestedSkillNames, ...requestedCategoryIds, ...requestedCategoryNames].map((value) => new RegExp(escapeRegex(value), "i"))
+    andConditions.push({
+      $or: [
+        ...(requestedSkillIds.length > 0 ? [{ "skillsRequired.subskillId": { $in: requestedSkillIds } }] : []),
+        ...(requestedCategoryIds.length > 0 ? [{ "skillsRequired.categoryId": { $in: requestedCategoryIds } }] : []),
+        ...skillFilterPatterns.flatMap((pattern) => [
+          { skillTags: pattern },
+          { title: pattern },
+          { "skillsRequired.subskillId": pattern },
+          { "skillsRequired.categoryId": pattern },
+        ]),
+      ],
+    })
+  }
+
+  if (requestedCauseIds.length > 0) {
+    andConditions.push({ causes: { $in: requestedCauseIds } })
+  }
+
   return andConditions.length > 0 ? { $and: andConditions } : {}
 }
 
@@ -1155,11 +1255,12 @@ async function externalOpportunitySearch(
   db: any,
   types: string[],
   limit: number,
-  searchTerms: string[]
+  searchTerms: string[],
+  filters?: Record<string, any>
 ): Promise<SearchResult[]> {
   if (!types.includes("opportunity")) return []
 
-  const filter = buildExternalOpportunityTermFilter(searchTerms)
+  const filter = buildExternalOpportunityTermFilter(searchTerms, filters)
   const opportunities = await db.collection("externalOpportunities")
     .find({
       isActive: true,
@@ -1167,7 +1268,7 @@ async function externalOpportunitySearch(
     })
     .project(EXTERNAL_OPPORTUNITY_PROJECTION)
     .sort({ postedDate: -1, scrapedAt: -1 })
-    .limit(Math.max(limit * 3, 30))
+    .limit(Math.max(limit * 5, filters ? 100 : 30))
     .toArray()
 
   return opportunities
@@ -1728,7 +1829,7 @@ async function fuzzyFallbackSearch(
 // ============================================
 
 export async function unifiedSearch(params: UnifiedSearchParams): Promise<SearchResult[]> {
-  const { query, types = ["volunteer", "ngo", "opportunity"], limit = 20 } = params
+  const { query, types = ["volunteer", "ngo", "opportunity"], limit = 20, filters } = params
 
   const trimmed = query?.trim()
   if (!trimmed || trimmed.length < 1) return []
@@ -1785,10 +1886,11 @@ export async function unifiedSearch(params: UnifiedSearchParams): Promise<Search
       addResults(fuzzyResults)
     }
 
-    const externalResults = await externalOpportunitySearch(db, types, limit, searchTerms)
+    const externalResults = await externalOpportunitySearch(db, types, limit, searchTerms, filters)
     addResults(externalResults)
 
     const allResults = Array.from(resultMap.values()).filter((result) => {
+      if (!resultMatchesFilters(result, filters)) return false
       if (searchTerms.length <= 1) return true
       return result.score >= 5
     })
