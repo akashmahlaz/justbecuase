@@ -212,6 +212,23 @@ function normalizeUnifiedResult(result: Record<string, any>): Record<string, any
   }
 }
 
+function mergeSearchResults(primary: Record<string, any>[], supplemental: Record<string, any>[], limit: number): Record<string, any>[] {
+  const merged: Record<string, any>[] = []
+  const seen = new Set<string>()
+
+  for (const result of [...primary, ...supplemental]) {
+    const type = mapResultType(result.type || "")
+    const id = result.id || result.mongoId || result.userId || result.title || ""
+    const key = `${type}:${id}`
+    if (!id || seen.has(key)) continue
+    seen.add(key)
+    merged.push({ ...result, type })
+    if (merged.length >= limit) break
+  }
+
+  return merged
+}
+
 export async function GET(request: NextRequest) {
   const startTime = Date.now()
   try {
@@ -489,21 +506,35 @@ export async function GET(request: NextRequest) {
           return true
         })
 
+        let responseResults = finalResults
+        if (finalResults.length < limit && mode !== "suggestions") {
+          try {
+            const mongoFallbackTypes = rawTypes as ("volunteer" | "ngo" | "opportunity")[] | undefined
+            const mongoResults = await unifiedSearch({ query, types: mongoFallbackTypes, limit: Math.min(limit, 50) })
+            responseResults = mergeSearchResults(finalResults, mongoResults, limit)
+            if (mongoResults.length > 0) {
+              console.log(`🟡 [Search API] Supplemented Algolia ${finalResults.length}/${limit} with ${mongoResults.length} MongoDB results → ${responseResults.length}`)
+            }
+          } catch (mongoErr) {
+            console.error("[Search API] MongoDB supplement failed:", mongoErr)
+          }
+        }
+
         const took = Date.now() - startTime
-        console.log(`🟢 [Search API] ✅ FULL SEARCH DONE — ${finalResults.length} results in ${took}ms (Algolia: ${algoliaMs}ms)`)
-        for (const r of finalResults.slice(0, 10)) {
+        console.log(`🟢 [Search API] ✅ FULL SEARCH DONE — ${responseResults.length} results in ${took}ms (Algolia: ${algoliaMs}ms)`)
+        for (const r of responseResults.slice(0, 10)) {
           console.log(`   📌 [${r.type}] "${r.title}" — skills: [${(r.skills || []).slice(0, 3).join(", ")}] — ${r.location || "no location"} [id: ${r.id}]`)
         }
-        if (finalResults.length > 10) console.log(`   ... and ${finalResults.length - 10} more`)
+        if (responseResults.length > 10) console.log(`   ... and ${responseResults.length - 10} more`)
         console.log(`🔍 [Search API] ==========================================\n`)
-        trackEvent("search", "query", { metadata: { query: rawQuery, normalizedQuery: query, engine: "algolia", count: finalResults.length, took } })
+        trackEvent("search", "query", { metadata: { query: rawQuery, normalizedQuery: query, engine: "algolia", count: responseResults.length, took } })
 
         return NextResponse.json({
           success: true,
-          results: finalResults.slice(0, limit).map(normalizeUnifiedResult),
+          results: responseResults.slice(0, limit).map(normalizeUnifiedResult),
           query: rawQuery,
           normalizedQuery: query,
-          count: finalResults.length,
+          count: responseResults.length,
           took,
           engine: "algolia",
         })

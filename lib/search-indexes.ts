@@ -968,6 +968,29 @@ function mapProjectToResult(project: any, searchTerms: string[]): SearchResult {
   }
 }
 
+function mapExternalOpportunityToResult(opportunity: any, searchTerms: string[]): SearchResult {
+  let subtitle = opportunity.workMode === "remote" ? "Remote" : (opportunity.location || opportunity.country || "Opportunity")
+  if (opportunity.organization) subtitle += ` · ${opportunity.organization}`
+
+  const skills = Array.isArray(opportunity.skillsRequired) && opportunity.skillsRequired.length > 0
+    ? opportunity.skillsRequired.slice(0, 5).map((skill: any) => getSkillDisplayName(skill.subskillId || skill.categoryId || ""))
+    : Array.isArray(opportunity.skillTags)
+      ? opportunity.skillTags.slice(0, 5)
+      : []
+
+  return {
+    type: "opportunity",
+    id: `ext-${opportunity._id.toString()}`,
+    title: opportunity.title,
+    subtitle,
+    description: (opportunity.shortDescription || opportunity.description || "").slice(0, 100),
+    location: opportunity.workMode === "remote" ? "Remote" : (opportunity.location || opportunity.country),
+    skills,
+    score: opportunity.score ?? computeRelevanceScore(opportunity, searchTerms),
+    matchedField: findMatchedField(opportunity, searchTerms),
+  }
+}
+
 // ============================================
 // PROJECTIONS
 // ============================================
@@ -1002,6 +1025,15 @@ const PROJECT_PROJECTION = {
   experienceLevel: 1, ngoId: 1,
 }
 
+const EXTERNAL_OPPORTUNITY_PROJECTION = {
+  _id: 1, title: 1, description: 1, shortDescription: 1,
+  organization: 1, location: 1, city: 1, country: 1,
+  skillsRequired: 1, skillTags: 1, causes: 1,
+  workMode: 1, timeCommitment: 1, duration: 1,
+  projectType: 1, compensationType: 1, experienceLevel: 1,
+  sourceplatform: 1, sourceUrl: 1, postedDate: 1, scrapedAt: 1,
+}
+
 // ============================================
 // SEARCH STRATEGIES
 // ============================================
@@ -1018,6 +1050,110 @@ function filterProjectsBySkills(projects: any[], skillIds: string[]): any[] {
       skillIds.includes(s.subskillId) || skillIds.includes(s.categoryId)
     )
   })
+}
+
+const SKILL_RESULT_EXPANSIONS: Record<string, string[]> = {
+  "grant-research": ["grant-research", "grant-writing", "proposal-writing", "corporate-sponsorship", "fundraising-pitch-deck", "donor-management"],
+  "grant-writing": ["grant-writing", "grant-research", "proposal-writing", "corporate-sponsorship", "fundraising-pitch-deck", "donor-management"],
+  "proposal-writing": ["proposal-writing", "grant-writing", "grant-research"],
+}
+
+function expandResultSkillIds(skillIds: string[]): string[] {
+  const expanded = new Set<string>()
+  for (const skillId of skillIds) {
+    expanded.add(skillId)
+    for (const related of SKILL_RESULT_EXPANSIONS[skillId] || []) {
+      expanded.add(related)
+    }
+  }
+  return [...expanded]
+}
+
+function buildExternalOpportunityTermFilter(searchTerms: string[]): Record<string, any> {
+  const andConditions: any[] = []
+  const matchedSkillIds = expandResultSkillIds(findMatchingSkillIds(searchTerms))
+  const matchedCauseIds = findMatchingCauseIds(searchTerms)
+
+  for (const term of searchTerms) {
+    if (term.length < 2) continue
+    const regex = new RegExp(escapeRegex(term), "i")
+    andConditions.push({
+      $or: [
+        { title: regex },
+        { description: regex },
+        { shortDescription: regex },
+        { organization: regex },
+        { location: regex },
+        { city: regex },
+        { country: regex },
+        { skillTags: regex },
+        { causes: regex },
+        { "skillsRequired.subskillId": regex },
+        { "skillsRequired.categoryId": regex },
+      ],
+    })
+  }
+
+  if (matchedCauseIds.length > 0) {
+    andConditions.push({ causes: { $in: matchedCauseIds } })
+  }
+
+  if (matchedSkillIds.length > 0) {
+    const skillNamePatterns = matchedSkillIds.flatMap((skillId) => {
+      const displayName = getSkillDisplayName(skillId)
+      return [
+        new RegExp(escapeRegex(skillId), "i"),
+        new RegExp(escapeRegex(skillId.replace(/-/g, " ")), "i"),
+        new RegExp(escapeRegex(displayName), "i"),
+      ]
+    })
+    const isGrantQuery = matchedSkillIds.some((skillId) => skillId.includes("grant") || skillId.includes("fundraising") || skillId.includes("donor"))
+
+    andConditions.push({
+      $or: [
+        { "skillsRequired.subskillId": { $in: matchedSkillIds } },
+        { "skillsRequired.categoryId": { $in: ["fundraising", ...matchedSkillIds] } },
+        ...skillNamePatterns.flatMap((pattern) => [
+          { skillTags: pattern },
+          { title: pattern },
+        ]),
+        ...(isGrantQuery ? [
+          { title: /\b(grants?|fundrais(?:ing|er)?|development)\b/i },
+          { skillTags: /\b(grants?|fundrais(?:ing|er)?|development fundraising|donor|philanthropy)\b/i },
+        ] : []),
+      ],
+    })
+  }
+
+  return andConditions.length > 0 ? { $and: andConditions } : {}
+}
+
+async function externalOpportunitySearch(
+  db: any,
+  types: string[],
+  limit: number,
+  searchTerms: string[]
+): Promise<SearchResult[]> {
+  if (!types.includes("opportunity")) return []
+
+  const filter = buildExternalOpportunityTermFilter(searchTerms)
+  const opportunities = await db.collection("externalOpportunities")
+    .find({
+      isActive: true,
+      ...filter,
+    })
+    .project(EXTERNAL_OPPORTUNITY_PROJECTION)
+    .sort({ postedDate: -1, scrapedAt: -1 })
+    .limit(Math.max(limit * 3, 30))
+    .toArray()
+
+  return opportunities
+    .map((opportunity: any) => {
+      opportunity.score = computeRelevanceScore(opportunity, searchTerms) + 25
+      return mapExternalOpportunityToResult(opportunity, searchTerms)
+    })
+    .sort((left: SearchResult, right: SearchResult) => right.score - left.score)
+    .slice(0, limit)
 }
 
 async function textSearch(
@@ -1626,7 +1762,13 @@ export async function unifiedSearch(params: UnifiedSearchParams): Promise<Search
       addResults(fuzzyResults)
     }
 
-    const allResults = Array.from(resultMap.values())
+    const externalResults = await externalOpportunitySearch(db, types, limit, searchTerms)
+    addResults(externalResults)
+
+    const allResults = Array.from(resultMap.values()).filter((result) => {
+      if (searchTerms.length <= 1) return true
+      return result.score >= 5
+    })
     allResults.sort((a, b) => b.score - a.score)
 
     return allResults.slice(0, limit)
