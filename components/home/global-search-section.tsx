@@ -174,7 +174,7 @@ export function GlobalSearchSection() {
   // Search state
   const [searchQuery, setSearchQuery] = useState("")
   const [submittedQuery, setSubmittedQuery] = useState("")
-  const [searchType, setSearchType] = useState<"all" | "opportunity" | "volunteer" | "ngo">("all")
+  const [searchType, setSearchType] = useState<"all" | "opportunity" | "volunteer">("all")
   const [results, setResults] = useState<SearchResult[]>([])
   const [isSearching, setIsSearching] = useState(false)
   const [hasSearched, setHasSearched] = useState(false)
@@ -465,13 +465,13 @@ export function GlobalSearchSection() {
               </Badge>
             </div>
             <p className="text-muted-foreground text-sm md:text-base">
-              {s.findSubtitle || "Advanced AI search engine specifically engineered for NGOs and social impact talent"}
+              {s.findSubtitle || "Advanced AI search engine specifically engineered for Jobs and social impact talent"}
             </p>
           </div>
 
           {/* Search Type Tabs */}
           <div className="flex flex-wrap justify-center gap-2 mb-6">
-            {(["all", "opportunity", "volunteer", "ngo"] as const).map((type) => {
+            {(["all", "opportunity", "volunteer"] as const).map((type) => {
               const isActive = searchType === type
               const config = type !== "all" ? TYPE_CONFIG[type] : null
               const Icon = config?.icon
@@ -486,7 +486,7 @@ export function GlobalSearchSection() {
                   }`}
                 >
                   {Icon && <Icon className="h-3.5 w-3.5" />}
-                  {type === "all" ? (s.all || "All") : type === "volunteer" ? (s.impactAgents || "Candidates") : type === "ngo" ? (s.ngos || "NGOs") : (s.jobs || "Jobs")}
+                  {type === "all" ? (s.all || "All") : type === "volunteer" ? (s.impactAgents || "Candidates") : (s.jobs || "Jobs")}
                 </button>
               )
             })}
@@ -502,8 +502,6 @@ export function GlobalSearchSection() {
                 placeholder={
                   searchType === "volunteer"
                     ? (s.placeholderVolunteer || "Search skills, location, or name...")
-                    : searchType === "ngo"
-                    ? (s.placeholderNgo || "Search organizations...")
                     : searchType === "opportunity"
                     ? (s.placeholderOpportunity || "Search jobs...")
                     : (s.placeholderAll || "Search jobs, skills, people, causes...")
