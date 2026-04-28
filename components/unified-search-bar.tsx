@@ -708,6 +708,8 @@ export function UnifiedSearchBar({
                         onClick={() => {
                           addRecentSearch(searchQuery)
                           setShowDropdown(false)
+                          setHasSubmitted(true)
+                          onSubmit?.(searchQuery.trim())
                         }}
                         className="w-full px-3 py-2.5 flex items-center gap-3 text-left hover:bg-muted border-t border-border"
                       >
@@ -814,6 +816,8 @@ export function UnifiedSearchBar({
                 setSearchQuery(item.query)
                 setShowDropdown(false)
                 addRecentSearch(item.query)
+                setHasSubmitted(true)
+                onSubmit?.(item.query)
               }}
               className="text-sm px-3 py-1 rounded-full bg-background border border-border hover:border-primary hover:text-primary transition-all duration-200 hover:shadow-sm"
             >

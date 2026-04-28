@@ -268,6 +268,7 @@ export function OpportunitiesBrowser() {
   const [fallbackProjects, setFallbackProjects] = useState<Project[]>([])
   const [loading, setLoading] = useState(true)
   const [isPersonalized, setIsPersonalized] = useState(false)
+  const [searchInput, setSearchInput] = useState("")
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedSkills, setSelectedSkills] = useState<string[]>([])
   const [selectedTimeCommitment, setSelectedTimeCommitment] = useState<string[]>([])
@@ -490,7 +491,12 @@ export function OpportunitiesBrowser() {
     setSelectedTimeCommitment([])
     setSelectedWorkMode("")
     setAutoWorkMode(null)
+    setSearchInput("")
     setSearchQuery("")
+  }
+
+  const submitSearch = (query: string) => {
+    setSearchQuery(query.trim())
   }
 
   // derive a work-mode filter that takes the query into account so the
@@ -715,8 +721,12 @@ export function OpportunitiesBrowser() {
               allowedTypes={["opportunity"]}
               variant="default"
               placeholder={opp?.searchPlaceholder || "Search by title, skills, cause, or organization..."}
-              value={searchQuery}
-              onSearchChange={setSearchQuery}
+              value={searchInput}
+              onSearchChange={(value) => {
+                setSearchInput(value)
+                if (!value.trim()) setSearchQuery("")
+              }}
+              onSubmit={submitSearch}
               navigateOnSelect={false}
             />
           </div>
