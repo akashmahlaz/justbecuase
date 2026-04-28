@@ -551,9 +551,9 @@ export function UnifiedSearchBar({
   // ============================================
 
   const inputStyles = {
-    default: "h-12 w-full pl-11 pr-20 text-base rounded-xl border-2 bg-background border-border focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all duration-200 placeholder:text-muted-foreground",
+    default: "h-12 w-full pl-11 pr-28 text-base rounded-xl border-2 bg-background border-border focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all duration-200 placeholder:text-muted-foreground",
     compact: "h-10 w-full pl-9 pr-16 text-sm rounded-lg border bg-muted/50 border-border focus:border-primary focus:ring-1 focus:ring-primary/20 outline-none transition-all duration-200 placeholder:text-muted-foreground",
-    hero: "h-14 w-full pl-12 pr-24 text-lg rounded-xl border-2 bg-background border-border focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all duration-200 placeholder:text-muted-foreground",
+    hero: "h-14 w-full pl-12 pr-32 text-lg rounded-xl border-2 bg-background border-border focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all duration-200 placeholder:text-muted-foreground",
   }
 
   const iconStyles = {
@@ -624,10 +624,10 @@ export function UnifiedSearchBar({
                     onSubmit?.(searchQuery.trim())
                   }
                 }}
-                className="p-1.5 rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+                className="h-8 px-3 rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors text-sm font-medium"
                 aria-label="Search"
               >
-                <Search className="h-4 w-4" />
+                {s.search || "Search"}
               </button>
             )}
           </div>
