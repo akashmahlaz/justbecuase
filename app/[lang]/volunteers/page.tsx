@@ -105,6 +105,64 @@ function volunteerMatchesQuery(volunteer: VolunteerProfileView & Record<string, 
   return terms.length > 0 && terms.every((term) => searchable.includes(term))
 }
 
+const CANDIDATE_SEARCH_ALIASES: Array<{ patterns: RegExp[]; queries: string[] }> = [
+  {
+    patterns: [/\bweb\s*(dev|developer|development|designer|design)\b/i, /\bwebsite\b/i, /\bfrontend\b/i, /\bfront\s*end\b/i],
+    queries: ["html css", "wordpress", "ux ui", "web design"],
+  },
+  {
+    patterns: [/\breact\b/i, /\bnext\.?js\b/i],
+    queries: ["react nextjs", "html css"],
+  },
+  {
+    patterns: [/\bdigital\s*marketing\b/i, /\bseo\b/i, /\bgoogle\s*ads\b/i, /\bsocial\s*media\b/i],
+    queries: ["digital marketing", "seo", "google ads", "social media"],
+  },
+  {
+    patterns: [/\bgraphic\s*design\b/i, /\bdesigner\b/i, /\bcanva\b/i, /\bfigma\b/i],
+    queries: ["graphic design", "canva", "figma"],
+  },
+  {
+    patterns: [/\bdata\s*(analysis|analyst|analytics)\b/i, /\bpower\s*bi\b/i, /\btableau\b/i],
+    queries: ["data analysis", "power bi", "tableau"],
+  },
+]
+
+function candidateSearchQueries(query: string): string[] {
+  const trimmed = query.trim()
+  if (!trimmed) return []
+  const queries = new Set<string>([trimmed])
+  for (const alias of CANDIDATE_SEARCH_ALIASES) {
+    if (alias.patterns.some((pattern) => pattern.test(trimmed))) {
+      alias.queries.forEach((item) => queries.add(item))
+    }
+  }
+  return [...queries]
+}
+
+function volunteerMatchesCandidateSearch(volunteer: VolunteerProfileView & Record<string, any>, query: string) {
+  return candidateSearchQueries(query).some((candidateQuery) => volunteerMatchesQuery(volunteer, candidateQuery))
+}
+
+function searchResultMatchesQuery(result: Record<string, any>, query: string) {
+  const normalizedQuery = normalizeSearchText(query)
+  if (!normalizedQuery) return true
+  const searchable = normalizeSearchText([
+    result.title,
+    result.name,
+    result.subtitle,
+    result.description,
+    result.bio,
+    result.location,
+    ...(Array.isArray(result.skillNames) ? result.skillNames : []),
+    ...(Array.isArray(result.skills) ? result.skills : []),
+    ...(Array.isArray(result.causeNames) ? result.causeNames : []),
+  ].filter(Boolean).join(" "))
+  if (searchable.includes(normalizedQuery)) return true
+  const terms = normalizedQuery.split(" ").filter((term) => term.length >= 2)
+  return terms.length > 0 && terms.every((term) => searchable.includes(term))
+}
+
 function parseHoursUpperBound(value: string | null | undefined) {
   if (!value) return 0
   const numbers = String(value).match(/\d+/g)?.map((n) => Number.parseInt(n, 10)).filter(Number.isFinite) || []
@@ -144,6 +202,7 @@ function ImpactAgentsContent() {
 
   const [agents, setAgents] = useState<VolunteerProfileView[]>([])
   const [loading, setLoading] = useState(true)
+  const [searchInput, setSearchInput] = useState("")
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedSkills, setSelectedSkills] = useState<string[]>([])
   const [selectedCauses, setSelectedCauses] = useState<string[]>([])
@@ -212,6 +271,7 @@ function ImpactAgentsContent() {
       setUnifiedMatchedIds(null)
       setUnifiedRelevanceOrder(new Map())
       setSearchResultAgents(null)
+      setIsUnifiedSearching(false)
       return
     }
     const timer = setTimeout(async () => {
@@ -220,13 +280,29 @@ function ImpactAgentsContent() {
       unifiedAbortRef.current = controller
       setIsUnifiedSearching(true)
       try {
-        const res = await fetch(
-          `/api/unified-search?q=${encodeURIComponent(trimmed)}&types=volunteer&limit=50`,
-          { signal: controller.signal }
+        const queryVariants = candidateSearchQueries(trimmed)
+        const responses = await Promise.all(
+          queryVariants.map(async (candidateQuery) => {
+            const res = await fetch(
+              `/api/unified-search?q=${encodeURIComponent(candidateQuery)}&types=volunteer&limit=30`,
+              { signal: controller.signal }
+            )
+            const data = await res.json()
+            const results = data.success && Array.isArray(data.results) ? data.results : []
+            return results.filter((result: Record<string, any>) => searchResultMatchesQuery(result, candidateQuery))
+          })
         )
-        const data = await res.json()
-        if (data.success && !controller.signal.aborted) {
-          const rawResults = Array.isArray(data.results) ? data.results : []
+        if (!controller.signal.aborted) {
+          const rawResults: any[] = []
+          const seen = new Set<string>()
+          for (const resultSet of responses) {
+            for (const result of resultSet) {
+              const id = result.userId || result.mongoId || result.id
+              if (!id || seen.has(id)) continue
+              seen.add(id)
+              rawResults.push(result)
+            }
+          }
           const ids = rawResults.map((r: any) => r.userId || r.mongoId || r.id)
           setUnifiedMatchedIds(ids)
           const orderMap = new Map<string, number>()
@@ -272,11 +348,17 @@ function ImpactAgentsContent() {
   const toggleCause = (id: string) =>
     setSelectedCauses((prev) => (prev.includes(id) ? prev.filter((c) => c !== id) : [...prev, id]))
 
+  const submitSearch = (query: string) => {
+    const trimmed = query.trim()
+    setSearchQuery(trimmed)
+  }
+
   const clearFilters = () => {
     setSelectedSkills([])
     setSelectedCauses([])
     setSelectedVolunteerType("")
     setSelectedWorkMode("")
+    setSearchInput("")
     setSearchQuery("")
     setActiveTab("all")
     setSortBy("best-match")
@@ -301,7 +383,7 @@ function ImpactAgentsContent() {
     const hasActiveSearch = searchQuery.trim().length >= 3
     let result: VolunteerProfileView[]
     if (hasActiveSearch) {
-      const localMatches = agents.filter((v: any) => volunteerMatchesQuery(v, searchQuery))
+      const localMatches = agents.filter((v: any) => volunteerMatchesCandidateSearch(v, searchQuery))
       const apiMatches = searchResultAgents || []
       // Dedupe by id, preferring local (richer) data when present
       const localById = new Map(localMatches.map((a) => [a.id, a]))
@@ -317,7 +399,7 @@ function ImpactAgentsContent() {
     // Search — when API results are loaded, we already used them as the
     // source list above. Only run a local fallback while the API is in flight.
     if (searchQuery.trim().length >= 3 && searchResultAgents === null) {
-      result = result.filter((v: any) => volunteerMatchesQuery(v, searchQuery))
+      result = result.filter((v: any) => volunteerMatchesCandidateSearch(v, searchQuery))
     }
 
     // Skills — match by id OR resolved name (search results may not resolve to ids)
@@ -518,8 +600,12 @@ function ImpactAgentsContent() {
                   allowedTypes={["volunteer"]}
                   variant="default"
                   placeholder={vl.searchPlaceholder || "Search by skills, location, or name..."}
-                  value={searchQuery}
-                  onSearchChange={setSearchQuery}
+                  value={searchInput}
+                  onSearchChange={(value) => {
+                    setSearchInput(value)
+                    if (!value.trim()) setSearchQuery("")
+                  }}
+                  onSubmit={submitSearch}
                   navigateOnSelect={false}
                 />
               </div>
