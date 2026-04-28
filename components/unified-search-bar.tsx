@@ -208,6 +208,8 @@ export function UnifiedSearchBar({
   )
 
   const getTypeLabel = useCallback((key: string) => {
+    if (key === "opportunity") return (s as any).job || (s as any).jobs || "Job"
+    if (key === "opportunities") return (s as any).jobs || "Jobs"
     return (s as any)[key] || key
   }, [s])
 

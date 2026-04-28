@@ -486,7 +486,7 @@ export function GlobalSearchSection() {
                   }`}
                 >
                   {Icon && <Icon className="h-3.5 w-3.5" />}
-                  {type === "all" ? (s.all || "All") : type === "volunteer" ? (s.impactAgents || "Candidates") : type === "ngo" ? (s.ngos || "NGOs") : (s.opportunities || "Opportunities")}
+                  {type === "all" ? (s.all || "All") : type === "volunteer" ? (s.impactAgents || "Candidates") : type === "ngo" ? (s.ngos || "NGOs") : (s.jobs || "Jobs")}
                 </button>
               )
             })}

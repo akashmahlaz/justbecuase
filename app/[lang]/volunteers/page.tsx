@@ -281,8 +281,11 @@ function ImpactAgentsContent() {
       setIsUnifiedSearching(true)
       try {
         const queryVariants = candidateSearchQueries(trimmed)
-        const responses = await Promise.all(
-          queryVariants.map(async (candidateQuery) => {
+        const [directResponse, ...responses] = await Promise.all([
+          fetch(`/api/volunteers?q=${encodeURIComponent(trimmed)}&limit=100`, { signal: controller.signal })
+            .then((res) => res.ok ? res.json() : { volunteers: [] })
+            .then((data) => Array.isArray(data.volunteers) ? data.volunteers : []),
+          ...queryVariants.map(async (candidateQuery) => {
             const res = await fetch(
               `/api/unified-search?q=${encodeURIComponent(candidateQuery)}&types=volunteer&limit=30`,
               { signal: controller.signal }
@@ -290,11 +293,16 @@ function ImpactAgentsContent() {
             const data = await res.json()
             const results = data.success && Array.isArray(data.results) ? data.results : []
             return results.filter((result: Record<string, any>) => searchResultMatchesQuery(result, candidateQuery))
-          })
-        )
+          }),
+        ])
         if (!controller.signal.aborted) {
           const rawResults: any[] = []
           const seen = new Set<string>()
+          const directAgents = directResponse as VolunteerProfileView[]
+          for (const agent of directAgents) {
+            if (!agent?.id || seen.has(agent.id)) continue
+            seen.add(agent.id)
+          }
           for (const resultSet of responses) {
             for (const result of resultSet) {
               const id = result.userId || result.mongoId || result.id
@@ -303,14 +311,17 @@ function ImpactAgentsContent() {
               rawResults.push(result)
             }
           }
-          const ids = rawResults.map((r: any) => r.userId || r.mongoId || r.id)
+          const ids = [
+            ...directAgents.map((agent) => agent.id),
+            ...rawResults.map((r: any) => r.userId || r.mongoId || r.id),
+          ].filter(Boolean)
           setUnifiedMatchedIds(ids)
           const orderMap = new Map<string, number>()
           ids.forEach((id: string, idx: number) => orderMap.set(id, ids.length - idx))
           setUnifiedRelevanceOrder(orderMap)
           // Hold the full search-result agent list so we can render globally
           // matched volunteers that aren't in the pre-loaded `agents` array.
-          setSearchResultAgents(rawResults.map(mapSearchResultToAgent))
+          setSearchResultAgents([...directAgents, ...rawResults.map(mapSearchResultToAgent)])
         }
       } catch (err: any) {
         if (err.name !== "AbortError") console.error("Unified search failed:", err)
