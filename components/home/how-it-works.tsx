@@ -86,7 +86,7 @@ export function HowItWorks() {
                 value="ngos" 
                 className="px-6 py-2 rounded-full text-sm font-semibold data-[state=active]:bg-background data-[state=active]:text-secondary data-[state=active]:shadow-sm"
               >
-                {home.forNGOsTab || "For NGOs"}
+                {home.forNGOsTab || "For NGOs / Social Enterprise"}
               </TabsTrigger>
             </TabsList>
           </div>
