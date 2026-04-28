@@ -80,6 +80,7 @@ function ProjectsContent() {
   const [projects, setProjects] = useState<Project[]>([])
   const [loading, setLoading] = useState(true)
   const [fetchError, setFetchError] = useState<string | null>(null)
+  const [searchInput, setSearchInput] = useState("")
   const [searchQuery, setSearchQuery] = useState("")
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid")
   const [selectedSkills, setSelectedSkills] = useState<string[]>([])
@@ -167,6 +168,7 @@ function ProjectsContent() {
   useEffect(() => {
     const q = searchParams.get("q")
     if (q) {
+      setSearchInput(q)
       setSearchQuery(q)
     }
   }, [searchParams])
@@ -305,7 +307,12 @@ function ProjectsContent() {
     setSelectedLocation("")
     setSelectedCompensation([])
     setSelectedExperience([])
+    setSearchInput("")
     setSearchQuery("")
+  }
+
+  const submitSearch = (query: string) => {
+    setSearchQuery(query.trim())
   }
 
   const hasActiveFilters = selectedSkills.length > 0 || selectedTimeCommitment.length > 0 || selectedLocation !== "" || selectedCompensation.length > 0 || selectedExperience.length > 0
@@ -424,8 +431,12 @@ function ProjectsContent() {
                   allowedTypes={["opportunity"]}
                   variant="default"
                   placeholder={dict.projectsListing?.searchPlaceholder || "Search jobs, skills, or organizations..."}
-                  value={searchQuery}
-                  onSearchChange={setSearchQuery}
+                  value={searchInput}
+                  onSearchChange={(value) => {
+                    setSearchInput(value)
+                    if (!value.trim()) setSearchQuery("")
+                  }}
+                  onSubmit={submitSearch}
                   navigateOnSelect={false}
                 />
               </div>

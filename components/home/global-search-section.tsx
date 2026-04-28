@@ -77,8 +77,8 @@ const TYPE_CONFIG = {
   },
   opportunity: {
     icon: Briefcase,
-    label: "Opportunity",
-    pluralLabel: "Opportunities",
+    label: "Job",
+    pluralLabel: "Jobs",
     badgeClass: "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400",
     viewAllPath: "/projects",
   },
@@ -173,6 +173,7 @@ export function GlobalSearchSection() {
 
   // Search state
   const [searchQuery, setSearchQuery] = useState("")
+  const [submittedQuery, setSubmittedQuery] = useState("")
   const [searchType, setSearchType] = useState<"all" | "opportunity" | "volunteer" | "ngo">("all")
   const [results, setResults] = useState<SearchResult[]>([])
   const [isSearching, setIsSearching] = useState(false)
@@ -254,10 +255,10 @@ export function GlobalSearchSection() {
   // Full results (slower debounce - 300ms)
   useEffect(() => {
     const timer = setTimeout(() => {
-      performSearch(searchQuery, searchType)
+      performSearch(submittedQuery, searchType)
     }, DEBOUNCE_RESULTS_MS)
     return () => clearTimeout(timer)
-  }, [searchQuery, searchType, performSearch])
+  }, [submittedQuery, searchType, performSearch])
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -303,7 +304,7 @@ export function GlobalSearchSection() {
         setShowDropdown(false)
         inputRef.current?.blur()
       } else if (e.key === "Enter" && searchQuery.trim()) {
-        addRecentSearch(searchQuery)
+        submitSearch(searchQuery)
         setShowDropdown(false)
       }
       return
@@ -327,10 +328,10 @@ export function GlobalSearchSection() {
             handleSuggestionClick(item)
           } else {
             setSearchQuery(item.text)
-            addRecentSearch(item.text)
+            submitSearch(item.text)
           }
         } else if (searchQuery.trim()) {
-          addRecentSearch(searchQuery)
+          submitSearch(searchQuery)
         }
         setShowDropdown(false)
         break
@@ -339,7 +340,7 @@ export function GlobalSearchSection() {
         inputRef.current?.blur()
         break
     }
-  }, [showDropdown, dropdownItems, selectedIndex, searchQuery, addRecentSearch])
+  }, [showDropdown, dropdownItems, selectedIndex, searchQuery])
 
   // Reset selected index when dropdown items change
   useEffect(() => {
@@ -352,21 +353,36 @@ export function GlobalSearchSection() {
 
   const clearSearch = () => {
     setSearchQuery("")
+    setSubmittedQuery("")
     setResults([])
     setHasSearched(false)
     setShowDropdown(false)
     inputRef.current?.focus()
   }
 
+  const submitSearch = (query: string) => {
+    const trimmed = query.trim()
+    if (!trimmed) {
+      clearSearch()
+      return
+    }
+    setSearchQuery(trimmed)
+    setSubmittedQuery(trimmed)
+    addRecentSearch(trimmed)
+    setShowDropdown(false)
+  }
+
   const handleSuggestionClick = (item: { text: string; resultType?: string; id?: string }) => {
     setSearchQuery(item.text)
-    addRecentSearch(item.text)
     setShowDropdown(false)
 
     // Skill/cause suggestions (id like "skill:email-marketing" or "cause:education") → just search, don't navigate
     if (item.id?.startsWith("skill:") || item.id?.startsWith("cause:") || item.resultType === "skill" || item.resultType === "cause") {
+      submitSearch(item.text)
       return
     }
+
+    addRecentSearch(item.text)
 
     if (item.id && item.resultType) {
       let path = "/"
@@ -397,16 +413,19 @@ export function GlobalSearchSection() {
 
   // Smart "View All" per type
   const getViewAllLink = () => {
+    const query = submittedQuery || searchQuery
     if (searchType !== "all") {
-      return `${TYPE_CONFIG[searchType].viewAllPath}?q=${encodeURIComponent(searchQuery)}`
+      return `${TYPE_CONFIG[searchType].viewAllPath}?q=${encodeURIComponent(query)}`
     }
     // For "all", link to the most prevalent result type
     const typeCounts = results.reduce((acc, r) => { acc[r.type] = (acc[r.type] || 0) + 1; return acc }, {} as Record<string, number>)
     const topType = Object.entries(typeCounts).sort(([, a], [, b]) => b - a)[0]?.[0] as keyof typeof TYPE_CONFIG
     return topType
-      ? `${TYPE_CONFIG[topType].viewAllPath}?q=${encodeURIComponent(searchQuery)}`
-      : `/projects?q=${encodeURIComponent(searchQuery)}`
+      ? `${TYPE_CONFIG[topType].viewAllPath}?q=${encodeURIComponent(query)}`
+      : `/projects?q=${encodeURIComponent(query)}`
   }
+
+  const resultQuery = submittedQuery || searchQuery
 
   // Grouped results by type for categorized display
   const groupedResults = useMemo(() => {
@@ -493,6 +512,11 @@ export function GlobalSearchSection() {
                 onChange={(e) => {
                   const nextValue = e.target.value
                   setSearchQuery(nextValue)
+                  if (!nextValue.trim()) {
+                    setSubmittedQuery("")
+                    setResults([])
+                    setHasSearched(false)
+                  }
                   setShowDropdown(nextValue.trim().length < 1)
                 }}
                 onFocus={handleInputFocus}
@@ -503,7 +527,7 @@ export function GlobalSearchSection() {
                 aria-haspopup="listbox"
                 aria-autocomplete="list"
                 role="combobox"
-                className="h-14 w-full pl-12 pr-24 text-lg rounded-xl border-2 bg-background border-border focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all duration-200 placeholder:text-muted-foreground"
+                className="h-14 w-full pl-12 pr-32 text-lg rounded-xl border-2 bg-background border-border focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all duration-200 placeholder:text-muted-foreground"
               />
               <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1">
                 {isSearching && (
@@ -519,16 +543,11 @@ export function GlobalSearchSection() {
                   </button>
                 )}
                 <button
-                  onClick={() => {
-                    if (searchQuery.trim()) {
-                      addRecentSearch(searchQuery)
-                      setShowDropdown(false)
-                    }
-                  }}
-                  className="p-1.5 rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+                  onClick={() => submitSearch(searchQuery)}
+                  className="px-3 py-1.5 rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors text-sm font-medium"
                   aria-label="Search"
                 >
-                  <Search className="h-4 w-4" />
+                  {s.search || "Search"}
                 </button>
               </div>
             </div>
@@ -569,6 +588,7 @@ export function GlobalSearchSection() {
                             aria-selected={isSelected}
                             onClick={() => {
                               setSearchQuery(search)
+                              submitSearch(search)
                               setShowDropdown(false)
                             }}
                             onMouseEnter={() => setSelectedIndex(index)}
@@ -601,6 +621,7 @@ export function GlobalSearchSection() {
                             aria-selected={isSelected}
                             onClick={() => {
                               setSearchQuery(item.query)
+                              submitSearch(item.query)
                               setShowDropdown(false)
                             }}
                             onMouseEnter={() => setSelectedIndex(index)}
@@ -622,7 +643,7 @@ export function GlobalSearchSection() {
           </div>
 
           {/* Quick Search Tags (only when not searched yet) */}
-          {!hasSearched && (
+          {!hasSearched && searchQuery.trim().length < 1 && (
             <div className="flex flex-wrap justify-center gap-2 mb-8">
               <span className="text-sm text-muted-foreground mr-1">{s.popular || "Popular:"}</span>
               {POPULAR_SEARCHES.map((item) => (
@@ -631,7 +652,7 @@ export function GlobalSearchSection() {
                   onClick={() => {
                     setSearchQuery(item.query)
                     setShowDropdown(false)
-                    addRecentSearch(item.query)
+                    submitSearch(item.query)
                   }}
                   className="px-3 py-1 text-sm rounded-full bg-background border border-border hover:border-primary hover:text-primary transition-all duration-200 hover:shadow-sm"
                 >
@@ -674,7 +695,7 @@ export function GlobalSearchSection() {
                   /* Empty state */
                   <div className="text-center py-12 bg-background rounded-xl border">
                     <Search className="h-12 w-12 text-muted-foreground mx-auto mb-4 opacity-50" />
-                    <p className="text-foreground font-medium mb-2">{s.noResultsFor || "No results found for"} &quot;{searchQuery}&quot;</p>
+                    <p className="text-foreground font-medium mb-2">{s.noResultsFor || "No results found for"} &quot;{resultQuery}&quot;</p>
                     <p className="text-sm text-muted-foreground mb-4">
                       {s.tryDifferent || "Try different keywords, check spelling, or browse categories"}
                     </p>
@@ -744,7 +765,7 @@ export function GlobalSearchSection() {
                           >
                             <LocaleLink
                               href={getResultLink(result)}
-                              onClick={() => addRecentSearch(searchQuery)}
+                              onClick={() => addRecentSearch(resultQuery)}
                               className="block bg-background rounded-xl border hover:border-primary/50 hover:shadow-lg transition-all duration-200 group h-full overflow-hidden"
                             >
                               {/* Card Header — type badge strip */}
@@ -807,7 +828,7 @@ export function GlobalSearchSection() {
                                     {/* Title + verified */}
                                     <div className="flex items-center gap-1.5 mb-0.5">
                                       <h3 className="font-semibold text-foreground truncate group-hover:text-primary transition-colors text-sm">
-                                        <HighlightedText text={result.title} query={searchQuery} />
+                                        <HighlightedText text={result.title} query={resultQuery} />
                                       </h3>
                                       {result.verified && (
                                         <CheckCircle className="h-3.5 w-3.5 shrink-0 text-primary" fill="currentColor" strokeWidth={0} />
@@ -817,7 +838,7 @@ export function GlobalSearchSection() {
                                     {/* Subtitle / headline */}
                                     {result.subtitle && (
                                       <p className="text-xs text-muted-foreground line-clamp-1 mb-1">
-                                        <HighlightedText text={result.subtitle} query={searchQuery} />
+                                        <HighlightedText text={result.subtitle} query={resultQuery} />
                                       </p>
                                     )}
 
@@ -826,7 +847,7 @@ export function GlobalSearchSection() {
                                       {result.location && (
                                         <span className="text-[11px] text-muted-foreground flex items-center gap-0.5">
                                           <MapPin className="h-2.5 w-2.5 shrink-0" />
-                                          <HighlightedText text={result.location} query={searchQuery} />
+                                          <HighlightedText text={result.location} query={resultQuery} />
                                         </span>
                                       )}
                                       {result.rating && result.rating > 0 && (

@@ -50,6 +50,7 @@ const TYPE_CONFIG = {
 } as const
 
 export function OpportunitiesSearchCard() {
+  const [searchInput, setSearchInput] = useState("")
   const [searchQuery, setSearchQuery] = useState("")
   const [results, setResults] = useState<SearchResult[]>([])
   const [isSearching, setIsSearching] = useState(false)
@@ -124,8 +125,12 @@ export function OpportunitiesSearchCard() {
             allowedTypes={["opportunity"]}
             variant="default"
             placeholder="Search by title, skills, or cause..."
-            value={searchQuery}
-            onSearchChange={setSearchQuery}
+            value={searchInput}
+            onSearchChange={(value) => {
+              setSearchInput(value)
+              if (!value.trim()) setSearchQuery("")
+            }}
+            onSubmit={(query) => setSearchQuery(query.trim())}
             navigateOnSelect
           />
         </CardContent>
