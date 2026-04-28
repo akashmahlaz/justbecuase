@@ -903,7 +903,7 @@ export function OpportunitiesBrowser() {
             {opp?.showingOf || "Showing"}{" "}
             <span className="font-medium text-foreground">{filteredItems.length}</span>{" "}
             {opp?.of || "of"}{" "}
-            {totalCount} {opp?.opportunitiesLabel || "opportunities"}
+            {totalCount} {opp?.opportunitiesLabel || "Jobs"}
             {isUnifiedSearching && <Loader2 className="inline h-3.5 w-3.5 animate-spin ml-2" />}
           </p>
         </div>

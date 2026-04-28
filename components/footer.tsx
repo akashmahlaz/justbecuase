@@ -25,9 +25,9 @@ export function Footer() {
             <LocaleLink href="/" className="flex items-center gap-2 mb-4">
               <Image src="/logo-main.png" alt="JBC Logo" width={200} height={98} className="h-16 w-auto" />
             </LocaleLink>
-            <p className="text-muted-foreground mb-6 max-w-sm">
+            {/* <p className="text-muted-foreground mb-6 max-w-sm">
               {platformSettings?.platformDescription || "Connecting Skills with Purpose."}
-            </p>
+            </p> */}
             <div className="flex items-center gap-4">
               {(socialLinks?.linkedin || !socialLinks) && (
                 <a href={socialLinks?.linkedin || "https://www.linkedin.com/in/just-because-network-07599a3a9/"} className="text-muted-foreground hover:text-primary transition-colors" target="_blank" rel="noopener noreferrer">
