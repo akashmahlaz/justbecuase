@@ -2244,6 +2244,136 @@ export async function getAllVolunteers(page: number = 1, limit: number = 20) {
   return { data: serializeDocuments(volunteers), total, page, limit, totalPages: Math.ceil(total / limit) }
 }
 
+function normalizeSourceCode(value: string): string {
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 80)
+}
+
+export async function trackCandidateRegistrationSource(input: {
+  sourceCode: string
+  sourceName?: string
+  sourceType?: "college" | "campaign" | "partner" | "other"
+  campaign?: string
+  landingPath?: string
+}): Promise<ApiResponse<boolean>> {
+  try {
+    const user = await getCurrentUser()
+    if (!user) return { success: false, error: "Not authenticated" }
+
+    const sourceCode = normalizeSourceCode(input.sourceCode)
+    if (!sourceCode) return { success: false, error: "Invalid source code" }
+
+    const db = await getDb()
+    const users = db.collection("user")
+    const existingUser = await users.findOne(userIdQuery(user.id), {
+      projection: { role: 1, candidateSourceCode: 1 },
+    })
+
+    if (!existingUser || existingUser.role !== "volunteer") {
+      return { success: false, error: "Source tracking is only available for candidate accounts" }
+    }
+
+    const sourceName = (input.sourceName || input.sourceCode).trim().slice(0, 120)
+    const campaign = input.campaign?.trim().slice(0, 120)
+    const landingPath = input.landingPath?.trim().slice(0, 500)
+
+    await users.updateOne(userIdQuery(user.id), {
+      $set: {
+        candidateSourceType: input.sourceType || "college",
+        candidateSourceCode: sourceCode,
+        candidateSourceName: sourceName,
+        ...(campaign ? { candidateSourceCampaign: campaign } : {}),
+        ...(landingPath ? { candidateSourceLandingPath: landingPath } : {}),
+        candidateSourceCapturedAt: new Date(),
+        updatedAt: new Date(),
+      },
+    })
+
+    return { success: true, data: true }
+  } catch (error) {
+    console.error("Failed to track candidate registration source:", error)
+    return { success: false, error: "Failed to track candidate registration source" }
+  }
+}
+
+export async function getCandidateSourceReport() {
+  await requireRole(["admin"])
+
+  const db = await getDb()
+  const users = db.collection("user")
+  const candidateFilter = {
+    role: "volunteer",
+    candidateSourceCode: { $exists: true, $ne: "" },
+  }
+
+  const [candidates, summary] = await Promise.all([
+    users
+      .find(candidateFilter, {
+        projection: {
+          name: 1,
+          email: 1,
+          image: 1,
+          role: 1,
+          isOnboarded: 1,
+          isVerified: 1,
+          isActive: 1,
+          phone: 1,
+          city: 1,
+          country: 1,
+          location: 1,
+          headline: 1,
+          linkedinUrl: 1,
+          portfolioUrl: 1,
+          skills: 1,
+          causes: 1,
+          workMode: 1,
+          volunteerType: 1,
+          candidateSourceType: 1,
+          candidateSourceCode: 1,
+          candidateSourceName: 1,
+          candidateSourceCampaign: 1,
+          candidateSourceCapturedAt: 1,
+          candidateSourceLandingPath: 1,
+          createdAt: 1,
+          updatedAt: 1,
+        },
+        sort: { candidateSourceCapturedAt: -1, createdAt: -1 },
+      })
+      .toArray(),
+    users
+      .aggregate([
+        { $match: candidateFilter },
+        {
+          $group: {
+            _id: "$candidateSourceCode",
+            sourceCode: { $first: "$candidateSourceCode" },
+            sourceName: { $first: "$candidateSourceName" },
+            sourceType: { $first: "$candidateSourceType" },
+            campaign: { $first: "$candidateSourceCampaign" },
+            totalCandidates: { $sum: 1 },
+            onboardedCandidates: { $sum: { $cond: ["$isOnboarded", 1, 0] } },
+            verifiedCandidates: { $sum: { $cond: ["$isVerified", 1, 0] } },
+            firstSignupAt: { $min: "$createdAt" },
+            latestSignupAt: { $max: "$createdAt" },
+          },
+        },
+        { $sort: { totalCandidates: -1, latestSignupAt: -1 } },
+      ])
+      .toArray(),
+  ])
+
+  return {
+    candidates: serializeDocuments(candidates),
+    summary: serializeDocuments(summary),
+    totalCandidates: candidates.length,
+    totalSources: summary.length,
+  }
+}
+
 export async function getAllNGOs(page: number = 1, limit: number = 20) {
   await requireRole(["admin"])
   const skip = (page - 1) * limit

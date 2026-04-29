@@ -23,6 +23,7 @@ import {
   MessageSquare,
   Globe,
   Megaphone,
+  GraduationCap,
 } from "lucide-react"
 import {
   Sidebar,
@@ -71,6 +72,7 @@ const navGroups = [
     label: "Analytics",
     items: [
       { title: "Reports", href: "/admin/reports", icon: BarChart3 },
+      { title: "Candidate Sources", href: "/admin/candidate-sources", icon: GraduationCap },
       { title: "Search Analytics", href: "/admin/search-analytics", icon: Search },
       { title: "Marketing Intel", href: "/marketing", icon: Megaphone },
     ],
