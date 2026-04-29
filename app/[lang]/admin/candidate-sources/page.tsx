@@ -12,7 +12,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { getCandidateSourceReport } from "@/lib/actions"
-import { Building2, CheckCircle2, GraduationCap, Link2, Users } from "lucide-react"
+import { Building2, CheckCircle2, GraduationCap, Users } from "lucide-react"
 
 function formatDate(value?: string | Date) {
   if (!value) return "-"
@@ -157,13 +157,7 @@ export default async function CandidateSourcesPage({
                       <TableCell>{source.verifiedCandidates || 0}</TableCell>
                       <TableCell>{formatDate(source.latestSignupAt || source.updatedAt || source.createdAt)}</TableCell>
                       <TableCell>
-                        <div className="flex min-w-80 items-center gap-2">
-                          <div className="flex min-w-0 items-center gap-2 text-xs text-muted-foreground">
-                            <Link2 className="size-3 shrink-0" />
-                            <span className="truncate">{registrationLink}</span>
-                          </div>
-                          <CandidateSourceCopyButton path={registrationLink} />
-                        </div>
+                        <CandidateSourceCopyButton path={registrationLink} />
                       </TableCell>
                     </TableRow>
                   )
