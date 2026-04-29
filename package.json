@@ -7,7 +7,7 @@
     "dev": "next dev",
     "t": "bunx tsc --noemit",
     "build": "next build",
-    "git": "git add . ; git commit -m 'akash commit' ; git push && vercel --prod",
+    "git": "git add . ; git commit -m 'akash commit' ; git push",
     "start": "next start",
     "lint": "next lint",
     "type-check": "tsc --noEmit"

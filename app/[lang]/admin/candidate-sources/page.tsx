@@ -1,5 +1,6 @@
 import LocaleLink from "@/components/locale-link"
 import { CandidateSourceLinkGenerator } from "@/components/admin/candidate-source-link-generator"
+import { CandidateSourceCopyButton } from "@/components/admin/candidate-source-copy-button"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import {
@@ -156,9 +157,12 @@ export default async function CandidateSourcesPage({
                       <TableCell>{source.verifiedCandidates || 0}</TableCell>
                       <TableCell>{formatDate(source.latestSignupAt || source.updatedAt || source.createdAt)}</TableCell>
                       <TableCell>
-                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                          <Link2 className="size-3" />
-                          <span className="max-w-72 truncate">{registrationLink}</span>
+                        <div className="flex min-w-80 items-center gap-2">
+                          <div className="flex min-w-0 items-center gap-2 text-xs text-muted-foreground">
+                            <Link2 className="size-3 shrink-0" />
+                            <span className="truncate">{registrationLink}</span>
+                          </div>
+                          <CandidateSourceCopyButton path={registrationLink} />
                         </div>
                       </TableCell>
                     </TableRow>
