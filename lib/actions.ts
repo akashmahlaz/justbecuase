@@ -2300,17 +2300,62 @@ export async function trackCandidateRegistrationSource(input: {
   }
 }
 
+export async function saveCandidateSourceLink(input: {
+  sourceCode: string
+  sourceName: string
+  sourceType?: "college" | "campaign" | "partner" | "other"
+  campaign?: string
+  notes?: string
+}): Promise<ApiResponse<boolean>> {
+  try {
+    const admin = await requireRole(["admin"])
+    const sourceCode = normalizeSourceCode(input.sourceCode || input.sourceName)
+    const sourceName = input.sourceName.trim().slice(0, 120)
+
+    if (!sourceCode) return { success: false, error: "Please enter a valid source code" }
+    if (!sourceName) return { success: false, error: "Please enter a source name" }
+
+    const db = await getDb()
+    const sources = db.collection("candidateSources")
+    await sources.updateOne(
+      { sourceCode },
+      {
+        $set: {
+          sourceCode,
+          sourceName,
+          sourceType: input.sourceType || "college",
+          ...(input.campaign?.trim() ? { campaign: input.campaign.trim().slice(0, 120) } : { campaign: undefined }),
+          ...(input.notes?.trim() ? { notes: input.notes.trim().slice(0, 500) } : { notes: undefined }),
+          updatedAt: new Date(),
+        },
+        $setOnInsert: {
+          createdBy: admin.id,
+          createdAt: new Date(),
+        },
+      },
+      { upsert: true }
+    )
+
+    revalidatePath("/admin/candidate-sources")
+    return { success: true, data: true }
+  } catch (error) {
+    console.error("Failed to save candidate source link:", error)
+    return { success: false, error: "Failed to save candidate source link" }
+  }
+}
+
 export async function getCandidateSourceReport() {
   await requireRole(["admin"])
 
   const db = await getDb()
   const users = db.collection("user")
+  const sources = db.collection("candidateSources")
   const candidateFilter = {
     role: "volunteer",
     candidateSourceCode: { $exists: true, $ne: "" },
   }
 
-  const [candidates, summary] = await Promise.all([
+  const [candidates, signupSummary, savedSources] = await Promise.all([
     users
       .find(candidateFilter, {
         projection: {
@@ -2364,7 +2409,41 @@ export async function getCandidateSourceReport() {
         { $sort: { totalCandidates: -1, latestSignupAt: -1 } },
       ])
       .toArray(),
+    sources.find({}, { sort: { updatedAt: -1, sourceName: 1 } }).toArray(),
   ])
+
+  const summaryByCode = new Map<string, any>()
+  for (const source of savedSources) {
+    summaryByCode.set(source.sourceCode, {
+      sourceCode: source.sourceCode,
+      sourceName: source.sourceName,
+      sourceType: source.sourceType || "college",
+      campaign: source.campaign,
+      notes: source.notes,
+      totalCandidates: 0,
+      onboardedCandidates: 0,
+      verifiedCandidates: 0,
+      firstSignupAt: null,
+      latestSignupAt: null,
+      createdAt: source.createdAt,
+      updatedAt: source.updatedAt,
+    })
+  }
+
+  for (const source of signupSummary) {
+    summaryByCode.set(source.sourceCode, {
+      ...summaryByCode.get(source.sourceCode),
+      ...source,
+      sourceName: summaryByCode.get(source.sourceCode)?.sourceName || source.sourceName || source.sourceCode,
+      sourceType: summaryByCode.get(source.sourceCode)?.sourceType || source.sourceType || "college",
+      campaign: summaryByCode.get(source.sourceCode)?.campaign || source.campaign,
+    })
+  }
+
+  const summary = Array.from(summaryByCode.values()).sort((a, b) => {
+    if ((b.totalCandidates || 0) !== (a.totalCandidates || 0)) return (b.totalCandidates || 0) - (a.totalCandidates || 0)
+    return new Date(b.updatedAt || b.latestSignupAt || 0).getTime() - new Date(a.updatedAt || a.latestSignupAt || 0).getTime()
+  })
 
   return {
     candidates: serializeDocuments(candidates),

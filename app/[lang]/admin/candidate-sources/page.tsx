@@ -132,7 +132,7 @@ export default async function CandidateSourcesPage({
                   <TableHead>Candidates</TableHead>
                   <TableHead>Onboarded</TableHead>
                   <TableHead>Verified</TableHead>
-                  <TableHead>Latest Signup</TableHead>
+                  <TableHead>Latest Activity</TableHead>
                   <TableHead>Registration Link</TableHead>
                 </TableRow>
               </TableHeader>
@@ -151,10 +151,10 @@ export default async function CandidateSourcesPage({
                         <Badge variant="secondary">{source.sourceType || "college"}</Badge>
                       </TableCell>
                       <TableCell>{source.campaign || "-"}</TableCell>
-                      <TableCell>{source.totalCandidates}</TableCell>
-                      <TableCell>{source.onboardedCandidates}</TableCell>
-                      <TableCell>{source.verifiedCandidates}</TableCell>
-                      <TableCell>{formatDate(source.latestSignupAt)}</TableCell>
+                      <TableCell>{source.totalCandidates || 0}</TableCell>
+                      <TableCell>{source.onboardedCandidates || 0}</TableCell>
+                      <TableCell>{source.verifiedCandidates || 0}</TableCell>
+                      <TableCell>{formatDate(source.latestSignupAt || source.updatedAt || source.createdAt)}</TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2 text-xs text-muted-foreground">
                           <Link2 className="size-3" />

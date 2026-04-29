@@ -783,6 +783,18 @@ export interface Referral {
   completedAt?: Date
 }
 
+export interface CandidateSource {
+  _id?: ObjectId
+  sourceCode: string
+  sourceName: string
+  sourceType: "college" | "campaign" | "partner" | "other"
+  campaign?: string
+  notes?: string
+  createdBy: string
+  createdAt: Date
+  updatedAt: Date
+}
+
 // ============================================
 // BLOG CMS
 // ============================================
