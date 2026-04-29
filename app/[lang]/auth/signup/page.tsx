@@ -13,7 +13,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Separator } from "@/components/ui/separator"
 import { Mail, Lock, User, Building2, Loader2, ArrowRight, ArrowLeft, CheckCircle, MailCheck, ShieldCheck } from "lucide-react"
 import { signUp, signIn, getSession } from "@/lib/auth-client"
-import { selectRole, applyReferralCode } from "@/lib/actions"
+import { selectRole, applyReferralCode, trackCandidateRegistrationSource } from "@/lib/actions"
 import { useDictionary } from "@/components/dictionary-provider"
 
 // Helper to wait for session with retry
@@ -43,6 +43,10 @@ function SignUpPageInner() {
   const locale = useLocale()
   const searchParams = useSearchParams()
   const referralCode = searchParams.get("ref") || ""
+  const collegeCode = searchParams.get("college") || searchParams.get("collegeCode") || ""
+  const collegeName = searchParams.get("collegeName") || searchParams.get("college_name") || ""
+  const sourceCode = collegeCode || searchParams.get("source") || searchParams.get("utm_source") || ""
+  const sourceCampaign = searchParams.get("campaign") || searchParams.get("utm_campaign") || ""
   const dict = useDictionary()
   const a = (dict as any).auth || {}
   const [step, setStep] = useState(1) // 1: account type, 2: email/name, 3: OTP verification, 4: password
@@ -85,6 +89,15 @@ function SignUpPageInner() {
       setError(errorMessages[errorParam] || a.oauthGenericError || "Sign-up failed. Please try again.")
     }
   }, [searchParams])
+
+  // Candidate registration links can skip the role picker, e.g. /auth/signup?role=candidate&college=demo-college
+  useEffect(() => {
+    const roleParam = searchParams.get("role") || searchParams.get("accountType") || searchParams.get("type")
+    if ((roleParam === "candidate" || roleParam === "volunteer") && step === 1 && !accountType) {
+      setAccountType("volunteer")
+      setStep(2)
+    }
+  }, [searchParams, step, accountType])
 
   // Handle social sign-in/sign-up (Google/LinkedIn)
   // For social signup, we redirect to role-select since we don't know their intended role
@@ -300,6 +313,20 @@ function SignUpPageInner() {
           await applyReferralCode(referralCode)
         } catch (e) {
           console.error("Failed to apply referral code:", e)
+        }
+      }
+
+      if (accountType === "volunteer" && sourceCode) {
+        try {
+          await trackCandidateRegistrationSource({
+            sourceCode,
+            sourceName: collegeName || sourceCode,
+            sourceType: collegeCode ? "college" : "campaign",
+            campaign: sourceCampaign || undefined,
+            landingPath: window.location.pathname + window.location.search,
+          })
+        } catch (e) {
+          console.error("Failed to track candidate registration source:", e)
         }
       }
 

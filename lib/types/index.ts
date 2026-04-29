@@ -105,6 +105,14 @@ export interface VolunteerProfile {
   isVerified: boolean
   isActive: boolean
   isBanned?: boolean
+
+  // Candidate acquisition source tracking
+  candidateSourceType?: "college" | "campaign" | "partner" | "other"
+  candidateSourceCode?: string
+  candidateSourceName?: string
+  candidateSourceCampaign?: string
+  candidateSourceCapturedAt?: Date
+  candidateSourceLandingPath?: string
   
   // Privacy Settings
   privacy?: {
