@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Copy, Link2, Loader2, Save } from "lucide-react"
+import { Copy, Link2, Loader2 } from "lucide-react"
 
 function slugify(value: string) {
   return value
@@ -24,7 +24,7 @@ export function CandidateSourceLinkGenerator({ lang }: { lang: string }) {
   const [campaign, setCampaign] = useState("")
   const [copied, setCopied] = useState(false)
   const [message, setMessage] = useState("")
-  const [isSaving, setIsSaving] = useState(false)
+  const [isCopying, setIsCopying] = useState(false)
   const [origin, setOrigin] = useState("")
 
   useEffect(() => {
@@ -43,14 +43,8 @@ export function CandidateSourceLinkGenerator({ lang }: { lang: string }) {
   }, [campaign, collegeName, generatedCode, lang, origin])
 
   const handleCopy = async () => {
-    await navigator.clipboard.writeText(registrationLink)
-    setCopied(true)
-    window.setTimeout(() => setCopied(false), 1500)
-  }
-
-  const handleSave = async () => {
     if (!generatedCode || !collegeName.trim()) return
-    setIsSaving(true)
+    setIsCopying(true)
     setMessage("")
     const result = await saveCandidateSourceLink({
       sourceCode: generatedCode,
@@ -58,13 +52,17 @@ export function CandidateSourceLinkGenerator({ lang }: { lang: string }) {
       sourceType: "college",
       campaign: campaign.trim() || undefined,
     })
-    setIsSaving(false)
     if (!result.success) {
+      setIsCopying(false)
       setMessage(result.error || "Unable to save link")
       return
     }
-    setMessage("Saved. You can copy this link later from Source Summary.")
+    await navigator.clipboard.writeText(registrationLink)
+    setIsCopying(false)
+    setCopied(true)
+    setMessage("Saved and copied. You can copy this link later from Source Summary.")
     router.refresh()
+    window.setTimeout(() => setCopied(false), 1500)
   }
 
   return (
@@ -107,16 +105,10 @@ export function CandidateSourceLinkGenerator({ lang }: { lang: string }) {
         </div>
         <div className="flex flex-col gap-3 rounded-lg border bg-muted/30 p-3 md:flex-row md:items-center md:justify-between">
           <code className="break-all text-xs text-muted-foreground">{registrationLink}</code>
-          <div className="flex shrink-0 gap-2">
-            <Button type="button" variant="outline" onClick={handleSave} disabled={!generatedCode || !collegeName.trim() || isSaving}>
-              {isSaving ? <Loader2 className="size-4 animate-spin" /> : <Save className="size-4" />}
-              Save
-            </Button>
-            <Button type="button" onClick={handleCopy} disabled={!generatedCode}>
-              <Copy className="size-4" />
-              {copied ? "Copied" : "Copy Link"}
-            </Button>
-          </div>
+          <Button type="button" onClick={handleCopy} disabled={!generatedCode || !collegeName.trim() || isCopying} className="shrink-0">
+            {isCopying ? <Loader2 className="size-4 animate-spin" /> : <Copy className="size-4" />}
+            {isCopying ? "Saving..." : copied ? "Copied" : "Copy Link"}
+          </Button>
         </div>
         {message && <p className="text-sm text-muted-foreground">{message}</p>}
       </CardContent>
