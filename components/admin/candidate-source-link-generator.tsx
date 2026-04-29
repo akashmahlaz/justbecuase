@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -20,6 +20,11 @@ export function CandidateSourceLinkGenerator({ lang }: { lang: string }) {
   const [collegeCode, setCollegeCode] = useState("")
   const [campaign, setCampaign] = useState("")
   const [copied, setCopied] = useState(false)
+  const [origin, setOrigin] = useState("")
+
+  useEffect(() => {
+    setOrigin(window.location.origin)
+  }, [])
 
   const generatedCode = collegeCode.trim() || slugify(collegeName)
   const registrationLink = useMemo(() => {
@@ -29,10 +34,8 @@ export function CandidateSourceLinkGenerator({ lang }: { lang: string }) {
     if (collegeName.trim()) params.set("collegeName", collegeName.trim())
     if (campaign.trim()) params.set("campaign", campaign.trim())
 
-    const path = `/${lang}/auth/signup?${params.toString()}`
-    if (typeof window === "undefined") return path
-    return `${window.location.origin}${path}`
-  }, [campaign, collegeName, generatedCode, lang])
+    return `${origin}/${lang}/auth/signup?${params.toString()}`
+  }, [campaign, collegeName, generatedCode, lang, origin])
 
   const handleCopy = async () => {
     await navigator.clipboard.writeText(registrationLink)

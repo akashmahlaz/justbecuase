@@ -7,9 +7,26 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Heart, Building2, Loader2 } from "lucide-react"
 import { authClient } from "@/lib/auth-client"
-import { selectRole } from "@/lib/actions"
+import { selectRole, trackCandidateRegistrationSource } from "@/lib/actions"
 import { AuthPageSkeleton } from "@/components/ui/page-skeletons"
 import { useDictionary } from "@/components/dictionary-provider"
+
+const CANDIDATE_SOURCE_STORAGE_KEY = "jb_candidate_source"
+
+async function applyStoredCandidateSource() {
+  try {
+    const stored = window.sessionStorage.getItem(CANDIDATE_SOURCE_STORAGE_KEY)
+    if (!stored) return
+    const source = JSON.parse(stored)
+    if (!source?.sourceCode) return
+    const result = await trackCandidateRegistrationSource(source)
+    if (result.success) {
+      window.sessionStorage.removeItem(CANDIDATE_SOURCE_STORAGE_KEY)
+    }
+  } catch (error) {
+    console.error("Failed to apply stored candidate source:", error)
+  }
+}
 
 function RoleSelectContent() {
   const router = useRouter()
@@ -42,6 +59,7 @@ function RoleSelectContent() {
 
       // Redirect to appropriate onboarding
       if (role === "volunteer") {
+        await applyStoredCandidateSource()
         router.push(localePath("/volunteer/onboarding", locale))
       } else {
         router.push(localePath("/ngo/onboarding", locale))
@@ -110,7 +128,7 @@ function RoleSelectContent() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-background to-muted/30 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-linear-to-b from-background to-muted/30 flex items-center justify-center p-4">
       <div className="w-full max-w-3xl">
         <div className="text-center mb-10">
           <h1 className="text-3xl font-bold text-foreground mb-3">{a.welcomePlatform || "Welcome to JustBeCause Network"}</h1>
