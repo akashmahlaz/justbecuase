@@ -64,5 +64,9 @@ export async function POST(request: Request) {
 
 // Health check for TheirStack test events
 export async function GET() {
-  return NextResponse.json({ status: "ok", endpoint: "theirstack-webhook" })
+  return NextResponse.json({
+    status: "ok",
+    endpoint: "theirstack-webhook",
+    signatureConfigured: Boolean(process.env.THEIRSTACK_WEBHOOK_SECRET),
+  })
 }
