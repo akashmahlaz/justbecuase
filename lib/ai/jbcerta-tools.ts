@@ -16,7 +16,7 @@ import {
   projectsDb,
 } from "@/lib/database"
 import { skillCategories, causes } from "@/lib/skills-data"
-import { minimaxModel } from "@/lib/ai/minimax"
+import { minimaxChatModel } from "@/lib/ai/providers"
 
 // ============================================================
 // Aggregator: every tool that returns entity results pushes
@@ -408,7 +408,7 @@ Rank the top ${topN} candidates. For each: give id, score 0-100, and one short r
 
         try {
           const { text } = await generateText({
-            model: minimaxModel(),
+            model: minimaxChatModel(),
             system: "You are a strict scoring engine. Output only valid JSON, no prose, no code fences.",
             prompt: scoringPrompt,
           })
