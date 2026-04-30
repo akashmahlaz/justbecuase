@@ -1,8 +1,26 @@
 // filepath: app/api/cron/theirstack/route.ts
 import { NextResponse } from "next/server"
-import { runTheirStackSync } from "@/lib/theirstack-sync"
+import { ASIA_COUNTRY_CODES, runTheirStackSync } from "@/lib/theirstack-sync"
 
 export const maxDuration = 800 // Vercel Pro max is 800s
+
+function parseCsv(value: string | null): string[] {
+  if (!value) return []
+  return value
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean)
+}
+
+function parseCountryCodes(value: string | null): string[] {
+  return parseCsv(value).map((code) => code.toUpperCase())
+}
+
+function parseLocationIds(value: string | null): number[] {
+  return parseCsv(value)
+    .map((id) => Number(id))
+    .filter((id) => Number.isInteger(id) && id > 0)
+}
 
 // ============================================
 // GET /api/cron/theirstack — Daily TheirStack sync
@@ -24,14 +42,20 @@ export async function GET(request: Request) {
     const startTime = Date.now()
     const { searchParams } = new URL(request.url)
     const preview = searchParams.get("preview") === "true"
-    const remoteOnly = searchParams.get("remoteOnly") !== "false"
+    const remoteOnly = searchParams.get("remoteOnly") === "true"
     const onlyWithContacts = searchParams.get("onlyWithContacts") !== "false"
     const maxAgeDays = Number(searchParams.get("maxAgeDays") || "30")
     const maxJobs = Number(searchParams.get("maxJobs") || "50")
     const maxPages = Number(searchParams.get("maxPages") || "10")
+    const region = searchParams.get("region")?.toLowerCase()
+    const countryCodes = region === "asia"
+      ? Array.from(new Set([...ASIA_COUNTRY_CODES, ...parseCountryCodes(searchParams.get("countryCodes"))]))
+      : parseCountryCodes(searchParams.get("countryCodes"))
+    const locationPatterns = parseCsv(searchParams.get("locationPatterns"))
+    const locationIds = parseLocationIds(searchParams.get("locationIds"))
 
     console.log(
-      `[/cron/theirstack] Starting sync preview=${preview} remoteOnly=${remoteOnly} maxJobs=${maxJobs} maxPages=${maxPages}`
+      `[/cron/theirstack] Starting sync preview=${preview} remoteOnly=${remoteOnly} countryCodes=${countryCodes.join("|") || "all"} locationPatterns=${locationPatterns.join("|") || "none"} locationIds=${locationIds.join("|") || "none"} maxJobs=${maxJobs} maxPages=${maxPages}`
     )
 
     const result = await runTheirStackSync({
@@ -41,6 +65,9 @@ export async function GET(request: Request) {
       maxAgeDays,
       maxJobs,
       maxPages,
+      countryCodes,
+      locationPatterns,
+      locationIds,
       pageSize: 25,
     })
 
@@ -60,6 +87,12 @@ export async function GET(request: Request) {
       totalAvailable: result.stats.totalAvailable,
       remainingCredits: result.stats.remainingCredits,
       skippedReason: result.stats.skippedReason,
+      geography: {
+        remoteOnly,
+        countryCodes,
+        locationPatterns,
+        locationIds,
+      },
       elapsedMs: elapsed,
     })
   } catch (err: any) {
