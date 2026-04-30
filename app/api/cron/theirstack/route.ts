@@ -80,6 +80,19 @@ export async function GET(request: Request) {
       success: true,
       preview,
       query: result.query,
+      sampleJobs: preview
+        ? result.jobs.slice(0, 5).map((job) => ({
+            id: job.id,
+            title: job.job_title,
+            company: job.company,
+            location: job.location || job.long_location || job.short_location || null,
+            country: job.country || job.countries?.[0] || job.locations?.[0]?.country_name || null,
+            countryCodes: job.country_codes || (job.country_code ? [job.country_code] : []),
+            remote: job.remote,
+            hybrid: job.hybrid,
+            datePosted: job.date_posted,
+          }))
+        : undefined,
       totalFetched: result.stats.fetched,
       totalUnique: result.stats.uniqueJobs,
       totalNew: result.stats.inserted,
