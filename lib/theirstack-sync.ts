@@ -47,6 +47,10 @@ const EXCLUDE_PATTERNS = [
   "defense",
 ]
 
+export const ASIA_COUNTRY_CODES = [
+  "AE", "AF", "AM", "AZ", "BD", "BH", "BN", "BT", "CN", "GE", "HK", "ID", "IL", "IN", "IQ", "IR", "JO", "JP", "KG", "KH", "KP", "KR", "KW", "KZ", "LA", "LB", "LK", "MM", "MN", "MO", "MV", "MY", "NP", "OM", "PH", "PK", "PS", "QA", "SA", "SG", "SY", "TH", "TJ", "TM", "TR", "TW", "UZ", "VN", "YE",
+]
+
 export interface TheirStackSyncOptions {
   preview?: boolean
   remoteOnly?: boolean
@@ -55,6 +59,9 @@ export interface TheirStackSyncOptions {
   pageSize?: number
   maxPages?: number
   maxJobs?: number
+  countryCodes?: string[]
+  locationPatterns?: string[]
+  locationIds?: number[]
 }
 
 export interface TheirStackSyncResult {
@@ -124,6 +131,9 @@ export function buildTheirStackSyncQuery(options: TheirStackSyncOptions = {}): J
     remoteOnly = false,
     maxAgeDays = 30,
     pageSize = 25,
+    countryCodes = [],
+    locationPatterns = [],
+    locationIds = [],
   } = options
 
   // Per Xoel (TheirStack co-founder, Apr 13 2026):
@@ -141,13 +151,35 @@ export function buildTheirStackSyncQuery(options: TheirStackSyncOptions = {}): J
     include_total_results: true,
     blur_company_data: preview,
     ...(remoteOnly ? { remote: true } : {}),
+    ...(countryCodes.length > 0 ? { job_country_code_or: countryCodes } : {}),
+    ...(locationPatterns.length > 0 ? { job_location_pattern_or: locationPatterns } : {}),
+    ...(locationIds.length > 0 ? { job_location_or: locationIds.map((id) => ({ id })) } : {}),
   }
+}
+
+function getPrimaryCountry(job: TheirStackJob): string | undefined {
+  return job.country
+    ?? job.locations?.find((location) => location.country_name)?.country_name
+    ?? job.countries?.[0]
+    ?? undefined
+}
+
+function getPrimaryCity(job: TheirStackJob): string | undefined {
+  return job.cities?.[0]
+    ?? job.locations?.find((location) => location.name)?.name
+    ?? undefined
 }
 
 export function mapTheirStackToOpportunity(job: TheirStackJob): Omit<ExternalOpportunity, "_id"> {
   const salaryStr = job.salary_string ?? undefined
   const workMode = resolveWorkMode(job)
-  const location = job.location ?? (workMode === "remote" ? "Remote" : undefined)
+  const country = getPrimaryCountry(job)
+  const city = getPrimaryCity(job)
+  const location = job.location
+    ?? job.long_location
+    ?? job.short_location
+    ?? [city, country].filter(Boolean).join(", ")
+    ?? (workMode === "remote" ? "Remote" : undefined)
 
   const descriptionParts: string[] = []
   if (job.description) descriptionParts.push(stripMarkdown(job.description))
@@ -173,8 +205,8 @@ export function mapTheirStackToOpportunity(job: TheirStackJob): Omit<ExternalOpp
     experienceLevel: job.seniority ?? undefined,
     workMode,
     location,
-    city: undefined,
-    country: undefined,
+    city,
+    country,
     timeCommitment: job.employment_statuses?.includes("full-time")
       ? "40+ hours"
       : "25-40 hours",

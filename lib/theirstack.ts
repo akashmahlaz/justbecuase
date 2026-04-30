@@ -66,6 +66,24 @@ export interface TheirStackJob {
   company: string
   company_domain: string | null
   location: string | null
+  short_location?: string | null
+  long_location?: string | null
+  country?: string | null
+  country_code?: string | null
+  country_codes?: string[]
+  countries?: string[]
+  cities?: string[]
+  continents?: string[]
+  locations?: Array<{
+    id: number
+    name: string | null
+    display_name: string | null
+    country_code: string | null
+    country_name: string | null
+    continent: string | null
+    admin1_name?: string | null
+    feature_code?: string | null
+  }>
   remote: boolean
   hybrid: boolean
   salary_string: string | null
@@ -117,6 +135,7 @@ export interface JobSearchParams {
   job_country_code_or?: string[]
   job_country_code_not?: string[]
   job_location_pattern_or?: string[]
+  job_location_or?: Array<{ id?: number; country_code?: string; continent?: string }>
   remote?: boolean | null
   posted_at_max_age_days?: number
   posted_at_gte?: string
