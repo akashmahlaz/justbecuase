@@ -29,6 +29,7 @@ export async function GET(request: Request) {
     let totalProcessed = 0
     const skippedNonRemote = 0
 
+    const opportunities: any[] = []
     const { opportunities: fetchedOpportunities, lastUpdated } = await fetchAllIdealistJobs(MAX_IDEALIST_FETCH)
     opportunities.push(...fetchedOpportunities)
 
