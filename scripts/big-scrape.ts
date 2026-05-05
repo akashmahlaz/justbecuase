@@ -18,7 +18,8 @@ import { scrapeGoAbroad } from "../lib/scraper/platforms/goabroad"
 import { mapSkillTags, mapCauseTags, detectWorkMode, detectExperienceLevel } from "../lib/scraper/skill-mapper"
 import { MongoClient } from "mongodb"
 
-const uri = process.env.MONGODB_URI || "mongodb+srv://admin:REDACTED_ROTATED_SECRET@justbecause.rjzpnln.mongodb.net/?appName=justbecause"
+const uri = process.env.MONGODB_URI
+if (!uri) throw new Error("MONGODB_URI environment variable is required")
 
 // ============================================
 // VOLUME PROFILES (pages × ~20-30 items/page)
