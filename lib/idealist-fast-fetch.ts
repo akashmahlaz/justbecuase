@@ -11,7 +11,7 @@ const API_BASE = "https://www.idealist.org"
 const API_KEY = process.env.IDEALIST_API_KEY || ""
 const DEFAULT_MAX_PAGES = Number(process.env.IDEALIST_MAX_LISTING_PAGES || 800)
 const DEFAULT_MAX_DETAILS = Number(process.env.IDEALIST_MAX_DETAIL_FETCH || 5000)
-const DEFAULT_DETAIL_CONCURRENCY = Math.max(5, Math.min(50, Number(process.env.IDEALIST_DETAIL_CONCURRENCY || 40)))
+const DEFAULT_DETAIL_CONCURRENCY = Math.max(3, Math.min(10, Number(process.env.IDEALIST_DETAIL_CONCURRENCY || 5)))
 const LIST_TIMEOUT_MS = Number(process.env.IDEALIST_LIST_TIMEOUT_MS || 60000)
 const DETAIL_TIMEOUT_MS = Number(process.env.IDEALIST_DETAIL_TIMEOUT_MS || 30000)
 const RETRIES = Number(process.env.IDEALIST_FETCH_RETRIES || 2)
@@ -70,18 +70,21 @@ interface IdealistJobDetail {
 // ============================================
 // Fetch ALL listings (IDs + basic info, fast)
 // ============================================
-export async function fetchAllIdealistListings(maxPages = DEFAULT_MAX_PAGES): Promise<IdealistListItem[]> {
+export async function fetchAllIdealistListings(
+  maxPages = DEFAULT_MAX_PAGES,
+  since = ""
+): Promise<{ listings: IdealistListItem[]; lastUpdated: string }> {
   if (!API_KEY) throw new Error("IDEALIST_API_KEY not set")
 
   const listings: IdealistListItem[] = []
-  let since = ""
+  let sinceCursor = since
   let hasMore = true
   let page = 0
 
   while (hasMore && page < maxPages) {
     page++
-    const url = since
-      ? `${API_BASE}/api/v1/listings/jobs?since=${encodeURIComponent(since)}`
+    const url = sinceCursor
+      ? `${API_BASE}/api/v1/listings/jobs?since=${encodeURIComponent(sinceCursor)}`
       : `${API_BASE}/api/v1/listings/jobs`
 
     const res = await fetchWithRetry(url, { headers: getHeaders(), signal: AbortSignal.timeout(LIST_TIMEOUT_MS) }, RETRIES)
@@ -99,15 +102,15 @@ export async function fetchAllIdealistListings(maxPages = DEFAULT_MAX_PAGES): Pr
 
     for (const item of items) {
       if (item.isPublished === false) continue
-      since = item.updated
+      sinceCursor = item.updated
       listings.push(item)
     }
 
-    await sleep(150)
+    await sleep(250)
   }
 
   console.log(`[Idealist] Listed ${listings.length} jobs across ${page} pages`)
-  return listings
+  return { listings, lastUpdated: sinceCursor }
 }
 
 // ============================================
@@ -122,7 +125,7 @@ async function fetchDetailsBatch(
     const batch = ids.slice(i, i + concurrency)
     const batchResults = await Promise.all(batch.map(id => fetchJobDetail(id)))
     results.push(...batchResults)
-    if (i + concurrency < ids.length) await sleep(80)
+    if (i + concurrency < ids.length) await sleep(250)
   }
   return results
 }
@@ -205,10 +208,14 @@ function mapJobToOpp(d: IdealistJobDetail | IdealistListItem, detail?: IdealistJ
 // ============================================
 export async function fetchAllIdealistJobs(
   maxDetails = DEFAULT_MAX_DETAILS,
-  maxListingPages = DEFAULT_MAX_PAGES
-): Promise<Omit<ExternalOpportunity, "_id">[]> {
-  console.log("[Idealist] Phase 1: fetching all listing IDs...")
-  const listings = await fetchAllIdealistListings(maxListingPages)
+  maxListingPages = DEFAULT_MAX_PAGES,
+  sinceTimestamp?: string
+): Promise<{ opportunities: Omit<ExternalOpportunity, "_id">[]; lastUpdated: string }> {
+  // Use provided since or fall back to env (for incremental syncs)
+  const since = sinceTimestamp || process.env.IDEALIST_LAST_SYNC_TIMESTAMP || ""
+
+  console.log(`[Idealist] Phase 1: fetching listings${since ? ` (since: ${since})` : " (full sync)"}...`)
+  const { listings, lastUpdated } = await fetchAllIdealistListings(maxListingPages, since)
   console.log(`[Idealist] Got ${listings.length} listings`)
 
   // Sort by updated desc — fetch details for most recent first
@@ -244,7 +251,7 @@ export async function fetchAllIdealistJobs(
   }
 
   console.log(`[Idealist] Total remote opportunities: ${remoteCount} (${detailsToFetch.length - (detailResults.filter(Boolean).length)} detail fetches failed)`)
-  return opportunities
+  return { opportunities, lastUpdated }
 }
 
 // ============================================

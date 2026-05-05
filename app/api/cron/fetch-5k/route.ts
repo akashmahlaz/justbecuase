@@ -109,8 +109,11 @@ export async function GET(request: Request) {
   if (includeIdealist) try {
     console.log("[fetch-5k] Fetching Idealist (parallel detail fetching)...")
     const istStart = Date.now()
-    const opportunities = await fetchAllIdealistJobs(idealistMaxFetch, idealistMaxPages)
-    const relevantOpportunities = opportunities.filter(isRemoteRelevantOpportunity)
+    const { opportunities: fetchedOpportunities, lastUpdated } = await fetchAllIdealistJobs(idealistMaxFetch, idealistMaxPages)
+    const relevantOpportunities = fetchedOpportunities.filter(isRemoteRelevantOpportunity)
+    if (lastUpdated) {
+      console.log(`[fetch-5k] Idealist last updated: ${lastUpdated}`)
+    }
     stats.idealist.total = opportunities.length
     stats.idealist.remoteOnly = opportunities.length
     stats.idealist.relevant = relevantOpportunities.length

@@ -29,7 +29,14 @@ export async function GET(request: Request) {
     let totalProcessed = 0
     const skippedNonRemote = 0
 
-    const opportunities = await fetchAllIdealistJobs(MAX_IDEALIST_FETCH)
+    const { opportunities: fetchedOpportunities, lastUpdated } = await fetchAllIdealistJobs(MAX_IDEALIST_FETCH)
+    opportunities.push(...fetchedOpportunities)
+
+    // Save last sync timestamp for incremental fetches
+    if (lastUpdated) {
+      console.log(`[Idealist] Last updated timestamp: ${lastUpdated}`)
+      // In production, persist this to your DB or env file for next run
+    }
 
     for (let index = 0; index < opportunities.length; index += BATCH_SIZE) {
       const batch = opportunities.slice(index, index + BATCH_SIZE)
