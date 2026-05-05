@@ -114,8 +114,8 @@ export async function GET(request: Request) {
     if (lastUpdated) {
       console.log(`[fetch-5k] Idealist last updated: ${lastUpdated}`)
     }
-    stats.idealist.total = opportunities.length
-    stats.idealist.remoteOnly = opportunities.length
+    stats.idealist.total = fetchedOpportunities.length
+    stats.idealist.remoteOnly = fetchedOpportunities.length
     stats.idealist.relevant = relevantOpportunities.length
     console.log(`[fetch-5k] Idealist: ${stats.idealist.total} remote opportunities, ${stats.idealist.relevant} relevant`)
 
