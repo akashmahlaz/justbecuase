@@ -8,7 +8,8 @@ import { fetchAllJobsUnfiltered, mapApiJobToOpportunity } from "../lib/reliefweb
 import { fetchAllNonprofitJobs, mapJobToOpportunity } from "../lib/idealist-api"
 import { MongoClient } from "mongodb"
 
-const uri = process.env.MONGODB_URI || "mongodb+srv://admin:REDACTED_ROTATED_SECRET@justbecause.rjzpnln.mongodb.net/?appName=justbecause"
+const uri = process.env.MONGODB_URI
+if (!uri) throw new Error("MONGODB_URI environment variable is required")
 
 async function upsertOne(col: any, opp: any) {
   const result = await col.updateOne(
