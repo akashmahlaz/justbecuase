@@ -6,8 +6,9 @@
   "scripts": {
     "dev": "next dev",
     "t": "bunx tsc --noemit",
-    "build": "next build",
-    "git": "git add . ; git commit -m 'akash commit' ; git push",
+    "build": "node scripts/scan-secrets.mjs && next build",
+    "git": "node scripts/scan-secrets.mjs && git add . && git commit -m 'akash commit' && git push",
+    "secrets:scan": "node scripts/scan-secrets.mjs",
     "start": "next start",
     "lint": "next lint",
     "type-check": "tsc --noEmit"
