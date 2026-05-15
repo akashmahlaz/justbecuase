@@ -6,12 +6,12 @@
   "scripts": {
     "dev": "next dev",
     "t": "bunx tsc --noemit",
-    "build": "node scripts/scan-secrets.mjs && next build",
+    "build": "bun scripts/scan-secrets.mjs && bun scripts/clean-next-dev-types.mjs && next build",
     "git": "node scripts/scan-secrets.mjs && git add . && git commit -m 'akash commit' && git push",
     "secrets:scan": "node scripts/scan-secrets.mjs",
     "start": "next start",
     "lint": "next lint",
-    "type-check": "tsc --noEmit"
+    "type-check": "bun scripts/clean-next-dev-types.mjs && bunx tsc --noEmit"
   },
   "dependencies": {
     "@ai-sdk/google": "^3.0.23",
