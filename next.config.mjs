@@ -7,6 +7,11 @@ const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 
 const nextConfig = {
+  // Produce a self-contained build under .next/standalone.
+  // Required for Docker — lets the runner stage copy only the built output,
+  // keeping the final image lean (~200 MB vs 2+ GB with full node_modules).
+  output: 'standalone',
+
   // Enable strict mode for better React debugging
   reactStrictMode: true,
 

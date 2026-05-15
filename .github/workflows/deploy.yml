@@ -1,0 +1,100 @@
+name: Deploy to AWS ECR
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch: # allows manual trigger from GitHub UI
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      # ── 1. Get the code ────────────────────────────────────────────────────
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # ── 2. Install Bun (needed to build the Next.js app inside Docker) ─────
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      # ── 3. Log in to AWS using the IAM user credentials stored in GitHub ───
+      # AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY are the credentials from
+      # the "github-actions-deploy" IAM user you created on AWS Console.
+      # AWS_REGION is the region where your ECR repo lives (e.g. ap-south-1).
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      # ── 4. Log Docker into ECR ─────────────────────────────────────────────
+      # ECR is like a private Docker Hub on AWS.
+      # This step gets a temporary login password and logs Docker in.
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      # ── 5. Build the Docker image and push it to ECR ───────────────────────
+      # ECR_REGISTRY  = your ECR URL  (e.g. 123456789.dkr.ecr.ap-south-1.amazonaws.com)
+      # ECR_REPOSITORY = your repo name (e.g. justbecause-app)
+      # IMAGE_TAG      = the git commit SHA — every deploy gets a unique tag
+      #                  so you can roll back by deploying an older tag
+      - name: Build, tag and push image to ECR
+        id: build-image
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          docker build \
+            --build-arg NEXT_PUBLIC_APP_URL=${{ secrets.NEXT_PUBLIC_APP_URL }} \
+            --build-arg NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME=${{ secrets.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME }} \
+            --build-arg NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET=${{ secrets.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET }} \
+            --build-arg NEXT_PUBLIC_ALGOLIA_APP_ID=${{ secrets.NEXT_PUBLIC_ALGOLIA_APP_ID }} \
+            --build-arg NEXT_PUBLIC_ALGOLIA_SEARCH_KEY=${{ secrets.NEXT_PUBLIC_ALGOLIA_SEARCH_KEY }} \
+            -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG \
+            -t $ECR_REGISTRY/$ECR_REPOSITORY:latest \
+            .
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
+          echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
+
+      # ── 6. Update ECS service to use the new image ────────────────────────
+      # ECS_CLUSTER    = the name of your ECS cluster  (e.g. justbecause-prod)
+      # ECS_SERVICE    = the name of your ECS service  (e.g. justbecause-service)
+      # ECS_CONTAINER  = the container name inside your Task Definition
+      # TASK_DEFINITION = the name of your Task Definition (e.g. justbecause-task)
+      #
+      # This step:
+      #   a) Downloads your current Task Definition from ECS
+      #   b) Swaps the image tag to the new one we just pushed
+      #   c) Registers the updated Task Definition
+      #   d) Tells ECS to do a rolling deploy (drain old containers, start new ones)
+      - name: Download current ECS task definition
+        run: |
+          aws ecs describe-task-definition \
+            --task-definition ${{ secrets.ECS_TASK_DEFINITION }} \
+            --query taskDefinition > task-definition.json
+
+      - name: Update ECS task definition with new image
+        id: task-def
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        with:
+          task-definition: task-definition.json
+          container-name: ${{ secrets.ECS_CONTAINER_NAME }}
+          image: ${{ steps.build-image.outputs.image }}
+
+      - name: Deploy to ECS
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v2
+        with:
+          task-definition: ${{ steps.task-def.outputs.task-definition }}
+          service: ${{ secrets.ECS_SERVICE }}
+          cluster: ${{ secrets.ECS_CLUSTER }}
+          wait-for-service-stability: true
+          # ↑ GitHub Actions will wait until ECS finishes rolling deploy
+          #   before marking the workflow as succeeded or failed.

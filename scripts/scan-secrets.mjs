@@ -2,6 +2,13 @@ import { execFileSync } from "node:child_process"
 import { readFileSync } from "node:fs"
 import { extname } from "node:path"
 
+// Inside Docker there is no .git, so skip scanning.
+// Real credentials never enter the image — they come from ECS at runtime.
+if (process.env.SKIP_SECRET_SCAN === "1") {
+  console.log("Secret scan skipped (Docker build environment).")
+  process.exit(0)
+}
+
 const ALLOWED_PLACEHOLDERS = new Set([
   "username:password",
   "user:password",
