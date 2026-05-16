@@ -19,8 +19,7 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
-# These build-time env vars only need to exist for the build to succeed.
-# Real secrets come from ECS Task Definition at runtime, not baked into image.
+# ── Public vars (baked into client JS bundle — safe to have at build time) ───
 ARG NEXT_PUBLIC_APP_URL=https://justbecausenetwork.com
 ARG NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME=dh57hrdlc
 ARG NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET=akash001
@@ -33,7 +32,32 @@ ENV NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET=$NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET
 ENV NEXT_PUBLIC_ALGOLIA_APP_ID=$NEXT_PUBLIC_ALGOLIA_APP_ID
 ENV NEXT_PUBLIC_ALGOLIA_SEARCH_KEY=$NEXT_PUBLIC_ALGOLIA_SEARCH_KEY
 
-# Skip secret scan during Docker build (secrets come from ECS at runtime)
+# ── Server-side vars needed so Next.js can evaluate server modules during ─────
+# ── static page generation (generateStaticParams / opengraph-image routes). ───
+# ── These are ONLY used in the builder stage. The final runner image         ───
+# ── (FROM node:22-alpine) copies only .next/standalone — these values are   ───
+# ── NOT present in the image pushed to ECR. Real values come from ECS.       ───
+ARG MONGODB_URI
+ARG BETTER_AUTH_SECRET
+ARG BETTER_AUTH_URL=https://justbecausenetwork.com
+ARG ELASTICSEARCH_URL
+ARG ELASTICSEARCH_API_KEY
+ARG NEXT_PUBLIC_STREAM_API_KEY
+ARG STREAM_API_SECRET
+ARG OPENAI_API_KEY
+ARG GOOGLE_GENERATIVE_AI_API_KEY
+
+ENV MONGODB_URI=$MONGODB_URI
+ENV BETTER_AUTH_SECRET=$BETTER_AUTH_SECRET
+ENV BETTER_AUTH_URL=$BETTER_AUTH_URL
+ENV ELASTICSEARCH_URL=$ELASTICSEARCH_URL
+ENV ELASTICSEARCH_API_KEY=$ELASTICSEARCH_API_KEY
+ENV NEXT_PUBLIC_STREAM_API_KEY=$NEXT_PUBLIC_STREAM_API_KEY
+ENV STREAM_API_SECRET=$STREAM_API_SECRET
+ENV OPENAI_API_KEY=$OPENAI_API_KEY
+ENV GOOGLE_GENERATIVE_AI_API_KEY=$GOOGLE_GENERATIVE_AI_API_KEY
+
+# Skip secret scan — no .git inside Docker, secrets come from ECS at runtime
 ENV SKIP_SECRET_SCAN=1
 RUN bun run build
 
