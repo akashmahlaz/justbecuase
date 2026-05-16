@@ -63,38 +63,3 @@ jobs:
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
           echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
-
-      # ── 6. Update ECS service to use the new image ────────────────────────
-      # ECS_CLUSTER    = the name of your ECS cluster  (e.g. justbecause-prod)
-      # ECS_SERVICE    = the name of your ECS service  (e.g. justbecause-service)
-      # ECS_CONTAINER  = the container name inside your Task Definition
-      # TASK_DEFINITION = the name of your Task Definition (e.g. justbecause-task)
-      #
-      # This step:
-      #   a) Downloads your current Task Definition from ECS
-      #   b) Swaps the image tag to the new one we just pushed
-      #   c) Registers the updated Task Definition
-      #   d) Tells ECS to do a rolling deploy (drain old containers, start new ones)
-      - name: Download current ECS task definition
-        run: |
-          aws ecs describe-task-definition \
-            --task-definition ${{ secrets.ECS_TASK_DEFINITION }} \
-            --query taskDefinition > task-definition.json
-
-      - name: Update ECS task definition with new image
-        id: task-def
-        uses: aws-actions/amazon-ecs-render-task-definition@v1
-        with:
-          task-definition: task-definition.json
-          container-name: ${{ secrets.ECS_CONTAINER_NAME }}
-          image: ${{ steps.build-image.outputs.image }}
-
-      - name: Deploy to ECS
-        uses: aws-actions/amazon-ecs-deploy-task-definition@v2
-        with:
-          task-definition: ${{ steps.task-def.outputs.task-definition }}
-          service: ${{ secrets.ECS_SERVICE }}
-          cluster: ${{ secrets.ECS_CLUSTER }}
-          wait-for-service-stability: true
-          # ↑ GitHub Actions will wait until ECS finishes rolling deploy
-          #   before marking the workflow as succeeded or failed.
